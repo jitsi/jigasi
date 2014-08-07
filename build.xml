@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jigasi">
+
+    <property file="local.properties" />
+    <property name="jitsi.path" value="../jitsi" />
+    <property name="src" value="src" />
+    <property name="src.test" value="test" />
+    <property name="output" value="classes" />
+    <property name="output.test" value="test-classes" />
+    <property name="run.arg.line" value="" />
+    <property name="run.jvmarg.line" value="" />
+    <property name="dist" value="dist" />
+    <property name="doc" value="doc"/>
+    <property name="java.doc" value="${doc}/api"/>
+    <property name="junit.reports" value="junit-reports"/>
+
+    <condition property="label" value="build.SVN">
+        <not>
+            <isset property="label"/>
+        </not>
+    </condition>
+
+    <property
+        name="packname.win"
+        value="${ant.project.name}-windows-x86-${label}"/>
+    <property
+        name="packname.win64"
+    	value="${ant.project.name}-windows-x64-${label}"/>
+    <property
+        name="packname.lin"
+        value="${ant.project.name}-linux-x86-${label}"/>
+    <property
+        name="packname.lin64"
+    	value="${ant.project.name}-linux-x64-${label}"/>
+    <property
+    	name="packname.macosx"
+        value="${ant.project.name}-macosx-${label}"/>
+    <property name="packname.src" value="${ant.project.name}-src-${label}"/>
+
+    <path id="compile.classpath">
+        <fileset dir="lib" includes="*.jar" />
+    </path>
+    <path id="run.classpath">
+        <path refid="compile.classpath" />
+        <pathelement location="${output}" />
+    </path>
+    <path id="test.classpath">
+        <path refid="run.classpath" />
+        <fileset dir="test-lib" includes="*.jar" />
+    </path>
+    <path id="run.test.classpath">
+        <path refid="test.classpath" />
+        <pathelement location="${output.test}" />
+    </path>
+
+    <target name="clean">
+        <delete failonerror="false" includeemptydirs="true">
+            <fileset dir="${output}" />
+            <fileset dir="${output.test}" />
+            <fileset dir="${dist}" />
+            <fileset dir="${doc}" />
+            <fileset dir="${junit.reports}" />
+        </delete>
+    </target>
+
+    <!-- Copies/Updates jitsi bundles from the jitsi project path to the
+        current libs folder. Copies only the bundles that are already present
+        in the lib/bundles folder.
+     -->
+    <target name="copy-jitsi-bundles" if="jitsi.path">
+        <copy todir="lib" verbose="true" overwrite="true">
+            <fileset dir="./${jitsi.path}/sc-bundles">
+                <include name="*.jar"/>
+                <not>
+                    <present present="srconly" targetdir="lib"/>
+                </not>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="${output}" />
+        <javac
+            classpathref="compile.classpath"
+            destdir="${output}"
+            debug="true"
+            fork="true"
+            source="1.5"
+            srcdir="${src}"
+            target="1.5" />
+    </target>
+
+    <target name="compile-test" depends="compile">
+        <mkdir dir="${output.test}" />
+        <javac
+                classpathref="test.classpath"
+                destdir="${output.test}"
+                debug="true"
+                fork="true"
+                source="1.5"
+                srcdir="${src.test}"
+                target="1.5" />
+    </target>
+
+    <target name="run">
+        <condition property="run.lib.native" value="windows-64">
+            <os arch="amd64" family="windows" />
+        </condition>
+        <condition property="run.lib.native" value="windows">
+            <os arch="i386" family="windows" />
+        </condition>
+        <condition property="run.lib.native" value="macosx">
+            <os family="mac" />
+        </condition>
+        <condition property="run.lib.native" value="linux-64">
+            <and>
+                <equals
+                        arg1="${os.name}"
+                        arg2="linux"
+                        casesensitive="false"
+                        trim="true"/>
+                <os arch="amd64" />
+            </and>
+        </condition>
+        <condition property="run.lib.native" value="linux">
+            <and>
+                <equals
+                        arg1="${os.name}"
+                        arg2="linux"
+                        casesensitive="false"
+                        trim="true"/>
+                <os arch="i386" />
+            </and>
+        </condition>
+        <condition
+                else=""
+                property="run.java.library.path"
+                value="-Djava.library.path=${basedir}/lib/native/${run.lib.native}">
+            <isset property="run.lib.native"/>
+	    </condition>
+        <java
+	            classname="org.jitsi.jigasi.Main"
+	            classpathref="run.classpath"
+	            failonerror="true"
+	            fork="true" >
+            <jvmarg line="${run.java.library.path} ${run.jvmarg.line}" />
+            <arg line="${run.arg.line}" />
+        </java>
+    </target>
+
+    <target name="test" depends="compile-test">
+        <mkdir dir="${junit.reports}"/>
+        <junit printsummary="yes" haltonfailure="true" fork="true" forkmode="once">
+            <formatter type="xml" />
+            <classpath refid="run.test.classpath"/>
+            <sysproperty
+                    key="java.library.path"
+                    path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
+            <test name="org.jitsi.jigasi.JigasiTestSuite"
+                  todir="${junit.reports}"/>
+        </junit>
+    </target>
+
+    <target name="jar" depends="compile">
+        <jar
+            compress="true"
+            destfile="jigasi.jar">
+        <fileset casesensitive="no" dir="${output}">
+            <include name="**/*.class" />
+            <include name="**/*.properties" />
+            <exclude name="${output}/jigasi.jar" />
+        </fileset>
+        </jar>
+    </target>
+
+    <target
+        name="make"
+        depends="compile,jar"
+        description="Incrementally compile and jar/package the project." />
+
+    <target
+        name="rebuild"
+        depends="clean,make"
+        description="Clean and make the project." />
+
+    <!-- JAVADOC -->
+    <target name="javadoc"
+        description="Generates project javadoc.">
+        <javadoc author="true" destdir="${java.doc}" package="true"
+            version="true" use="true" windowtitle="Jitsi API"
+            classpathref="compile.classpath" source="1.5+" maxmemory="256m">
+            <packageset dir="${src}">
+                <include name="**"/>
+            </packageset>
+            <tag name="todo" description="To do:"/>
+            <tag name="note" description="Note:"/>
+            <link href="${j2se_api}" />
+            <header>
+                <![CDATA[
+                <b> Jitsi: the OpenSource Java VoIP and Instant Messaging client. </b>
+                ]]>
+            </header>
+            <bottom>
+                <![CDATA[
+                <font size="-1">
+                    <a href="http://jitsi.org"> Jitsi, the OpenSource Java VoIP and Instant Messaging client. </a>
+                    <br>
+                        <a href="http://gnu.org"> Distributable under LGPL license. </a>
+                    <br>
+                </font>
+                ]]>
+            </bottom>
+        </javadoc>
+    </target>
+
+
+</project>
