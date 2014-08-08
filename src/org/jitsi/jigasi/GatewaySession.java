@@ -150,33 +150,6 @@ public class GatewaySession
     }
 
     /**
-     * Creates new <tt>SipGatewayExtension</tt> that describes this gateway
-     * session.
-     * @param state current call state.
-     * @param error an error string if any.FIXME: to be removed
-     * @return new <tt>SipGatewayExtension</tt> that describes this gateway
-     *         session.
-     */
-    SipGatewayExtension createPresenceExtension(String state, String error)
-    {
-        SipGatewayExtension gatewayExtension
-            = new SipGatewayExtension();
-
-        gatewayExtension.setResource(callResource);
-
-        if (state != null)
-        {
-            gatewayExtension.setState(state);
-        }
-        if (error != null)
-        {
-            gatewayExtension.setError(error);
-        }
-
-        return gatewayExtension;
-    }
-
-    /**
      * Starts new outgoing session by dialing given SIP number and joining JVB
      * conference held in given MUC room.
      * @param destination the destination SIP number that will be called.

@@ -31,12 +31,12 @@ public class RayoIqProvider
     public final static String NAMESPACE = "urn:xmpp:rayo:1";
 
     /**
-     * Creates new instance of <tt>RayoIqProvider</tt>.
+     * Registers this IQ provider into given <tt>ProviderManager</tt>.
+     * @param providerManager the <tt>ProviderManager</tt> to which this
+     *                        instance wil be bound to.
      */
-    public RayoIqProvider()
+    public void registerRayoIQs(ProviderManager providerManager)
     {
-        ProviderManager providerManager = ProviderManager.getInstance();
-
         // <dial>
         providerManager.addIQProvider(
             DialIq.ELEMENT_NAME,

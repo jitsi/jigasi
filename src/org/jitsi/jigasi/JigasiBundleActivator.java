@@ -9,6 +9,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.xmpp.rayo.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
@@ -94,9 +95,12 @@ public class JigasiBundleActivator
             return;
 
         // FIXME: not sure where to put this...
+        ProviderManager providerManager = ProviderManager.getInstance();
+
         // Register Jitsi Meet media presence extension.
-        MediaPresenceExtension.registerExtensions(
-            ProviderManager.getInstance());
+        MediaPresenceExtension.registerExtensions(providerManager);
+        // Register Rayo IQs
+        new RayoIqProvider().registerRayoIQs(providerManager);
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
 

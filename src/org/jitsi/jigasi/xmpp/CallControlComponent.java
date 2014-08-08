@@ -60,8 +60,6 @@ public class CallControlComponent
      */
     public CallControlComponent(String subdomain, String serverName)
     {
-        new RayoIqProvider();
-
         this.domain = subdomain + "." + serverName;
     }
 

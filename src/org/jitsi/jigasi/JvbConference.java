@@ -12,7 +12,6 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
-import org.jitsi.jigasi.xmpp.rayo.*;
 import org.jitsi.service.neomedia.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.packet.*;
@@ -38,6 +37,12 @@ public class JvbConference
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(JvbConference.class);
+
+    /**
+     * Default status of our participant before we get any state from
+     * the <tt>CallPeer</tt>.
+     */
+    private static final String INIT_STATUS_NAME = "Initializing Call";
 
     /**
      * {@link GatewaySession} that uses this <tt>JvbConference</tt> instance.
@@ -474,8 +479,7 @@ public class JvbConference
               //  gatewaySession.createPresenceExtension(
                 //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
 
-            setPresenceStatus(
-                SipGatewayExtension.STATE_CONNECTING_JVB);
+            setPresenceStatus(INIT_STATUS_NAME);
 
             gatewaySession.notifyJvbRoomJoined();
 
