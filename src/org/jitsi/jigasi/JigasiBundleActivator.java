@@ -6,9 +6,11 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.service.configuration.*;
+import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
 
 /**
@@ -90,6 +92,11 @@ public class JigasiBundleActivator
 
         if (!(service instanceof ProtocolProviderService))
             return;
+
+        // FIXME: not sure where to put this...
+        // Register Jitsi Meet media presence extension.
+        MediaPresenceExtension.registerExtensions(
+            ProviderManager.getInstance());
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
 

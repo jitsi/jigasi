@@ -9,9 +9,11 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
+import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
-import net.java.sip.communicator.util.Logger;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import org.jitsi.jigasi.xmpp.rayo.*;
+import org.jitsi.service.neomedia.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.packet.*;
 import org.osgi.framework.*;
@@ -129,6 +131,49 @@ public class JvbConference
         this.roomName = roomName;
     }
 
+    /**
+     * Includes info about given <tt>peer</tt> media SSRCs in MUC presence.
+     * @param peer the <tt>CallPeer</tt> whose media SSRCs will be advertised.
+     */
+    private void advertisePeerSSRCs(CallPeer peer)
+    {
+        String audioSSRC = getPeerSSRCforMedia(peer,
+                                               MediaType.AUDIO);
+        String videoSSRC = getPeerSSRCforMedia(peer,
+                                               MediaType.VIDEO);
+        logger.info(
+            "Peer " + peer.getState()
+                + " SSRCs audio: " + audioSSRC
+                + " video: " + videoSSRC);
+
+        MediaPresenceExtension mediaPresence
+            = new MediaPresenceExtension();
+
+        if (audioSSRC != null)
+        {
+            MediaPresenceExtension.Source ssrc
+                = new MediaPresenceExtension.Source();
+
+            ssrc.setMediaType(MediaType.AUDIO.toString());
+            ssrc.setSSRC(audioSSRC);
+
+            mediaPresence.addChildExtension(ssrc);
+        }
+
+        if (videoSSRC != null)
+        {
+            MediaPresenceExtension.Source ssrc
+                = new MediaPresenceExtension.Source();
+
+            ssrc.setMediaType(MediaType.VIDEO.toString());
+            ssrc.setSSRC(videoSSRC);
+
+            mediaPresence.addChildExtension(ssrc);
+        }
+
+        sendPresenceExtension(mediaPresence);
+    }
+
     private String getDisplayName()
     {
         String mucDisplayName = null;
@@ -159,6 +204,30 @@ public class JvbConference
     public ChatRoom getJvbRoom()
     {
         return mucRoom;
+    }
+
+    /**
+     * Returns local SSRC of media stream sent towards given <tt>peer</tt>.
+     * @param peer the peer to whom media is sent.
+     * @param mediaType type of media sent.
+     */
+    private String getPeerSSRCforMedia(CallPeer peer, MediaType mediaType)
+    {
+        if (!(peer instanceof MediaAwareCallPeer))
+            return null;
+
+        MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+        CallPeerMediaHandler mediaHandler
+            = peerMedia.getMediaHandler();
+        if (mediaHandler == null)
+            return null;
+
+        MediaStream stream = mediaHandler.getStream(mediaType);
+        if (stream == null)
+            return null;
+
+        return Long.toString(stream.getLocalSourceID());
     }
 
     /**
@@ -603,10 +672,16 @@ public class JvbConference
                 @Override
                 public void peerStateChanged(CallPeerChangeEvent evt)
                 {
+                    CallPeer peer = evt.getSourceCallPeer();
+                    CallPeerState peerState = peer.getState();
                     logger.info(
                         gatewaySession.getCallResource()
-                        + " JVB peer state: "
-                        + ((CallPeerState)evt.getNewValue()).getStateString());
+                        + " JVB peer state: " + peerState);
+
+                    if (CallPeerState.CONNECTED.equals(peerState))
+                    {
+                        advertisePeerSSRCs(peer);
+                    }
                 }
             });
 
