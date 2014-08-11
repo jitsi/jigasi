@@ -6,10 +6,10 @@
  */
 package org.jitsi.jigasi.xmpp;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.util.*;
 import org.dom4j.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.jigasi.xmpp.rayo.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.IQ;

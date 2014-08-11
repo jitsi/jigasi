@@ -7,9 +7,9 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
-import org.jitsi.jigasi.xmpp.rayo.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;

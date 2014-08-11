@@ -6,12 +6,12 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.xmpp.*;
-import org.jitsi.jigasi.xmpp.rayo.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
 import org.junit.*;

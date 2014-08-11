@@ -6,6 +6,7 @@
  */
 package org.jitsi.jigasi.xmpp.rayo;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jivesoftware.smack.packet.IQ;
 import org.junit.Test;
