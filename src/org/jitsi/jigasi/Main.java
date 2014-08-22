@@ -214,14 +214,14 @@ public class Main
                 public void start(BundleContext bundleContext)
                     throws Exception
                 {
-                    // TODO Auto-generated method stub
+                    // This will be launched after OSGi startup
                 }
 
                 @Override
                 public void stop(BundleContext bundleContext)
                     throws Exception
                 {
-                    // TODO Auto-generated method stub
+                    // This will be launched after OSGi shutdown
                 }
             };
 

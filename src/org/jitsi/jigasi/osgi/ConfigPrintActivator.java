@@ -11,18 +11,16 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.util.Logger;
 import org.osgi.framework.*;
 
+import java.util.regex.*;
+
 /**
- * Implements a <tt>BundleActivator</tt> for <tt>OSGi</tt> which starts and
- * stops it in a <tt>BundleContext</tt>.
- * <p>
- * <b>Warning</b>: The class <tt>OSGiBundleActivator</tt> is to be considered
- * internal, its access modifier is public in order to allow the OSGi framework
- * to find it by name and instantiate it.
- * </p>
+ * FIXME: just add logging option to {@link ConfigurationService} impl directly.
  *
- * @author Lyubomir Marinov
+ * Bundle that prints configuration properties on startup.
+ *
+ * @author Pawel Domas
  */
-public class OSGiBundleActivator
+public class ConfigPrintActivator
     implements BundleActivator
 {
     /**
@@ -30,7 +28,7 @@ public class OSGiBundleActivator
      * its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(OSGiBundleActivator.class);
+        = Logger.getLogger(ConfigPrintActivator.class);
 
     /**
      * Logs the properties of the <tt>ConfigurationService</tt> for the purposes
@@ -56,18 +54,33 @@ public class OSGiBundleActivator
 
                 if (cfg != null)
                 {
+                    /*
+                     * Do not print the values of properties with names which
+                     * mention the word password.
+                     */
+                    Pattern exclusion
+                        = Pattern.compile(
+                        "passw(or)?d",
+                        Pattern.CASE_INSENSITIVE);
+
                     for (String p : cfg.getAllPropertyNames())
                     {
                         Object v = cfg.getProperty(p);
 
                         if (v != null)
+                        {
+                            if (exclusion.matcher(p).find())
+                                v = "**********";
                             logger.info(p + "=" + v);
+                        }
                     }
                 }
             }
         }
         catch (Throwable t)
         {
+            logger.error(t, t);
+
             if (t instanceof InterruptedException)
                 interrupted = true;
             else if (t instanceof ThreadDeath)
@@ -80,31 +93,17 @@ public class OSGiBundleActivator
         }
     }
 
-    /**
-     * Starts the <tt>OSGi</tt> class in a <tt>BundleContext</tt>.
-     *
-     * @param bundleContext the <tt>BundleContext</tt> in which the
-     * <tt>OSGi</tt> class is to start
-     */
     @Override
     public void start(BundleContext bundleContext)
         throws Exception
     {
         logConfigurationServiceProperties(bundleContext);
-
-        OSGi.start(bundleContext);
     }
 
-    /**
-     * Stops the <tt>OSGi</tt> class in a <tt>BundleContext</tt>.
-     *
-     * @param bundleContext the <tt>BundleContext</tt> in which the
-     * <tt>OSGi</tt> class is to stop
-     */
     @Override
     public void stop(BundleContext bundleContext)
         throws Exception
     {
-        OSGi.stop(bundleContext);
+
     }
 }
