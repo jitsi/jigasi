@@ -11,6 +11,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.impl.osgi.framework.*;
+import org.jitsi.impl.osgi.framework.launch.*;
 import org.jitsi.service.configuration.*;
 import org.osgi.framework.*;
 
@@ -141,6 +142,10 @@ public class OSGi
      */
     private static void setSystemPropertyDefaults()
     {
+        // FIXME: some threads must be kept alive that prevent JVM
+        // from shutting down
+        FrameworkImpl.killAfterShutdown = true;
+
         /*
          * XXX A default System property value specified bellow will eventually
          * be set only if the System property in question does not have a value
