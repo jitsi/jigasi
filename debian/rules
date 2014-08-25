@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh $@ --with javahelper
+	
+override_dh_auto_build:
+	dh_auto_build -- make
+	
+override_dh_install-arch:
+ifeq ($(DEB_HOST_ARCH),amd64)
+	dh_install -pjigasi lib/native/linux-64/*.so usr/share/jigasi/lib/native/linux-64/
+else
+	dh_install -pjigasi lib/native/linux/*.so usr/share/jigasi/lib/native/linux/
+endif

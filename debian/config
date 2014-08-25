@@ -1,0 +1,12 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# sip account
+db_input critical jigasi/sip-account || true
+db_go
+
+# sip password
+db_input critical jigasi/sip-password || true
+db_go

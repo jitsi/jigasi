@@ -20,23 +20,6 @@
         </not>
     </condition>
 
-    <property
-        name="packname.win"
-        value="${ant.project.name}-windows-x86-${label}"/>
-    <property
-        name="packname.win64"
-    	value="${ant.project.name}-windows-x64-${label}"/>
-    <property
-        name="packname.lin"
-        value="${ant.project.name}-linux-x86-${label}"/>
-    <property
-        name="packname.lin64"
-    	value="${ant.project.name}-linux-x64-${label}"/>
-    <property
-    	name="packname.macosx"
-        value="${ant.project.name}-macosx-${label}"/>
-    <property name="packname.src" value="${ant.project.name}-src-${label}"/>
-
     <path id="compile.classpath">
         <fileset dir="lib" includes="*.jar" />
     </path>
@@ -60,6 +43,7 @@
             <fileset dir="${dist}" />
             <fileset dir="${doc}" />
             <fileset dir="${junit.reports}" />
+            <fileset dir="release" />
         </delete>
     </target>
 
@@ -212,6 +196,103 @@
             </bottom>
         </javadoc>
     </target>
+    
+    <target name="deb" depends="deb-32,deb-64"/>
+    <target name="deb-32">
+        <antcall target="make-deb">
+            <param name="arch" value="i386"/>
+            <!--param name="system-arch" value="linux-x86"/>
+            <param name="include-dir" value="linux"/>
+            <param name="exclude-dir" value="linux-64"/-->
+        </antcall>
+    </target>
+    <target name="deb-64">
+        <antcall target="make-deb">
+            <param name="arch" value="amd64"/>
+            <!--param name="system-arch" value="linux-x64"/>
+            <param name="include-dir" value="linux-64"/>
+            <param name="exclude-dir" value="linux"/-->
+        </antcall>
+    </target>
 
+    <!-- The path to the dpkg-buildpackage tool -->
+    <property name="dpkg-buildpackage" value="/usr/bin/dpkg-buildpackage"/>
+    <!-- The path to the dh_testdir tool -->
+    <property name="dh_testdir" value="/usr/bin/dh_testdir"/>
+
+    <!-- Can we build debian packages? -->
+    <condition property="dpkg.build.present">
+      <and>
+        <available file="${dpkg-buildpackage}"/>
+        <available file="${dh_testdir}"/>
+      </and>
+    </condition>
+
+    <!-- Outputs a warning notifying the user that a dpkg tool is missing. -->
+    <target name="dpkg-build-warning" unless="dpkg.build.present">
+        <echo message="Either the ${dpkg-buildpackage} tool or the debhelper tools was not found on your system."/>
+        <echo message="Try installing the 'dpkg-dev' and 'debhelper' packages"/>
+    </target>
+    
+        <!-- Builds the debian package. -->
+    <target name="make-deb"
+    		if="dpkg.build.present"
+            depends="make,dpkg-build-warning">
+            
+        <!-- create jitsi copy to work on it -->
+        <property name="debian.target.dir"
+                  value="release/jigasi" />
+	    <mkdir dir="${debian.target.dir}"/>
+		<antcall target="deb-copy-jigasi">
+            <param name="target.dir" value="${debian.target.dir}"/>
+        </antcall>
+        
+    </target>
+    
+    <target name="deb-copy-jigasi">
+        <copy todir="${target.dir}/debian">
+            <fileset dir="debian">
+                <include name="**/*"/>
+                <exclude name="changelog.tmpl"/>
+            </fileset>
+        </copy>
+        <copy todir="${target.dir}/src">
+            <fileset dir="src">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <copy todir="${target.dir}/jigasi-home">
+            <fileset dir="jigasi-home">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <copy todir="${target.dir}/lib">
+            <fileset dir="lib">
+                <include name="**/*"/>
+                <exclude name="**/macosx/**"/>
+                <exclude name="**/windows*/**"/>
+            </fileset>
+        </copy>
+
+
+        <copy todir="${target.dir}">
+            <filelist dir="." files="build.xml"/>
+        </copy>
+        
+        <copy file="debian/changelog.tmpl"
+              tofile="${target.dir}/debian/changelog"
+              overwrite="true"/>
+        <tstamp>
+            <format property="date"
+                    pattern="EEE, d MMM yyyy HH:mm:ss Z" locale="en,US"/>
+        </tstamp>
+    	<replace file="${target.dir}/debian/changelog"
+                 token="_DATE_" value="${date}"/>
+        <replace file="${target.dir}/debian/changelog"
+                 token="_VERSION_" value="${label}"/>
+        
+        
+        
+    </target>
 
 </project>

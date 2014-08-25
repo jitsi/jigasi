@@ -1,0 +1,12 @@
+Template: jigasi/sip-account
+Type: string
+Description: SIP username
+ The jigasi package needs the SIP username that will be used to invite 
+ other SIP account into Jitsi Meet conferences.
+ .
+ Enter the FULL account name, i.e. sipnumber@sip-provider.name
+
+Template: jigasi/sip-password
+Type: password
+Description: SIP password
+ Enter the password for the SIP account
