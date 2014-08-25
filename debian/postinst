@@ -76,6 +76,8 @@ case "$1" in
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
         sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
+        SIPSERVER=`echo $JIGASI_SIPUSER | cut -d'@' -f 2`
+        sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
 
         # update prosody config
         JIGASI_PROSODY="\nComponent \"callcontrol.$JVB_HOSTNAME\"\n    component_secret = \"$JIGASI_SECRET\"\n"
