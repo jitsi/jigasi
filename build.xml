@@ -200,18 +200,12 @@
     <target name="deb" depends="deb-32,deb-64"/>
     <target name="deb-32">
         <antcall target="make-deb">
-            <param name="arch" value="i386"/>
-            <!--param name="system-arch" value="linux-x86"/>
-            <param name="include-dir" value="linux"/>
-            <param name="exclude-dir" value="linux-64"/-->
+            <param name="deb-arch" value="i386"/>
         </antcall>
     </target>
     <target name="deb-64">
         <antcall target="make-deb">
-            <param name="arch" value="amd64"/>
-            <!--param name="system-arch" value="linux-x64"/>
-            <param name="include-dir" value="linux-64"/>
-            <param name="exclude-dir" value="linux"/-->
+            <param name="deb-arch" value="amd64"/>
         </antcall>
     </target>
 
@@ -236,14 +230,14 @@
     
         <!-- Builds the debian package. -->
     <target name="make-deb"
-    		if="dpkg.build.present"
+            if="dpkg.build.present"
             depends="make,dpkg-build-warning">
             
         <!-- create jitsi copy to work on it -->
         <property name="debian.target.dir"
                   value="release/jigasi" />
-	    <mkdir dir="${debian.target.dir}"/>
-		<antcall target="deb-copy-jigasi">
+        <mkdir dir="${debian.target.dir}"/>
+        <antcall target="deb-copy-jigasi">
             <param name="target.dir" value="${debian.target.dir}"/>
         </antcall>
         
@@ -286,13 +280,21 @@
             <format property="date"
                     pattern="EEE, d MMM yyyy HH:mm:ss Z" locale="en,US"/>
         </tstamp>
-    	<replace file="${target.dir}/debian/changelog"
+        <replace file="${target.dir}/debian/changelog"
                  token="_DATE_" value="${date}"/>
         <replace file="${target.dir}/debian/changelog"
                  token="_VERSION_" value="${label}"/>
-        
-        
-        
+
+        <!-- Build binary .deb package -->
+        <exec executable="${dpkg-buildpackage}" dir="${target.dir}">
+            <arg value="-tc"/>
+            <arg value="-us"/>
+            <arg value="-uc"/>
+            <arg value="-b"/>
+            <arg value="-d"/>
+            <arg value="-a${deb-arch}"/>
+        </exec>
+
     </target>
 
 </project>
