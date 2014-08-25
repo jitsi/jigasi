@@ -237,7 +237,7 @@
             depends="make,dpkg-build-warning">
             
         <!-- Build binary .deb package -->
-        <exec executable="${dpkg-buildpackage}" dir="${target.dir}">
+        <exec executable="${dpkg-buildpackage}" dir="${debian.target.dir}">
             <arg value="-tc"/>
             <arg value="-us"/>
             <arg value="-uc"/>
@@ -252,23 +252,23 @@
         <!-- create jitsi copy to work on it -->
         <mkdir dir="${debian.target.dir}"/>
 
-        <copy todir="${target.dir}/debian">
+        <copy todir="${debian.target.dir}/debian">
             <fileset dir="debian">
                 <include name="**/*"/>
                 <exclude name="changelog.tmpl"/>
             </fileset>
         </copy>
-        <copy todir="${target.dir}/src">
+        <copy todir="${debian.target.dir}/src">
             <fileset dir="src">
                 <include name="**/*"/>
             </fileset>
         </copy>
-        <copy todir="${target.dir}/jigasi-home">
+        <copy todir="${debian.target.dir}/jigasi-home">
             <fileset dir="jigasi-home">
                 <include name="**/*"/>
             </fileset>
         </copy>
-        <copy todir="${target.dir}/lib">
+        <copy todir="${debian.target.dir}/lib">
             <fileset dir="lib">
                 <include name="**/*"/>
                 <exclude name="**/macosx/**"/>
@@ -277,20 +277,20 @@
         </copy>
 
 
-        <copy todir="${target.dir}">
+        <copy todir="${debian.target.dir}">
             <filelist dir="." files="build.xml"/>
         </copy>
         
         <copy file="debian/changelog.tmpl"
-              tofile="${target.dir}/debian/changelog"
+              tofile="${debian.target.dir}/debian/changelog"
               overwrite="true"/>
         <tstamp>
             <format property="date"
                     pattern="EEE, d MMM yyyy HH:mm:ss Z" locale="en,US"/>
         </tstamp>
-        <replace file="${target.dir}/debian/changelog"
+        <replace file="${debian.target.dir}/debian/changelog"
                  token="_DATE_" value="${date}"/>
-        <replace file="${target.dir}/debian/changelog"
+        <replace file="${debian.target.dir}/debian/changelog"
                  token="_VERSION_" value="${label}"/>
     </target>
 
