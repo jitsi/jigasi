@@ -14,6 +14,9 @@
     <property name="java.doc" value="${doc}/api"/>
     <property name="junit.reports" value="junit-reports"/>
 
+    <property name="debian.target.dir" value="release/jigasi" />
+
+
     <condition property="label" value="build.SVN">
         <not>
             <isset property="label"/>
@@ -121,12 +124,12 @@
                 property="run.java.library.path"
                 value="-Djava.library.path=${basedir}/lib/native/${run.lib.native}">
             <isset property="run.lib.native"/>
-	    </condition>
+        </condition>
         <java
-	            classname="org.jitsi.jigasi.Main"
-	            classpathref="run.classpath"
-	            failonerror="true"
-	            fork="true" >
+                classname="org.jitsi.jigasi.Main"
+                classpathref="run.classpath"
+                failonerror="true"
+                fork="true" >
             <jvmarg line="${run.java.library.path} ${run.jvmarg.line}" />
             <arg line="${run.arg.line}" />
         </java>
@@ -196,18 +199,6 @@
             </bottom>
         </javadoc>
     </target>
-    
-    <target name="deb" depends="deb-32,deb-64"/>
-    <target name="deb-32">
-        <antcall target="make-deb">
-            <param name="deb-arch" value="i386"/>
-        </antcall>
-    </target>
-    <target name="deb-64">
-        <antcall target="make-deb">
-            <param name="deb-arch" value="amd64"/>
-        </antcall>
-    </target>
 
     <!-- The path to the dpkg-buildpackage tool -->
     <property name="dpkg-buildpackage" value="/usr/bin/dpkg-buildpackage"/>
@@ -227,23 +218,40 @@
         <echo message="Either the ${dpkg-buildpackage} tool or the debhelper tools was not found on your system."/>
         <echo message="Try installing the 'dpkg-dev' and 'debhelper' packages"/>
     </target>
-    
-        <!-- Builds the debian package. -->
+
+    <target name="deb" depends="deb-copy-jigasi,deb-32,deb-64"/>
+    <target name="deb-32">
+        <antcall target="make-deb">
+            <param name="deb-arch" value="i386"/>
+        </antcall>
+    </target>
+    <target name="deb-64">
+        <antcall target="make-deb">
+            <param name="deb-arch" value="amd64"/>
+        </antcall>
+    </target>
+
+    <!-- Builds the debian package. -->
     <target name="make-deb"
             if="dpkg.build.present"
             depends="make,dpkg-build-warning">
             
-        <!-- create jitsi copy to work on it -->
-        <property name="debian.target.dir"
-                  value="release/jigasi" />
-        <mkdir dir="${debian.target.dir}"/>
-        <antcall target="deb-copy-jigasi">
-            <param name="target.dir" value="${debian.target.dir}"/>
-        </antcall>
-        
+        <!-- Build binary .deb package -->
+        <exec executable="${dpkg-buildpackage}" dir="${target.dir}">
+            <arg value="-tc"/>
+            <arg value="-us"/>
+            <arg value="-uc"/>
+            <arg value="-b"/>
+            <arg value="-d"/>
+            <arg value="-a${deb-arch}"/>
+        </exec>
+
     </target>
     
     <target name="deb-copy-jigasi">
+        <!-- create jitsi copy to work on it -->
+        <mkdir dir="${debian.target.dir}"/>
+
         <copy todir="${target.dir}/debian">
             <fileset dir="debian">
                 <include name="**/*"/>
@@ -284,17 +292,6 @@
                  token="_DATE_" value="${date}"/>
         <replace file="${target.dir}/debian/changelog"
                  token="_VERSION_" value="${label}"/>
-
-        <!-- Build binary .deb package -->
-        <exec executable="${dpkg-buildpackage}" dir="${target.dir}">
-            <arg value="-tc"/>
-            <arg value="-us"/>
-            <arg value="-uc"/>
-            <arg value="-b"/>
-            <arg value="-d"/>
-            <arg value="-a${deb-arch}"/>
-        </exec>
-
     </target>
 
 </project>
