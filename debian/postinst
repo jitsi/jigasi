@@ -74,6 +74,8 @@ case "$1" in
             GROUP=jigasi
         fi
 
+        chmod o+w /var/log/jitsi/
+
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
         sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
