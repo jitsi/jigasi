@@ -47,6 +47,7 @@
             <fileset dir="${doc}" />
             <fileset dir="${junit.reports}" />
             <fileset dir="release" />
+            <fileset includes="jigasi.jar" dir="." />
         </delete>
     </target>
 
@@ -234,7 +235,7 @@
     <!-- Builds the debian package. -->
     <target name="make-deb"
             if="dpkg.build.present"
-            depends="make,dpkg-build-warning">
+            depends="dpkg-build-warning">
             
         <!-- Build binary .deb package -->
         <exec executable="${dpkg-buildpackage}" dir="${debian.target.dir}">
@@ -276,9 +277,9 @@
             </fileset>
         </copy>
 
-
         <copy todir="${debian.target.dir}">
             <filelist dir="." files="build.xml"/>
+            <filelist dir="." files="jigasi.sh"/>
         </copy>
         
         <copy file="debian/changelog.tmpl"
