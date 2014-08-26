@@ -81,9 +81,13 @@ case "$1" in
         sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
 
         # update prosody config
-        JIGASI_PROSODY="\nComponent \"callcontrol.$JVB_HOSTNAME\"\n    component_secret = \"$JIGASI_SECRET\"\n"
-        echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
-        invoke-rc.d prosody restart
+        if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ]; then
+            JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\"
+ component_secret = \"$JIGASI_SECRET\"
+"
+            echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
+            invoke-rc.d prosody restart
+        fi
 
         # update jitsi-meet config
         if [ ! "$(grep "call_control: 'callcontrol.$JVB_HOSTNAME'" /usr/share/jitsi-meet/config.js)" ]; then
