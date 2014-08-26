@@ -281,6 +281,7 @@
             <filelist dir="." files="build.xml"/>
             <filelist dir="." files="jigasi.sh"/>
         </copy>
+        <chmod file="${debian.target.dir}/jigasi.sh" perm="+x"/>
         
         <copy file="debian/changelog.tmpl"
               tofile="${debian.target.dir}/debian/changelog"
