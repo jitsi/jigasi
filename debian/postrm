@@ -43,6 +43,8 @@ case "$1" in
             deluser jigasi
         fi
 
+        sed "/Component \"callcontrol.\"/d" -i /etc/prosody/prosody.cfg.lua
+
         rm -rf /usr/share/jigasi/jigasi-home
         rm -rf /usr/share/jigasi/.java
         rm -f /etc/default/jigasi
