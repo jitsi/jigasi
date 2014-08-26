@@ -82,14 +82,15 @@ case "$1" in
         SIPSERVER=`echo $JIGASI_SIPUSER | cut -d'@' -f 2`
         sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
 
+        JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""
         # update prosody config
         if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ]; then
-            JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\"
- component_secret = \"$JIGASI_SECRET\"
-"
             echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
-            invoke-rc.d prosody restart
+        else
+            sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" /etc/prosody/prosody.cfg.lua
+            echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
         fi
+        invoke-rc.d prosody restart
 
         # update jitsi-meet config
         if [ ! "$(grep "call_control: 'callcontrol.$JVB_HOSTNAME'" /usr/share/jitsi-meet/config.js)" ]; then
