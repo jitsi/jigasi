@@ -44,6 +44,7 @@ case "$1" in
         fi
 
         rm -rf /usr/share/jigasi/jigasi-home
+        rm -rf /usr/share/jigasi/.java
         rm -f /etc/default/jigasi
 
         if [ -x "/etc/init.d/prosody" ]; then
