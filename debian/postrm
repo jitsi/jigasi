@@ -43,6 +43,8 @@ case "$1" in
             deluser jigasi
         fi
 
+        rm -rf /usr/share/jigasi/jigasi-home
+
         if [ -x "/etc/init.d/prosody" ]; then
             invoke-rc.d prosody reload
         fi
