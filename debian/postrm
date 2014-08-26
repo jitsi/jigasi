@@ -23,7 +23,7 @@ set -e
 
 
 case "$1" in
-    purge|remove)
+    purge)
 
         # Clear the debconf variable
         db_purge
@@ -48,7 +48,7 @@ case "$1" in
         fi
     ;;
 
-    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
 
     *)

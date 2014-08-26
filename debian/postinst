@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # postinst script for jigasi
 #
 # see: dh_installdeb(1)
@@ -21,11 +21,12 @@ set -e
 case "$1" in
     configure)
 
+        OLDCONFIG="false"
         # we don't want to regenerate config on upgrade
-        if [ -x "/etc/default/jigasi" ]; then
+        if [ -f "/etc/default/jigasi" ]; then
             . /etc/default/jigasi
-            if [[ "$JIGASI_SIPUSER" && "$JIGASI_SIPPWD" && "$JIGASI_SECRET" ]]; then
-                OLDCONFIG=true
+            if [ -n "$JIGASI_SIPUSER" ] && [ -n "$JIGASI_SIPPWD" ] && [ -n "$JIGASI_SECRET" ]; then
+                OLDCONFIG="true"
             fi
         fi
 
@@ -33,7 +34,7 @@ case "$1" in
         . /etc/default/jitsi-videobridge
 
         # generate config on new install
-        if [ ! "$OLDCONFIG" ]; then
+        if [ "$OLDCONFIG" = "false" ]; then
 
             # debconf SIP account questions
             . /usr/share/debconf/confmodule
