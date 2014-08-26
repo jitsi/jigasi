@@ -94,8 +94,9 @@ case "$1" in
 
         # update jitsi-meet config
         if [ ! "$(grep "call_control: 'callcontrol.$JVB_HOSTNAME'" /usr/share/jitsi-meet/config.js)" ]; then
-            JIGASI_MEET="call_control: 'callcontrol.$JVB_HOSTNAME',"
-            sed -i "s/hosts:\ {/hosts:\ {\n\t$JIGASI_MEET/g" /usr/share/jitsi-meet/config.js
+            JIGASI_MEET="        call_control: 'callcontrol.$JVB_HOSTNAME'"
+            #sed -i "s/hosts:\ {/hosts:\ {\n\t$JIGASI_MEET/g" /usr/share/jitsi-meet/config.js
+            sed -i 's/.*call_control: .*/$JIGASI_MEET/' /usr/share/jitsi-meet/config.js
         fi
 
         # ensure jigasi is not running - it will be started at the end
