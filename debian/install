@@ -1,3 +1,4 @@
 lib/*.jar usr/share/jigasi/lib
 jigasi-home/* usr/share/jigasi/jigasi-home
 jigasi.jar usr/share/jigasi
+jigasi.sh usr/share/jigasi
