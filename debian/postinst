@@ -87,7 +87,7 @@ case "$1" in
         if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ]; then
             echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
         else
-            sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" /etc/prosody/prosody.cfg.lua
+            sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" -i /etc/prosody/prosody.cfg.lua
             echo $JIGASI_PROSODY >> /etc/prosody/prosody.cfg.lua
         fi
         invoke-rc.d prosody restart
