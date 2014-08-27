@@ -23,8 +23,8 @@ import java.util.logging.Logger;
  * SIP gateway for Jitsi Videobridge conferences. Requires one XMPP and one SIP
  * account to be configured in sip-communicator.properties file. JVB conference
  * must be held on the same server as XMPP account. Currently after start the
- * conference held in {@link JvbConference#CHAT_ROOM_NAME} MUC is joined.
- * SIP account is used to dial {@link SipGateway#SIP_PEER} once we join
+ * conference held in {@link JvbConference#roomName} MUC is joined.
+ * SIP account is used to dial {@link SipGateway} once we join
  * the conference. Work in progress...
  *
  * @author Pawel Domas
@@ -207,7 +207,7 @@ public class Main
          * (APIs) of Jitsi Videobridge. Each of them will keep the application
          * alive.
          */
-        BundleActivator activator =
+        final BundleActivator activator =
             new BundleActivator()
             {
                 @Override
@@ -227,8 +227,7 @@ public class Main
 
         OSGi.start(activator);
 
-
-        ExternalComponentManager componentManager
+        final ExternalComponentManager componentManager
             = new ExternalComponentManager(host, port);
 
         componentManager.setSecretKey(subdomain, secret);
@@ -252,35 +251,38 @@ public class Main
 
         component.init();
 
-        if (!stop)
-        do
+        final String componentSubdomain = subdomain;
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                try
+                {
+                    componentManager.removeComponent(componentSubdomain);
+                }
+                catch (ComponentException e)
+                {
+                    logger.log(Level.SEVERE, e.getMessage(), e);
+                }
+
+                OSGi.stop(activator);
+
+                exitSyncRoot.notify();
+            }
+        });
+
+        /*
+         * The application has nothing more to do but wait for ComponentImpl
+         * to perform its duties. When stopped the ShutdownHook will perform
+         * and makes sure that OSGi is stopped and sip gateway unregistered.
+         */
+        synchronized (exitSyncRoot)
         {
             try
             {
-                if(System.in.read() == 'q')
-                    break;
-                // FIXME: temporary fix when input is redirected and
-                // being read all the time
-                // Change completely shutdown method !!!
-                Thread.sleep(100);
+                exitSyncRoot.wait();
             }
-            catch (Exception e)
-            {
-                logger.log(Level.SEVERE, e.getMessage(), e);
-                break;
-            }
-        }
-        while (true);
-
-        OSGi.stop(activator);
-
-        try
-        {
-            componentManager.removeComponent(subdomain);
-        }
-        catch (ComponentException e)
-        {
-            logger.log(Level.SEVERE, e.getMessage(), e);
+            catch (InterruptedException ie)
+            {}
         }
     }
 }

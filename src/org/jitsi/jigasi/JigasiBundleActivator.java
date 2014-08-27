@@ -78,7 +78,9 @@ public class JigasiBundleActivator
     public void stop(BundleContext bundleContext)
         throws Exception
     {
+        logger.info("Stopping JigasiBundleActivator");
 
+        gateway.stop();
     }
 
     @Override

@@ -84,6 +84,24 @@ public class SipGateway
     }
 
     /**
+     * Stopping the gateway and unregistering.
+     */
+    public void stop()
+    {
+        if (this.sipProvider == null)
+            throw new IllegalStateException("SIP provider not present");
+
+        try
+        {
+            this.sipProvider.unregister();
+        }
+        catch(OperationFailedException e)
+        {
+            logger.error("Cannot unregister");
+        }
+    }
+
+    /**
      * Sets SIP provider that will be used by this gateway.
      * @param sipProvider new SIP provider to set.
      */
