@@ -37,6 +37,13 @@ public class Main
     private static final Logger logger = Logger.getLogger(Main.class.getName());
 
     /**
+     * The <tt>Object</tt> which synchronizes the access to the state related to
+     * the decision whether the application is to exit. At the time of this
+     * writing, the application just runs until it is killed.
+     */
+    private static final Object exitSyncRoot = new Object();
+
+    /**
      * The name of the command-line argument which specifies the XMPP domain
      * to use.
      */
@@ -257,5 +264,30 @@ public class Main
                 OSGi.stop(activator);
             }
         });
+
+        /*
+         * The application has nothing more to do but wait for ComponentImpl
+         * to perform its duties. Presently, there is no specific shutdown
+         * procedure and the application just gets killed.
+         */
+        do
+        {
+            boolean interrupted = false;
+
+            synchronized (exitSyncRoot)
+            {
+                try
+                {
+                    exitSyncRoot.wait();
+                }
+                catch (InterruptedException ie)
+                {
+                    interrupted = true;
+                }
+            }
+            if (interrupted)
+                break;// just exit main
+        }
+        while (true);
     }
 }
