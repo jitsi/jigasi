@@ -37,13 +37,6 @@ public class Main
     private static final Logger logger = Logger.getLogger(Main.class.getName());
 
     /**
-     * The <tt>Object</tt> which synchronizes the access to the state related to
-     * the decision whether the application is to exit. At the time of this
-     * writing, the application just runs until it is killed.
-     */
-    private static final Object exitSyncRoot = new Object();
-
-    /**
      * The name of the command-line argument which specifies the XMPP domain
      * to use.
      */
@@ -237,8 +230,6 @@ public class Main
         CallControlComponent component
             = new CallControlComponent(subdomain, domain);
 
-        boolean stop = false;
-
         try
         {
             componentManager.addComponent(subdomain, component);
@@ -246,7 +237,6 @@ public class Main
         catch (ComponentException e)
         {
             logger.log(Level.SEVERE, e.getMessage(), e);
-            stop = true;
         }
 
         component.init();
@@ -265,24 +255,7 @@ public class Main
                 }
 
                 OSGi.stop(activator);
-
-                exitSyncRoot.notify();
             }
         });
-
-        /*
-         * The application has nothing more to do but wait for ComponentImpl
-         * to perform its duties. When stopped the ShutdownHook will perform
-         * and makes sure that OSGi is stopped and sip gateway unregistered.
-         */
-        synchronized (exitSyncRoot)
-        {
-            try
-            {
-                exitSyncRoot.wait();
-            }
-            catch (InterruptedException ie)
-            {}
-        }
     }
 }
