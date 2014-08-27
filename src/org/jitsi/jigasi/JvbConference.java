@@ -762,6 +762,18 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.IS_USE_UPNP, "false");
         properties.put(ProtocolProviderFactory.USE_DEFAULT_STUN_SERVER, "true");
 
+        String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
+        List<String> overriddenProps =
+            JigasiBundleActivator.getConfigurationservice()
+                .getPropertyNamesBySuffix(overridePrefix);
+        for(String prop : overriddenProps)
+        {
+            properties.put(
+                prop.replace(overridePrefix + ".", ""),
+                JigasiBundleActivator.getConfigurationservice()
+                    .getString(prop));
+        }
+
         return properties;
     }
 
