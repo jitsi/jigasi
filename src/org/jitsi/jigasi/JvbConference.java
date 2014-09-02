@@ -420,6 +420,12 @@ public class JvbConference
             logger.error("Unregistered XMPP on "
                              + gatewaySession.getCallResource());
         }
+        else
+        {
+            logger.info(
+                "XMPP (" + gatewaySession.getCallResource()
+                         + "): " + evt.toString());
+        }
     }
 
     /**
