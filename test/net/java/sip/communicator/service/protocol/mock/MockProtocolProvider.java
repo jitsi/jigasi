@@ -120,11 +120,18 @@ public class MockProtocolProvider
     {
         addSupportedOperationSet(
             OperationSetJitsiMeetTools.class,
-            new MockJitsiMeetTools());
+            new MockJitsiMeetTools(this));
     }
 
-    public OperationSetBasicTelephony getTelephony()
+    public MockJitsiMeetTools getJitsiMeetTools()
     {
-        return getOperationSet(OperationSetBasicTelephony.class);
+        return (MockJitsiMeetTools)
+            getOperationSet(OperationSetJitsiMeetTools.class);
+    }
+
+    public MockBasicTeleOpSet getTelephony()
+    {
+        return (MockBasicTeleOpSet) getOperationSet(
+            OperationSetBasicTelephony.class);
     }
 }

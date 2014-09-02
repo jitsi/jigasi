@@ -6,14 +6,12 @@
  */
 package org.jitsi.jigasi;
 
-import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 
-import java.beans.*;
 import java.text.*;
 
 /**
@@ -23,7 +21,7 @@ import java.text.*;
  * @author Pawel Domas
  */
 public class GatewaySession
-    implements PropertyChangeListener
+    implements OperationSetJitsiMeetTools.JitsiMeetRequestListener
 {
     /**
      * The logger.
@@ -34,6 +32,11 @@ public class GatewaySession
      * The <tt>SipGateway</tt> that manages this session.
      */
     private SipGateway sipGateway;
+
+    /**
+     * The {@link OperationSetJitsiMeetTools} for SIP leg.
+     */
+    private final OperationSetJitsiMeetTools jisitMeetTool;
 
     /**
      * The <tt>JvbConference</tt> that handles current JVB conference.
@@ -110,7 +113,7 @@ public class GatewaySession
                           String     callResource,
                           Call       sipCall)
     {
-        this.sipGateway = gateway;
+        this(gateway);
         this.callResource = callResource;
         this.call = sipCall;
     }
@@ -127,6 +130,9 @@ public class GatewaySession
     {
         this.sipGateway = gateway;
         this.sipProvider = gateway.getSipProvider();
+        this.jisitMeetTool
+            = sipProvider.getOperationSet(
+                    OperationSetJitsiMeetTools.class);
     }
 
     private void allCallsEnded()
@@ -424,15 +430,13 @@ public class GatewaySession
     }
 
     @Override
-    public void propertyChange(PropertyChangeEvent evt)
+    public void onJoinJitsiMeetRequest(Call call, String jitsiMeetRoom)
     {
-        if (jvbConference == null
-            && CallSipImpl.JVB_ROOM_PROPERTY.equals(evt.getPropertyName()))
+        if (jvbConference == null && this.call == call)
         {
-            String jvbRoom = (String) evt.getNewValue();
-            if (jvbRoom != null)
+            if (jitsiMeetRoom != null)
             {
-                joinJvbConference(jvbRoom);
+                joinJvbConference(jitsiMeetRoom);
             }
         }
     }
@@ -443,9 +447,6 @@ public class GatewaySession
      */
     void initIncomingCall()
     {
-        String conferenceRoomName
-            = (String) call.getParameter(CallSipImpl.JVB_ROOM_PROPERTY);
-
         call.addCallChangeListener(callStateListener);
 
         peerStateListener = new CallPeerListener(call);
@@ -454,10 +455,6 @@ public class GatewaySession
         {
             // Reject incoming call
             CallManager.hangupCall(call);
-        }
-        else if(conferenceRoomName != null)
-        {
-            joinJvbConference(conferenceRoomName);
         }
         else
         {
@@ -474,7 +471,7 @@ public class GatewaySession
 
         waitThread = new WaitForJvbRoomNameThread();
 
-        call.addPropertyChangeListener(this);
+        jisitMeetTool.addRequestListener(this);
 
         waitThread.start();
     }
@@ -682,6 +679,10 @@ public class GatewaySession
                 catch (InterruptedException e)
                 {
                     Thread.currentThread().interrupt();
+                }
+                finally
+                {
+                    jisitMeetTool.removeRequestListener(GatewaySession.this);
                 }
             }
         }

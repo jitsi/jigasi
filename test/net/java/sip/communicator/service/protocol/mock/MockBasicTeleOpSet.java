@@ -9,7 +9,6 @@ package net.java.sip.communicator.service.protocol.mock;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 
 import java.text.*;
 import java.util.*;
@@ -21,9 +20,6 @@ import java.util.*;
 public class MockBasicTeleOpSet
     extends AbstractOperationSetBasicTelephony<MockProtocolProvider>
 {
-    private final static Logger logger
-        = Logger.getLogger(MockBasicTeleOpSet.class);
-
     private final MockProtocolProvider protocolProvider;
 
     private List<MockCall> activeCalls = new ArrayList<MockCall>();
@@ -101,8 +97,7 @@ public class MockBasicTeleOpSet
         return protocolProvider;
     }
 
-    public synchronized MockCall createIncomingCall(
-            String calee, Map<String, Object> parameters)
+    public synchronized MockCall createIncomingCall(String calee)
     {
         MockCall incomingCall = new MockCall(this);
 
@@ -114,14 +109,24 @@ public class MockBasicTeleOpSet
 
         fireCallEvent(CallEvent.CALL_RECEIVED, incomingCall);
 
-        if (parameters != null)
+        return incomingCall;
+    }
+
+    public MockCall mockIncomingGatewayCall(String uri, final String roomName)
+    {
+        final MockCall call = createIncomingCall(uri);
+
+        // Gateway incoming call looks at the beginning like normal call,
+        // but then "join jitsi meet room" event is fired.
+        // It happens after CALL_RECEIVED event(done in createIncomingCall).
+
+        if (!CallState.CALL_ENDED.equals(call.getCallState()))
         {
-            for (String key : parameters.keySet())
-            {
-                incomingCall.setParameter(key, parameters.get(key));
-            }
+            getProtocolProvider()
+                .getJitsiMeetTools()
+                .notifyJoinJitsiMeetRoom(call, roomName);
         }
 
-        return incomingCall;
+        return call;
     }
 }

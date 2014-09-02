@@ -6,7 +6,6 @@
  */
 package org.jitsi.jigasi;
 
-import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
@@ -289,11 +288,8 @@ public class SipGateway
             {
 
                 Call call = event.getSourceCall();
-                String conferenceRoomName
-                    = (String) call.getParameter(CallSipImpl.JVB_ROOM_PROPERTY);
 
-                logger.info(
-                    "Received join room request for: " + conferenceRoomName);
+                logger.info("Incoming call received...");
 
                 String callResource
                     = callsControl.allocateNewSession(SipGateway.this);

@@ -70,6 +70,10 @@ public class MockProtocolProviderFactory
             protocolProvider.includeMultiUserChatOpSet();
             protocolProvider.includeJitsiMeetTools();
         }
+        if (ProtocolNames.SIP.equals(getProtocolName()))
+        {
+            protocolProvider.includeJitsiMeetTools();
+        }
 
         return protocolProvider;
     }

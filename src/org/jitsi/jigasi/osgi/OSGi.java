@@ -6,6 +6,7 @@
  */
 package org.jitsi.jigasi.osgi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
@@ -187,6 +188,11 @@ public class OSGi
                     .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
                 true_);
         defaults.put(SRTPCryptoContext.CHECK_REPLAY_PNAME, false_);
+
+        // Disables COIN notifications
+        defaults.put(
+            OperationSetTelephonyConferencingJabberImpl.DISABLE_COIN_PROP_NAME,
+            true_);
 
         for (Map.Entry<String,String> e : defaults.entrySet())
         {

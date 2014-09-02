@@ -7,7 +7,6 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
-import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.*;
@@ -122,15 +121,10 @@ public class CallsHandlingTest
         // session-initiate request to new participant.
         focus.setup();
 
-        MockBasicTeleOpSet sipTele
-            = (MockBasicTeleOpSet) sipProvider
-                    .getOperationSet(OperationSetBasicTelephony.class);
+        MockCall sipCall
+            = sipProvider.getTelephony()
+                    .mockIncomingGatewayCall("calee", roomName);
 
-        Map<String, Object> parameters = new HashMap<String, Object>();
-
-        parameters.put(CallSipImpl.JVB_ROOM_PROPERTY, roomName);
-
-        MockCall sipCall = sipTele.createIncomingCall("calee", parameters);
         CallStateListener callStateWatch = new CallStateListener();
 
         // SipGateway ought to accept incoming sip call
@@ -250,21 +244,15 @@ public class CallsHandlingTest
     {
         focus.setup();
 
-        // Create incoming call
-        MockBasicTeleOpSet sipTele
-            = (MockBasicTeleOpSet) sipProvider
-                .getOperationSet(OperationSetBasicTelephony.class);
-
-        Map<String, Object> parameters = new HashMap<String, Object>();
-
-        parameters.put(CallSipImpl.JVB_ROOM_PROPERTY, roomName);
-
         // Focus will leave the room after inviting us to the conference
         focus.setLeaveRoomAfterInvite(true);
 
         CallStateListener callStateWatch = new CallStateListener();
 
-        MockCall sipCall = sipTele.createIncomingCall("calee", parameters);
+        // Create incoming call
+        MockCall sipCall
+            = sipProvider.getTelephony()
+                    .mockIncomingGatewayCall("calee", roomName);
 
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 2000);
 
@@ -365,19 +353,15 @@ public class CallsHandlingTest
 
         CallStateListener callStateWatch = new CallStateListener();
 
-        MockBasicTeleOpSet sipTele
-            = (MockBasicTeleOpSet) sipProvider
-            .getOperationSet(OperationSetBasicTelephony.class);
-
-        Map<String, Object> parameters = new HashMap<String, Object>();
-
         ConfigurationService config
             = JigasiBundleActivator.getConfigurationservice();
 
         config.setProperty(
             SipGateway.P_NAME_DEFAULT_JVB_ROOM, roomName);
 
-        MockCall sipCall = sipTele.createIncomingCall("calee", parameters);
+        MockCall sipCall
+            = sipProvider.getTelephony()
+                    .mockIncomingGatewayCall("calee", null);
 
         // SipGateway ought to accept incoming sip call
         // once JVB conference is joined.
@@ -410,18 +394,13 @@ public class CallsHandlingTest
         // session-initiate request to new participant.
         focus.setup();
 
-        MockBasicTeleOpSet sipTele
-            = (MockBasicTeleOpSet) sipProvider
-                    .getOperationSet(OperationSetBasicTelephony.class);
-
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put(CallSipImpl.JVB_ROOM_PROPERTY, roomName);
+        MockBasicTeleOpSet sipTele = sipProvider.getTelephony();
 
         // After incoming SIP call is received gateway will join JVB rooms and
         // start calls
-        MockCall sipCall1 = sipTele.createIncomingCall("calee1", parameters);
-        MockCall sipCall2 = sipTele.createIncomingCall("calee2", parameters);
-        MockCall sipCall3 = sipTele.createIncomingCall("calee3", parameters);
+        MockCall sipCall1 = sipTele.mockIncomingGatewayCall("calee1", roomName);
+        MockCall sipCall2 = sipTele.mockIncomingGatewayCall("calee2", roomName);
+        MockCall sipCall3 = sipTele.mockIncomingGatewayCall("calee3", roomName);
 
         CallStateListener callStateWatch = new CallStateListener();
 
@@ -484,16 +463,11 @@ public class CallsHandlingTest
         // of waiting for the invitation
         //focus.setup();
 
-        MockBasicTeleOpSet sipTele
-            = (MockBasicTeleOpSet) sipProvider
-            .getOperationSet(OperationSetBasicTelephony.class);
-
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put(CallSipImpl.JVB_ROOM_PROPERTY, roomName);
-
         // After incoming SIP call is received gateway will join JVB rooms and
         // start calls
-        MockCall sipCall1 = sipTele.createIncomingCall("calee1", parameters);
+        MockCall sipCall1
+            = sipProvider.getTelephony()
+                    .mockIncomingGatewayCall("calee1", roomName);
 
         CallStateListener callStateWatch = new CallStateListener();
 

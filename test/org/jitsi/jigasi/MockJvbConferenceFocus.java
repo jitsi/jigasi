@@ -122,7 +122,7 @@ public class MockJvbConferenceFocus
                     .getOperationSet(OperationSetBasicTelephony.class);
 
         xmppCall
-            = xmppTele.createIncomingCall(myMember.getName(), null);
+            = xmppTele.createIncomingCall(myMember.getName());
 
         logger.info(
             myName + " is inviting " + member.getName()

@@ -98,6 +98,7 @@ public class OSGiHandler
             = new MockProtocolProvider(mockSipAccount);
 
         sipProvider.includeBasicTeleOpSet();
+        sipProvider.includeJitsiMeetTools();
 
         bc.registerService(ProtocolProviderService.class, sipProvider, null);
     }
