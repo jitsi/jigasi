@@ -88,6 +88,7 @@ public class CallControlComponent
         return
             new String[]
                 {
+                    "http://jitsi.org/protocol/jigasi",
                     "urn:xmpp:rayo:0"
                 };
     }
