@@ -45,6 +45,12 @@ public class MockJitsiMeetTools
     }
 
     @Override
+    public void addSupportedFeature(String featureName)
+    {
+        //FIXME: to be implemented and used in tests
+    }
+
+    @Override
     public void sendPresenceExtension(ChatRoom chatRoom,
                                       PacketExtension extension)
     {

@@ -39,6 +39,13 @@ public class JvbConference
     private final static Logger logger = Logger.getLogger(JvbConference.class);
 
     /**
+     * The name of XMPP feature which states for Jigasi SIP Gateway and can be
+     * used to recognize gateway client.
+     */
+    public static final String SIP_GATEWAY_FEATURE_NAME
+        = "http://jitsi.org/protocol/jigasi";
+
+    /**
      * Default status of our participant before we get any state from
      * the <tt>CallPeer</tt>.
      */
@@ -439,6 +446,12 @@ public class JvbConference
 
     private void joinConferenceRoom()
     {
+        // Advertise gateway feature before joining
+        OperationSetJitsiMeetTools meetTools
+            = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
+
+        meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
+
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
 
