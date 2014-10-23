@@ -28,11 +28,6 @@ case "$1" in
         # Clear the debconf variable
         db_purge
 
-        # stop the jigasi
-        if [ -x /etc/init.d/jigasi ]; then
-            invoke-rc.d jigasi stop
-        fi
-
         # clear user and group
         # ensure nothing is running as jigasi user
         if ps -u jigasi h; then
@@ -43,11 +38,13 @@ case "$1" in
             deluser jigasi
         fi
 
-        sed "/Component \"callcontrol.\"/d" -i /etc/prosody/prosody.cfg.lua
+        # we need JVB vars for the hostname
+        . /etc/jitsi/videobridge/config
+        sed "/Component \"callcontrol.\"/d" -i /etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua
 
         rm -rf /usr/share/jigasi/jigasi-home
         rm -rf /usr/share/jigasi/.java
-        rm -f /etc/default/jigasi
+        rm -f /etc/jitsi/jigasi/config
 
         if [ -x "/etc/init.d/prosody" ]; then
             invoke-rc.d prosody reload

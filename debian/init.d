@@ -14,11 +14,11 @@
 ### END INIT INFO
 
 # Include jigasi & videobridge defaults if available
-if [ -f /etc/default/jigasi ]; then
-    . /etc/default/jigasi
+if [ -f /etc/jitsi/jigasi/config ]; then
+    . /etc/jitsi/jigasi/config
 fi
-if [ -f /etc/default/jitsi-videobridge ]; then
-    . /etc/default/jitsi-videobridge
+if [ -f /etc/jitsi/videobridge/config ]; then
+    . /etc/jitsi/videobridge/config
 fi
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
