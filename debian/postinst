@@ -36,8 +36,13 @@ case "$1" in
             fi
         fi
 
-        # we need JVB vars for the hostname
-        . /etc/jitsi/videobridge/config
+        # use any old config found
+        if [ -f "/etc/default/jitsi-videobridge" ]; then
+            . /etc/default/jitsi-videobridge
+        else
+            # we need JVB vars for the hostname
+            . /etc/jitsi/videobridge/config
+        fi
 
         # generate config on new install
         if [ "$OLDCONFIG" = "false" ]; then
