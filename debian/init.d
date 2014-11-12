@@ -30,7 +30,7 @@ PIDFILE=/var/run/jigasi.pid
 LOGDIR=/var/log/jitsi
 LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
-DAEMON_OPTS=" --host=localhost --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR"
+DAEMON_OPTS=" --host=localhost --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi"
 
 test -x $DAEMON || exit 0
 

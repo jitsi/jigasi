@@ -76,10 +76,10 @@ case "$1" in
         fi
 
         # we claim the home folder of jigasi in case it is owned by someone else
-        OWNER=$(stat -c '%U' /usr/share/jigasi)
-        GROUP=$(stat -c '%G' /usr/share/jigasi)
-        if ! dpkg-statoverride --list /usr/share/jigasi/* >/dev/null && [ "$OWNER:$GROUP" != "jigasi:jigasi" ]; then
-            chown -R jigasi:jigasi /usr/share/jigasi
+        OWNER=$(stat -c '%U' /etc/jitsi/jigasi)
+        GROUP=$(stat -c '%G' /etc/jitsi/jigasi)
+        if ! dpkg-statoverride --list /etc/jitsi/jigasi/* >/dev/null && [ "$OWNER:$GROUP" != "jigasi:jigasi" ]; then
+            chown -R jigasi:jigasi /etc/jitsi/jigasi
             OWNER=jigasi
             GROUP=jigasi
         fi
@@ -87,10 +87,10 @@ case "$1" in
         chmod o+w /var/log/jitsi/
 
         # populate the config with debconf values
-        sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
-        sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
+        sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
+        sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /etc/jitsi/jigasi/sip-communicator.properties
         SIPSERVER=`echo $JIGASI_SIPUSER | cut -d'@' -f 2`
-        sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /usr/share/jigasi/jigasi-home/sip-communicator.properties
+        sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /etc/jitsi/jigasi/sip-communicator.properties
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""

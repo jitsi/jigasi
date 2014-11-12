@@ -42,9 +42,9 @@ case "$1" in
         . /etc/jitsi/videobridge/config
         sed "/Component \"callcontrol.\"/d" -i /etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua
 
-        rm -rf /usr/share/jigasi/jigasi-home
-        rm -rf /usr/share/jigasi/.java
+        rm -rf /usr/share/jigasi/
         rm -f /etc/jitsi/jigasi/config
+        rm -f /etc/jitsi/jigasi/sip-communicator.properties
 
         if [ -x "/etc/init.d/prosody" ]; then
             invoke-rc.d prosody reload

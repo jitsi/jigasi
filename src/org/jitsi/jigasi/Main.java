@@ -132,6 +132,16 @@ public class Main
     public static final String PNAME_SC_CACHE_DIR_LOCATION =
         "net.java.sip.communicator.SC_CACHE_DIR_LOCATION";
 
+    /**
+     * The name of the command-line argument which specifies config folder to use.
+     */
+    private static final String CONFIG_DIR_ARG_NAME = "--configdir=";
+
+    /**
+     * The name of the command-line argument which specifies config folder to use.
+     */
+    private static final String CONFIG_DIR_NAME_ARG_NAME = "--configdirname=";
+
     public static void main(String[] args)
     {
         // Parse the command-line arguments.
@@ -144,6 +154,8 @@ public class Main
         String subdomain = null;
         String secret = null;
         String logdir = null;
+        String configDir = null;
+        String configDirName = null;
 
         for (String arg : args)
         {
@@ -179,6 +191,14 @@ public class Main
             {
                 logdir = arg.substring(LOGDIR_ARG_NAME.length());
             }
+            else if (arg.startsWith(CONFIG_DIR_ARG_NAME))
+            {
+                configDir = arg.substring(CONFIG_DIR_ARG_NAME.length());
+            }
+            else if (arg.startsWith(CONFIG_DIR_NAME_ARG_NAME))
+            {
+                configDirName = arg.substring(CONFIG_DIR_NAME_ARG_NAME.length());
+            }
         }
 
         if (host == null)
@@ -213,12 +233,23 @@ public class Main
         // jigasi-home will be create in current directory (from where the
         // process is launched). It must contain sip-communicator.properties
         // with one XMPP and one SIP account configured.
+        if ((configDir == null) || (configDir.length() == 0))
+        {
+            configDir = System.getProperty("user.dir");
+        }
+
         System.setProperty(
             ConfigurationService.PNAME_SC_HOME_DIR_LOCATION,
-            System.getProperty("user.dir"));
+            configDir);
+
+        if ((configDirName == null) || (configDirName.length() == 0))
+        {
+            configDirName = "jigasi-home";
+        }
+
         System.setProperty(
             ConfigurationService.PNAME_SC_HOME_DIR_NAME,
-            "jigasi-home");
+            configDirName);
 
         // FIXME: Always trust mode - prevent failures because there's no GUI
         // to ask the user, but do we always want to trust ?
