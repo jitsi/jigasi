@@ -27,9 +27,10 @@ DAEMON_DIR=/usr/share/jigasi/
 NAME=jigasi
 USER=jigasi
 PIDFILE=/var/run/jigasi.pid
-LOGFILE=/var/log/jitsi/jigasi.log
+LOGDIR=/var/log/jitsi
+LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
-DAEMON_OPTS=" --host=localhost --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET"
+DAEMON_OPTS=" --host=localhost --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR"
 
 test -x $DAEMON || exit 0
 
@@ -67,7 +68,7 @@ start() {
     echo -n "Starting $DESC: "
 
     start-stop-daemon --start --quiet --background --chuid $USER --make-pidfile --pidfile $PIDFILE \
-        --exec /bin/bash -- -c "cd $DAEMON_DIR; exec $DAEMON $DAEMON_OPTS > $LOGFILE 2>&1"
+        --exec /bin/bash -- -c "exec $DAEMON $DAEMON_OPTS > $LOGFILE 2>&1"
 
     echo "$NAME started."
 }

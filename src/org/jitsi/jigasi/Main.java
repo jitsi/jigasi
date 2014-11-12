@@ -113,6 +113,25 @@ public class Main
      */
     private static final String SUBDOMAIN_ARG_NAME = "--subdomain=";
 
+    /**
+     * The name of the command-line argument which specifies log folder to use.
+     */
+    private static final String LOGDIR_ARG_NAME = "--logdir=";
+
+    /**
+     * The name of the property that stores the home dir for application log
+     * files (not history).
+     */
+    public static final String PNAME_SC_LOG_DIR_LOCATION =
+        "net.java.sip.communicator.SC_LOG_DIR_LOCATION";
+
+    /**
+     * The name of the property that stores the home dir for cache data, such
+     * as avatars and spelling dictionaries.
+     */
+    public static final String PNAME_SC_CACHE_DIR_LOCATION =
+        "net.java.sip.communicator.SC_CACHE_DIR_LOCATION";
+
     public static void main(String[] args)
     {
         // Parse the command-line arguments.
@@ -124,6 +143,7 @@ public class Main
         String domain = null;
         String subdomain = null;
         String secret = null;
+        String logdir = null;
 
         for (String arg : args)
         {
@@ -154,6 +174,10 @@ public class Main
             else if (arg.startsWith(SUBDOMAIN_ARG_NAME))
             {
                 subdomain = arg.substring(SUBDOMAIN_ARG_NAME.length());
+            }
+            else if (arg.startsWith(LOGDIR_ARG_NAME))
+            {
+                logdir = arg.substring(LOGDIR_ARG_NAME.length());
             }
         }
 
@@ -201,6 +225,16 @@ public class Main
         System.setProperty(
             "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",
             "true");
+
+        if ((logdir != null) && (logdir.length() != 0))
+        {
+            System.setProperty(PNAME_SC_LOG_DIR_LOCATION, logdir);
+            // set it same as cache dir so if something is written lets write it
+            // there, currently only empty avatarcache folders, if something
+            // is really needed to cache we can chanege it to /var/lib/jigasi
+            // or something similar
+            System.setProperty(PNAME_SC_CACHE_DIR_LOCATION, logdir);
+        }
 
         /*
          * Start OSGi. It will invoke the application programming interfaces
