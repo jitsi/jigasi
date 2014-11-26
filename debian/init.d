@@ -30,7 +30,10 @@ PIDFILE=/var/run/jigasi.pid
 LOGDIR=/var/log/jitsi
 LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
-DAEMON_OPTS=" --host=localhost --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi"
+if [ ! $JVB_HOST ]; then
+    JVB_HOST=localhost
+fi
+DAEMON_OPTS=" --host=$JVB_HOST --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi"
 
 test -x $DAEMON || exit 0
 
@@ -38,8 +41,8 @@ set -e
 
 killParentPid() {
     PARENT_PID=$(ps -o pid --no-headers --ppid $1 || true)
-    if [ PARENT_PID ]; then
-        kill PARENT_PID
+    if [ $PARENT_PID ]; then
+        kill $PARENT_PID
     fi
 }
 
