@@ -281,15 +281,16 @@ public class JvbConference
         started = true;
 
         // Look for first XMPP provider
-        Collection<ServiceReference<ProtocolProviderService>> providers
+        ServiceReference[] providers
             = ServiceUtils.getServiceReferences(
                     JigasiBundleActivator.osgiContext,
                     ProtocolProviderService.class);
 
-        for (ServiceReference<ProtocolProviderService> serviceRef : providers)
+        for (ServiceReference serviceRef : providers)
         {
             ProtocolProviderService candidate
-                = JigasiBundleActivator.osgiContext.getService(serviceRef);
+                = (ProtocolProviderService) JigasiBundleActivator
+                .osgiContext.getService(serviceRef);
 
             if (ProtocolNames.JABBER.equals(candidate.getProtocolName()))
             {

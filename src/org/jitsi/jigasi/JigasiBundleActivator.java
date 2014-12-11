@@ -6,8 +6,6 @@
  */
 package org.jitsi.jigasi;
 
-import java.util.*;
-
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.protocol.*;
@@ -60,14 +58,14 @@ public class JigasiBundleActivator
 
         bundleContext.addServiceListener(this);
 
-        Collection<ServiceReference<ProtocolProviderService>> refs
-            = ServiceUtils.getServiceReferences(
-                    osgiContext,
-                    ProtocolProviderService.class);
+        ServiceReference[] refs =
+        ServiceUtils.getServiceReferences(
+            osgiContext, ProtocolProviderService.class);
 
-        for (ServiceReference<ProtocolProviderService> ref : refs)
+        for (ServiceReference ref : refs)
         {
-            ProtocolProviderService pps = osgiContext.getService(ref);
+            ProtocolProviderService pps
+                = (ProtocolProviderService) osgiContext.getService(ref);
 
             if (ProtocolNames.SIP.equals(pps.getProtocolName()))
             {
