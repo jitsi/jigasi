@@ -129,8 +129,8 @@ case "$1" in
             update-rc.d jigasi defaults >/dev/null
         fi
 
-        # clean up old jvb group
-        if getent group jigsai > /dev/null; then
+        # clean up old jigasi group
+        if getent group jigasi > /dev/null; then
             groupdel jigasi
         fi
     ;;
