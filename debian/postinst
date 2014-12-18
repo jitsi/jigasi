@@ -66,8 +66,14 @@ case "$1" in
         fi
 
         # we don't want to start the daemon as root
+        if ! getent group jitsi > /dev/null ; then
+            groupadd jitsi
+        fi
         if ! getent passwd jigasi > /dev/null ; then
-            useradd -r --user-group --shell /bin/bash --create-home -d /usr/share/jigasi jigasi
+            useradd -r -g jitsi --shell /bin/bash --create-home -d /usr/share/jigasi jigasi
+        fi
+        if ! groups jigasi | grep '\bjitsi\b' > /dev/null ; then
+            usermod -g jitsi jigasi
         fi
 
         # we create home folder only if it doesn't exist
@@ -78,13 +84,15 @@ case "$1" in
         # we claim the home folder of jigasi in case it is owned by someone else
         OWNER=$(stat -c '%U' /etc/jitsi/jigasi)
         GROUP=$(stat -c '%G' /etc/jitsi/jigasi)
-        if ! dpkg-statoverride --list /etc/jitsi/jigasi/* >/dev/null && [ "$OWNER:$GROUP" != "jigasi:jigasi" ]; then
-            chown -R jigasi:jigasi /etc/jitsi/jigasi
+        if ! dpkg-statoverride --list /etc/jitsi/jigasi/* >/dev/null && [ "$OWNER:$GROUP" != "jigasi:jitsi" ]; then
+            chown -R jigasi:jitsi /etc/jitsi/jigasi
+            chown -R jigasi:jitsi /usr/share/jigasi
             OWNER=jigasi
-            GROUP=jigasi
+            GROUP=jitsi
         fi
 
-        chmod o+w /var/log/jitsi/
+        chown -R $OWNER:$GROUP /var/log/jitsi/jigasi*
+        chmod -R 640 /var/log/jitsi/jigasi*
 
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
@@ -121,6 +129,10 @@ case "$1" in
             update-rc.d jigasi defaults >/dev/null
         fi
 
+        # clean up old jvb group
+        if getent group jigsai > /dev/null; then
+            groupdel jigasi
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
