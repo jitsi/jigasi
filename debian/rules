@@ -17,7 +17,7 @@ override_dh_auto_build:
 	
 override_dh_install-arch:
 ifeq ($(DEB_HOST_ARCH),amd64)
-	dh_install -pjigasi lib/native/linux-64/*.so usr/share/jigasi/lib/native/linux/
+	dh_install -pjigasi lib/native/linux-64/*.so usr/share/jigasi/lib/native/linux-64/
 else
 	dh_install -pjigasi lib/native/linux/*.so usr/share/jigasi/lib/native/linux/
 endif
