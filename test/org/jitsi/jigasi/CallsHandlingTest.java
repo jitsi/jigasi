@@ -80,7 +80,7 @@ public class CallsHandlingTest
         BundleContext ctx = JigasiBundleActivator.osgiContext;
 
         // Check if XMPP accounts have been unloaded
-        ServiceReference[] refs
+        Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
                 ctx, ProtocolProviderService.class);
 
