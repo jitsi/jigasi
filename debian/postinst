@@ -81,6 +81,7 @@ case "$1" in
             mkdir -p /usr/share/jigasi
         fi
 
+
         # we claim the home folder of jigasi in case it is owned by someone else
         OWNER=$(stat -c '%U' /etc/jitsi/jigasi)
         GROUP=$(stat -c '%G' /etc/jitsi/jigasi)
@@ -91,8 +92,8 @@ case "$1" in
             GROUP=jitsi
         fi
 
-        chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
-        chmod -f -R 640 /var/log/jitsi/jigasi*
+        [ -f /var/log/jitsi/jigasi* ] && chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
+        [ -f /var/log/jitsi/jigasi* ] && chmod -f -R 640 /var/log/jitsi/jigasi*
 
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
