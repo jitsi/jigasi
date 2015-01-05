@@ -36,7 +36,7 @@ public class GatewaySession
     /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
      */
-    private final OperationSetJitsiMeetTools jisitMeetTool;
+    private final OperationSetJitsiMeetTools jitsiMeetTools;
 
     /**
      * The <tt>JvbConference</tt> that handles current JVB conference.
@@ -130,7 +130,7 @@ public class GatewaySession
     {
         this.sipGateway = gateway;
         this.sipProvider = gateway.getSipProvider();
-        this.jisitMeetTool
+        this.jitsiMeetTools
             = sipProvider.getOperationSet(
                     OperationSetJitsiMeetTools.class);
     }
@@ -471,7 +471,7 @@ public class GatewaySession
 
         waitThread = new WaitForJvbRoomNameThread();
 
-        jisitMeetTool.addRequestListener(this);
+        jitsiMeetTools.addRequestListener(this);
 
         waitThread.start();
     }
@@ -682,7 +682,7 @@ public class GatewaySession
                 }
                 finally
                 {
-                    jisitMeetTool.removeRequestListener(GatewaySession.this);
+                    jitsiMeetTools.removeRequestListener(GatewaySession.this);
                 }
             }
         }
