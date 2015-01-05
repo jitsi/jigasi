@@ -10,6 +10,7 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.util.*;
 import org.dom4j.*;
 import org.jitsi.jigasi.*;
+import org.jivesoftware.smack.packet.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.IQ;
@@ -38,6 +39,12 @@ public class CallControlComponent
     public static final String ROOM_NAME_HEADER = "JvbRoomName";
 
     /**
+     * JID allowed to make outgoing SIP calls.
+     */
+    public static final String ALLOWED_JID_P_NAME
+        = "org.jitsi.jigasi.ALLOWED_JID";
+
+    /**
      * Name of the domain on which this component is currently running.
      */
     private final String domain;
@@ -46,6 +53,12 @@ public class CallControlComponent
      * The {@link SipGateway} service which manages gateway sessions.
      */
     private SipGateway gateway;
+
+    /**
+     * The only JID that will be allowed to create outgoing SIP calls. If not
+     * set then anybody is allowed to do so.
+     */
+    private String allowedJid;
 
     /**
      * FIXME: temporary to be removed/fixed
@@ -72,6 +85,16 @@ public class CallControlComponent
             = ServiceUtils.getService(
                     JigasiBundleActivator.osgiContext,
                     SipGateway.class);
+
+        this.allowedJid
+            = JigasiBundleActivator
+                .getConfigurationservice().getString
+                        (ALLOWED_JID_P_NAME, null);
+
+        if (allowedJid != null)
+        {
+            logger.info("JID allowed to make outgoing calls: " + allowedJid);
+        }
 
         gateway.setCallsControl(this);
 
@@ -148,6 +171,22 @@ public class CallControlComponent
         try
         {
             org.jivesoftware.smack.packet.IQ smackIq = IQUtils.convert(iq);
+
+            String fromBareJid = iq.getFrom().toBareJID();
+            if (allowedJid != null && !allowedJid.equals(fromBareJid))
+            {
+                org.jivesoftware.smack.packet.IQ error
+                    = org.jivesoftware.smack.packet.IQ
+                        .createErrorResponse(
+                                smackIq,
+                                new XMPPError(XMPPError.Condition.not_allowed));
+
+                return IQUtils.convert(error);
+            }
+            else if (allowedJid == null)
+            {
+                logger.warn("Requests are not secured by JID filter!");
+            }
 
             if (smackIq instanceof RayoIqProvider.DialIq)
             {
