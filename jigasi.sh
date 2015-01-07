@@ -3,7 +3,7 @@
 kernel="$(uname -s)"
 if [ $kernel == "Darwin" ] ; then
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-    architecture="mac"
+    architecture="macosx"
 elif [ $kernel == "Linux" ] ; then
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
     architecture="linux"
