@@ -92,8 +92,8 @@ case "$1" in
             GROUP=jitsi
         fi
 
-        [ -f /var/log/jitsi/jigasi* ] && chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
-        [ -f /var/log/jitsi/jigasi* ] && chmod -f -R 640 /var/log/jitsi/jigasi*
+        ls /var/log/jitsi/jigasi* 1>/dev/null 2>&1 && chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
+        ls /var/log/jitsi/jigasi* 1>/dev/null 2>&1 && chmod -f -R 640 /var/log/jitsi/jigasi*
 
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
