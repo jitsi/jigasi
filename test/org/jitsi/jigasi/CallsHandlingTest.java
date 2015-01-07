@@ -173,7 +173,7 @@ public class CallsHandlingTest
         outCallWatch.bind(sipTele);
 
         GatewaySession session =
-            sipGw.createOutgoingCall(destination, roomName,
+            sipGw.createOutgoingCall(destination, roomName, null,
                                      "callResourceUri" + roomName);
         assertNotNull(session);
 

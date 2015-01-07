@@ -12,7 +12,9 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
+import net.java.sip.communicator.util.Logger;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.packet.*;
 import org.osgi.framework.*;
@@ -55,6 +57,11 @@ public class JvbConference
      * {@link GatewaySession} that uses this <tt>JvbConference</tt> instance.
      */
     private final GatewaySession gatewaySession;
+
+    /**
+     * Optional secret for password protected MUC rooms.
+     */
+    private final String roomPassword;
 
     /**
      * The XMPP account used for the call handled by this instance.
@@ -135,12 +142,15 @@ public class JvbConference
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>GatewaySession</tt> that will be using this
      *                       <tt>JvbConference</tt>.
+     * @param roomName name of MUC room that hosts the conference
+     * @param roomPassword optional secret for password protected MUC room.
      */
-    public JvbConference(GatewaySession gatewaySession, String roomName)
+    public JvbConference(GatewaySession gatewaySession, String roomName,
+                         String roomPassword)
     {
         this.gatewaySession = gatewaySession;
-
         this.roomName = roomName;
+        this.roomPassword = roomPassword;
     }
 
     /**
@@ -474,7 +484,14 @@ public class JvbConference
                         .extractCallIdFromResource(
                                 gatewaySession.getCallResource());
 
-            mucRoom.joinAs(callId);
+            if (StringUtils.isNullOrEmpty(roomPassword))
+            {
+                mucRoom.joinAs(callId);
+            }
+            else
+            {
+                mucRoom.joinAs(callId, roomPassword.getBytes());
+            }
 
             this.mucRoom = mucRoom;
 

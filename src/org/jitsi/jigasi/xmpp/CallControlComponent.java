@@ -39,6 +39,11 @@ public class CallControlComponent
     public static final String ROOM_NAME_HEADER = "JvbRoomName";
 
     /**
+     * Optional header for specifying password required to enter MUC room.
+     */
+    public static final String ROOM_PASSWORD_HEADER = "JvbRoomPassword";
+
+    /**
      * JID allowed to make outgoing SIP calls.
      */
     public static final String ALLOWED_JID_P_NAME
@@ -131,15 +136,16 @@ public class CallControlComponent
     /**
      * Initializes new outgoing call.
      * @param roomName the name of the MUC room that holds JVB conference call.
+     * @param roomPass optional password required to enter MUC room.
      * @param from source address(optional)
      * @param to destination call address/URI.
      * @return the call resource string that will identify newly created call.
      */
-    String initNewCall(String roomName, String from, String to)
+    String initNewCall(String roomName, String roomPass, String from, String to)
     {
         String callResource = generateNextCallResource();
 
-        gateway.createOutgoingCall(to, roomName, callResource);
+        gateway.createOutgoingCall(to, roomName, roomPass, callResource);
 
         return callResource;
     }
@@ -196,6 +202,7 @@ public class CallControlComponent
                 String to = dialIq.getDestination();
 
                 String roomName = dialIq.getHeader(ROOM_NAME_HEADER);
+                String roomPassword = dialIq.getHeader(ROOM_PASSWORD_HEADER);
                 if (roomName == null)
                     throw new RuntimeException("No JvbRoomName header found");
 
@@ -203,7 +210,8 @@ public class CallControlComponent
                     "Got dial request " + from + " -> " + to
                     + " room: " + roomName);
 
-                String callResource = initNewCall(roomName, from, to);
+                String callResource
+                    = initNewCall(roomName, roomPassword, from, to);
 
                 callResource = "xmpp:" + callResource;
 

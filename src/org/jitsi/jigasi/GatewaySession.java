@@ -121,7 +121,7 @@ public class GatewaySession
     /**
      * Creates new <tt>GatewaySession</tt> that can be used to initiate outgoing
      * SIP gateway session by using
-     * {@link #createOutgoingCall(String, String, String)} method.
+     * {@link #createOutgoingCall(String, String, String, String)} method.
      *
      * @param gateway the {@link SipGateway} the <tt>SipGateway</tt> instance
      *                that will control this session.
@@ -160,10 +160,12 @@ public class GatewaySession
      * @param destination the destination SIP number that will be called.
      * @param jvbRoomName the name of MUC that holds JVB conference that will be
      *                    joined.
+     * @param roomPass optional password required to enter MUC room.
      * @param callResource the call resource that will identify new call.
      */
-    public void createOutgoingCall(String destination, String jvbRoomName,
-                                   String callResource)
+    public void createOutgoingCall(
+        String destination, String jvbRoomName,
+        String roomPass,    String callResource)
     {
         if (jvbConference != null)
         {
@@ -178,7 +180,7 @@ public class GatewaySession
         this.destination = destination;
         this.callResource = callResource;
 
-        jvbConference = new JvbConference(this, jvbRoomName);
+        jvbConference = new JvbConference(this, jvbRoomName, roomPass);
 
         jvbConference.start();
     }
@@ -277,8 +279,10 @@ public class GatewaySession
     {
         cancelWaitThread();
 
+        // FIXME: add possibility to specify room password through SIP header
+        //        for incoming calls
         jvbConference
-            = new JvbConference(this, conferenceRoomName);
+            = new JvbConference(this, conferenceRoomName, null);
 
         jvbConference.start();
     }
