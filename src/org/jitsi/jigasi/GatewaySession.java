@@ -275,14 +275,12 @@ public class GatewaySession
         }
     }
 
-    private void joinJvbConference(String conferenceRoomName)
+    private void joinJvbConference(String conferenceRoomName, String password)
     {
         cancelWaitThread();
 
-        // FIXME: add possibility to specify room password through SIP header
-        //        for incoming calls
         jvbConference
-            = new JvbConference(this, conferenceRoomName, null);
+            = new JvbConference(this, conferenceRoomName, password);
 
         jvbConference.start();
     }
@@ -434,13 +432,13 @@ public class GatewaySession
     }
 
     @Override
-    public void onJoinJitsiMeetRequest(Call call, String jitsiMeetRoom)
+    public void onJoinJitsiMeetRequest(Call call, String room, String pass)
     {
         if (jvbConference == null && this.call == call)
         {
-            if (jitsiMeetRoom != null)
+            if (room != null)
             {
-                joinJvbConference(jitsiMeetRoom);
+                joinJvbConference(room, pass);
             }
         }
     }
@@ -667,7 +665,7 @@ public class GatewaySession
                                 "Using default JVB room name property "
                                     + defaultRoom);
 
-                            joinJvbConference(defaultRoom);
+                            joinJvbConference(defaultRoom, null);
                         }
                         else
                         {

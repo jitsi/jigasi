@@ -94,7 +94,7 @@ public class MockJitsiMeetTools
         boolean handled = false;
         for (JitsiMeetRequestListener l : requestHandlers)
         {
-            l.onJoinJitsiMeetRequest(call, jitsiMeetRoom);
+            l.onJoinJitsiMeetRequest(call, jitsiMeetRoom, null);
             handled = true;
         }
         if (!handled)
