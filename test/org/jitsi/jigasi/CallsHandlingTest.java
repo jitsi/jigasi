@@ -354,7 +354,7 @@ public class CallsHandlingTest
         CallStateListener callStateWatch = new CallStateListener();
 
         ConfigurationService config
-            = JigasiBundleActivator.getConfigurationservice();
+            = JigasiBundleActivator.getConfigurationService();
 
         config.setProperty(
             SipGateway.P_NAME_DEFAULT_JVB_ROOM, roomName);

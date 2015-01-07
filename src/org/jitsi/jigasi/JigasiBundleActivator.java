@@ -42,7 +42,7 @@ public class JigasiBundleActivator
      * Returns <tt>ConfigurationService</tt> instance.
      * @return <tt>ConfigurationService</tt> instance.
      */
-    public static ConfigurationService getConfigurationservice()
+    public static ConfigurationService getConfigurationService()
     {
         return ServiceUtils.getService(
             osgiContext, ConfigurationService.class);

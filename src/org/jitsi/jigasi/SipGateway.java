@@ -253,7 +253,7 @@ public class SipGateway
      */
     public static long getJvbInviteTimeout()
     {
-        return JigasiBundleActivator.getConfigurationservice()
+        return JigasiBundleActivator.getConfigurationService()
             .getLong(P_NAME_JVB_INVITE_TIMEOUT, DEFAULT_JVB_INVITE_TIMEOUT);
     }
 
@@ -264,7 +264,7 @@ public class SipGateway
      */
     public static void setJvbInviteTimeout(long newTimeout)
     {
-        JigasiBundleActivator.getConfigurationservice()
+        JigasiBundleActivator.getConfigurationService()
             .setProperty(SipGateway.P_NAME_JVB_INVITE_TIMEOUT, newTimeout);
     }
 

@@ -653,7 +653,7 @@ public class GatewaySession
                     {
                         String defaultRoom
                             = JigasiBundleActivator
-                            .getConfigurationservice()
+                            .getConfigurationService()
                             .getString(
                                 SipGateway.P_NAME_DEFAULT_JVB_ROOM);
 

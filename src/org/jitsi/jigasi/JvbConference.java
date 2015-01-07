@@ -782,13 +782,13 @@ public class JvbConference
 
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
-            JigasiBundleActivator.getConfigurationservice()
+            JigasiBundleActivator.getConfigurationService()
                 .getPropertyNamesByPrefix(overridePrefix, false);
         for(String prop : overriddenProps)
         {
             properties.put(
                 prop.replace(overridePrefix + ".", ""),
-                JigasiBundleActivator.getConfigurationservice()
+                JigasiBundleActivator.getConfigurationService()
                     .getString(prop));
         }
 

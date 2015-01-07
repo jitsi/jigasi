@@ -88,7 +88,7 @@ public class CallControlComponent
 
         this.allowedJid
             = JigasiBundleActivator
-                .getConfigurationservice().getString
+                .getConfigurationService().getString
                         (ALLOWED_JID_P_NAME, null);
 
         if (allowedJid != null)
