@@ -39,6 +39,14 @@ public class SipGateway
         = "org.jitsi.jigasi.JVB_INVITE_TIMEOUT";
 
     /**
+     * Name of the property used to disable advertisement of ICE feature in 
+     * XMPP capabilities list. This allows conference manager to allocate
+     * channels with RAW transport and speed up connectivity process.
+     */
+    public static final String P_NAME_DISABLE_ICE
+        = "org.jitsi.jigasi.DISABLE_ICE";
+    
+    /**
      * Default JVB conference invite timeout.
      */
     public static final long DEFAULT_JVB_INVITE_TIMEOUT = 30L * 1000L;

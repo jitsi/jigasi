@@ -461,6 +461,16 @@ public class JvbConference
 
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
 
+        // Remove ICE support from features list ?
+        if (JigasiBundleActivator.getConfigurationService()
+                .getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
+        {
+            meetTools.removeSupportedFeature(
+                    "urn:xmpp:jingle:transports:ice-udp:1");
+
+            logger.info("ICE feature will not be advertised");
+        }
+
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
 

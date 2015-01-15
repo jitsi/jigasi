@@ -51,6 +51,12 @@ public class MockJitsiMeetTools
     }
 
     @Override
+    public void removeSupportedFeature(String featureName)
+    {
+
+    }
+
+    @Override
     public void sendPresenceExtension(ChatRoom chatRoom,
                                       PacketExtension extension)
     {
