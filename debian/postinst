@@ -121,8 +121,6 @@ case "$1" in
             JIGASI_MEET="        call_control: 'callcontrol.$JVB_HOSTNAME'"
             #sed -i "s/hosts:\ {/hosts:\ {\n\t$JIGASI_MEET/g" /usr/share/jitsi-meet/config.js
             sed -i "s/.*call_control: .*/$JIGASI_MEET/" $JITSI_MEET_CONFIG
-            sed -i 's/useRtcpMux: true/useRtcpMux: false/' $JITSI_MEET_CONFIG
-            sed -i 's/useBundle: true/useBundle: false/' $JITSI_MEET_CONFIG
         fi
 
         # ensure jigasi is not running - it will be started at the end
