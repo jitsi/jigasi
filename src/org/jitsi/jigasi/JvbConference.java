@@ -793,6 +793,8 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.RESOURCE, resourceName);
         properties.put(ProtocolProviderFactory.RESOURCE_PRIORITY, "30");
 
+        // XXX(gp) we rely on the very useful "override" mechanism (see bellow)
+        // to "implement" login authentication.
         properties.put(JabberAccountID.ANONYMOUS_AUTH, "true");
         properties.put(ProtocolProviderFactory.IS_CARBON_DISABLED, "true");
         properties.put(ProtocolProviderFactory.DEFAULT_ENCRYPTION, "true");
