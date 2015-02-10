@@ -13,6 +13,7 @@ import net.java.sip.communicator.util.*;
  * Thread does the job of registering given <tt>ProtocolProviderService</tt>.
  *
  * @author Pawel Domas
+ * @author George Politis
  */
 public class RegisterThread
     extends Thread
@@ -25,9 +26,17 @@ public class RegisterThread
 
     private final ProtocolProviderService pps;
 
+    private final String password;
+
     RegisterThread(ProtocolProviderService pps)
     {
+        this(pps, null);
+    }
+
+    RegisterThread(ProtocolProviderService pps, String password)
+    {
         this.pps = pps;
+        this.password = password;
     }
 
     @Override
@@ -35,7 +44,7 @@ public class RegisterThread
     {
         try
         {
-            pps.register(new ServerSecurityAuthority());
+            pps.register(new ServerSecurityAuthority(password));
         }
         catch (OperationFailedException e)
         {

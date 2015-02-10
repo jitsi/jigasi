@@ -69,6 +69,11 @@ public class JvbConference
     private AccountID xmppAccount;
 
     /**
+     * The XMPP password used for the call handled by this instance.
+     */
+    private String xmppPassword;
+
+    /**
      * The XMPP provider used to join JVB conference.
      */
     private ProtocolProviderService xmppProvider;
@@ -416,7 +421,7 @@ public class JvbConference
         }
         else
         {
-            new RegisterThread(xmppProvider).start();
+            new RegisterThread(xmppProvider, xmppPassword).start();
         }
     }
 
@@ -778,7 +783,7 @@ public class JvbConference
     /**
      * FIXME: temporary
      */
-    private static Map<String, String> createAccountPropertiesForCallId(
+    private Map<String, String> createAccountPropertiesForCallId(
             String domain,
             String resourceName)
     {
@@ -813,13 +818,62 @@ public class JvbConference
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
                 .getPropertyNamesByPrefix(overridePrefix, false);
-        for(String prop : overriddenProps)
+        for(String overridenProp : overriddenProps)
         {
-            properties.put(
-                prop.replace(overridePrefix + ".", ""),
-                JigasiBundleActivator.getConfigurationService()
-                    .getString(prop));
+            String key = overridenProp.replace(overridePrefix + ".", "");
+            String value = JigasiBundleActivator.getConfigurationService()
+                .getString(overridenProp);
+
+            // The key for the password field can't end in PASSWORD, otherwise
+            // it is encrypted by our configuration service implementation.
+            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp))
+            {
+                // The password is fully managed (i.e. stored/retrieved) by the
+                // configuration service and credentials storage service. See
+                // the
+                //
+                //     ProtocolProviderFactory#loadPassword()
+                //
+                // method. The problem with dynamic XMPP accounts is that they
+                // *don't* exist in the configuration, unless we explicitly
+                // store them using the
+                //
+                //     ProtocolProviderFactory#storeAccount()
+                //
+                // method. Simply loading an account using the
+                //
+                //     ProtocolProviderFactory#loadAccount()
+                //
+                // method can't (and doesn't) work, at least not without
+                // changing the implementation of the loadAccount method..
+                //
+                // To avoid to have to store the dynamic accounts in the
+                // configuration and, consequently, to have to manage them, to
+                // have remove them later, etc. (also NOTE that storing an
+                // account WRITES the configuration file), we read the password
+                // from a custom key (and *not* from the standard password key,
+                // otherwise it gets encrypted by the configuration service, see
+                // the comment above) and then we feed it (the password) to the
+                // new ServerSecurityAuthority that we create when we register
+                // the account. The
+                //
+                //     ServerSecurityAuthority#obtainCredentials
+                //
+                // method is called when there no password for a specific
+                // account and there we can alter the connection credentials.
+
+                this.xmppPassword = value;
+            }
+            else
+            {
+                properties.put(key, value);
+            }
         }
+
+        // Necessary when doing authenticated XMPP login, otherwise the dynamic
+        // accounts get assigned the same ACCOUNT_UID which leads to problems.
+        String accountUID = "Jabber:" + userID + "/" + resourceName;
+        properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
         return properties;
     }
