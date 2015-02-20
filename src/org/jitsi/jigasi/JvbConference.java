@@ -48,6 +48,13 @@ public class JvbConference
         = "http://jitsi.org/protocol/jigasi";
 
     /**
+     * The name of the property that is used to define whether the SIP user of
+     * the incoming/outgoing SIP URI should be used as the XMPP resource or not.
+     */
+    private static final String P_NAME_USE_SIP_USER_AS_XMPP_RESOURCE
+        = "org.jitsi.jigasi.USE_SIP_USER_AS_XMPP_RESOURCE";
+
+    /**
      * Default status of our participant before we get any state from
      * the <tt>CallPeer</tt>.
      */
@@ -201,7 +208,7 @@ public class JvbConference
         sendPresenceExtension(mediaPresence);
     }
 
-    private String getDisplayName()
+    private String getSipUri()
     {
         String mucDisplayName = null;
 
@@ -222,6 +229,61 @@ public class JvbConference
         }
 
         return mucDisplayName;
+    }
+
+    private String getResourceIdentifier()
+    {
+        String resourceIdentifier = null;
+        if (JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_USE_SIP_USER_AS_XMPP_RESOURCE, false))
+        {
+            // A SIP address or SIP URI is a Uniform Resource Identifier written
+            // in user@domain.tld format (semantically, much like an e-mail
+            // address). It addresses a specific telephone extension on a voice
+            // over IP system (such as a private branch exchange) or an E.164
+            // telephone number dialled through a specific gateway.
+            //
+            // The SIP and SIPS URI schemes are described in RFC 3261, which
+            // defines the Session Initiation Protocol.
+            //
+            // The XMPP RFC isn't clear as to the syntax of the resource
+            // identifier string. It states that a resource identifier MUST be
+            // formatted such that the Resourceprep profile of [STRINGPREP] can
+            // be applied without failing.
+            //
+            // Given the above uncertainty, we made the decision to replace
+            // anything that is not in the this regex class A-Za-z0-9- with a
+            // dash.
+
+            resourceIdentifier = getSipUri();
+            if (!StringUtils.isNullOrEmpty(resourceIdentifier))
+            {
+                int idx = resourceIdentifier.indexOf('@');
+                if (idx != -1)
+                {
+                    // keep only the user part of the SIP URI.
+                    resourceIdentifier = resourceIdentifier.substring(0, idx);
+                }
+
+                // clean it up for resource usage.
+                resourceIdentifier
+                    = resourceIdentifier.replace("[^A-Za-z0-9]", "-");
+            }
+            else
+            {
+                logger.info("The SIP URI is empty! The XMPP resource " +
+                    "identifier will be a random string.");
+            }
+        }
+
+        if (StringUtils.isNullOrEmpty(resourceIdentifier))
+        {
+            resourceIdentifier = gatewaySession.getCallsControl()
+                .extractCallIdFromResource(gatewaySession.getCallResource());
+        }
+
+        return resourceIdentifier;
+
     }
 
     /**
@@ -277,9 +339,7 @@ public class JvbConference
             return;
         }
 
-        // FIXME: consider using some utility method instead ?
-        String callId = gatewaySession.getCallsControl()
-            .extractCallIdFromResource(gatewaySession.getCallResource());
+        String resourceIdentifier = getResourceIdentifier();
 
         this.xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
@@ -289,7 +349,7 @@ public class JvbConference
         this.xmppAccount
             = xmppProviderFactory.createAccount(
                 createAccountPropertiesForCallId(
-                    gatewaySession.getXmppServerName(), callId));
+                    gatewaySession.getXmppServerName(), resourceIdentifier));
 
         xmppProviderFactory.loadAccount(xmppAccount);
 
@@ -494,25 +554,22 @@ public class JvbConference
                 return;
             }*/
 
-            String callId
-                = gatewaySession.getCallsControl()
-                        .extractCallIdFromResource(
-                                gatewaySession.getCallResource());
+            String resourceIdentifier = getResourceIdentifier();
 
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
-                mucRoom.joinAs(callId);
+                mucRoom.joinAs(resourceIdentifier);
             }
             else
             {
-                mucRoom.joinAs(callId, roomPassword.getBytes());
+                mucRoom.joinAs(resourceIdentifier, roomPassword.getBytes());
             }
 
             this.mucRoom = mucRoom;
 
             mucRoom.addMemberPresenceListener(this);
 
-            String displayName = getDisplayName();
+            String displayName = getSipUri();
             if (displayName != null)
             {
                 Nick nick = new Nick(displayName);
@@ -796,6 +853,7 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.SERVER_PORT, "5222");
 
         properties.put(ProtocolProviderFactory.RESOURCE, resourceName);
+        properties.put(ProtocolProviderFactory.AUTO_GENERATE_RESOURCE, "false");
         properties.put(ProtocolProviderFactory.RESOURCE_PRIORITY, "30");
 
         // XXX(gp) we rely on the very useful "override" mechanism (see bellow)
