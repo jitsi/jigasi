@@ -863,7 +863,6 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.DEFAULT_ENCRYPTION, "true");
         properties.put(ProtocolProviderFactory.DEFAULT_SIPZRTP_ATTRIBUTE, "true");
         properties.put(ProtocolProviderFactory.IS_USE_ICE, "true");
-        properties.put(ProtocolProviderFactory.IS_USE_GOOGLE_ICE, "true");
         properties.put(ProtocolProviderFactory.IS_ACCOUNT_DISABLED, "false");
         properties.put(ProtocolProviderFactory.IS_PREFERRED_PROTOCOL, "false");
         properties.put(ProtocolProviderFactory.IS_SERVER_OVERRIDDEN, "false");
