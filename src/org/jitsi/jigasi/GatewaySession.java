@@ -610,15 +610,38 @@ public class GatewaySession
         }
 
         @Override
-        public void peerStateChanged(CallPeerChangeEvent evt)
+        public void peerStateChanged(final CallPeerChangeEvent evt)
         {
-            String stateString
-                = ((CallPeerState)evt.getNewValue()).getStateString();
+            CallPeerState callPeerState = (CallPeerState)evt.getNewValue();
+            String stateString = callPeerState.getStateString();
 
             logger.info(callResource + " SIP peer state: " + stateString);
 
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
+
+            if (CallPeerState.BUSY.equals(callPeerState))
+            {
+                // Hangup the call with 5 sec delay, so that we can see BUSY
+                // status in jitsi-meet
+                new Thread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        try
+                        {
+                            Thread.sleep(5000);
+                        }
+                        catch (InterruptedException e)
+                        {
+                            throw new RuntimeException(e);
+                        }
+                        CallManager.hangupCall(
+                                evt.getSourceCallPeer().getCall());
+                    }
+                }).start();
+            }
         }
 
         public void unregister()
