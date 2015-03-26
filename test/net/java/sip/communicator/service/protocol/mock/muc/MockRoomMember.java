@@ -75,6 +75,12 @@ public class MockRoomMember
     }
 
     @Override
+    public PresenceStatus getPresenceStatus()
+    {
+        return null;
+    }
+
+    @Override
     public String toString()
     {
         return "Member@" + hashCode() + "[" + name + "]";
