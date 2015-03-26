@@ -74,7 +74,8 @@ public class OSGi
                 "net/java/sip/communicator/impl/credentialsstorage/CredentialsStorageActivator"
             },
             {
-                "net/java/sip/communicator/impl/netaddr/NetaddrActivator"
+                "net/java/sip/communicator/impl/netaddr/NetaddrActivator",
+                "net/java/sip/communicator/impl/sysactivity/SysActivityActivator"
             },
             {
                 "net/java/sip/communicator/impl/packetlogging/PacketLoggingActivator"

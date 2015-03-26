@@ -10,6 +10,7 @@ import java.util.*;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
+import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.service.configuration.*;
@@ -38,6 +39,8 @@ public class JigasiBundleActivator
 
     private SipGateway gateway;
 
+    private UIServiceStub uiServiceStub = new UIServiceStub();
+
     /**
      * Returns <tt>ConfigurationService</tt> instance.
      * @return <tt>ConfigurationService</tt> instance.
@@ -53,6 +56,8 @@ public class JigasiBundleActivator
         throws Exception
     {
         osgiContext = bundleContext;
+
+        bundleContext.registerService(UIService.class, uiServiceStub, null);
 
         gateway = new SipGateway();
 
