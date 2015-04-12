@@ -21,7 +21,8 @@ import java.text.*;
  * @author Pawel Domas
  */
 public class GatewaySession
-    implements OperationSetJitsiMeetTools.JitsiMeetRequestListener
+    implements OperationSetJitsiMeetTools.JitsiMeetRequestListener,
+               DTMFListener
 {
     /**
      * The logger.
@@ -513,6 +514,40 @@ public class GatewaySession
         if (listener != null)
         {
             listener.onJvbRoomJoined(this);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void toneReceived(DTMFReceivedEvent dtmfReceivedEvent)
+    {
+        if (dtmfReceivedEvent != null
+                && dtmfReceivedEvent.getSource() == jvbConferenceCall)
+        {
+            OperationSetDTMF opSet
+                    = sipProvider.getOperationSet(OperationSetDTMF.class);
+            if (opSet != null && dtmfReceivedEvent.getStart() != null)
+            {
+                if (dtmfReceivedEvent.getStart())
+                {
+                    try
+                    {
+                        opSet.startSendingDTMF(
+                                peerStateListener.thePeer,
+                                dtmfReceivedEvent.getValue());
+                    }
+                    catch (OperationFailedException ofe)
+                    {
+                        logger.info("Failed to forward a DTMF tone: " + ofe);
+                    }
+                }
+                else
+                {
+                    opSet.stopSendingDTMF(peerStateListener.thePeer);
+                }
+            }
         }
     }
 

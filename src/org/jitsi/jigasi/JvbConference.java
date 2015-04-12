@@ -48,6 +48,12 @@ public class JvbConference
         = "http://jitsi.org/protocol/jigasi";
 
     /**
+     * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
+     */
+    public static final String DTMF_FEATURE_NAME
+            = "urn:xmpp:jingle:dtmf:0";
+
+    /**
      * The name of the property that is used to define whether the SIP user of
      * the incoming/outgoing SIP URI should be used as the XMPP resource or not.
      */
@@ -59,6 +65,27 @@ public class JvbConference
      * the <tt>CallPeer</tt>.
      */
     private static final String INIT_STATUS_NAME = "Initializing Call";
+
+    /**
+     * Adds the features supported by jigasi to a specific
+     * <tt>OperationSetJitsiMeetTools</tt> instance.
+     */
+    private static void addSupportedFeatures(
+            OperationSetJitsiMeetTools meetTools)
+    {
+        meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
+        meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
+
+        // Remove ICE support from features list ?
+        if (JigasiBundleActivator.getConfigurationService()
+                .getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
+        {
+            meetTools.removeSupportedFeature(
+                    "urn:xmpp:jingle:transports:ice-udp:1");
+
+            logger.info("ICE feature will not be advertised");
+        }
+    }
 
     /**
      * {@link GatewaySession} that uses this <tt>JvbConference</tt> instance.
@@ -521,20 +548,8 @@ public class JvbConference
     private void joinConferenceRoom()
     {
         // Advertise gateway feature before joining
-        OperationSetJitsiMeetTools meetTools
-            = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
-
-        meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-
-        // Remove ICE support from features list ?
-        if (JigasiBundleActivator.getConfigurationService()
-                .getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
-        {
-            meetTools.removeSupportedFeature(
-                    "urn:xmpp:jingle:transports:ice-udp:1");
-
-            logger.info("ICE feature will not be advertised");
-        }
+        addSupportedFeatures(
+                xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
 
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
@@ -635,6 +650,11 @@ public class JvbConference
     private void onJvbCallStarted()
     {
         logger.info("JVB conference call IN_PROGRESS " + roomName);
+
+        OperationSetIncomingDTMF opSet
+            = getXmppProvider().getOperationSet(OperationSetIncomingDTMF.class);
+        if (opSet != null)
+            opSet.addDTMFListener(gatewaySession);
 
         Exception error = gatewaySession.onConferenceCallStarted(jvbCall);
 
