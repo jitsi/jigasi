@@ -92,6 +92,12 @@ case "$1" in
             GROUP=jitsi
         fi
 
+        CONFIG_DIR=$(dirname $CONFIG)
+        if ! dpkg-statoverride --list "$CONFIG_DIR" >/dev/null; then
+                chown root:$GROUP "$CONFIG_DIR"
+                chmod 750 "$CONFIG_DIR"
+        fi
+
         if ls /var/log/jitsi/jigasi* 1>/dev/null 2>&1 ;then
             chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
             chmod -f -R 640 /var/log/jitsi/jigasi*
