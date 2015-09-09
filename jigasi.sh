@@ -21,4 +21,9 @@ mainClass="org.jitsi.jigasi.Main"
 cp=$(JARS=($SCRIPT_DIR/jigasi.jar $SCRIPT_DIR/lib/*.jar); IFS=:; echo "${JARS[*]}")
 libs="$SCRIPT_DIR/lib/native/$architecture"
 
-java -Djava.library.path=$libs -Djava.util.logging.config.file=$SCRIPT_DIR/lib/logging.properties -cp $cp $mainClass $@
+# if there is a logging config file in lib folder use it (running from source)
+if [ -f $logging_config ]; then
+    LOGGING_CONFIG_PARAM="-Djava.util.logging.config.file=$logging_config"
+fi
+
+java -Djava.library.path=$libs $LOGGING_CONFIG_PARAM $JAVA_SYS_PROPS -cp $cp $mainClass $@

@@ -71,7 +71,7 @@ start() {
     echo -n "Starting $DESC: "
 
     start-stop-daemon --start --quiet --background --chuid $USER --make-pidfile --pidfile $PIDFILE \
-        --exec /bin/bash -- -c "exec $DAEMON $DAEMON_OPTS > $LOGFILE 2>&1"
+        --exec /bin/bash -- -c "JAVA_SYS_PROPS=\"$JAVA_SYS_PROPS\" exec $DAEMON $DAEMON_OPTS > $LOGFILE 2>&1"
 
     echo "$NAME started."
 }

@@ -65,6 +65,14 @@ case "$1" in
             echo "JIGASI_SECRET=$JIGASI_SECRET" >> $CONFIG
         fi
 
+        # let's check whether there is a setting in the $CONFIG
+        # logging props file, if missing add it
+        if [ -z $JAVA_SYS_PROPS ]; then
+            echo >> $CONFIG
+            echo '# adds java system props that are passed to jigasi (default are for logging config file)' >> $CONFIG
+            echo "JAVA_SYS_PROPS=\"-Djava.util.logging.config.file=/etc/jitsi/jigasi/logging.properties\"" >> $CONFIG
+        fi
+
         # we don't want to start the daemon as root
         if ! getent group jitsi > /dev/null ; then
             groupadd jitsi
