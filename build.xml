@@ -281,6 +281,10 @@
             <filelist dir="." files="build.xml"/>
             <filelist dir="." files="jigasi.sh"/>
         </copy>
+        <replace file="${debian.target.dir}/jigasi.sh"
+                 token="$SCRIPT_DIR/lib/logging.properties">
+            <replacevalue>/etc/jitsi/jigasi/logging.properties</replacevalue>
+        </replace>
         <chmod file="${debian.target.dir}/jigasi.sh" perm="+x"/>
         
         <copy file="debian/changelog.tmpl"
