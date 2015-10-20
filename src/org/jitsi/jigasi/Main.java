@@ -22,15 +22,10 @@ import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.cmd.*;
 import org.jitsi.jigasi.osgi.*;
 import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jivesoftware.whack.*;
-import org.osgi.framework.*;
-import org.xmpp.component.*;
-
-import java.util.logging.*;
-import java.util.logging.Logger;
 
 /**
  * FIXME: update description
@@ -238,92 +233,13 @@ public class Main
             System.setProperty(PNAME_SC_CACHE_DIR_LOCATION, logdir);
         }
 
-        /*
-         * Start OSGi. It will invoke the application programming interfaces
-         * (APIs) of Jitsi Videobridge. Each of them will keep the application
-         * alive.
-         */
-        final BundleActivator activator =
-            new BundleActivator()
-            {
-                @Override
-                public void start(BundleContext bundleContext)
-                    throws Exception
-                {
-                    // This will be launched after OSGi startup
-                }
+        CallControlComponent sipGwComponent
+            = new CallControlComponent(host, port, domain, subdomain, secret);
 
-                @Override
-                public void stop(BundleContext bundleContext)
-                    throws Exception
-                {
-                    // This will be launched after OSGi shutdown
-                }
-            };
+        ComponentMain main = new ComponentMain();
 
-        OSGi.start(activator);
+        JigasiBundleConfig osgiBundles = new JigasiBundleConfig();
 
-        final ExternalComponentManager componentManager
-            = new ExternalComponentManager(host, port);
-
-        componentManager.setSecretKey(subdomain, secret);
-        if (domain != null)
-            componentManager.setServerName(domain);
-
-        CallControlComponent component
-            = new CallControlComponent(subdomain, domain);
-
-        try
-        {
-            componentManager.addComponent(subdomain, component);
-        }
-        catch (ComponentException e)
-        {
-            logger.log(Level.SEVERE, e.getMessage(), e);
-        }
-
-        component.init();
-
-        final String componentSubdomain = subdomain;
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                try
-                {
-                    componentManager.removeComponent(componentSubdomain);
-                }
-                catch (ComponentException e)
-                {
-                    logger.log(Level.SEVERE, e.getMessage(), e);
-                }
-
-                OSGi.stop(activator);
-            }
-        });
-
-        /*
-         * The application has nothing more to do but wait for ComponentImpl
-         * to perform its duties. Presently, there is no specific shutdown
-         * procedure and the application just gets killed.
-         */
-        do
-        {
-            boolean interrupted = false;
-
-            synchronized (exitSyncRoot)
-            {
-                try
-                {
-                    exitSyncRoot.wait();
-                }
-                catch (InterruptedException ie)
-                {
-                    interrupted = true;
-                }
-            }
-            if (interrupted)
-                break;// just exit main
-        }
-        while (true);
+        main.runMainProgramLoop(sipGwComponent, osgiBundles);
     }
 }

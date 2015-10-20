@@ -19,8 +19,12 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.util.*;
+
 import org.dom4j.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.meet.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.xmpp.component.*;
 import org.jivesoftware.smack.packet.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
@@ -34,8 +38,9 @@ import org.xmpp.packet.Message;
  * @author Pawel Domas
  */
 public class CallControlComponent
-    extends AbstractComponent
-    implements CallsControl,
+    extends ComponentBase
+    implements BundleActivator,
+               CallsControl,
                ServiceListener
 {
     /**
@@ -61,11 +66,6 @@ public class CallControlComponent
         = "org.jitsi.jigasi.ALLOWED_JID";
 
     /**
-     * Name of the domain on which this component is currently running.
-     */
-    private final String domain;
-
-    /**
      * The {@link SipGateway} service which manages gateway sessions.
      */
     private SipGateway gateway;
@@ -83,13 +83,24 @@ public class CallControlComponent
       //  = new HashMap<SipGateway, String>();
 
     /**
-     * Creates new isntance of <tt>CallControlComponent</tt>.
-     * @param subdomain the name of component subdomain.
-     * @param serverName the name of the server on which this component will run.
+     * Creates new instance of <tt>CallControlComponent</tt>.
+     * @param host the hostname or IP address to which this component will be
+     *             connected.
+     * @param port the port of XMPP server to which this component will connect.
+     * @param domain the name of main XMPP domain on which this component will
+     *               be served.
+     * @param subDomain the name of subdomain on which this component will be
+     *                  available.
+     * @param secret the password used by the component to authenticate with
+     *               XMPP server.
      */
-    public CallControlComponent(String subdomain, String serverName)
+    public CallControlComponent(String   host,
+                                int      port,
+                                String   domain,
+                                String   subDomain,
+                                String   secret)
     {
-        this.domain = subdomain + "." + serverName;
+        super(host, port, domain, subDomain, secret);
     }
 
     /**
@@ -97,15 +108,22 @@ public class CallControlComponent
      */
     public void init()
     {
+        OSGi.start(this);
+    }
+
+    @Override
+    public void start(BundleContext bundleContext)
+        throws Exception
+    {
         this.gateway
             = ServiceUtils.getService(
-                    JigasiBundleActivator.osgiContext,
-                    SipGateway.class);
+                    bundleContext, SipGateway.class);
 
-        this.allowedJid
-            = JigasiBundleActivator
-                .getConfigurationService().getString
-                        (ALLOWED_JID_P_NAME, null);
+        ConfigurationService config
+            = ServiceUtils.getService(
+                    bundleContext, ConfigurationService.class);
+
+        this.allowedJid = config.getString(ALLOWED_JID_P_NAME, null);
 
         if (allowedJid != null)
         {
@@ -114,8 +132,14 @@ public class CallControlComponent
 
         gateway.setCallsControl(this);
 
-        gateway.setXmppServerName(
-            domain.substring(domain.indexOf(".") + 1));
+        gateway.setXmppServerName(getDomain());
+    }
+
+    @Override
+    public void stop(BundleContext bundleContext)
+        throws Exception
+    {
+
     }
 
     /**
@@ -165,7 +189,8 @@ public class CallControlComponent
     {
         //FIXME: fix resource generation and check if created resource
         // is already taken
-        return Long.toHexString(System.currentTimeMillis()) + "@" + domain;
+        return Long.toHexString(System.currentTimeMillis())
+            + "@" + getSubdomain() + "." + getDomain();
     }
 
     /**
