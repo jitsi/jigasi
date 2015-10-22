@@ -36,6 +36,13 @@ case "$1" in
             fi
         fi
 
+        JICOFO_JAVA_SYS_PROPS_EXIST="true"
+        # let's check whether there is a setting in the $CONFIG
+        # for home folder and logging props file
+        if [ ! -n "$JAVA_SYS_PROPS" ]; then
+            JICOFO_JAVA_SYS_PROPS_EXIST="false"
+        fi
+
         # use any old config found
         if [ -f "/etc/default/jitsi-videobridge" ]; then
             . /etc/default/jitsi-videobridge
@@ -67,7 +74,7 @@ case "$1" in
 
         # let's check whether there is a setting in the $CONFIG
         # logging props file, if missing add it
-        if [ -z $JAVA_SYS_PROPS ]; then
+        if [ "$JICOFO_JAVA_SYS_PROPS_EXIST" = "false" ]; then
             echo >> $CONFIG
             echo '# adds java system props that are passed to jigasi (default are for logging config file)' >> $CONFIG
             echo "JAVA_SYS_PROPS=\"-Djava.util.logging.config.file=/etc/jitsi/jigasi/logging.properties\"" >> $CONFIG
