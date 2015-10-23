@@ -17,9 +17,13 @@
 if [ -f /etc/jitsi/jigasi/config ]; then
     . /etc/jitsi/jigasi/config
 fi
+# We have the same config in jvb and in jigasi config
+# make sure we use the one from jigasi
+JIGASI_JAVA_SYS_PROPS=${JAVA_SYS_PROPS}
 if [ -f /etc/jitsi/videobridge/config ]; then
     . /etc/jitsi/videobridge/config
 fi
+JAVA_SYS_PROPS=${JIGASI_JAVA_SYS_PROPS}
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/share/jigasi/jigasi.sh
