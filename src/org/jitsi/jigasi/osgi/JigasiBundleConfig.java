@@ -19,6 +19,7 @@ package org.jitsi.jigasi.osgi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
@@ -154,6 +155,11 @@ public class JigasiBundleConfig
         Map<String, String> defaults = super.getSystemPropertyDefaults();
         String true_ = Boolean.toString(true);
         String false_ = Boolean.toString(false);
+
+        // Audio system should not be disabled
+        defaults.put(
+            MediaServiceImpl.DISABLE_AUDIO_SUPPORT_PNAME,
+            false_);
 
         defaults.put(
             DeviceConfiguration.PROP_AUDIO_SYSTEM,
