@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.osgi.*;
+import org.jitsi.meet.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -75,7 +76,11 @@ public class OSGiHandler
             }
         };
 
-        OSGi.setUseMockProtocols(true);
+        JigasiBundleConfig bundles = new JigasiBundleConfig();
+
+        JigasiBundleConfig.setUseMockProtocols(true);
+
+        OSGi.setBundleConfig(bundles);
 
         OSGi.start(bundleActivator);
 

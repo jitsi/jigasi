@@ -22,7 +22,7 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
  ant make
  ```
  
-3. Configure external component in your XMPP server. If your server is Prosody edit /etc/prosody/prosody.cfg.lua and append following lines to your config(assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
+3. Configure external component in your XMPP server. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua and append following lines to your config (assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
 
  ```
  Component "callcontrol.meet.jit.si"
@@ -37,12 +37,12 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
  ```
  ./jigasi.sh --domain=meet.jit.si --subdomain=callcontrol --secret=topsecret
  ```
-After Jigasi is started it will register as XMPP component under 'callcontrol' subdomain. In Jitsi Meet application -> config.js -> hosts.call_control must be set to 'callcontrol.meet.jit.si'. This will enable SIP calls in Jitsi Meet.
+After Jigasi is started it will register as XMPP component under the 'callcontrol' subdomain. In Jitsi Meet application -> config.js -> hosts.call_control must be set to 'callcontrol.meet.jit.si'. This will enable SIP calls in Jitsi Meet.
 
 Supported arguments:
  * --domain: specifies the XMPP domain to use.
- * --host: the IP address or the name of the XMPP host to connect to(localhost by default).
- * --port: the port of the XMPP host to connect on(5347 by default).
+ * --host: the IP address or the name of the XMPP host to connect to (localhost by default).
+ * --port: the port of the XMPP host to connect on (5347 by default).
  * --subdomain: subdomain name for SIP gateway component.
  * --secret: the secret key for the sub-domain of the Jabber component implemented by this application with which it is to authenticate to the XMPP server to connect to.
  * --min-port: the minimum port number that we'd like our RTP managers to bind upon.
@@ -51,17 +51,17 @@ Supported arguments:
 How it works
 ============
 
-Jigasi registers as a SIP client and can be called or be use by Jitsi Meet to make outgoing calls. Jigasi is NOT a SIP server. It is just a connector that allows SIP servers and B2BUAs to connect to Jitsi Meet. It handles the XMPP signalling, ICE, DTLS/SRTP termination and multiple-SSRC handling for them.
+Jigasi registers as a SIP client and can be called or be used by Jitsi Meet to make outgoing calls. Jigasi is NOT a SIP server. It is just a connector that allows SIP servers and B2BUAs to connect to Jitsi Meet. It handles the XMPP signalling, ICE, DTLS/SRTP termination and multiple-SSRC handling for them.
 
 Outgoing calls
 ==============
 
-To call someone from Jitsi Meet application Jigasi must be configured and started like descripbed in section 'Install and run'. This will cause the telephone icon to appear in the toolbar which will popup call dialog on click.
+To call someone from Jitsi Meet application, Jigasi must be configured and started like described in the 'Install and run' section. This will cause the telephone icon to appear in the toolbar which will popup a call dialog on click.
 
 Incoming calls
 ==============
 
-Jigasi will register on your SIP server with some identity and it will accept calls. When Jigasi is called it expects to find a 'Jitsi-Conference-Room' header in the invite with the name of the Jitsi Meet conference the call is to be patched through to. If no header is present it will join the room specified under 'org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME' config property. In order to change it edit 'jigasi-home/sipcommunciator.properties' file.
+Jigasi will register on your SIP server with some identity and it will accept calls. When Jigasi is called, it expects to find a 'Jitsi-Conference-Room' header in the invite with the name of the Jitsi Meet conference the call is to be patched through to. If no header is present it will join the room specified under 'org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME' config property. In order to change it, edit 'jigasi-home/sipcommunciator.properties' file.
 
 Example:
 

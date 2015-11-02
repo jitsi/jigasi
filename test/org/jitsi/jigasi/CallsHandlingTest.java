@@ -278,10 +278,11 @@ public class CallsHandlingTest
     {
         String subdomain = "call";
         String serverName = "conference.net";
-        String domain = subdomain + "." + serverName;
+        String jigasiJid = subdomain + "." + serverName;
 
         CallControlComponent component
-            = new CallControlComponent(subdomain, serverName);
+            = new CallControlComponent(
+                    serverName, 1234, serverName, subdomain, "secret");
 
         component.init();
 
@@ -297,6 +298,9 @@ public class CallsHandlingTest
 
         RayoIqProvider.DialIq dialIq
             = RayoIqProvider.DialIq.create(to, from);
+
+        dialIq.setFrom(from);
+        dialIq.setTo(jigasiJid);
 
         dialIq.setHeader(
             CallControlComponent.ROOM_NAME_HEADER,
@@ -314,7 +318,7 @@ public class CallsHandlingTest
 
         String callUri = callRef.getUri();
         assertEquals("xmpp:", callUri.substring(0, 5));
-        assertTrue(callUri.contains("@" + domain));
+        assertTrue(callUri.contains("@" + jigasiJid));
 
         // Wait for call to be created
         Call sipCall = outCallWatch.getOutgoingCall(1000);

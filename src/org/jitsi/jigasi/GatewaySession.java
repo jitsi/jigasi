@@ -663,6 +663,17 @@ public class GatewaySession
 
             logger.info(callResource + " SIP peer state: " + stateString);
 
+            if (CallPeerState.CONNECTED.equals(callPeerState))
+            {
+                String peerAddress = evt.getSourceCallPeer().getAddress();
+                if (!jvbConference.getXmppProvider().getAccountID().getAccountProperties().containsKey(callResource))
+                    jvbConference.getXmppProvider().getAccountID().putAccountProperty(callResource, peerAddress);
+            }
+            else if (CallPeerState.DISCONNECTED.equals(callPeerState))
+            {
+                jvbConference.getXmppProvider().getAccountID().removeAccountProperty(callResource);
+            }
+
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
@@ -781,5 +792,10 @@ public class GatewaySession
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    public JvbConference getJvbConference()
+    {
+        return jvbConference;
     }
 }
