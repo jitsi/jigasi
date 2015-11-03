@@ -165,10 +165,10 @@ public class JigasiBundleConfig
             DeviceConfiguration.PROP_AUDIO_SYSTEM,
             AudioSystem.LOCATOR_PROTOCOL_AUDIOSILENCE);
         defaults.put(
-            DeviceConfiguration.PROP_AUDIO_SYSTEM + ".PortAudioSystem.disabled",
+            "org.jitsi.impl.neomedia.device.PortAudioSystem.disabled",
             true_);
         defaults.put(
-            DeviceConfiguration.PROP_AUDIO_SYSTEM + ".PulseAudioSystem.disabled",
+            "org.jitsi.impl.neomedia.device.PulseAudioSystem.disabled",
             true_);
 
         // Disables COIN notifications
