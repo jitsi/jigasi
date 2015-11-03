@@ -116,7 +116,9 @@ case "$1" in
         if ls /var/log/jitsi/jigasi* 1>/dev/null 2>&1 ;then
             chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
             chmod -f -R 640 /var/log/jitsi/jigasi*
-            find /var/log/jitsi/jigasi -type d -exec chmod 750 '{}' \;
+            if [ -d /var/log/jitsi/jigasi ]; then
+                find /var/log/jitsi/jigasi -type d -exec chmod 750 '{}' \;
+            fi
         fi
 
         # populate the config with debconf values
