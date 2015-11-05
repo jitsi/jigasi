@@ -351,10 +351,38 @@ public class GatewaySession
             //}
 
             // Make an outgoing call
-            OperationSetBasicTelephony tele
+            final OperationSetBasicTelephony tele
                 = sipProvider.getOperationSet(
                         OperationSetBasicTelephony.class);
+            // add listener to detect call creation, and add extra headers
+            // before inviting, and remove the listener when job is done
+            tele.addCallListener(new CallListener()
+            {
+                @Override
+                public void incomingCallReceived(CallEvent callEvent)
+                {}
 
+                @Override
+                public void outgoingCallCreated(CallEvent callEvent)
+                {
+                    String roomName = getJvbRoomName();
+                    if(roomName != null)
+                    {
+                        Call call = callEvent.getSourceCall();
+                        call.setData("EXTRA_HEADER_NAME.1",
+                            "Jitsi-Conference-Room");
+                        call.setData("EXTRA_HEADER_VALUE.1", roomName);
+                    }
+
+                    tele.removeCallListener(this);
+                }
+
+                @Override
+                public void callEnded(CallEvent callEvent)
+                {
+                    tele.removeCallListener(this);
+                }
+            });
             try
             {
                 this.call = tele.createCall(destination);
