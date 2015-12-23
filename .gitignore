@@ -2,4 +2,4 @@
 *.swp
 dist
 *.class
-/jigasi.jar
+*.jar
