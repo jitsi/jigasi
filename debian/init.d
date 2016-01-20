@@ -37,7 +37,7 @@ DESC=jigasi
 if [ ! $JVB_HOST ]; then
     JVB_HOST=localhost
 fi
-DAEMON_OPTS=" --host=$JVB_HOST --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi"
+DAEMON_OPTS=" --host=$JVB_HOST --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
 
 test -x $DAEMON || exit 0
 

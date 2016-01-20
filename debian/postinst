@@ -70,6 +70,7 @@ case "$1" in
             echo "JIGASI_SIPUSER=$JIGASI_SIPUSER" >> $CONFIG
             echo "JIGASI_SIPPWD=$JIGASI_SIPPWD" >> $CONFIG
             echo "JIGASI_SECRET=$JIGASI_SECRET" >> $CONFIG
+            echo "JIGASI_OPTS=\"\"" >> $CONFIG
         fi
 
         # let's check whether there is a setting in the $CONFIG
