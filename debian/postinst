@@ -70,6 +70,7 @@ case "$1" in
             echo "JIGASI_SIPUSER=$JIGASI_SIPUSER" >> $CONFIG
             echo "JIGASI_SIPPWD=$JIGASI_SIPPWD" >> $CONFIG
             echo "JIGASI_SECRET=$JIGASI_SECRET" >> $CONFIG
+            echo "JIGASI_OPTS=\"\"" >> $CONFIG
         fi
 
         # let's check whether there is a setting in the $CONFIG
@@ -141,7 +142,7 @@ case "$1" in
         # update jitsi-meet config
         JITSI_MEET_CONFIG="/etc/jitsi/meet/$JVB_HOSTNAME-config.js"
         if [ ! "$(grep "call_control: 'callcontrol.$JVB_HOSTNAME'" $JITSI_MEET_CONFIG)" ] || [ "$(grep "//call_control: 'callcontrol.$JVB_HOSTNAME'" $JITSI_MEET_CONFIG)" ]; then
-            JIGASI_MEET="        call_control: 'callcontrol.$JVB_HOSTNAME'"
+            JIGASI_MEET="        call_control: 'callcontrol.$JVB_HOSTNAME',"
             #sed -i "s/hosts:\ {/hosts:\ {\n\t$JIGASI_MEET/g" /usr/share/jitsi-meet/config.js
             sed -i "s/.*call_control: .*/$JIGASI_MEET/" $JITSI_MEET_CONFIG
         fi
