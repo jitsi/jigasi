@@ -7,16 +7,15 @@
   <parent>
     <groupId>org.jitsi</groupId>
     <artifactId>jitsi-universe</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <relativePath>../jitsi-universe/pom.xml</relativePath>
+    <version>1.0-20160229.232532-14</version>
   </parent>
 
   <artifactId>jigasi</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>jicofo</name>
-  <url>https://github.com/jitsi/jicofo</url>
+  <name>jigasi</name>
+  <url>https://github.com/jitsi/jigasi</url>
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
@@ -68,12 +67,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-muc</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-neomedia</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -102,6 +101,17 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
+    </dependency>
+    <dependency>
+      <!--
+      The libjitsi Maven artifact optionally depends on the
+      jitsi-lgpl-dependencies Maven artifact and the jitsi-videobridge project
+      may require the latter at runtime (e.g. for legacy purposes such as audio
+      mixing).
+      -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-lgpl-dependencies</artifactId>
+      <version>1.0-20150723.002855-1</version>
     </dependency>
     <!-- runtime -->
     <dependency>
@@ -156,7 +166,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-certificate</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -167,13 +177,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-dns</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-desktoputil</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -184,7 +194,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-globaldisplaydetails</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -195,31 +205,31 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-notification-service</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-reconnect</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-sysactivity</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-systray-service</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-version</artifactId>
-      <version>${jitsi.version}</version>
+      <version>2.9-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
