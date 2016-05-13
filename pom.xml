@@ -131,6 +131,11 @@
       <version>2.9-20160511.141853-1</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-hid</artifactId>
+      <version>2.9-20160513.134540-1</version>
+    </dependency>
+    <dependency>
       <!--
       The libjitsi Maven artifact optionally depends on the
       jitsi-lgpl-dependencies Maven artifact and the jitsi-videobridge project
