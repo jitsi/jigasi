@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jitsi</groupId>
     <artifactId>jitsi-universe</artifactId>
-    <version>1.0-20160229.232532-14</version>
+    <version>1.0-20160511.125516-17</version>
   </parent>
 
   <artifactId>jigasi</artifactId>
@@ -101,6 +101,34 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
+      <version>1.0-20160509.111226-158</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opentelecoms.sip</groupId>
+      <artifactId>sip-api-1.2</artifactId>
+      <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opentelecoms.sdp</groupId>
+      <artifactId>java-sdp-nist-bridge</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jitsi</groupId>
+      <artifactId>jain-sip-ri-ossonly</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-protocol-sip</artifactId>
+      <version>2.9-20160512.122257-2</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-packetlogging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-argdelegation</artifactId>
+      <version>2.9-20160511.141853-1</version>
     </dependency>
     <dependency>
       <!--
