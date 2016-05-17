@@ -66,3 +66,9 @@ Jigasi will register on your SIP server with some identity and it will accept ca
 Example:
 
 Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.jit.si/room1234' (assuming that our domain is 'meet.jit.si').
+
+Discuss
+============
+
+Please use the [Jitsi dev mailing list](http://lists.jitsi.org/pipermail/dev/) to discuss feature requests or problems before opening an issue on Github.
+
