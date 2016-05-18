@@ -892,16 +892,21 @@ public class JvbConference
         properties.put(JabberAccountID.ANONYMOUS_AUTH, "true");
         properties.put(ProtocolProviderFactory.IS_CARBON_DISABLED, "true");
         properties.put(ProtocolProviderFactory.DEFAULT_ENCRYPTION, "true");
-        properties.put(ProtocolProviderFactory.DEFAULT_SIPZRTP_ATTRIBUTE, "true");
+        properties.put(ProtocolProviderFactory.DEFAULT_SIPZRTP_ATTRIBUTE,
+            "false");
         properties.put(ProtocolProviderFactory.IS_USE_ICE, "true");
         properties.put(ProtocolProviderFactory.IS_ACCOUNT_DISABLED, "false");
         properties.put(ProtocolProviderFactory.IS_PREFERRED_PROTOCOL, "false");
         properties.put(ProtocolProviderFactory.IS_SERVER_OVERRIDDEN, "false");
-        properties.put(ProtocolProviderFactory.AUTO_DISCOVER_JINGLE_NODES, "true");
+        properties.put(ProtocolProviderFactory.AUTO_DISCOVER_JINGLE_NODES,
+            "false");
         properties.put(ProtocolProviderFactory.PROTOCOL, ProtocolNames.JABBER);
         properties.put(ProtocolProviderFactory.IS_USE_UPNP, "false");
         properties.put(ProtocolProviderFactory.USE_DEFAULT_STUN_SERVER, "true");
-
+        properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL
+            + ".DTLS-SRTP", "0");
+        properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL_STATUS
+            + ".DTLS-SRTP", "true");
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
