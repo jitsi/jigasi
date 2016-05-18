@@ -11,13 +11,15 @@
 
 %:
 	dh $@ --with javahelper
-	
-override_dh_auto_build:
-	dh_auto_build -- make
-	
+
+override_dh_auto_clean:
+
 override_dh_install-arch:
+	mv lib/libunix-0.5.1.so lib/libunix-java.so
 ifeq ($(DEB_HOST_ARCH),amd64)
 	dh_install -pjigasi lib/native/linux-64/*.so usr/share/jigasi/lib/native/linux-64/
+	dh_install -pjigasi lib/libunix-java.so usr/share/jigasi/lib/native/linux-64/
 else
 	dh_install -pjigasi lib/native/linux/*.so usr/share/jigasi/lib/native/linux/
+	dh_install -pjigasi lib/libunix-java.so usr/share/jigasi/lib/native/linux/
 endif
