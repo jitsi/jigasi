@@ -278,6 +278,9 @@
             </fileset>
         </copy>
 
+        <move file="${debian.target.dir}/lib/libunix-0.5.1.so"
+              tofile="${debian.target.dir}/lib/libunix-java.so"/>
+
         <copy todir="${debian.target.dir}">
             <filelist dir="." files="build.xml"/>
             <filelist dir="." files="jigasi.sh"/>
