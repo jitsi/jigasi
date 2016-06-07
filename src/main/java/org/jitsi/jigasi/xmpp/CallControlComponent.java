@@ -122,6 +122,16 @@ public class CallControlComponent
         ConfigurationService config
             = ServiceUtils.getService(
                     bundleContext, ConfigurationService.class);
+        
+        Boolean always_trust_mode = config.getBoolean(
+                "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",false);
+        if (always_trust_mode)
+        {
+                // Always trust mode - prevent failures because there's no GUI
+                // to ask the user, but do we always want to trust so, in this
+                // mode, the service is vulnerable to Man-In-The-Middle attacks.
+                logger.warn("Always trust in remote TLS certificates mode is enabled");
+        }
 
         this.allowedJid = config.getString(ALLOWED_JID_P_NAME, null);
 

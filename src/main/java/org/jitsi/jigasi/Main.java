@@ -216,12 +216,6 @@ public class Main
             ConfigurationService.PNAME_SC_HOME_DIR_NAME,
             configDirName);
 
-        // FIXME: Always trust mode - prevent failures because there's no GUI
-        // to ask the user, but do we always want to trust ?
-        System.setProperty(
-            "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",
-            "true");
-
         String logdir = cmdLine.getOptionValue(LOGDIR_ARG_NAME);
         if (!StringUtils.isNullOrEmpty(logdir))
         {
