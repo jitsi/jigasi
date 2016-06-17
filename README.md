@@ -25,6 +25,7 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 
  ```
  cd jigasi
+ ant deb-copy-jigasi
  ant make
  ```
  
