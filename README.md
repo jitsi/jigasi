@@ -12,9 +12,9 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 
 1. Install required dependencies, per OS.  On Ubuntu:
 
-```
-apt-get install openjdk-7-jdk ant-contrib ant-task libmaven-ant-tasks-java
-```
+ ```
+ apt-get install openjdk-7-jdk ant-contrib ant-task libmaven-ant-tasks-java
+ ```
 
 2. Checkout latest source:
  
