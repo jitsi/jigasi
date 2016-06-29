@@ -10,7 +10,7 @@ Homepage: https://jitsi.org
 Package: jigasi
 Architecture: any
 Pre-Depends: openssl, jitsi-meet
-Depends: ${misc:Depends}, default-jre-headless, libxss1
+Depends: ${misc:Depends}, default-jre-headless, libxss1, jitsi-archive-keyring
 Description: Jitsi Gateway for SIP
  Jitsi Meet is a WebRTC JavaScript application that uses Jitsi
  Videobridge to provide high quality, scalable video conferences.
