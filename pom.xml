@@ -111,6 +111,7 @@
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
       <artifactId>java-sdp-nist-bridge</artifactId>
+      <version>1.2</version>
     </dependency>
     <dependency>
       <groupId>org.jitsi</groupId>
