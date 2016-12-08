@@ -122,6 +122,12 @@ case "$1" in
                 chmod 750 "$CONFIG_DIR"
         fi
 
+        if [ ! -d /var/log/jitsi ]; then
+            mkdir -p /var/log/jitsi
+            chown $OWNER:$GROUP /var/log/jitsi
+            chmod 770 /var/log/jitsi
+        fi
+
         if ls /var/log/jitsi/jigasi* 1>/dev/null 2>&1 ;then
             chown -f -R $OWNER:$GROUP /var/log/jitsi/jigasi*
             chmod -f -R 640 /var/log/jitsi/jigasi*
