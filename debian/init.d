@@ -13,6 +13,8 @@
 # Description:       Gateway for Jitsi Meet to SIP
 ### END INIT INFO
 
+. /lib/lsb/init-functions
+
 # Include jigasi & videobridge defaults if available
 if [ -f /etc/jitsi/jigasi/config ]; then
     . /etc/jitsi/jigasi/config
@@ -85,7 +87,7 @@ reload() {
 }
 
 status() {
-    echo 'Not yet implemented.'
+    status_of_proc -p $PIDFILE java "$NAME" && exit 0 || exit $?
 }
 
 case "$1" in
