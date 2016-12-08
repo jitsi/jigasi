@@ -38,18 +38,24 @@ case "$1" in
             deluser jigasi
         fi
 
-        # we need JVB vars for the hostname
-        . /etc/jitsi/videobridge/config
-        sed "/Component \"callcontrol.\"/d" -i /etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua
+        # debconf hostname question
+        . /usr/share/debconf/confmodule
+        db_get jitsi-videobridge/jvb-hostname
+        JVB_HOSTNAME="$RET"
+        PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
+        if [ -f $PROSODY_HOST_CONFIG ]; then
+            sed "/Component \"callcontrol.\"/d" -i /etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua
+
+            if [ -x "/etc/init.d/prosody" ]; then
+                invoke-rc.d prosody reload
+            fi
+        fi
 
         rm -rf /usr/share/jigasi/
         rm -f /etc/jitsi/jigasi/config
         rm -f /etc/jitsi/jigasi/sip-communicator.properties
         rm -f /etc/jitsi/jigasi/logging.properties
 
-        if [ -x "/etc/init.d/prosody" ]; then
-            invoke-rc.d prosody reload
-        fi
     ;;
 
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

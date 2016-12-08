@@ -10,3 +10,8 @@ Template: jigasi/sip-password
 Type: password
 Description: SIP password
  Enter the password for the SIP account
+
+Template: jitsi-videobridge/jvb-hostname
+Type: string
+_Description: Hostname:
+ The jiconop package needs the DNS hostname of your instance.

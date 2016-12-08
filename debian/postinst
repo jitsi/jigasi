@@ -36,31 +36,27 @@ case "$1" in
             fi
         fi
 
-        JICOFO_JAVA_SYS_PROPS_EXIST="true"
-        # let's check whether there is a setting in the $CONFIG
-        # for home folder and logging props file
-        if [ ! -n "$JAVA_SYS_PROPS" ]; then
-            JICOFO_JAVA_SYS_PROPS_EXIST="false"
-        fi
+        # debconf hostname question
+        . /usr/share/debconf/confmodule
 
-        # use any old config found
-        if [ -f "/etc/default/jitsi-videobridge" ]; then
-            . /etc/default/jitsi-videobridge
-        else
-            # we need JVB vars for the hostname
-            . /etc/jitsi/videobridge/config
+        # try to get host from jitsi-videobridge
+        db_get jitsi-videobridge/jvb-hostname
+        if [ -z "$RET" ] ; then
+            # server hostname
+            db_set jitsi-videobridge/jvb-hostname "localhost"
+            db_input critical jitsi-videobridge/jvb-hostname || true
+            db_go
         fi
+        JVB_HOSTNAME="$RET"
 
         # generate config on new install
         if [ "$OLDCONFIG" = "false" ]; then
 
             # debconf SIP account questions
-            . /usr/share/debconf/confmodule
             db_get jigasi/sip-account
             JIGASI_SIPUSER="$RET"
             db_get jigasi/sip-password
             JIGASI_SIPPWD=$(echo -n $RET | base64 -)
-            db_stop
 
             # 8-chars random secret, alternative to pwgen 8
             JIGASI_SECRET=`head -c 8 /dev/urandom | tr '\0-\377' 'a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9@@@@####'`
@@ -73,9 +69,21 @@ case "$1" in
             echo "JIGASI_OPTS=\"\"" >> $CONFIG
         fi
 
+        # and we're done with debconf
+        db_stop
+
+        # store the domain name in the config
+        if ! grep -q "JIGASI_HOSTNAME" "$CONFIG"; then
+            echo "JIGASI_HOSTNAME=$JVB_HOSTNAME" >> $CONFIG
+        fi
+
+        if ! grep -q "JIGASI_HOST" "$CONFIG"; then
+            echo "JIGASI_HOST=localhost" >> $CONFIG
+        fi
+
         # let's check whether there is a setting in the $CONFIG
         # logging props file, if missing add it
-        if [ "$JICOFO_JAVA_SYS_PROPS_EXIST" = "false" ]; then
+        if ! grep -q "JAVA_SYS_PROPS" "$CONFIG"; then
             echo >> $CONFIG
             echo '# adds java system props that are passed to jigasi (default are for logging config file)' >> $CONFIG
             echo "JAVA_SYS_PROPS=\"-Djava.util.logging.config.file=/etc/jitsi/jigasi/logging.properties\"" >> $CONFIG
@@ -129,22 +137,21 @@ case "$1" in
         sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /etc/jitsi/jigasi/sip-communicator.properties
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
-        JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""
-        # update prosody config
-        if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ] || [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
-            echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
-        else
-            sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" -i $PROSODY_HOST_CONFIG
-            echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
+        if [ -f $PROSODY_HOST_CONFIG ]; then
+            JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""
+            # update prosody config
+            if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ] || [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
+                echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
+            else
+                sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" -i $PROSODY_HOST_CONFIG
+                echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
+            fi
+            invoke-rc.d prosody restart
         fi
-        invoke-rc.d prosody restart
 
         # ensure jigasi is not running - it will be started at the end
-        if [ "$(ps -C jigasi.sh --no-headers -o pid)" ]; then
+        if invoke-rc.d jigasi status >/dev/null 2>&1 ; then
             invoke-rc.d jigasi stop || true
-        fi
-        if [ -x "/etc/init.d/jigasi" ]; then
-            update-rc.d jigasi defaults >/dev/null
         fi
 
         # clean up old jigasi group

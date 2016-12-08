@@ -15,17 +15,10 @@
 
 . /lib/lsb/init-functions
 
-# Include jigasi & videobridge defaults if available
+# Include jigasi defaults if available
 if [ -f /etc/jitsi/jigasi/config ]; then
     . /etc/jitsi/jigasi/config
 fi
-# We have the same config in jvb and in jigasi config
-# make sure we use the one from jigasi
-JIGASI_JAVA_SYS_PROPS=${JAVA_SYS_PROPS}
-if [ -f /etc/jitsi/videobridge/config ]; then
-    . /etc/jitsi/videobridge/config
-fi
-JAVA_SYS_PROPS=${JIGASI_JAVA_SYS_PROPS}
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/share/jigasi/jigasi.sh
@@ -36,10 +29,7 @@ PIDFILE=/var/run/jigasi.pid
 LOGDIR=/var/log/jitsi
 LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
-if [ ! $JVB_HOST ]; then
-    JVB_HOST=localhost
-fi
-DAEMON_OPTS=" --host=$JVB_HOST --domain=$JVB_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
+DAEMON_OPTS=" --host=$JIGASI_HOST --domain=$JIGASI_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
 
 test -x $DAEMON || exit 0
 
