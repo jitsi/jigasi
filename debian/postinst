@@ -139,14 +139,6 @@ case "$1" in
         fi
         invoke-rc.d prosody restart
 
-        # update jitsi-meet config
-        JITSI_MEET_CONFIG="/etc/jitsi/meet/$JVB_HOSTNAME-config.js"
-        if [ ! "$(grep "call_control: 'callcontrol.$JVB_HOSTNAME'" $JITSI_MEET_CONFIG)" ] || [ "$(grep "//call_control: 'callcontrol.$JVB_HOSTNAME'" $JITSI_MEET_CONFIG)" ]; then
-            JIGASI_MEET="        call_control: 'callcontrol.$JVB_HOSTNAME',"
-            #sed -i "s/hosts:\ {/hosts:\ {\n\t$JIGASI_MEET/g" /usr/share/jitsi-meet/config.js
-            sed -i "s/.*call_control: .*/$JIGASI_MEET/" $JITSI_MEET_CONFIG
-        fi
-
         # ensure jigasi is not running - it will be started at the end
         if [ "$(ps -C jigasi.sh --no-headers -o pid)" ]; then
             invoke-rc.d jigasi stop || true
