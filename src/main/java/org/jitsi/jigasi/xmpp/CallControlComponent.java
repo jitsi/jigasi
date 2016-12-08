@@ -119,18 +119,47 @@ public class CallControlComponent
             = ServiceUtils.getService(
                     bundleContext, SipGateway.class);
 
+        if (this.gateway != null)
+            internalStart(bundleContext);
+        else
+            bundleContext.addServiceListener(new ServiceListener()
+            {
+                @Override
+                public void serviceChanged(ServiceEvent serviceEvent)
+                {
+                    if (serviceEvent.getType() != ServiceEvent.REGISTERED)
+                        return;
+
+                    ServiceReference ref = serviceEvent.getServiceReference();
+                    BundleContext bundleContext
+                        = ref.getBundle().getBundleContext();
+
+                    Object service = bundleContext.getService(ref);
+
+                    if (!(service instanceof SipGateway))
+                        return;
+
+                    CallControlComponent.this.gateway = (SipGateway) service;
+                    bundleContext.removeServiceListener(this);
+                    internalStart(bundleContext);
+                }
+            });
+    }
+
+    private void internalStart(BundleContext bundleContext)
+    {
         ConfigurationService config
             = ServiceUtils.getService(
-                    bundleContext, ConfigurationService.class);
-        
+            bundleContext, ConfigurationService.class);
+
         Boolean always_trust_mode = config.getBoolean(
-                "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",false);
+            "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",false);
         if (always_trust_mode)
         {
-                // Always trust mode - prevent failures because there's no GUI
-                // to ask the user, but do we always want to trust so, in this
-                // mode, the service is vulnerable to Man-In-The-Middle attacks.
-                logger.warn("Always trust in remote TLS certificates mode is enabled");
+            // Always trust mode - prevent failures because there's no GUI
+            // to ask the user, but do we always want to trust so, in this
+            // mode, the service is vulnerable to Man-In-The-Middle attacks.
+            logger.warn("Always trust in remote TLS certificates mode is enabled");
         }
 
         this.allowedJid = config.getString(ALLOWED_JID_P_NAME, null);
