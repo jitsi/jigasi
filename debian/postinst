@@ -77,7 +77,7 @@ case "$1" in
             echo "JIGASI_HOSTNAME=$JVB_HOSTNAME" >> $CONFIG
         fi
 
-        if ! grep -q "JIGASI_HOST" "$CONFIG"; then
+        if ! grep -q "JIGASI_HOST=" "$CONFIG"; then
             echo "JIGASI_HOST=localhost" >> $CONFIG
         fi
 
