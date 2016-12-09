@@ -120,7 +120,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-sip</artifactId>
-      <version>2.9-20160516.121332-4</version>
+      <version>2.9-20161209.000918-6</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
