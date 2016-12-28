@@ -75,6 +75,13 @@ public class MockJitsiMeetTools
     }
 
     @Override
+    public void removePresenceExtension(
+        ChatRoom chatRoom, PacketExtension packetExtension)
+    {
+        //FIXME: to be tested
+    }
+
+    @Override
     public void setPresenceStatus(ChatRoom chatRoom, String statusName)
     {
         //FIXME: to be tested
