@@ -386,8 +386,10 @@ public class JvbConference
 
         this.xmppAccount
             = xmppProviderFactory.createAccount(
-                createAccountPropertiesForCallId(
-                    gatewaySession.getXmppServerName(), resourceIdentifier));
+                    createAccountPropertiesForCallId(
+                            gatewaySession.getXmppServerName(),
+                            resourceIdentifier,
+                            roomName));
 
         xmppProviderFactory.loadAccount(xmppAccount);
 
@@ -873,7 +875,8 @@ public class JvbConference
      */
     private Map<String, String> createAccountPropertiesForCallId(
             String domain,
-            String resourceName)
+            String resourceName,
+            String roomName)
     {
         HashMap<String, String> properties = new HashMap<String, String>();
 
@@ -956,6 +959,16 @@ public class JvbConference
                 // account and there we can alter the connection credentials.
 
                 this.xmppPassword = value;
+            }
+            else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
+                        .equals(overridenProp))
+            {
+                String boshUrl = value;
+                if (!StringUtils.isNullOrEmpty(boshUrl))
+                {
+                    boshUrl = boshUrl.replace("{roomName}", roomName);
+                    properties.put(JabberAccountID.BOSH_URL, boshUrl);
+                }
             }
             else
             {
