@@ -307,8 +307,7 @@ public class CallsHandlingTest
             focus.getRoomName());
 
         org.xmpp.packet.IQ result
-            = component.handleIQSet(
-                    IQUtils.convert(dialIq));
+            = component.handleIQ(IQUtils.convert(dialIq));
 
         IQ iq = IQUtils.convert(result);
 
@@ -347,7 +346,7 @@ public class CallsHandlingTest
                     from, callUri.substring(5));
 
         // FIXME: validate result
-        component.handleIQSet(IQUtils.convert(hangUp));
+        component.handleIQ(IQUtils.convert(hangUp));
 
         callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);

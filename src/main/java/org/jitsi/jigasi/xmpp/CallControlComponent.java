@@ -246,7 +246,27 @@ public class CallControlComponent
      * @see AbstractComponent#handleIQSet(IQ)
      */
     @Override
-    public IQ handleIQSet(IQ iq)
+    protected IQ handleIQSetImpl(IQ iq)
+        throws Exception
+    {
+        IQ resultIQ = handleIQ(iq);
+
+        return (resultIQ == null) ? super.handleIQSetImpl(iq) : resultIQ;
+    }
+
+    /**
+     * Handles an <tt>org.xmpp.packet.IQ</tt> stanza of type <tt>set</tt> which
+     * represents a request.
+     *
+     * @param iq the <tt>org.xmpp.packet.IQ</tt> stanza of type <tt>set</tt>
+     * which represents the request to handle
+     * @return an <tt>org.xmpp.packet.IQ</tt> stanza which represents the
+     * response to the specified request or <tt>null</tt> to reply with
+     * <tt>feature-not-implemented</tt>
+     * @throws Exception to reply with <tt>internal-server-error</tt> to the
+     * specified request
+     */
+    public IQ handleIQ(IQ iq)
         throws Exception
     {
         try

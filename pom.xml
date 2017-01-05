@@ -19,7 +19,6 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jetty.version>8.1.16.v20140903</jetty.version>
   </properties>
 
   <dependencies>
@@ -47,6 +46,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
+      <version>1.0-20161122.205032-37</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -156,7 +156,6 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
@@ -166,18 +165,6 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-ajp</artifactId>
-      <version>${jetty.version}</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>${jetty.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
