@@ -104,10 +104,32 @@ public class CallControlComponent
     }
 
     /**
-     * Initializes this component.
+     * Called as part of the execution of {@link AbstractComponent#shutdown()}
+     * to enable this <tt>Component</tt> to finish cleaning resources up after
+     * it gets completely shutdown.
+     *
+     * @see AbstractComponent#postComponentShutdown()
      */
-    public void init()
+    @Override
+    public void postComponentShutdown()
     {
+        super.postComponentShutdown();
+
+        OSGi.stop(this);
+    }
+
+    /**
+     * Called as part of the execution of {@link AbstractComponent#start()} to
+     * enable this <tt>Component</tt> to finish initializing resources after it
+     * gets completely started.
+     *
+     * @see AbstractComponent#postComponentStart()
+     */
+    @Override
+    public void postComponentStart()
+    {
+        super.postComponentStart();
+
         OSGi.start(this);
     }
 
