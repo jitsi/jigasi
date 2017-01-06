@@ -238,22 +238,15 @@ public class Main
 
         ComponentMain main = new ComponentMain();
 
-        if (Boolean.valueOf(cmdLine.getOptionValue(DISABLE_COMPONENT_ARG_NAME)))
-        {
-            // a little hack to detect when bundle config is initialized
-            JigasiBundleConfig osgiBundles = new JigasiBundleConfig(){
-                public void setSystemPropertyDefaults()
-                {
-                    super.setSystemPropertyDefaults();
-                    sipGwComponent.init();
-                }
-            };
-            main.runMainProgramLoop(null, osgiBundles);
-        }
-        else
-        {
-            main.runMainProgramLoop(sipGwComponent, new JigasiBundleConfig());
+        Util.domain = domain;
+        Util.subDomain = subdomain;
 
-        }
+        main.runMainProgramLoop(
+            Boolean.valueOf(
+                cmdLine.getOptionValue(DISABLE_COMPONENT_ARG_NAME)) ?
+                null :
+                new CallControlComponent(
+                    host, port, domain, subdomain, secret),
+            new JigasiBundleConfig());
     }
 }

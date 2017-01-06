@@ -74,10 +74,6 @@ public class CallsHandlingTest
         this.roomName = getTestRoomName();
 
         this.focus = new MockJvbConferenceFocus(roomName);
-
-        osgi.getSipGateway()
-            .setCallsControl(
-                new MockCallsControl());
     }
 
     @After
@@ -286,7 +282,7 @@ public class CallsHandlingTest
 
         component.init();
 
-        assertEquals(serverName, osgi.getSipGateway().getXmppServerName());
+        assertEquals(serverName, component.getDomain());
 
         String from = "from";
         String to = "sipAddress";

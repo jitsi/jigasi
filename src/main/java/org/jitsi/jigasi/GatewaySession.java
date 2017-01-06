@@ -84,7 +84,7 @@ public class GatewaySession
     private String destination;
 
     /**
-     * The call resource assigned by {@link CallsControl} for the current call.
+     * The call resource assigned for the current call.
      */
     private String callResource;
 
@@ -207,15 +207,6 @@ public class GatewaySession
     }
 
     /**
-     * Returns the <tt>CallsControl</tt> that manages this instance.
-     * @return the <tt>CallsControl</tt> that manages this instance.
-     */
-    public CallsControl getCallsControl()
-    {
-        return sipGateway.getCallsControl();
-    }
-
-    /**
      * Returns the name of the chat room that holds current JVB conference or
      * <tt>null</tt> we're not in any room.
      *
@@ -252,14 +243,6 @@ public class GatewaySession
     public Call getSipCall()
     {
         return call;
-    }
-
-    /**
-     * Returns name of the XMPP server that hosts JVB conference room.
-     */
-    public String getXmppServerName()
-    {
-        return sipGateway.getXmppServerName();
     }
 
     public void hangUp()
