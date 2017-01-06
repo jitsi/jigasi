@@ -733,11 +733,14 @@ public class JvbConference
         logger.info(
             "Member left : " + member.getRole()
                 + " " + member.getContactAddress());
-
-        if (ChatRoomMemberRole.OWNER.equals(member.getRole()) ||
-            member.getContactAddress().equals(focusResourceAddr))
+        // 2 members, us and the focus
+        if (member.getContactAddress().equals(focusResourceAddr)
+            || evt.getChatRoom().getMembersCount() == 2)
         {
-            logger.info("Focus left! - stopping");
+            logger.info(
+                member.getContactAddress().equals(focusResourceAddr) ?
+                    "Focus" : "Last participant"
+                + " left! - stopping");
 
             stop();
         }
