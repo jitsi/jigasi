@@ -72,7 +72,7 @@ public class JigasiBundleActivator
 
         bundleContext.registerService(UIService.class, uiServiceStub, null);
 
-        gateway = new SipGateway();
+        gateway = new SipGateway(bundleContext);
 
         osgiContext.registerService(SipGateway.class, gateway, null);
 
