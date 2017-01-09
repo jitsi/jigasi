@@ -19,7 +19,9 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
+import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
+import org.osgi.framework.*;
 
 import java.util.*;
 
@@ -78,27 +80,28 @@ public class SipGateway
     private final SipCallListener callListener = new SipCallListener();
 
     /**
-     * The {@link CallsControl} that manages call resource/URIs.
-     */
-    private CallsControl callsControl;
-
-    /**
      * SIP gateways map.
      */
     private final Map<String, GatewaySession> sessions
         = new HashMap<String, GatewaySession>();
 
     /**
-     * The name of XMPP server that hosts JVB conference room.
+     * Indicates if jigasi instance has entered graceful shutdown mode.
      */
-    private String xmppServerName;
+    private boolean shutdownInProgress;
+
+    /**
+     * The (OSGi) <tt>BundleContext</tt> in which this <tt>SipGateway</tt> has
+     * been started.
+     */
+    private BundleContext bundleContext;
 
     /**
      * Creates new instance of <tt>SipGateway</tt>.
      */
-    public SipGateway()
+    public SipGateway(BundleContext bundleContext)
     {
-
+        this.bundleContext = bundleContext;
     }
 
     /**
@@ -144,14 +147,6 @@ public class SipGateway
         return sipProvider;
     }
 
-    /**
-     * Returns the name of the XMPP server that hosts JVB conference room.
-     */
-    public String getXmppServerName()
-    {
-        return xmppServerName;
-    }
-
     private void initProvider(ProtocolProviderService pps)
     {
         pps.addRegistrationStateChangeListener(this);
@@ -171,18 +166,7 @@ public class SipGateway
     }
 
     /**
-     * Sets the {@link CallsControl} that will be used to allocate new call
-     * resource/URIs for incoming calls.
-     * @param callsControl the {@link CallsControl} that will be used by this
-     *                     instance.
-     */
-    public void setCallsControl(CallsControl callsControl)
-    {
-        this.callsControl = callsControl;
-    }
-
-    /**
-     * Notifies {@link CallsControl} that current call has ended.
+     * Notified that current call has ended.
      */
     void notifyCallEnded(String callResource)
     {
@@ -203,19 +187,8 @@ public class SipGateway
 
         logger.info("Removed session for call " + callResource);
 
-        if (callsControl != null)
-        {
-            callsControl.callEnded(this, session.getCallResource());
-        }
-    }
-
-    /**
-     * Returns the <tt>CallsControl</tt> that manages this instance.
-     * @return the <tt>CallsControl</tt> that manages this instance.
-     */
-    public CallsControl getCallsControl()
-    {
-        return callsControl;
+        // Check if it's the time to shutdown now
+        maybeDoShutdown();
     }
 
     /**
@@ -289,16 +262,6 @@ public class SipGateway
             .setProperty(SipGateway.P_NAME_JVB_INVITE_TIMEOUT, newTimeout);
     }
 
-    /**
-     * Sets the XMPP server name that hosts JVB conference room.
-     *
-     * @param xmppServer the name of XMPP server to set.
-     */
-    public void setXmppServerName(String xmppServer)
-    {
-        this.xmppServerName = xmppServer;
-    }
-
     class SipCallListener
         implements CallListener
     {
@@ -312,8 +275,7 @@ public class SipGateway
 
                 logger.info("Incoming call received...");
 
-                String callResource
-                    = callsControl.allocateNewSession(SipGateway.this);
+                String callResource = Util.generateNextCallResource();
 
                 GatewaySession incomingSession
                     = new GatewaySession(
@@ -333,6 +295,58 @@ public class SipGateway
         {
             // FIXME: is it required ?
             //sipCallEnded();
+        }
+    }
+
+    /**
+     * Enables graceful shutdown mode on this jigasi instance and eventually
+     * starts the shutdown immediately if no conferences are currently being
+     * hosted. Otherwise jigasi will shutdown once all conferences expire.
+     */
+    public void enableGracefulShutdownMode()
+    {
+        if (!shutdownInProgress)
+        {
+            logger.info("Entered graceful shutdown mode");
+        }
+        this.shutdownInProgress = true;
+        maybeDoShutdown();
+    }
+
+    /**
+     * Returns {@code true} if this instance has entered graceful shutdown mode.
+     *
+     * @return {@code true} if this instance has entered graceful shutdown mode;
+     * otherwise, {@code false}
+     */
+    public boolean isShutdownInProgress()
+    {
+        return shutdownInProgress;
+    }
+
+    /**
+     * Triggers the shutdown given that we're in graceful shutdown mode and
+     * there are no conferences currently in progress.
+     */
+    private void maybeDoShutdown()
+    {
+        if (!shutdownInProgress)
+            return;
+
+        synchronized (sessions)
+        {
+            if (sessions.isEmpty())
+            {
+                this.stop();
+
+                ShutdownService shutdownService
+                    = ServiceUtils.getService(
+                    bundleContext,
+                    ShutdownService.class);
+
+                logger.info("Jigasi is shutting down NOW");
+                shutdownService.beginShutdown();
+            }
         }
     }
 }

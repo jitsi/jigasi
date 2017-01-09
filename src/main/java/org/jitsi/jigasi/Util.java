@@ -30,6 +30,16 @@ import org.jitsi.service.neomedia.format.*;
 public class Util
 {
     /**
+     * A default value for domain that is used.
+     */
+    public static String domain = null;
+
+    /**
+     * A default value for sub domain that is used.
+     */
+    public static String subDomain = null;
+
+    /**
      * Returns <tt>MediaFormat</tt> of the first {@link CallPeer} that belongs
      * to given {@link Call}(if peer and formats are available).
      *
@@ -65,5 +75,30 @@ public class Util
             return null;
 
         return peerStream.getFormat();
+    }
+
+    /**
+     * Generate resource based on the timestamp and the subDomain + domain.
+     * @return a unique resource.
+     */
+    public static String generateNextCallResource()
+    {
+        //FIXME: fix resource generation and check if created resource
+        // is already taken
+        return Long.toHexString(System.currentTimeMillis())
+            + "@" + subDomain + "." + domain;
+    }
+
+    /**
+     * Call resource currently has the form of e23gr547@callcontro.server.net.
+     * This methods extract random call id part before '@' sign. In the example
+     * above it is 'e23gr547'.
+     * @param callResource the call resource/URI from which the call ID part
+     *                     will be extracted.
+     * @return extracted random call ID part from full call resource string.
+     */
+    public static String extractCallIdFromResource(String callResource)
+    {
+        return callResource.substring(0, callResource.indexOf("@"));
     }
 }

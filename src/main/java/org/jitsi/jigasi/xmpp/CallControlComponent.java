@@ -39,9 +39,7 @@ import org.xmpp.packet.Message;
  */
 public class CallControlComponent
     extends ComponentBase
-    implements BundleActivator,
-               CallsControl,
-               ServiceListener
+    implements BundleActivator
 {
     /**
      * The logger.
@@ -104,10 +102,32 @@ public class CallControlComponent
     }
 
     /**
-     * Initializes this component.
+     * Called as part of the execution of {@link AbstractComponent#shutdown()}
+     * to enable this <tt>Component</tt> to finish cleaning resources up after
+     * it gets completely shutdown.
+     *
+     * @see AbstractComponent#postComponentShutdown()
      */
-    public void init()
+    @Override
+    public void postComponentShutdown()
     {
+        super.postComponentShutdown();
+
+        OSGi.stop(this);
+    }
+
+    /**
+     * Called as part of the execution of {@link AbstractComponent#start()} to
+     * enable this <tt>Component</tt> to finish initializing resources after it
+     * gets completely started.
+     *
+     * @see AbstractComponent#postComponentStart()
+     */
+    @Override
+    public void postComponentStart()
+    {
+        super.postComponentStart();
+
         OSGi.start(this);
     }
 
@@ -168,10 +188,6 @@ public class CallControlComponent
         {
             logger.info("JID allowed to make outgoing calls: " + allowedJid);
         }
-
-        gateway.setCallsControl(this);
-
-        gateway.setXmppServerName(getDomain());
     }
 
     @Override
@@ -217,19 +233,11 @@ public class CallControlComponent
      */
     String initNewCall(String roomName, String roomPass, String from, String to)
     {
-        String callResource = generateNextCallResource();
+        String callResource = Util.generateNextCallResource();
 
         gateway.createOutgoingCall(to, roomName, roomPass, callResource);
 
         return callResource;
-    }
-
-    private String generateNextCallResource()
-    {
-        //FIXME: fix resource generation and check if created resource
-        // is already taken
-        return Long.toHexString(System.currentTimeMillis())
-            + "@" + getSubdomain() + "." + getDomain();
     }
 
     /**
@@ -246,7 +254,27 @@ public class CallControlComponent
      * @see AbstractComponent#handleIQSet(IQ)
      */
     @Override
-    public IQ handleIQSet(IQ iq)
+    protected IQ handleIQSetImpl(IQ iq)
+        throws Exception
+    {
+        IQ resultIQ = handleIQ(iq);
+
+        return (resultIQ == null) ? super.handleIQSetImpl(iq) : resultIQ;
+    }
+
+    /**
+     * Handles an <tt>org.xmpp.packet.IQ</tt> stanza of type <tt>set</tt> which
+     * represents a request.
+     *
+     * @param iq the <tt>org.xmpp.packet.IQ</tt> stanza of type <tt>set</tt>
+     * which represents the request to handle
+     * @return an <tt>org.xmpp.packet.IQ</tt> stanza which represents the
+     * response to the specified request or <tt>null</tt> to reply with
+     * <tt>feature-not-implemented</tt>
+     * @throws Exception to reply with <tt>internal-server-error</tt> to the
+     * specified request
+     */
+    public IQ handleIQ(IQ iq)
         throws Exception
     {
         try
@@ -328,80 +356,5 @@ public class CallControlComponent
             logger.error(e, e);
             throw e;
         }
-    }
-
-    @Override
-    public void callEnded(SipGateway gateway, String callResource)
-    {
-        // Send confirmation
-        // FIXME: we've left the room already at this point
-        /*EndExtension end = new EndExtension();
-        end.setReason(
-            new ReasonExtension(ReasonExtension.HANGUP));
-        HeaderExtension header = new HeaderExtension();
-        header.setName("uri");
-        header.setValue("xmpp:" + gatewaySession.callResource);
-
-        end.addChildExtension(header);
-
-        gateway.sendPresenceExtension(end);*/
-    }
-
-    /**
-     * Call resource currently has the form of e23gr547@callcontro.server.net.
-     * This methods extract random call id part before '@' sign. In the example
-     * above it is 'e23gr547'.
-     * @param callResource the call resource/URI from which the call ID part
-     *                     will be extracted.
-     * @return extracted random call ID part from full call resource string.
-     */
-    @Override
-    public String extractCallIdFromResource(String callResource)
-    {
-        return callResource.substring(0, callResource.indexOf("@"));
-    }
-
-    protected void sendPacketXml(String xmlToSend)
-    {
-        try
-        {
-            Document doc = DocumentHelper.parseText(xmlToSend);
-
-            org.xmpp.packet.Message toSend
-                = new Message(doc.getRootElement());
-
-            send(toSend);
-        }
-        catch (DocumentException e)
-        {
-            logger.error(e, e);
-        }
-    }
-
-    @Override
-    public void serviceChanged(ServiceEvent serviceEvent)
-    {
-        if (serviceEvent.getType() != ServiceEvent.REGISTERED)
-            return;
-
-        ServiceReference ref = serviceEvent.getServiceReference();
-
-        Object service = JigasiBundleActivator.osgiContext.getService(ref);
-
-        if (!(service instanceof SipGateway))
-            return;
-
-        SipGateway gateway = (SipGateway) service;
-
-        gateway.setCallsControl(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String allocateNewSession(SipGateway gateway)
-    {
-        return generateNextCallResource();
     }
 }

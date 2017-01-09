@@ -316,8 +316,8 @@ public class JvbConference
 
         if (StringUtils.isNullOrEmpty(resourceIdentifier))
         {
-            resourceIdentifier = gatewaySession.getCallsControl()
-                .extractCallIdFromResource(gatewaySession.getCallResource());
+            resourceIdentifier = Util.extractCallIdFromResource(
+                gatewaySession.getCallResource());
         }
 
         return resourceIdentifier;
@@ -387,7 +387,7 @@ public class JvbConference
         this.xmppAccount
             = xmppProviderFactory.createAccount(
                     createAccountPropertiesForCallId(
-                            gatewaySession.getXmppServerName(),
+                            Util.domain,
                             resourceIdentifier,
                             roomName));
 

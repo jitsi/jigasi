@@ -140,6 +140,9 @@ public class JigasiBundleConfig
             {
                 "org/jitsi/jigasi/JigasiBundleActivator"
             },
+            {
+                "org/jitsi/jigasi/rest/RESTBundleActivator"
+            }
         };
 
         return bundles;
