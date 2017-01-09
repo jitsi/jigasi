@@ -286,9 +286,11 @@
             <filelist dir="." files="jigasi.sh"/>
             <filelist dir="." files="pom.xml"/>
             <filelist dir="." files="jigasi.jar"/>
+            <filelist dir="script" files="graceful_shutdown.sh"/>
         </copy>
         <chmod file="${debian.target.dir}/jigasi.sh" perm="+x"/>
-        
+        <chmod file="${debian.target.dir}/graceful_shutdown.sh" perm="+x"/>
+
         <copy file="debian/changelog.tmpl"
               tofile="${debian.target.dir}/debian/changelog"
               overwrite="true"/>
