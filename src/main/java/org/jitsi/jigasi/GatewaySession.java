@@ -110,6 +110,13 @@ public class GatewaySession
     private GatewaySessionListener listener;
 
     /**
+     * The name of the property that is used to define whether we will set an
+     * rtpTranslator and will send multiple ssrcs.
+     */
+    private static final String P_NAME_ENABLE_RTP_TRANSLATOR
+        = "org.jitsi.jigasi.ENABLE_RTP_TRANSLATOR";
+
+    /**
      * Creates new <tt>GatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -302,7 +309,16 @@ public class GatewaySession
         // Incoming SIP connection mode sets common conference here
         if (destination == null)
         {
-            call.setConference(incomingCall.getConference());
+            logger.info("just before set the shared conference!!!!!");
+
+            boolean isTranslator =
+                JigasiBundleActivator.getConfigurationService()
+                    .getBoolean(P_NAME_ENABLE_RTP_TRANSLATOR, false);
+
+            CallConference conference = incomingCall.getConference();
+            conference.setTranslator(isTranslator);
+
+            call.setConference(conference);
         }
     }
 
