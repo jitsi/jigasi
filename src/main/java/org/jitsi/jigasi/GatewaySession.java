@@ -19,7 +19,9 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
+import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 
@@ -303,6 +305,31 @@ public class GatewaySession
         if (destination == null)
         {
             call.setConference(incomingCall.getConference());
+
+            boolean useTranslator = incomingCall.getProtocolProvider()
+                .getAccountID().getAccountPropertyBoolean(
+                    ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                    false);
+            CallPeer peer = incomingCall.getCallPeers().next();
+            // if use translator is enabled add a ssrc rewriter
+            if (useTranslator && !addSsrcRewriter(peer))
+            {
+                peer.addCallPeerListener(new CallPeerAdapter()
+                {
+                    @Override
+                    public void peerStateChanged(CallPeerChangeEvent evt)
+                    {
+                        CallPeer peer = evt.getSourceCallPeer();
+                        CallPeerState peerState = peer.getState();
+
+                        if (CallPeerState.CONNECTED.equals(peerState))
+                        {
+                            peer.removeCallPeerListener(this);
+                            addSsrcRewriter(peer);
+                        }
+                    }
+                });
+            }
         }
     }
 
@@ -571,6 +598,34 @@ public class GatewaySession
                 }
             }
         }
+    }
+
+    /**
+     * Adds a ssrc rewriter to the peers media stream.
+     * @param peer
+     * @return true if rewriter was added to peer's media stream.
+     */
+    private boolean addSsrcRewriter(CallPeer peer)
+    {
+        if (peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler
+                = peerMedia.getMediaHandler();
+            if (mediaHandler != null)
+            {
+                MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
+                if (stream != null)
+                {
+                    stream.setExternalTransformer(
+                        new SsrcRewriter(stream.getLocalSourceID()));
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     class SipCallStateListener
