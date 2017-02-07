@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Transformer that will rewrite rtp packets ssrc, when attached to a stream.
