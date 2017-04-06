@@ -233,9 +233,6 @@ public class Main
             System.setProperty(PNAME_SC_CACHE_DIR_LOCATION, logdir);
         }
 
-        final CallControlComponent sipGwComponent
-            = new CallControlComponent(host, port, domain, subdomain, secret);
-
         ComponentMain main = new ComponentMain();
 
         Util.domain = domain;
