@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.jigasi;
+package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -46,7 +46,7 @@ public class Util
      * @param call the {@link Call} to which the call peer for whom we want to
      *             retrieve the media format belongs to.
      */
-    static MediaFormat getFirstPeerMediaFormat(Call call)
+    public static MediaFormat getFirstPeerMediaFormat(Call call)
     {
         if (!(call instanceof MediaAwareCall))
             return null;

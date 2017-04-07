@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.jigasi;
+package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.*;
 
 /**
  * Thread does the job of registering given <tt>ProtocolProviderService</tt>.
@@ -39,12 +40,12 @@ public class RegisterThread
 
     private final String password;
 
-    RegisterThread(ProtocolProviderService pps)
+    public RegisterThread(ProtocolProviderService pps)
     {
         this(pps, null);
     }
 
-    RegisterThread(ProtocolProviderService pps, String password)
+    public RegisterThread(ProtocolProviderService pps, String password)
     {
         this.pps = pps;
         this.password = password;
