@@ -37,6 +37,12 @@ import org.osgi.framework.*;
 import java.util.*;
 
 /**
+ * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
+ * of SIP gateway calls management.
+ * This is based on muc called brewery, where all Jigasi instances join and
+ * publish their usage stats using <tt>ColibriStatsExtension</tt> in presence.
+ * The focus use the stats to load balance between instances.
+ *
  * @author Damian Minkov
  */
 public class CallControlMucActivator
@@ -97,8 +103,8 @@ public class CallControlMucActivator
 
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
-            osgiContext,
-            ProtocolProviderService.class);
+                osgiContext,
+                ProtocolProviderService.class);
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {
@@ -129,8 +135,8 @@ public class CallControlMucActivator
 
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
-            osgiContext,
-            ProtocolProviderService.class);
+                osgiContext,
+                ProtocolProviderService.class);
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {
@@ -258,18 +264,18 @@ public class CallControlMucActivator
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
             updatePresenceStatusForXmppProvider(pps);
+
+            // getting direct access to the xmpp connection in order to add
+            // a listener for incoming iqs
+            if (pps instanceof ProtocolProviderServiceJabberImpl)
+            {
+                ((ProtocolProviderServiceJabberImpl) pps).getConnection()
+                    .addPacketListener(this, this);
+            }
         }
         catch (Exception e)
         {
             logger.error(e, e);
-        }
-
-        // getting direct access to the xmpp connection in order to add
-        // a listener for incoming iqs
-        if (pps instanceof ProtocolProviderServiceJabberImpl)
-        {
-            ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                .addPacketListener(this, this);
         }
     }
 
@@ -283,6 +289,10 @@ public class CallControlMucActivator
     public void onSessionAdded(GatewaySession session)
     {
         session.setListener(this);
+        // we are not updating anything here (stats), cause session was just
+        // created and we haven't joined the jvb room so there is no change
+        // in participant count and the conference is actually not started yet
+        // till we join
     }
 
     @Override
@@ -310,8 +320,8 @@ public class CallControlMucActivator
 
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
-            osgiContext,
-            ProtocolProviderService.class);
+                osgiContext,
+                ProtocolProviderService.class);
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {

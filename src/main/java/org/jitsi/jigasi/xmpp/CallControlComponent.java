@@ -25,7 +25,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.xmpp.component.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
-import org.xmpp.packet.IQ;
+import org.xmpp.packet.*;
 
 /**
  * Experimental implementation of call control component that is capable of
@@ -219,6 +219,11 @@ public class CallControlComponent
         if (callControl == null)
         {
             logger.warn("Call controller not initialized");
+
+            // send service unavailable
+            IQ error = IQ.createResultIQ(iq);
+            error.setError(PacketError.Condition.service_unavailable);
+            return error;
         }
         else
         {
