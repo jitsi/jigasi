@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 
 import org.jitsi.cmd.*;
 import org.jitsi.jigasi.osgi.*;
+import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;

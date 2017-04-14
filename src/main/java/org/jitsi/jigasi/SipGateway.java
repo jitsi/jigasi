@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.util.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -95,6 +96,12 @@ public class SipGateway
      * been started.
      */
     private BundleContext bundleContext;
+
+    /**
+     * Listeners that will be notified of SipGateway changes.
+     */
+    private final ArrayList<SipGatewayListener> sipGatewayListeners
+        = new ArrayList<>();
 
     /**
      * Creates new instance of <tt>SipGateway</tt>.
@@ -183,6 +190,8 @@ public class SipGateway
                     "Call resource not exists for session " + callResource);
                 return;
             }
+
+            fireGatewaySessionRemoved(session);
         }
 
         logger.info("Removed session for call " + callResource);
@@ -206,6 +215,8 @@ public class SipGateway
         GatewaySession outgoingSession = new GatewaySession(this);
 
         sessions.put(callResource, outgoingSession);
+
+        fireGatewaySessionAdded(outgoingSession);
 
         outgoingSession.createOutgoingCall(
             to, roomName, roomPass, callResource);
@@ -283,6 +294,8 @@ public class SipGateway
 
                 sessions.put(callResource, incomingSession);
 
+                fireGatewaySessionAdded(incomingSession);
+
                 incomingSession.initIncomingCall();
             }
         }
@@ -347,6 +360,72 @@ public class SipGateway
                 logger.info("Jigasi is shutting down NOW");
                 shutdownService.beginShutdown();
             }
+        }
+    }
+
+    /**
+     * Adds a listener that will be notified of changes in our status.
+     *
+     * @param listener a sip gateway status listener.
+     */
+    public void addSipGatewayListener(SipGatewayListener listener)
+    {
+        synchronized(sipGatewayListeners)
+        {
+            if (!sipGatewayListeners.contains(listener))
+                sipGatewayListeners.add(listener);
+        }
+    }
+
+    /**
+     * Removes a listener that was being notified of changes in the status of
+     * SipGateway.
+     *
+     * @param listener a sip gateway status listener.
+     */
+    public void removeSipGatewayListener(SipGatewayListener listener)
+    {
+        synchronized(sipGatewayListeners)
+        {
+            sipGatewayListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Delivers event that new GatewaySession was added to active sessions.
+     * @param session the session that was added.
+     */
+    private void fireGatewaySessionAdded(GatewaySession session)
+    {
+        Iterable<SipGatewayListener> listeners;
+        synchronized (sipGatewayListeners)
+        {
+            listeners
+                = new ArrayList<>(sipGatewayListeners);
+        }
+
+        for (SipGatewayListener listener : listeners)
+        {
+            listener.onSessionAdded(session);
+        }
+    }
+
+    /**
+     * Delivers event that a GatewaySession was removed from active sessions.
+     * @param session the session that was removed.
+     */
+    private void fireGatewaySessionRemoved(GatewaySession session)
+    {
+        Iterable<SipGatewayListener> listeners;
+        synchronized (sipGatewayListeners)
+        {
+            listeners
+                = new ArrayList<>(sipGatewayListeners);
+        }
+
+        for (SipGatewayListener listener : listeners)
+        {
+            listener.onSessionRemoved(session);
         }
     }
 }

@@ -142,6 +142,9 @@ public class JigasiBundleConfig
             },
             {
                 "org/jitsi/jigasi/rest/RESTBundleActivator"
+            },
+            {
+                "org/jitsi/jigasi/xmpp/CallControlMucActivator"
             }
         };
 

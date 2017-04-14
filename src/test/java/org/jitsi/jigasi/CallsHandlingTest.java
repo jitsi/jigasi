@@ -299,7 +299,7 @@ public class CallsHandlingTest
         dialIq.setTo(jigasiJid);
 
         dialIq.setHeader(
-            CallControlComponent.ROOM_NAME_HEADER,
+            CallControl.ROOM_NAME_HEADER,
             focus.getRoomName());
 
         org.xmpp.packet.IQ result

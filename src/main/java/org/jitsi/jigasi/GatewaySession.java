@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
+import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
