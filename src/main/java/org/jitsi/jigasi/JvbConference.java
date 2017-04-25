@@ -45,7 +45,8 @@ import java.util.*;
 public class JvbConference
     implements RegistrationStateChangeListener,
                ServiceListener,
-               ChatRoomMemberPresenceListener
+               ChatRoomMemberPresenceListener,
+               LocalUserChatRoomPresenceListener
 {
     /**
      * The logger.
@@ -567,6 +568,7 @@ public class JvbConference
 
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
+        muc.addPresenceListener(this);
 
         try
         {
@@ -686,6 +688,10 @@ public class JvbConference
             return;
         }
 
+        OperationSetMultiUserChat muc
+            = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
+        muc.removePresenceListener(this);
+
         mucRoom.removeMemberPresenceListener(this);
 
         mucRoom.leave();
@@ -744,6 +750,23 @@ public class JvbConference
                 + " left! - stopping");
 
             stop();
+        }
+    }
+
+    /**
+     * Handles when user is kicked to stop the conference.
+     * @param evt the event
+     */
+    @Override
+    public void localUserPresenceChanged(
+        LocalUserChatRoomPresenceChangeEvent evt)
+    {
+
+        if (evt.getChatRoom().equals(JvbConference.this.mucRoom)
+            && evt.getEventType()
+                == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED)
+        {
+            this.stop();
         }
     }
 
