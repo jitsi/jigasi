@@ -111,6 +111,11 @@ public class JvbConference
     private final String roomPassword;
 
     /**
+     * Optional custom bosh URL to use when joining MUC rooms.
+     */
+    private final String customBoshURL;
+
+    /**
      * The XMPP account used for the call handled by this instance.
      */
     private AccountID xmppAccount;
@@ -196,13 +201,15 @@ public class JvbConference
      *                       <tt>JvbConference</tt>.
      * @param roomName name of MUC room that hosts the conference
      * @param roomPassword optional secret for password protected MUC room.
+     * @param customBoshURL optional, custom bosh URL to use when joining room
      */
     public JvbConference(GatewaySession gatewaySession, String roomName,
-                         String roomPassword)
+                         String roomPassword, String customBoshURL)
     {
         this.gatewaySession = gatewaySession;
         this.roomName = roomName;
         this.roomPassword = roomPassword;
+        this.customBoshURL = customBoshURL;
     }
 
     /**
@@ -937,6 +944,8 @@ public class JvbConference
             + ".DTLS-SRTP", "0");
         properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL_STATUS
             + ".DTLS-SRTP", "true");
+
+        String boshUrl = null;
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
@@ -990,17 +999,23 @@ public class JvbConference
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
             {
-                String boshUrl = value;
-                if (!StringUtils.isNullOrEmpty(boshUrl))
-                {
-                    boshUrl = boshUrl.replace("{roomName}", roomName);
-                    properties.put(JabberAccountID.BOSH_URL, boshUrl);
-                }
+                boshUrl = value;
             }
             else
             {
                 properties.put(key, value);
             }
+        }
+
+        if (!StringUtils.isNullOrEmpty(customBoshURL))
+        {
+            boshUrl = customBoshURL;
+        }
+
+        if (!StringUtils.isNullOrEmpty(boshUrl))
+        {
+            boshUrl = boshUrl.replace("{roomName}", roomName);
+            properties.put(JabberAccountID.BOSH_URL, boshUrl);
         }
 
         // Necessary when doing authenticated XMPP login, otherwise the dynamic

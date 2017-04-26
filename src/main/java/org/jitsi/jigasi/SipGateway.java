@@ -208,9 +208,11 @@ public class SipGateway
      *                 joined.
      * @param roomPass optional password for joining protected MUC room.
      * @param callResource the call resource that will identify new call.
+     * @param customBoshURL optional, custom bosh URL to use when joining room
      */
     public GatewaySession createOutgoingCall(
-            String to, String roomName, String roomPass, String callResource)
+            String to, String roomName, String roomPass, String callResource,
+            String customBoshURL)
     {
         GatewaySession outgoingSession = new GatewaySession(this);
 
@@ -219,7 +221,7 @@ public class SipGateway
         fireGatewaySessionAdded(outgoingSession);
 
         outgoingSession.createOutgoingCall(
-            to, roomName, roomPass, callResource);
+            to, roomName, roomPass, callResource, customBoshURL);
 
         return outgoingSession;
     }

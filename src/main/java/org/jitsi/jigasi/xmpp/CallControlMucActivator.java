@@ -51,7 +51,6 @@ public class CallControlMucActivator
                RegistrationStateChangeListener,
                GatewaySessionListener,
                SipGatewayListener,
-               PacketListener,
                PacketFilter
 {
     /**
@@ -269,8 +268,12 @@ public class CallControlMucActivator
             // a listener for incoming iqs
             if (pps instanceof ProtocolProviderServiceJabberImpl)
             {
+                // we do not care for removing the packet listener
+                // as its added to the connection, if the protocol provider
+                // gets disconnected and connects again it should create new
+                // connection and scrap old
                 ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                    .addPacketListener(this, this);
+                    .addPacketListener(new PProviderPacketListener(pps), this);
             }
         }
         catch (Exception e)
@@ -402,24 +405,6 @@ public class CallControlMucActivator
         updatePresenceStatusForXmppProvider(gateway, pps, participants);
     }
 
-    @Override
-    public void processPacket(Packet packet)
-    {
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Processing an RayoIq: " + packet.toXML());
-        }
-
-        try
-        {
-            callControl.handleIQ((IQ) packet);
-        }
-        catch (Exception e)
-        {
-            logger.error("Error processing RayoIq", e);
-        }
-    }
-
     /**
      * Accepts only  {@link RayoIqProvider.RayoIq}.
      * {@inheritDoc}
@@ -428,5 +413,61 @@ public class CallControlMucActivator
     public boolean accept(Packet packet)
     {
         return packet instanceof RayoIqProvider.RayoIq;
+    }
+
+    /**
+     * Packet listener per protocol provider. Used to get the custom
+     * bosh URL property from its account properties and to pass it when
+     * processing incoming iq.
+     */
+    private class PProviderPacketListener
+        implements PacketListener
+    {
+        private final ProtocolProviderService pps;
+
+        public PProviderPacketListener(
+            ProtocolProviderService pps)
+        {
+            this.pps = pps;
+        }
+
+        @Override
+        public void processPacket(Packet packet)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Processing a RayoIq: " + packet.toXML());
+            }
+
+            try
+            {
+                if (packet instanceof RayoIqProvider.DialIq)
+                {
+                    RayoIqProvider.DialIq dialIq
+                        = (RayoIqProvider.DialIq) packet;
+                    String roomName
+                        = dialIq.getHeader(CallControl.ROOM_NAME_HEADER);
+                    String customBosh = Util.obtainCustomBoshURL(
+                        pps,
+                        roomName,
+                        pps.getAccountID()
+                            .getAccountPropertyString("DOMAIN_BASE"));
+
+                    if (customBosh != null)
+                    {
+                        packet.setProperty(
+                            CallControl.BOSH_URL_PROPERTY,
+                            customBosh
+                        );
+                    }
+                }
+
+                callControl.handleIQ((IQ) packet);
+            }
+            catch (Exception e)
+            {
+                logger.error("Error processing RayoIq", e);
+            }
+        }
     }
 }
