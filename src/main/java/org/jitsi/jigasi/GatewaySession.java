@@ -27,6 +27,7 @@ import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.text.*;
+import java.util.*;
 
 /**
  * Class represents gateway session which manages single SIP call instance
@@ -42,6 +43,26 @@ public class GatewaySession
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(GatewaySession.class);
+
+    /**
+     * The name of the room password header to check in headers for a room
+     * password to use when joining the Jitsi Meet conference.
+     */
+    private final String roomPassHeaderName;
+
+    /**
+     * Default value of extra INVITE header which specifies password required
+     * to enter MUC room that is hosting the Jitsi Meet conference.
+     */
+    public static final String JITSI_MEET_ROOM_PASS_HEADER_DEFAULT
+        = "Jitsi-Conference-Room-Pass";
+
+    /**
+     * Name of extra INVITE header which specifies password required to enter
+     * MUC room that is hosting the Jitsi Meet conference.
+     */
+    private static final String JITSI_MEET_ROOM_PASS_HEADER_PROPERTY
+        = "JITSI_MEET_ROOM_PASS_HEADER_NAME";
 
     /**
      * The <tt>SipGateway</tt> that manages this session.
@@ -148,6 +169,12 @@ public class GatewaySession
         this.jitsiMeetTools
             = sipProvider.getOperationSet(
                     OperationSetJitsiMeetTools.class);
+
+        // check for custom header name for room pass header
+        roomPassHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(
+                JITSI_MEET_ROOM_PASS_HEADER_PROPERTY,
+                JITSI_MEET_ROOM_PASS_HEADER_DEFAULT);
     }
 
     private void allCallsEnded()
@@ -483,13 +510,16 @@ public class GatewaySession
     }
 
     @Override
-    public void onJoinJitsiMeetRequest(Call call, String room, String pass)
+    public void onJoinJitsiMeetRequest(
+        Call call, String room, Map<String, String> data)
     {
         if (jvbConference == null && this.call == call)
         {
             if (room != null)
             {
-                joinJvbConference(room, pass);
+                joinJvbConference(
+                    room,
+                    data.get(roomPassHeaderName));
             }
         }
     }

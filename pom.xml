@@ -77,7 +77,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol</artifactId>
-      <version>2.11-20170406.203521-1</version>
+      <version>2.11-20170426.193249-2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -128,7 +128,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-sip</artifactId>
-      <version>2.9-20161209.000918-6</version>
+      <version>2.11-20170426.193649-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
