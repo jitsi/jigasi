@@ -157,7 +157,7 @@ public class Util
             return null;
         }
 
-        String mucAddress = roomAddress.substring(roomAddress.indexOf("@"));
+        String mucAddress = roomAddress.substring(roomAddress.indexOf("@") + 1);
         String mucAddressPrefix = acc.getAccountPropertyString(
             MUC_DOMAIN_PREFIX_PROP, "conference");
 
