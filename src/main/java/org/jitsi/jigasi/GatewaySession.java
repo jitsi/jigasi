@@ -65,6 +65,13 @@ public class GatewaySession
         = "JITSI_MEET_ROOM_PASS_HEADER_NAME";
 
     /**
+     * Account property name of custom name for extra INVITE header which
+     * specifies name of MUC room that is hosting the Jitsi Meet conference.
+     */
+    private static final String JITSI_MEET_ROOM_HEADER_PROPERTY
+        = "JITSI_MEET_ROOM_HEADER_NAME";
+
+    /**
      * The name of the header to search in the INVITE headers for base domain
      * to be used to extract the subdomain from the roomname in order
      * to construct custom bosh URL to enter MUC room that is hosting
@@ -442,7 +449,10 @@ public class GatewaySession
                     {
                         Call call = callEvent.getSourceCall();
                         call.setData("EXTRA_HEADER_NAME.1",
-                            "Jitsi-Conference-Room");
+                            sipProvider.getAccountID()
+                                .getAccountPropertyString(
+                                    JITSI_MEET_ROOM_HEADER_PROPERTY,
+                                    "Jitsi-Conference-Room"));
                         call.setData("EXTRA_HEADER_VALUE.1", roomName);
                     }
 
