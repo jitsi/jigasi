@@ -27,6 +27,7 @@ import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.text.*;
+import java.util.*;
 
 /**
  * Class represents gateway session which manages single SIP call instance
@@ -42,6 +43,56 @@ public class GatewaySession
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(GatewaySession.class);
+
+    /**
+     * The name of the room password header to check in headers for a room
+     * password to use when joining the Jitsi Meet conference.
+     */
+    private final String roomPassHeaderName;
+
+    /**
+     * Default value of extra INVITE header which specifies password required
+     * to enter MUC room that is hosting the Jitsi Meet conference.
+     */
+    public static final String JITSI_MEET_ROOM_PASS_HEADER_DEFAULT
+        = "Jitsi-Conference-Room-Pass";
+
+    /**
+     * Name of extra INVITE header which specifies password required to enter
+     * MUC room that is hosting the Jitsi Meet conference.
+     */
+    private static final String JITSI_MEET_ROOM_PASS_HEADER_PROPERTY
+        = "JITSI_MEET_ROOM_PASS_HEADER_NAME";
+
+    /**
+     * Account property name of custom name for extra INVITE header which
+     * specifies name of MUC room that is hosting the Jitsi Meet conference.
+     */
+    private static final String JITSI_MEET_ROOM_HEADER_PROPERTY
+        = "JITSI_MEET_ROOM_HEADER_NAME";
+
+    /**
+     * The name of the header to search in the INVITE headers for base domain
+     * to be used to extract the subdomain from the roomname in order
+     * to construct custom bosh URL to enter MUC room that is hosting
+     * the Jitsi Meet conference.
+     */
+    private final String domainBaseHeaderName;
+
+    /**
+     * Defult value optional INVITE header which specifies the base domain
+     * to be used to extract the subdomain from the roomname in order
+     * to construct custom bosh URL to enter MUC room that is hosting
+     * the Jitsi Meet conference.
+     */
+    public static final String JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT
+        = "Jitsi-Conference-Domain-Base";
+
+    /**
+     * The account property to use to set custom header name for domain base.
+     */
+    private static final String JITSI_MEET_DOMAIN_BASE_HEADER_PROPERTY
+        = "JITSI_MEET_DOMAIN_BASE_HEADER_NAME";
 
     /**
      * The <tt>SipGateway</tt> that manages this session.
@@ -136,7 +187,8 @@ public class GatewaySession
     /**
      * Creates new <tt>GatewaySession</tt> that can be used to initiate outgoing
      * SIP gateway session by using
-     * {@link #createOutgoingCall(String, String, String, String)} method.
+     * {@link #createOutgoingCall(String, String, String, String, String)}
+     * method.
      *
      * @param gateway the {@link SipGateway} the <tt>SipGateway</tt> instance
      *                that will control this session.
@@ -148,6 +200,18 @@ public class GatewaySession
         this.jitsiMeetTools
             = sipProvider.getOperationSet(
                     OperationSetJitsiMeetTools.class);
+
+        // check for custom header name for room pass header
+        roomPassHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(
+                JITSI_MEET_ROOM_PASS_HEADER_PROPERTY,
+                JITSI_MEET_ROOM_PASS_HEADER_DEFAULT);
+
+        // check for custom header name for domain base header
+        domainBaseHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(
+                JITSI_MEET_DOMAIN_BASE_HEADER_PROPERTY,
+                JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT);
     }
 
     private void allCallsEnded()
@@ -177,10 +241,12 @@ public class GatewaySession
      *                    joined.
      * @param roomPass optional password required to enter MUC room.
      * @param callResource the call resource that will identify new call.
+     * @param customBoshURL optional, custom bosh URL to use when joining room
      */
     public void createOutgoingCall(
         String destination, String jvbRoomName,
-        String roomPass,    String callResource)
+        String roomPass,    String callResource,
+        String customBoshURL)
     {
         if (jvbConference != null)
         {
@@ -195,7 +261,8 @@ public class GatewaySession
         this.destination = destination;
         this.callResource = callResource;
 
-        jvbConference = new JvbConference(this, jvbRoomName, roomPass);
+        jvbConference
+            = new JvbConference(this, jvbRoomName, roomPass, customBoshURL);
 
         jvbConference.start();
     }
@@ -273,12 +340,13 @@ public class GatewaySession
         }
     }
 
-    private void joinJvbConference(String conferenceRoomName, String password)
+    private void joinJvbConference(
+        String conferenceRoomName, String password, String customBoshURL)
     {
         cancelWaitThread();
 
-        jvbConference
-            = new JvbConference(this, conferenceRoomName, password);
+        jvbConference = new JvbConference(
+            this, conferenceRoomName, password, customBoshURL);
 
         jvbConference.start();
     }
@@ -381,7 +449,10 @@ public class GatewaySession
                     {
                         Call call = callEvent.getSourceCall();
                         call.setData("EXTRA_HEADER_NAME.1",
-                            "Jitsi-Conference-Room");
+                            sipProvider.getAccountID()
+                                .getAccountPropertyString(
+                                    JITSI_MEET_ROOM_HEADER_PROPERTY,
+                                    "Jitsi-Conference-Room"));
                         call.setData("EXTRA_HEADER_VALUE.1", roomName);
                     }
 
@@ -483,13 +554,20 @@ public class GatewaySession
     }
 
     @Override
-    public void onJoinJitsiMeetRequest(Call call, String room, String pass)
+    public void onJoinJitsiMeetRequest(
+        Call call, String room, Map<String, String> data)
     {
         if (jvbConference == null && this.call == call)
         {
             if (room != null)
             {
-                joinJvbConference(room, pass);
+                joinJvbConference(
+                    room,
+                    data.get(roomPassHeaderName),
+                    Util.obtainCustomBoshURL(
+                        sipProvider,
+                        room,
+                        data.get(domainBaseHeaderName)));
             }
         }
     }
@@ -801,7 +879,7 @@ public class GatewaySession
                                 "Using default JVB room name property "
                                     + defaultRoom);
 
-                            joinJvbConference(defaultRoom, null);
+                            joinJvbConference(defaultRoom, null, null);
                         }
                         else
                         {

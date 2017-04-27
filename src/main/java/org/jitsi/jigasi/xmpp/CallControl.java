@@ -49,6 +49,11 @@ public class CallControl
     public static final String ROOM_PASSWORD_HEADER = "JvbRoomPassword";
 
     /**
+     * Optional property of iq packets for custom bosh URL.
+     */
+    public static final String BOSH_URL_PROPERTY = "BOSH_URL_PATTERN";
+
+    /**
      * JID allowed to make outgoing SIP calls.
      */
     public static final String ALLOWED_JID_P_NAME
@@ -141,8 +146,9 @@ public class CallControl
                     "Got dial request " + from + " -> " + to
                         + " room: " + roomName);
 
-                String callResource
-                    = initNewCall(roomName, roomPassword, from, to);
+                String callResource = initNewCall(
+                    roomName, roomPassword, from, to,
+                    (String)iq.getProperty(BOSH_URL_PROPERTY));
 
                 callResource = "xmpp:" + callResource;
 
@@ -187,14 +193,17 @@ public class CallControl
      * @param roomPass optional password required to enter MUC room.
      * @param from source address(optional)
      * @param to destination call address/URI.
+     * @param customBoshURL optional, custom bosh URL to use when joining room
      * @return the call resource string that will identify newly created call.
      */
     private String initNewCall(
-        String roomName, String roomPass, String from, String to)
+        String roomName, String roomPass, String from, String to,
+        String customBoshURL)
     {
         String callResource = Util.generateNextCallResource();
 
-        gateway.createOutgoingCall(to, roomName, roomPass, callResource);
+        gateway.createOutgoingCall(
+            to, roomName, roomPass, callResource, customBoshURL);
 
         return callResource;
     }
