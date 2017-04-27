@@ -194,7 +194,8 @@ public class UIServiceStub
             ProtocolProviderService protocolProvider)
     {
         return new ServerSecurityAuthority(
-                protocolProvider.getAccountID().getPassword());
+            protocolProvider,
+            protocolProvider.getAccountID().getPassword());
     }
 
     @Override

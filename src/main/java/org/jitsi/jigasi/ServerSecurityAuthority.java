@@ -29,11 +29,24 @@ import org.jitsi.util.*;
 public class ServerSecurityAuthority
     implements SecurityAuthority
 {
+    /**
+     * The logger.
+     */
+    private final static Logger logger
+        = Logger.getLogger(ServerSecurityAuthority.class);
+
+    /**
+     * The password to return.
+     */
     private final String password;
 
-    public ServerSecurityAuthority(String password)
+    private final ProtocolProviderService provider;
+
+    public ServerSecurityAuthority(
+        ProtocolProviderService provider, String password)
     {
         this.password = password;
+        this.provider = provider;
     }
 
     @Override
@@ -41,6 +54,14 @@ public class ServerSecurityAuthority
                                              UserCredentials defaultValues,
                                              int reasonCode)
     {
+        if (reasonCode == WRONG_PASSWORD
+            || reasonCode == WRONG_USERNAME)
+        {
+            logger.error(
+                "Wrong username or password for provider:" + this.provider);
+            return null;
+        }
+
         if (!StringUtils.isNullOrEmpty(password))
         {
             defaultValues.setPassword(password.toCharArray());

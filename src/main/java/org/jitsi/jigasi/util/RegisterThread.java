@@ -56,7 +56,7 @@ public class RegisterThread
     {
         try
         {
-            pps.register(new ServerSecurityAuthority(password));
+            pps.register(new ServerSecurityAuthority(pps, password));
         }
         catch (OperationFailedException e)
         {
