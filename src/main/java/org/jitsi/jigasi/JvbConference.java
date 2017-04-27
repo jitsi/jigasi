@@ -1014,7 +1014,12 @@ public class JvbConference
 
         if (!StringUtils.isNullOrEmpty(boshUrl))
         {
-            boshUrl = boshUrl.replace("{roomName}", roomName);
+            boshUrl = boshUrl.replace(
+                "{roomName}",
+                // if room name contains @ part, make sure we remove it
+                roomName.contains("@") ?
+                    Util.extractCallIdFromResource(roomName)
+                    : roomName);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
         }
 
