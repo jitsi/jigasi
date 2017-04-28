@@ -439,6 +439,7 @@ public class CallControlMucActivator
                 logger.debug("Processing a RayoIq: " + packet.toXML());
             }
 
+            IQ resultIQ;
             try
             {
                 if (packet instanceof RayoIqProvider.DialIq)
@@ -462,12 +463,19 @@ public class CallControlMucActivator
                     }
                 }
 
-                callControl.handleIQ((IQ) packet);
+                resultIQ = callControl.handleIQ((IQ) packet);
             }
             catch (Exception e)
             {
                 logger.error("Error processing RayoIq", e);
+                resultIQ = IQ.createResultIQ((IQ)packet);
+                resultIQ.setError(new XMPPError(
+                    XMPPError.Condition.interna_server_error, e.getMessage()));
             }
+
+            // send response
+            ((ProtocolProviderServiceJabberImpl) pps).getConnection()
+                .sendPacket(resultIQ);
         }
     }
 }
