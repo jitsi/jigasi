@@ -72,6 +72,44 @@ public class Statistics
     public static final String TIMESTAMP = "current_timestamp";
 
     /**
+     * The name of the stat that indicates total number of
+     * completed conferences.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CONFERENCES
+        = "total_conferences_completed";
+
+    /**
+     * The name of the stat that indicated the total number of participants
+     * in completed conferences.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_NUMBEROFPARTICIPANTS
+        = "total_participants";
+
+    /**
+     * The name of the stat indicating the total number of conference-seconds
+     * (i.e. the sum of the lengths is seconds).
+     */
+    public static final String TOTAL_CONFERENCE_SECONDS
+        = "total_conference_seconds";
+
+    /**
+     * Total number of participants since started.
+     */
+    private static int totalParticipantsCount = 0;
+
+    /**
+     * Total number of conferences since started.
+     */
+    private static int totalConferencesCount = 0;
+
+    /**
+     * Cumulative number of seconds of all conferences.
+     */
+    private static long cumulativeConferenceSeconds = 0;
+
+    /**
      * The <tt>DateFormat</tt> to be utilized by <tt>Statistics</tt>
      * in order to represent time and date as <tt>String</tt>.
      */
@@ -99,8 +137,6 @@ public class Statistics
      * wrapper of that request
      * @param response the response either as the {@code Response} object or a
      * wrapper of that response
-     * @throws IOException
-     * @throws ServletException
      */
     static synchronized void getJSON(
         SipGateway gateway,
@@ -143,6 +179,11 @@ public class Statistics
         // TIMESTAMP
         stats.put(TIMESTAMP, currentTimeMillis());
 
+        // TOTAL stats
+        stats.put(TOTAL_CONFERENCES, totalConferencesCount);
+        stats.put(TOTAL_NUMBEROFPARTICIPANTS, totalParticipantsCount);
+        stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
+
         // CONFERENCE_SIZES
         JSONArray conferenceSizesJson = new JSONArray();
         for (int size : conferenceSizes)
@@ -159,8 +200,36 @@ public class Statistics
      * Returns the current time stamp as a (formatted) <tt>String</tt>.
      * @return the current time stamp as a (formatted) <tt>String</tt>.
      */
-    public static String currentTimeMillis()
+    private static String currentTimeMillis()
     {
         return dateFormat.format(new Date());
+    }
+
+    /**
+     * Adds the value to the number of total participants count.
+     * @param value the value to add to the total participants count.
+     */
+    static void addTotalParticipantsCount(int value)
+    {
+        totalParticipantsCount += value;
+    }
+
+    /**
+     * Adds the value to the total number of completed conferences.
+     * @param value the value to add to the total number
+     *              of completed conferences.
+     */
+    static void addTotalConferencesCount(int value)
+    {
+        totalConferencesCount += value;
+    }
+
+    /**
+     * Adds the value to the number of total conference seconds.
+     * @param value the value to add to the number of total conference seconds.
+     */
+    static void addCumulativeConferenceSeconds(long value)
+    {
+        cumulativeConferenceSeconds += value;
     }
 }

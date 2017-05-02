@@ -719,6 +719,12 @@ public class JvbConference
             && !ChatRoomMemberPresenceChangeEvent.MEMBER_LEFT.equals(eventType)
             && !ChatRoomMemberPresenceChangeEvent.MEMBER_QUIT.equals(eventType))
         {
+            if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED
+                    .equals(eventType))
+            {
+                gatewaySession.notifyMemberJoined(evt.getChatRoomMember());
+            }
+
             return;
         }
 

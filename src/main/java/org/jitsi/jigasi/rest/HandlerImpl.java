@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.rest;
 
 import java.io.*;
+import java.util.concurrent.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -89,12 +90,8 @@ import org.osgi.framework.*;
  */
 public class HandlerImpl
     extends AbstractJSONHandler
+    implements SipGatewayListener
 {
-    /**
-     * The logger instance used by REST handler.
-     */
-    private static final Logger logger = Logger.getLogger(HandlerImpl.class);
-
     /**
      * The HTTP resource which is used to trigger graceful shutdown.
      */
@@ -114,6 +111,11 @@ public class HandlerImpl
     private final boolean shutdownEnabled;
 
     /**
+     * The sip gateway instance.
+     */
+    private SipGateway gateway;
+
+    /**
      * Initializes a new {@code HandlerImpl} instance within a specific
      * {@code BundleContext}.
      *
@@ -127,6 +129,40 @@ public class HandlerImpl
         super(bundleContext);
 
         shutdownEnabled = enableShutdown;
+
+        this.gateway = ServiceUtils.getService(bundleContext, SipGateway.class);
+
+        if (this.gateway != null)
+        {
+            this.gateway.addSipGatewayListener(this);
+        }
+        else
+        {
+            bundleContext.addServiceListener(new ServiceListener()
+            {
+                @Override
+                public void serviceChanged(ServiceEvent serviceEvent)
+                {
+                    if (serviceEvent.getType() != ServiceEvent.REGISTERED)
+                        return;
+
+                    ServiceReference ref = serviceEvent.getServiceReference();
+                    BundleContext bundleContext
+                        = ref.getBundle().getBundleContext();
+
+                    Object service = bundleContext.getService(ref);
+
+                    if (!(service instanceof SipGateway))
+                        return;
+
+                    bundleContext.removeServiceListener(this);
+
+                    SipGateway sipGw = (SipGateway) service;
+                    HandlerImpl.this.gateway = sipGw;
+                    sipGw.addSipGatewayListener(HandlerImpl.this);
+                }
+            });
+        }
     }
 
     /**
@@ -142,16 +178,13 @@ public class HandlerImpl
     {
         beginResponse(/* target */ null, baseRequest, request, response);
 
-        SipGateway gateway = ServiceUtils.getService(
-            bundleContext, SipGateway.class);
-
-        if (gateway == null)
+        if (this.gateway == null)
         {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
         else
         {
-            Health.getJSON(gateway, baseRequest, request, response);
+            Health.getJSON(this.gateway, baseRequest, request, response);
         }
 
         endResponse(/* target */ null, baseRequest, request, response);
@@ -237,16 +270,13 @@ public class HandlerImpl
         HttpServletResponse response)
         throws IOException
     {
-        SipGateway gateway = ServiceUtils.getService(
-            bundleContext, SipGateway.class);
-
-        if (gateway == null)
+        if (this.gateway == null)
         {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
             return;
         }
 
-        gateway.enableGracefulShutdownMode();
+        this.gateway.enableGracefulShutdownMode();
     }
 
     /**
@@ -268,16 +298,33 @@ public class HandlerImpl
         throws IOException,
         ServletException
     {
-        SipGateway gateway = ServiceUtils.getService(
-            bundleContext, SipGateway.class);
-
-        if (gateway != null)
+        if (this.gateway != null)
         {
-            Statistics.getJSON(gateway, baseRequest, request, response);
+            Statistics.getJSON(this.gateway, baseRequest, request, response);
         }
         else
         {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
+    }
+
+    @Override
+    public void onSessionAdded(GatewaySession session)
+    {}
+
+    /**
+     * When a session ends we add all the cumulative statistics.
+     *
+     * @param session the session that was removed.
+     */
+    @Override
+    public void onSessionRemoved(GatewaySession session)
+    {
+        Statistics.addTotalConferencesCount(1);
+        Statistics.addTotalParticipantsCount(session.getParticipantsCount());
+        Statistics.addCumulativeConferenceSeconds(
+            TimeUnit.MILLISECONDS.toSeconds(
+                System.currentTimeMillis()
+                    - session.getCallContext().getTimestamp()));
     }
 }

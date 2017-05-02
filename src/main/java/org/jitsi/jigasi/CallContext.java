@@ -100,7 +100,7 @@ public class CallContext
      * A timestamp when this context was created, used to construct the
      * callResource.
      */
-    private final String timestamp;
+    private final long timestamp;
 
     /**
      * Call resource identifying this call context.
@@ -119,7 +119,7 @@ public class CallContext
      */
     public CallContext()
     {
-        this.timestamp = Long.toHexString(System.currentTimeMillis());
+        this.timestamp = System.currentTimeMillis();
     }
 
     /**
@@ -265,6 +265,15 @@ public class CallContext
     }
 
     /**
+     * Returns the timestamp when this call context was created.
+     * @return the timestamp when this call context was created.
+     */
+    public long getTimestamp()
+    {
+        return timestamp;
+    }
+
+    /**
      * Updates call resource based on timestamp, domain and if available and
      * the subdomain.
      */
@@ -273,7 +282,7 @@ public class CallContext
         if (this.domain != null)
         {
             this.callResource
-                = this.timestamp
+                = Long.toHexString(this.timestamp)
                 + "@"
                 + (this.subDomain != null ? this.subDomain + "." : "")
                 + this.domain;

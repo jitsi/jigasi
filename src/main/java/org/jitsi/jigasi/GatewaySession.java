@@ -165,6 +165,11 @@ public class GatewaySession
         = new ArrayList<>();
 
     /**
+     * Global participant count during this session.
+     */
+    private int participantsCount = 0;
+
+    /**
      * Creates new <tt>GatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -229,11 +234,12 @@ public class GatewaySession
     {
         CallContext ctx = callContext;
 
-        destination = null;
-
-        callContext = null;
-
         sipGateway.notifyCallEnded(ctx);
+
+        // clear call context after notifying that session ended as
+        // listeners to still be able to check the values from context
+        destination = null;
+        callContext = null;
     }
 
     private void cancelWaitThread()
@@ -629,6 +635,9 @@ public class GatewaySession
      */
     void notifyJvbRoomJoined()
     {
+        // set initial participant count
+        participantsCount += getJvbChatRoom().getMembersCount() - 1;
+
         Iterable<GatewaySessionListener> gwListeners;
         synchronized (listeners)
         {
@@ -639,6 +648,25 @@ public class GatewaySession
         {
             listener.onJvbRoomJoined(this);
         }
+    }
+
+    /**
+     * Notifies {@link GatewaySessionListener} that member just joined
+     * the conference room(MUC).
+     */
+    void notifyMemberJoined(ChatRoomMember member)
+    {
+        participantsCount++;
+    }
+
+    /**
+     * Returns the cumulative number of participants that were active during
+     * rhis session.
+     * @return the participants count.
+     */
+    public int getParticipantsCount()
+    {
+        return participantsCount;
     }
 
     /**
