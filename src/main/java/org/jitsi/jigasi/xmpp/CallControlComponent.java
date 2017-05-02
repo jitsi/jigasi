@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.xmpp;
 
+import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 
 import org.jitsi.jigasi.*;
@@ -26,6 +27,8 @@ import org.jitsi.xmpp.component.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.*;
+
+import java.util.*;
 
 /**
  * Experimental implementation of call control component that is capable of
@@ -140,9 +143,19 @@ public class CallControlComponent
      */
     private void internalStart(SipGateway gateway, BundleContext bundleContext)
     {
-        this.callControl = new CallControl(
-            gateway,
-            ServiceUtils.getService(bundleContext, ConfigurationService.class));
+        ConfigurationService config = ServiceUtils.getService(
+            bundleContext, ConfigurationService.class);
+        this.callControl = new CallControl(gateway, config);
+
+        // as incoming calls depend on domain to set it to call context
+        // and to generate call resource, we use component domain to set it
+        // to the sip provider account properties
+        AccountID sipAccountID = gateway.getSipProvider().getAccountID();
+
+        Map<String, String> accountProps = sipAccountID.getAccountProperties();
+        accountProps.put(CallContext.DOMAIN_BASE_ACCOUNT_PROP, getDomain());
+
+        sipAccountID.setAccountProperties(accountProps);
     }
 
     @Override
@@ -215,7 +228,7 @@ public class CallControlComponent
     public IQ handleIQ(IQ iq)
         throws Exception
     {
-        org.jivesoftware.smack.packet.IQ resultIQ = null;
+        org.jivesoftware.smack.packet.IQ resultIQ;
         if (callControl == null)
         {
             logger.warn("Call controller not initialized");
@@ -227,7 +240,11 @@ public class CallControlComponent
         }
         else
         {
-            resultIQ = callControl.handleIQ(IQUtils.convert(iq));
+            CallContext ctx = new CallContext();
+            ctx.setDomain(getDomain());
+            ctx.setSubDomain(getSubdomain());
+
+            resultIQ = callControl.handleIQ(IQUtils.convert(iq), ctx);
         }
 
         if (resultIQ != null)

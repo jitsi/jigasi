@@ -138,9 +138,9 @@ public class GatewaySession
     private String destination;
 
     /**
-     * The call resource assigned for the current call.
+     * The call context assigned for the current call.
      */
-    private String callResource;
+    private CallContext callContext;
 
     /**
      * SIP protocol provider instance.
@@ -159,9 +159,10 @@ public class GatewaySession
     private WaitForJvbRoomNameThread waitThread;
 
     /**
-     * Gateway session listener.
+     * Gateway session listeners.
      */
-    private GatewaySessionListener listener;
+    private final ArrayList<GatewaySessionListener> listeners
+        = new ArrayList<>();
 
     /**
      * Creates new <tt>GatewaySession</tt> for given <tt>callResource</tt>
@@ -171,31 +172,32 @@ public class GatewaySession
      *
      * @param gateway the <tt>SipGateway</tt> instance that will control this
      *                session.
-     * @param callResource the call resource/URI that identifies this session.
+     * @param callContext the call context that identifies this session.
      * @param sipCall the incoming SIP call instance which will be handled by
      *                this session.
      */
     public GatewaySession(SipGateway gateway,
-                          String     callResource,
+                          CallContext callContext,
                           Call       sipCall)
     {
-        this(gateway);
-        this.callResource = callResource;
+        this(gateway, callContext);
         this.call = sipCall;
     }
 
     /**
      * Creates new <tt>GatewaySession</tt> that can be used to initiate outgoing
      * SIP gateway session by using
-     * {@link #createOutgoingCall(String, String, String, String, String)}
+     * {@link #createOutgoingCall()}
      * method.
      *
      * @param gateway the {@link SipGateway} the <tt>SipGateway</tt> instance
      *                that will control this session.
+     * @param callContext the call context that identifies this session.
      */
-    public GatewaySession(SipGateway gateway)
+    public GatewaySession(SipGateway gateway, CallContext callContext)
     {
         this.sipGateway = gateway;
+        this.callContext = callContext;
         this.sipProvider = gateway.getSipProvider();
         this.jitsiMeetTools
             = sipProvider.getOperationSet(
@@ -214,15 +216,24 @@ public class GatewaySession
                 JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT);
     }
 
+    /**
+     * Returns the call context for the current session.
+     * @return the call context for the current session.
+     */
+    public CallContext getCallContext()
+    {
+        return callContext;
+    }
+
     private void allCallsEnded()
     {
-        String resource = callResource;
+        CallContext ctx = callContext;
 
         destination = null;
 
-        callResource = null;
+        callContext = null;
 
-        sipGateway.notifyCallEnded(resource);
+        sipGateway.notifyCallEnded(ctx);
     }
 
     private void cancelWaitThread()
@@ -236,17 +247,8 @@ public class GatewaySession
     /**
      * Starts new outgoing session by dialing given SIP number and joining JVB
      * conference held in given MUC room.
-     * @param destination the destination SIP number that will be called.
-     * @param jvbRoomName the name of MUC that holds JVB conference that will be
-     *                    joined.
-     * @param roomPass optional password required to enter MUC room.
-     * @param callResource the call resource that will identify new call.
-     * @param customBoshURL optional, custom bosh URL to use when joining room
      */
-    public void createOutgoingCall(
-        String destination, String jvbRoomName,
-        String roomPass,    String callResource,
-        String customBoshURL)
+    public void createOutgoingCall()
     {
         if (jvbConference != null)
         {
@@ -258,22 +260,11 @@ public class GatewaySession
             throw new IllegalStateException("SIP call in progress");
         }
 
-        this.destination = destination;
-        this.callResource = callResource;
+        this.destination = callContext.getDestination();
 
-        jvbConference
-            = new JvbConference(this, jvbRoomName, roomPass, customBoshURL);
+        jvbConference = new JvbConference(this, callContext);
 
         jvbConference.start();
-    }
-
-    /**
-     * Returns the call resource/URI for currently active call.
-     * @return the call resource/URI for currently active call.
-     */
-    public String getCallResource()
-    {
-        return callResource;
     }
 
     /**
@@ -298,15 +289,6 @@ public class GatewaySession
     }
 
     /**
-     * Returns SIP destination address for outgoing SIP call.
-     * @return SIP destination address for outgoing SIP call.
-     */
-    public String getDestination()
-    {
-        return destination;
-    }
-
-    /**
      * Returns the instance of SIP call if any is currently in progress.
      * @return the instance of SIP call if any is currently in progress.
      */
@@ -323,7 +305,7 @@ public class GatewaySession
     /**
      * Cancels current session.
      */
-    public void hangUp(int reasonCode, String reason)
+    private void hangUp(int reasonCode, String reason)
     {
         cancelWaitThread();
 
@@ -340,13 +322,15 @@ public class GatewaySession
         }
     }
 
-    private void joinJvbConference(
-        String conferenceRoomName, String password, String customBoshURL)
+    /**
+     * Starts a JvbConference with the call context identifying this session.
+     * @param ctx the call context of current session.
+     */
+    private void joinJvbConference(CallContext ctx)
     {
         cancelWaitThread();
 
-        jvbConference = new JvbConference(
-            this, conferenceRoomName, password, customBoshURL);
+        jvbConference = new JvbConference(this, ctx);
 
         jvbConference.start();
     }
@@ -486,11 +470,7 @@ public class GatewaySession
                     callStateListener.handleCallState(call, null);
                 }
             }
-            catch (OperationFailedException e)
-            {
-                return e;
-            }
-            catch (ParseException e)
+            catch (OperationFailedException | ParseException e)
             {
                 return e;
             }
@@ -561,20 +541,21 @@ public class GatewaySession
         {
             if (room != null)
             {
-                joinJvbConference(
-                    room,
-                    data.get(roomPassHeaderName),
-                    Util.obtainCustomBoshURL(
-                        sipProvider,
-                        room,
-                        data.get(domainBaseHeaderName)));
+                callContext.setRoomName(room);
+                callContext.setRoomPassword(data.get(roomPassHeaderName));
+                callContext.setDomain(data.get(domainBaseHeaderName));
+                callContext.setMucAddressPrefix(sipProvider.getAccountID()
+                    .getAccountPropertyString(
+                        CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
+
+                joinJvbConference(callContext);
             }
         }
     }
 
     /**
      * Initializes this instance for incoming call which was passed to the
-     * constructor {@link #GatewaySession(SipGateway, String, Call)}.
+     * constructor {@link #GatewaySession(SipGateway, CallContext, Call)}.
      */
     void initIncomingCall()
     {
@@ -616,21 +597,30 @@ public class GatewaySession
     }
 
     /**
-     * Returns {@link GatewaySessionListener} currently bound to this instance.
+     * Adds new {@link GatewaySessionListener} on this instance.
+     * @param listener adds new {@link GatewaySessionListener} that will receive
+     *                 updates from this instance.
      */
-    public GatewaySessionListener getListener()
+    public void addListener(GatewaySessionListener listener)
     {
-        return listener;
+        synchronized(listeners)
+        {
+            if (!listeners.contains(listener))
+                listeners.add(listener);
+        }
     }
 
     /**
-     * Sets new {@link GatewaySessionListener} on this instance.
-     * @param listener sets new {@link GatewaySessionListener} that will receive
-     *                 updates from this instance.
+     * Removes {@link GatewaySessionListener} from this instance.
+     * @param listener removes {@link GatewaySessionListener} that will  stop
+     *                 receiving updates from this instance.
      */
-    public void setListener(GatewaySessionListener listener)
+    public void removeListener(GatewaySessionListener listener)
     {
-        this.listener = listener;
+        synchronized(listeners)
+        {
+            listeners.remove(listener);
+        }
     }
 
     /**
@@ -639,7 +629,13 @@ public class GatewaySession
      */
     void notifyJvbRoomJoined()
     {
-        if (listener != null)
+        Iterable<GatewaySessionListener> gwListeners;
+        synchronized (listeners)
+        {
+            gwListeners = new ArrayList<>(listeners);
+        }
+
+        for (GatewaySessionListener listener : gwListeners)
         {
             listener.onJvbRoomJoined(this);
         }
@@ -681,7 +677,7 @@ public class GatewaySession
 
     /**
      * Adds a ssrc rewriter to the peers media stream.
-     * @param peer
+     * @param peer the peer which media streams to manipulate
      * @return true if rewriter was added to peer's media stream.
      */
     private boolean addSsrcRewriter(CallPeer peer)
@@ -729,7 +725,7 @@ public class GatewaySession
             handleCallState(evt.getSourceCall(), evt.getCause());
         }
 
-        public void handleCallState(Call call, CallPeerChangeEvent cause)
+        void handleCallState(Call call, CallPeerChangeEvent cause)
         {
             // Once call is started notify SIP gateway
             if (call.getCallState() == CallState.CALL_IN_PROGRESS)
@@ -806,7 +802,8 @@ public class GatewaySession
             CallPeerState callPeerState = (CallPeerState)evt.getNewValue();
             String stateString = callPeerState.getStateString();
 
-            logger.info(callResource + " SIP peer state: " + stateString);
+            logger.info(callContext.getCallResource()
+                + " SIP peer state: " + stateString);
 
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
@@ -835,7 +832,7 @@ public class GatewaySession
             }
         }
 
-        public void unregister()
+        void unregister()
         {
             thePeer.removeCallPeerListener(this);
         }
@@ -879,7 +876,9 @@ public class GatewaySession
                                 "Using default JVB room name property "
                                     + defaultRoom);
 
-                            joinJvbConference(defaultRoom, null, null);
+                            callContext.setRoomName(defaultRoom);
+
+                            joinJvbConference(callContext);
                         }
                         else
                         {
@@ -903,7 +902,7 @@ public class GatewaySession
             }
         }
 
-        public void cancel()
+        void cancel()
         {
             if (Thread.currentThread() == waitThread)
             {

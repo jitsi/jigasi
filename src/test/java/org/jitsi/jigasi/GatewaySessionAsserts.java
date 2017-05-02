@@ -43,7 +43,7 @@ public class GatewaySessionAsserts
     {
         synchronized (this)
         {
-            session.setListener(this);
+            session.addListener(this);
 
             ChatRoom room = session.getJvbChatRoom();
 
@@ -52,7 +52,7 @@ public class GatewaySessionAsserts
                 this.wait(timeout);
             }
 
-            session.setListener(null);
+            session.removeListener(this);
 
             assertTrue(session.getJvbChatRoom().isJoined());
         }

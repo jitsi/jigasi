@@ -19,7 +19,7 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
@@ -59,7 +59,7 @@ public class CallControlMucActivator
     private final static Logger logger
         = Logger.getLogger(CallControlMucActivator.class);
 
-    public static BundleContext osgiContext;
+    private static BundleContext osgiContext;
 
     /**
      * The account property to search in configuration service for the room name
@@ -81,8 +81,7 @@ public class CallControlMucActivator
     /**
      * Starts muc control component. Finds all xmpp accounts and listen for
      * new ones registered.
-     * @param bundleContext
-     * @throws Exception
+     * @param bundleContext the bundle context
      */
     @Override
     public void start(final BundleContext bundleContext)
@@ -123,8 +122,7 @@ public class CallControlMucActivator
 
     /**
      * Stops and unregister everything - providers, listeners.
-     * @param bundleContext
-     * @throws Exception
+     * @param bundleContext the bundle context
      */
     @Override
     public void stop(BundleContext bundleContext)
@@ -158,7 +156,7 @@ public class CallControlMucActivator
      * Returns <tt>ConfigurationService</tt> instance.
      * @return <tt>ConfigurationService</tt> instance.
      */
-    public static ConfigurationService getConfigurationService()
+    private static ConfigurationService getConfigurationService()
     {
         return ServiceUtils.getService(
             osgiContext, ConfigurationService.class);
@@ -291,7 +289,7 @@ public class CallControlMucActivator
     @Override
     public void onSessionAdded(GatewaySession session)
     {
-        session.setListener(this);
+        session.addListener(this);
         // we are not updating anything here (stats), cause session was just
         // created and we haven't joined the jvb room so there is no change
         // in participant count and the conference is actually not started yet
@@ -302,6 +300,7 @@ public class CallControlMucActivator
     public void onSessionRemoved(GatewaySession session)
     {
         updatePresenceStatusForXmppProviders();
+        session.removeListener(this);
     }
 
     /**
@@ -406,13 +405,13 @@ public class CallControlMucActivator
     }
 
     /**
-     * Accepts only  {@link RayoIqProvider.RayoIq}.
+     * Accepts only  {@link RayoIq}.
      * {@inheritDoc}
      */
     @Override
     public boolean accept(Packet packet)
     {
-        return packet instanceof RayoIqProvider.RayoIq;
+        return packet instanceof RayoIq;
     }
 
     /**
@@ -425,8 +424,7 @@ public class CallControlMucActivator
     {
         private final ProtocolProviderService pps;
 
-        public PProviderPacketListener(
-            ProtocolProviderService pps)
+        PProviderPacketListener(ProtocolProviderService pps)
         {
             this.pps = pps;
         }
@@ -442,28 +440,27 @@ public class CallControlMucActivator
             IQ resultIQ;
             try
             {
-                if (packet instanceof RayoIqProvider.DialIq)
+                if (packet instanceof HangUp)
                 {
-                    RayoIqProvider.DialIq dialIq
-                        = (RayoIqProvider.DialIq) packet;
-                    String roomName
-                        = dialIq.getHeader(CallControl.ROOM_NAME_HEADER);
-                    String customBosh = Util.obtainCustomBoshURL(
-                        pps,
-                        roomName,
-                        pps.getAccountID()
-                            .getAccountPropertyString("DOMAIN_BASE"));
-
-                    if (customBosh != null)
-                    {
-                        packet.setProperty(
-                            CallControl.BOSH_URL_PROPERTY,
-                            customBosh
-                        );
-                    }
+                    // hangup is not currently supported
+                    resultIQ = IQ.createResultIQ((IQ)packet);
+                    resultIQ.setError(new XMPPError(
+                        XMPPError.Condition.feature_not_implemented));
                 }
+                else
+                {
+                    AccountID acc = pps.getAccountID();
 
-                resultIQ = callControl.handleIQ((IQ) packet);
+                    CallContext ctx = new CallContext();
+                    ctx.setDomain(acc.getAccountPropertyString(
+                        CallContext.DOMAIN_BASE_ACCOUNT_PROP));
+                    ctx.setBoshURL(acc.getAccountPropertyString(
+                        CallContext.BOSH_URL_ACCOUNT_PROP));
+                    ctx.setMucAddressPrefix(acc.getAccountPropertyString(
+                        CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
+
+                    resultIQ = callControl.handleIQ((IQ) packet, ctx);
+                }
             }
             catch (Exception e)
             {

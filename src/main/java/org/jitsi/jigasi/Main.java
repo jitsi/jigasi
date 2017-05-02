@@ -21,7 +21,6 @@ import net.java.sip.communicator.service.protocol.*;
 
 import org.jitsi.cmd.*;
 import org.jitsi.jigasi.osgi.*;
-import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
@@ -33,7 +32,7 @@ import org.jitsi.util.*;
  * SIP gateway for Jitsi Videobridge conferences. Requires one XMPP and one SIP
  * account to be configured in sip-communicator.properties file. JVB conference
  * must be held on the same server as XMPP account. Currently after start the
- * conference held in {@link JvbConference#roomName} MUC is joined.
+ * conference held in {@link JvbConference#callContext} MUC is joined.
  * SIP account is used to dial {@link SipGateway} once we join
  * the conference. Work in progress...
  *
@@ -41,18 +40,6 @@ import org.jitsi.util.*;
  */
 public class Main
 {
-    /**
-     * The logger.
-     */
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
-
-    /**
-     * The <tt>Object</tt> which synchronizes the access to the state related to
-     * the decision whether the application is to exit. At the time of this
-     * writing, the application just runs until it is killed.
-     */
-    private static final Object exitSyncRoot = new Object();
-
     /**
      * The name of the command-line argument which specifies the XMPP domain
      * to use.
@@ -235,9 +222,6 @@ public class Main
         }
 
         ComponentMain main = new ComponentMain();
-
-        Util.domain = domain;
-        Util.subDomain = subdomain;
 
         main.runMainProgramLoop(
             Boolean.valueOf(

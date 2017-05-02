@@ -33,7 +33,8 @@ import java.util.*;
  * @author Pawel Domas
  */
 public class SipGateway
-    implements RegistrationStateChangeListener
+    implements RegistrationStateChangeListener,
+               GatewaySessionListener
 {
     /**
      * The logger
@@ -83,8 +84,7 @@ public class SipGateway
     /**
      * SIP gateways map.
      */
-    private final Map<String, GatewaySession> sessions
-        = new HashMap<String, GatewaySession>();
+    private final Map<CallContext, GatewaySession> sessions = new HashMap<>();
 
     /**
      * Indicates if jigasi instance has entered graceful shutdown mode.
@@ -174,27 +174,30 @@ public class SipGateway
 
     /**
      * Notified that current call has ended.
+     * @param callContext the context of the call ended.
      */
-    void notifyCallEnded(String callResource)
+    void notifyCallEnded(CallContext callContext)
     {
         GatewaySession session;
 
         synchronized (sessions)
         {
-            session = sessions.remove(callResource);
+            session = sessions.remove(callContext);
 
             if (session == null)
             {
                 // FIXME: print some gateway ID or provider here
                 logger.error(
-                    "Call resource not exists for session " + callResource);
+                    "Call resource not exists for session "
+                        + callContext.getCallResource());
                 return;
             }
 
             fireGatewaySessionRemoved(session);
         }
 
-        logger.info("Removed session for call " + callResource);
+        logger.info("Removed session for call "
+            + callContext.getCallResource());
 
         // Check if it's the time to shutdown now
         maybeDoShutdown();
@@ -203,27 +206,30 @@ public class SipGateway
     /**
      * Starts new outgoing session by dialing given SIP number and joining JVB
      * conference held in given MUC room.
-     * @param to the destination SIP number that will be called.
-     * @param roomName the name of MUC that holds JVB conference that will be
-     *                 joined.
-     * @param roomPass optional password for joining protected MUC room.
-     * @param callResource the call resource that will identify new call.
-     * @param customBoshURL optional, custom bosh URL to use when joining room
+     * @param ctx the call context for which to create a call
+     * @return the newly created GatewaySession.
      */
-    public GatewaySession createOutgoingCall(
-            String to, String roomName, String roomPass, String callResource,
-            String customBoshURL)
+    public GatewaySession createOutgoingCall(CallContext ctx)
     {
-        GatewaySession outgoingSession = new GatewaySession(this);
-
-        sessions.put(callResource, outgoingSession);
-
-        fireGatewaySessionAdded(outgoingSession);
-
-        outgoingSession.createOutgoingCall(
-            to, roomName, roomPass, callResource, customBoshURL);
+        GatewaySession outgoingSession = new GatewaySession(this, ctx);
+        outgoingSession.addListener(this);
+        outgoingSession.createOutgoingCall();
 
         return outgoingSession;
+    }
+
+    /**
+     * When a room is joined for incoming/outgoing calls we store the session
+     * based on its call context and fire event that session had been added.
+     *
+     * @param source the {@link GatewaySession} on which the event takes place.
+     */
+    @Override
+    public void onJvbRoomJoined(GatewaySession source)
+    {
+        sessions.put(source.getCallContext(), source);
+
+        fireGatewaySessionAdded(source);
     }
 
     /**
@@ -240,7 +246,14 @@ public class SipGateway
     {
         synchronized (sessions)
         {
-            return sessions.get(callResource);
+            for (Map.Entry<CallContext, GatewaySession> en
+                    : sessions.entrySet())
+            {
+                if (callResource.equals(en.getKey().getCallResource()))
+                    return en.getValue();
+            }
+
+            return null;
         }
     }
 
@@ -251,7 +264,7 @@ public class SipGateway
     {
         synchronized (sessions)
         {
-            return new ArrayList<GatewaySession>(sessions.values());
+            return new ArrayList<>(sessions.values());
         }
     }
 
@@ -288,15 +301,17 @@ public class SipGateway
 
                 logger.info("Incoming call received...");
 
-                String callResource = Util.generateNextCallResource();
+                // create a call context reusing the domain stored in
+                // sip account properties if any
+                CallContext ctx = new CallContext();
+                ctx.setDomain(sipProvider.getAccountID()
+                    .getAccountPropertyString(
+                        CallContext.DOMAIN_BASE_ACCOUNT_PROP));
 
                 GatewaySession incomingSession
                     = new GatewaySession(
-                            SipGateway.this, callResource, call);
-
-                sessions.put(callResource, incomingSession);
-
-                fireGatewaySessionAdded(incomingSession);
+                            SipGateway.this, ctx, call);
+                incomingSession.addListener(SipGateway.this);
 
                 incomingSession.initIncomingCall();
             }

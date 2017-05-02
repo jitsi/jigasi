@@ -17,10 +17,9 @@
  */
 package org.jitsi.jigasi.xmpp;
 
-import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.jigasi.util.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smack.util.*;
@@ -47,11 +46,6 @@ public class CallControl
      * Optional header for specifying password required to enter MUC room.
      */
     public static final String ROOM_PASSWORD_HEADER = "JvbRoomPassword";
-
-    /**
-     * Optional property of iq packets for custom bosh URL.
-     */
-    public static final String BOSH_URL_PROPERTY = "BOSH_URL_PATTERN";
 
     /**
      * JID allowed to make outgoing SIP calls.
@@ -105,13 +99,14 @@ public class CallControl
      *
      * @param iq the <tt>org.jivesoftware.smack.packet.IQ</tt> stanza of type
      * <tt>set</tt> which represents the request to handle
+     * @param ctx the call context to process
      * @return an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza which
      * represents the response to the specified request or <tt>null</tt> to
      * reply with <tt>feature-not-implemented</tt>
      * @throws Exception to reply with <tt>internal-server-error</tt> to the
      * specified request
      */
-    public IQ handleIQ(IQ iq)
+    public IQ handleIQ(IQ iq, CallContext ctx)
         throws Exception
     {
         try
@@ -119,26 +114,28 @@ public class CallControl
             String fromBareJid = StringUtils.parseBareAddress(iq.getFrom());
             if (allowedJid != null && !allowedJid.equals(fromBareJid))
             {
-                IQ error = IQ.createErrorResponse(
+                return IQ.createErrorResponse(
                     iq,
                     new XMPPError(XMPPError.Condition.not_allowed));
-
-                return error;
             }
             else if (allowedJid == null)
             {
                 logger.warn("Requests are not secured by JID filter!");
             }
 
-            if (iq instanceof RayoIqProvider.DialIq)
+            if (iq instanceof DialIq)
             {
-                RayoIqProvider.DialIq dialIq = (RayoIqProvider.DialIq) iq;
+                DialIq dialIq = (DialIq) iq;
 
                 String from = dialIq.getSource();
                 String to = dialIq.getDestination();
+                ctx.setDestination(to);
 
                 String roomName = dialIq.getHeader(ROOM_NAME_HEADER);
+                ctx.setRoomName(roomName);
+
                 String roomPassword = dialIq.getHeader(ROOM_PASSWORD_HEADER);
+                ctx.setRoomPassword(roomPassword);
                 if (roomName == null)
                     throw new RuntimeException("No JvbRoomName header found");
 
@@ -146,24 +143,19 @@ public class CallControl
                     "Got dial request " + from + " -> " + to
                         + " room: " + roomName);
 
-                String callResource = initNewCall(
-                    roomName, roomPassword, from, to,
-                    (String)iq.getProperty(BOSH_URL_PROPERTY));
+                String callResource = ctx.getCallResource();
+
+                gateway.createOutgoingCall(ctx);
 
                 callResource = "xmpp:" + callResource;
 
-                RayoIqProvider.RefIq ref
-                    = RayoIqProvider.RefIq.createResult(iq, callResource);
-
-                return ref;
+                return RefIq.createResult(iq, callResource);
             }
-            else if (iq instanceof RayoIqProvider.HangUp)
+            else if (iq instanceof HangUp)
             {
-                RayoIqProvider.HangUp hangUp
-                    = (RayoIqProvider.HangUp) iq;
+                HangUp hangUp = (HangUp) iq;
 
-                String callUri = hangUp.getTo();
-                String callResource = callUri;
+                String callResource = hangUp.getTo();
 
                 GatewaySession session = gateway.getSession(callResource);
 
@@ -185,26 +177,5 @@ public class CallControl
             logger.error(e, e);
             throw e;
         }
-    }
-
-    /**
-     * Initializes new outgoing call.
-     * @param roomName the name of the MUC room that holds JVB conference call.
-     * @param roomPass optional password required to enter MUC room.
-     * @param from source address(optional)
-     * @param to destination call address/URI.
-     * @param customBoshURL optional, custom bosh URL to use when joining room
-     * @return the call resource string that will identify newly created call.
-     */
-    private String initNewCall(
-        String roomName, String roomPass, String from, String to,
-        String customBoshURL)
-    {
-        String callResource = Util.generateNextCallResource();
-
-        gateway.createOutgoingCall(
-            to, roomName, roomPass, callResource, customBoshURL);
-
-        return callResource;
     }
 }

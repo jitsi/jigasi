@@ -179,9 +179,12 @@ public class CallsHandlingTest
 
         outCallWatch.bind(sipTele);
 
-        GatewaySession session =
-            sipGw.createOutgoingCall(destination, roomName, null,
-                                     "callResourceUri" + roomName, null);
+        CallContext ctx = new CallContext();
+        ctx.setDestination(destination);
+        ctx.setRoomName(roomName);
+        ctx.setCustomCallResource("callResourceUri" + roomName);
+
+        GatewaySession session = sipGw.createOutgoingCall(ctx);
         assertNotNull(session);
 
         Call sipCall = outCallWatch.getOutgoingCall(1000);

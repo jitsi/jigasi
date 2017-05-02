@@ -106,16 +106,6 @@ public class JvbConference
     private final GatewaySession gatewaySession;
 
     /**
-     * Optional secret for password protected MUC rooms.
-     */
-    private final String roomPassword;
-
-    /**
-     * Optional custom bosh URL to use when joining MUC rooms.
-     */
-    private final String customBoshURL;
-
-    /**
      * The XMPP account used for the call handled by this instance.
      */
     private AccountID xmppAccount;
@@ -131,9 +121,10 @@ public class JvbConference
     private ProtocolProviderService xmppProvider;
 
     /**
-     * Name of MUC chat room hosting JVB conference.
+     * The call context used to create this conference, contains info as
+     * room name and room password and other optional parameters.
      */
-    private final String roomName;
+    private final CallContext callContext;
 
     /**
      * <tt>ChatRoom</tt> instance that hosts the conference(not null if joined).
@@ -199,17 +190,12 @@ public class JvbConference
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>GatewaySession</tt> that will be using this
      *                       <tt>JvbConference</tt>.
-     * @param roomName name of MUC room that hosts the conference
-     * @param roomPassword optional secret for password protected MUC room.
-     * @param customBoshURL optional, custom bosh URL to use when joining room
+     * @param ctx the call context of the current conference
      */
-    public JvbConference(GatewaySession gatewaySession, String roomName,
-                         String roomPassword, String customBoshURL)
+    public JvbConference(GatewaySession gatewaySession, CallContext ctx)
     {
         this.gatewaySession = gatewaySession;
-        this.roomName = roomName;
-        this.roomPassword = roomPassword;
-        this.customBoshURL = customBoshURL;
+        this.callContext = ctx;
     }
 
     /**
@@ -259,7 +245,7 @@ public class JvbConference
     {
         String mucDisplayName = null;
 
-        String sipDestination = gatewaySession.getDestination();
+        String sipDestination = callContext.getDestination();
         Call sipCall = gatewaySession.getSipCall();
 
         if (sipDestination != null)
@@ -326,7 +312,7 @@ public class JvbConference
         if (StringUtils.isNullOrEmpty(resourceIdentifier))
         {
             resourceIdentifier = Util.extractCallIdFromResource(
-                gatewaySession.getCallResource());
+                callContext.getCallResource());
         }
 
         return resourceIdentifier;
@@ -367,15 +353,6 @@ public class JvbConference
     }
 
     /**
-     * Returns XMPP provider used by this <tt>JvbConference</tt>.
-     * @return XMPP provider used by this <tt>JvbConference</tt>.
-     */
-    public ProtocolProviderService getXmppProvider()
-    {
-        return xmppProvider;
-    }
-
-    /**
      * Start this JVB conference handler.
      */
     public synchronized void start()
@@ -396,9 +373,8 @@ public class JvbConference
         this.xmppAccount
             = xmppProviderFactory.createAccount(
                     createAccountPropertiesForCallId(
-                            Util.domain,
-                            resourceIdentifier,
-                            roomName));
+                            callContext,
+                            resourceIdentifier));
 
         xmppProviderFactory.loadAccount(xmppAccount);
 
@@ -474,7 +450,7 @@ public class JvbConference
             xmppProvider.removeRegistrationStateChangeListener(this);
 
             logger.info(
-                gatewaySession.getCallResource()
+                callContext.getCallResource()
                     + " is removing account " + xmppAccount);
 
             xmppProviderFactory.unloadAccount(xmppAccount);
@@ -502,7 +478,7 @@ public class JvbConference
         if(this.xmppProvider != null)
             throw new IllegalStateException("unexpected");
 
-        String callResource = gatewaySession.getCallResource();
+        String callResource = callContext.getCallResource();
 
         if (!xmppProvider.getAccountID().getAccountUniqueID()
                 .equals(xmppAccount.getAccountUniqueID()))
@@ -548,12 +524,12 @@ public class JvbConference
         else if (evt.getNewState() == RegistrationState.UNREGISTERED)
         {
             logger.error("Unregistered XMPP on "
-                             + gatewaySession.getCallResource());
+                        + callContext.getCallResource());
         }
         else
         {
             logger.info(
-                "XMPP (" + gatewaySession.getCallResource()
+                "XMPP (" + callContext.getCallResource()
                          + "): " + evt.toString());
         }
     }
@@ -579,6 +555,9 @@ public class JvbConference
 
         try
         {
+            String roomName = callContext.getRoomName();
+            String roomPassword = callContext.getRoomPassword();
+
             logger.info("Joining JVB conference room: " + roomName);
 
             ChatRoom mucRoom = muc.findRoom(roomName);
@@ -672,10 +651,11 @@ public class JvbConference
 
     private void onJvbCallStarted()
     {
-        logger.info("JVB conference call IN_PROGRESS " + roomName);
+        logger.info("JVB conference call IN_PROGRESS "
+            + callContext.getRoomName());
 
         OperationSetIncomingDTMF opSet
-            = getXmppProvider().getOperationSet(OperationSetIncomingDTMF.class);
+            = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
         if (opSet != null)
             opSet.addDTMFListener(gatewaySession);
 
@@ -721,7 +701,7 @@ public class JvbConference
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
 
-        if (getXmppProvider() == null &&
+        if (xmppProvider == null &&
             ProtocolNames.JABBER.equals(pps.getProtocolName()))
         {
             setXmppProvider(pps);
@@ -770,8 +750,8 @@ public class JvbConference
     {
 
         if (evt.getChatRoom().equals(JvbConference.this.mucRoom)
-            && evt.getEventType()
-                == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED)
+            && Objects.equals(evt.getEventType(),
+                    LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED))
         {
             this.stop();
         }
@@ -802,7 +782,7 @@ public class JvbConference
      */
     public String getRoomName()
     {
-        return roomName;
+        return callContext.getRoomName();
     }
 
     private class JvbCallListener
@@ -853,7 +833,7 @@ public class JvbConference
                     CallPeer peer = evt.getSourceCallPeer();
                     CallPeerState peerState = peer.getState();
                     logger.info(
-                        gatewaySession.getCallResource()
+                        callContext.getCallResource()
                         + " JVB peer state: " + peerState);
 
                     if (CallPeerState.CONNECTED.equals(peerState))
@@ -908,16 +888,15 @@ public class JvbConference
      * FIXME: temporary
      */
     private Map<String, String> createAccountPropertiesForCallId(
-            String domain,
-            String resourceName,
-            String roomName)
+            CallContext ctx,
+            String resourceName)
     {
-        HashMap<String, String> properties = new HashMap<String, String>();
+        HashMap<String, String> properties = new HashMap<>();
 
-        String userID = resourceName + "@" + domain;
+        String userID = resourceName + "@" + ctx.getDomain();
 
         properties.put(ProtocolProviderFactory.USER_ID, userID);
-        properties.put(ProtocolProviderFactory.SERVER_ADDRESS, domain);
+        properties.put(ProtocolProviderFactory.SERVER_ADDRESS, ctx.getDomain());
         properties.put(ProtocolProviderFactory.SERVER_PORT, "5222");
 
         properties.put(ProtocolProviderFactory.RESOURCE, resourceName);
@@ -945,7 +924,6 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL_STATUS
             + ".DTLS-SRTP", "true");
 
-        String boshUrl = null;
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
@@ -999,7 +977,10 @@ public class JvbConference
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
             {
-                boshUrl = value;
+                // do not override boshURL with the global setting if
+                // we already have a value
+                if (StringUtils.isNullOrEmpty(ctx.getBoshURL()))
+                    ctx.setBoshURL(value);
             }
             else
             {
@@ -1007,13 +988,10 @@ public class JvbConference
             }
         }
 
-        if (!StringUtils.isNullOrEmpty(customBoshURL))
-        {
-            boshUrl = customBoshURL;
-        }
-
+        String boshUrl = ctx.getBoshURL();
         if (!StringUtils.isNullOrEmpty(boshUrl))
         {
+            String roomName = callContext.getRoomName();
             boshUrl = boshUrl.replace(
                 "{roomName}",
                 // if room name contains @ part, make sure we remove it
@@ -1046,7 +1024,7 @@ public class JvbConference
 
         Thread timeoutThread;
 
-        public void scheduleTimeout(long timeout)
+        void scheduleTimeout(long timeout)
         {
             synchronized (syncRoot)
             {
@@ -1091,7 +1069,7 @@ public class JvbConference
             }
         }
 
-        public void cancel()
+        void cancel()
         {
             synchronized (syncRoot)
             {
