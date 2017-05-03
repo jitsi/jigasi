@@ -165,7 +165,7 @@ public class GatewaySession
         = new ArrayList<>();
 
     /**
-     * Global participant count during this session.
+     * Global participant count during this session including the focus.
      */
     private int participantsCount = 0;
 
@@ -636,7 +636,7 @@ public class GatewaySession
     void notifyJvbRoomJoined()
     {
         // set initial participant count
-        participantsCount += getJvbChatRoom().getMembersCount() - 1;
+        participantsCount += getJvbChatRoom().getMembersCount();
 
         Iterable<GatewaySessionListener> gwListeners;
         synchronized (listeners)
@@ -661,7 +661,7 @@ public class GatewaySession
 
     /**
      * Returns the cumulative number of participants that were active during
-     * rhis session.
+     * this session including the focus.
      * @return the participants count.
      */
     public int getParticipantsCount()

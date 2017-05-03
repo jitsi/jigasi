@@ -321,7 +321,8 @@ public class HandlerImpl
     public void onSessionRemoved(GatewaySession session)
     {
         Statistics.addTotalConferencesCount(1);
-        Statistics.addTotalParticipantsCount(session.getParticipantsCount());
+        Statistics.addTotalParticipantsCount(
+            session.getParticipantsCount() - 1); // do not count focus
         Statistics.addCumulativeConferenceSeconds(
             TimeUnit.MILLISECONDS.toSeconds(
                 System.currentTimeMillis()
