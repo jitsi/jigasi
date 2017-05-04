@@ -38,7 +38,8 @@ import java.util.*;
  */
 public class CallControlComponent
     extends ComponentBase
-    implements BundleActivator
+    implements BundleActivator,
+               ServiceListener
 {
     /**
      * The logger.
@@ -110,30 +111,38 @@ public class CallControlComponent
             = ServiceUtils.getService(
                     bundleContext, SipGateway.class);
 
+        bundleContext.addServiceListener(this);
+
         if (gateway != null)
             internalStart(gateway, bundleContext);
-        else
-            bundleContext.addServiceListener(new ServiceListener()
+    }
+
+    @Override
+    public void serviceChanged(ServiceEvent serviceEvent)
+    {
+        if (serviceEvent.getType() != ServiceEvent.REGISTERED)
+            return;
+
+        ServiceReference ref = serviceEvent.getServiceReference();
+        BundleContext bundleContext
+            = ref.getBundle().getBundleContext();
+
+        Object service = bundleContext.getService(ref);
+
+        if (service instanceof SipGateway
+            && this.callControl == null)
+        {
+            internalStart((SipGateway) service, bundleContext);
+        }
+        else if (service instanceof ProtocolProviderService)
+        {
+            ProtocolProviderService pps = (ProtocolProviderService) service;
+
+            if (ProtocolNames.SIP.equals(pps.getProtocolName()))
             {
-                @Override
-                public void serviceChanged(ServiceEvent serviceEvent)
-                {
-                    if (serviceEvent.getType() != ServiceEvent.REGISTERED)
-                        return;
-
-                    ServiceReference ref = serviceEvent.getServiceReference();
-                    BundleContext bundleContext
-                        = ref.getBundle().getBundleContext();
-
-                    Object service = bundleContext.getService(ref);
-
-                    if (!(service instanceof SipGateway))
-                        return;
-
-                    bundleContext.removeServiceListener(this);
-                    internalStart((SipGateway) service, bundleContext);
-                }
-            });
+                updateSipProviderProperties(pps);
+            }
+        }
     }
 
     /**
@@ -147,12 +156,29 @@ public class CallControlComponent
             bundleContext, ConfigurationService.class);
         this.callControl = new CallControl(gateway, config);
 
-        // as incoming calls depend on domain to set it to call context
-        // and to generate call resource, we use component domain to set it
-        // to the sip provider account properties
-        AccountID sipAccountID = gateway.getSipProvider().getAccountID();
+        if (gateway.getSipProvider() != null)
+        {
+            updateSipProviderProperties(gateway.getSipProvider());
+        }
+    }
 
-        Map<String, String> accountProps = sipAccountID.getAccountProperties();
+    /**
+     * As incoming calls depend on domain to set it to call context
+     * and to generate call resource, we use component domain to set it
+     * to the sip provider account properties
+     * @param pps the sip protocol provider service
+     */
+    private void updateSipProviderProperties(ProtocolProviderService pps)
+    {
+        AccountID sipAccountID = pps.getAccountID();
+
+        Map<String, String> accountProps =
+            sipAccountID.getAccountProperties();
+
+        // do not update if property is present
+        if (accountProps.containsKey(CallContext.DOMAIN_BASE_ACCOUNT_PROP))
+            return;
+
         accountProps.put(CallContext.DOMAIN_BASE_ACCOUNT_PROP, getDomain());
 
         sipAccountID.setAccountProperties(accountProps);
@@ -162,7 +188,7 @@ public class CallControlComponent
     public void stop(BundleContext bundleContext)
         throws Exception
     {
-
+        bundleContext.removeServiceListener(this);
     }
 
     /**
