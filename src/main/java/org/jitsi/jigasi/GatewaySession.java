@@ -771,6 +771,11 @@ public class GatewaySession
             }
             else if(call.getCallState() == CallState.CALL_ENDED)
             {
+                logger.info("SIP call ended: " + cause);
+
+                if (peerStateListener != null)
+                    peerStateListener.unregister();
+
                 // If we have something to show and we're still in the MUC
                 // then we display error reason string and leave the room with
                 // 5 sec delay.
@@ -780,8 +785,6 @@ public class GatewaySession
                     // Show reason instead of disconnected
                     if (!StringUtils.isNullOrEmpty(cause.getReasonString()))
                     {
-                        peerStateListener.unregister();
-
                         jvbConference.setPresenceStatus(
                             cause.getReasonString());
                     }
