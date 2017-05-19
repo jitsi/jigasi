@@ -184,7 +184,13 @@ public class JvbConference
      * Used to identify the focus user and dispose the session when it leaves
      * the room.
      */
-    private String focusResourceAddr;
+    private final String focusResourceAddr;
+
+    /**
+     * Configuration property to change the resource used by focus.
+     */
+    private static final String FOCUSE_RESOURCE_PROP
+        = "org.jitsi.jigasi.FOCUS_RESOURCE";
 
     /**
      * Creates new instance of <tt>JvbConference</tt>
@@ -196,6 +202,9 @@ public class JvbConference
     {
         this.gatewaySession = gatewaySession;
         this.callContext = ctx;
+
+        focusResourceAddr = JigasiBundleActivator.getConfigurationService()
+            .getString(FOCUSE_RESOURCE_PROP, "focus");
     }
 
     /**
@@ -675,6 +684,11 @@ public class JvbConference
             return;
         }
 
+        OperationSetIncomingDTMF opSet
+            = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
+        if (opSet != null)
+            opSet.removeDTMFListener(gatewaySession);
+
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
@@ -798,25 +812,38 @@ public class JvbConference
         public void incomingCallReceived(CallEvent event)
         {
 
-            CallPeer focus = event.getSourceCall().getCallPeers().next();
-            if (focus == null || focus.getAddress() == null)
+            CallPeer peer = event.getSourceCall().getCallPeers().next();
+            String peerAddress;
+            if (peer == null || peer.getAddress() == null)
             {
                 logger.error("Failed to obtain focus peer address");
+                peerAddress = null;
             }
             else
             {
-                String fullAddress = focus.getAddress();
-                focusResourceAddr
+                String fullAddress = peer.getAddress();
+                peerAddress
                     = fullAddress.substring(
                             fullAddress.indexOf("/") + 1);
 
-                logger.info("Got invite from " + focusResourceAddr);
+                logger.info("Got invite from " + peerAddress);
+            }
+
+            if (peerAddress == null || !peerAddress.equals(focusResourceAddr))
+            {
+                logger.warn("Calls not initiated from focus are not allowed");
+
+                CallManager.hangupCall(event.getSourceCall(),
+                    403, "Only calls from focus allowed");
+                return;
             }
 
             if (jvbCall != null)
             {
                 logger.error(
                     "JVB conference call already started " + hashCode());
+                CallManager.hangupCall(event.getSourceCall(),
+                    200, "Call completed elsewhere");
                 return;
             }
 
@@ -830,7 +857,6 @@ public class JvbConference
 
             jvbCall = event.getSourceCall();
 
-            CallPeer peer = jvbCall.getCallPeers().next();
             peer.addCallPeerListener(new CallPeerAdapter()
             {
                 @Override
