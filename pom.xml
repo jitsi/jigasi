@@ -87,7 +87,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-media</artifactId>
-      <version>2.11-20170519.193519-2</version>
+      <version>2.11-20170523.194521-3</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

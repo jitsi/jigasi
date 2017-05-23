@@ -857,6 +857,13 @@ public class JvbConference
 
             jvbCall = event.getSourceCall();
 
+            // disable hole punching jvb
+            if (peer instanceof MediaAwareCallPeer)
+            {
+                ((MediaAwareCallPeer)peer).getMediaHandler()
+                    .setDisableHolePunching(true);
+            }
+
             peer.addCallPeerListener(new CallPeerAdapter()
             {
                 @Override
