@@ -27,4 +27,4 @@ if [ -f $logging_config ]; then
     LOGGING_CONFIG_PARAM="-Djava.util.logging.config.file=$logging_config"
 fi
 
-java -Djava.library.path=$libs $LOGGING_CONFIG_PARAM $JAVA_SYS_PROPS -cp $cp $mainClass $@
+LD_LIBRARY_PATH=$libs exec java -Djava.library.path=$libs $LOGGING_CONFIG_PARAM $JAVA_SYS_PROPS -cp $cp $mainClass $@

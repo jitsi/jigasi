@@ -35,24 +35,13 @@ test -x $DAEMON || exit 0
 
 set -e
 
-killParentPid() {
-    PARENT_PID=$(ps -o pid --no-headers --ppid $1 || true)
-    if [ $PARENT_PID ]; then
-        kill $PARENT_PID
-    fi
-}
-
 stop() {
     if [ -f $PIDFILE ]; then
         PID=$(cat $PIDFILE)
     fi
     echo -n "Stopping $DESC: "
     if [ $PID ]; then
-        killParentPid $PID
-        rm $PIDFILE || true
-        echo "$NAME stopped."
-    elif [ $(ps -C jigasi.sh --no-headers -o pid) ]; then
-        kill $(ps -o pid --no-headers --ppid $(ps -C jigasi.sh --no-headers -o pid)) || true
+        kill $PID || true
         rm $PIDFILE || true
         echo "$NAME stopped."
     else

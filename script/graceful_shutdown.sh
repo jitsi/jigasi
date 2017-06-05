@@ -43,6 +43,11 @@ while getopts "p:h:t:s" opt; do
 done
 shift "$((OPTIND-1))"
 
+# Try the pid file, if no pid was provided as an argument.
+if [ "$pid" = "" ] ;then
+    pid=`cat /var/run/jigasi.pid`
+fi
+
 #Check if PID is a number
 re='^[0-9]+$'
 if ! [[ $pid =~ $re ]] ; then
@@ -119,6 +124,7 @@ then
 			exit 1
 		fi
 	fi
+	rm -f /var/run/jigasi.pid
 	printInfo "Jigasi shutdown OK"
 	exit 0
 else
