@@ -22,9 +22,11 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
@@ -571,14 +573,14 @@ public class JvbConference
 
             ChatRoom mucRoom = muc.findRoom(roomName);
 
-            /*
-            FIXME: !!!
             if (mucRoom.getMembersCount() == 0)
             {
-                logger.error("No focus in the room!");
-                stop();
-                return;
-            }*/
+                logger.info("No focus in the room, let's invite it!");
+                // we do an invite and do not wait for response, as we will
+                // start ringing and will be invited when another participant
+                // joins
+                inviteFocus(mucRoom.getIdentifier());
+            }
 
             String resourceIdentifier = getResourceIdentifier();
 
@@ -1046,6 +1048,35 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
         return properties;
+    }
+
+    /**
+     * Sends invite to jicofo to join a room.
+     *
+     * @param roomIdentifier the room to join
+     */
+    private void inviteFocus(final String roomIdentifier)
+    {
+        if (callContext == null || callContext.getDomain() == null)
+        {
+            logger.error("No domain name info to use for inviting focus!"
+                + " Please set DOMAIN_BASE to the sip account.");
+            return;
+        }
+
+        ConferenceIq focusInviteIQ = new ConferenceIq(roomIdentifier);
+
+        // FIXME: uses hardcoded values that are currently used in production
+        // we need to configure them or retrieve them in the future
+        focusInviteIQ.addProperty("channelLastN", "-1");
+        focusInviteIQ.addProperty("disableRtx", "false");
+        focusInviteIQ.addProperty("startBitrate", "800");
+        focusInviteIQ.addProperty("openSctp", "true");
+
+        focusInviteIQ.setTo(focusResourceAddr + "." + callContext.getDomain());
+        focusInviteIQ.setType(IQ.Type.SET);
+        ((ProtocolProviderServiceJabberImpl) xmppProvider)
+            .getConnection().sendPacket(focusInviteIQ);
     }
 
     /**
