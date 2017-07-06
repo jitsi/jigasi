@@ -833,7 +833,9 @@ public class GatewaySession
             CallPeerState callPeerState = (CallPeerState)evt.getNewValue();
             String stateString = callPeerState.getStateString();
 
-            logger.info(callContext.getCallResource()
+            logger.info(
+                (callContext == null ?
+                    "no-call-ctx" : callContext.getCallResource())
                 + " SIP peer state: " + stateString);
 
             if (jvbConference != null)
