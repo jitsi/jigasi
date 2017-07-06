@@ -33,6 +33,7 @@
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack</artifactId>
+      <version>3.2.2-jitsi-2-20170706.211228-4</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
