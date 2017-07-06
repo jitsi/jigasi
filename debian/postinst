@@ -141,6 +141,7 @@ case "$1" in
         sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /etc/jitsi/jigasi/sip-communicator.properties
         SIPSERVER=`echo $JIGASI_SIPUSER | cut -d'@' -f 2`
         sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /etc/jitsi/jigasi/sip-communicator.properties
+        sed -i "s/<<DOMAIN_BASE>>/$JVB_HOSTNAME/g" /etc/jitsi/jigasi/sip-communicator.properties
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         if [ -f $PROSODY_HOST_CONFIG ]; then
