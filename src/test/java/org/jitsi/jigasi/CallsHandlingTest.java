@@ -40,6 +40,7 @@ import static org.junit.Assert.*;
  * Test various call situations(not all :P).
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 @RunWith(JUnit4.class)
 public class CallsHandlingTest
@@ -138,7 +139,7 @@ public class CallsHandlingTest
         // once JVB conference is joined.
         callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
 
-        GatewaySession session
+        SipGatewaySession session
             = osgi.getSipGateway().getActiveSessions().get(0);
 
         Call jvbCall = session.getJvbCall();
@@ -184,7 +185,7 @@ public class CallsHandlingTest
         ctx.setRoomName(roomName);
         ctx.setCustomCallResource("callResourceUri" + roomName);
 
-        GatewaySession session = sipGw.createOutgoingCall(ctx);
+        SipGatewaySession session = sipGw.createOutgoingCall(ctx);
         assertNotNull(session);
 
         Call sipCall = outCallWatch.getOutgoingCall(1000);
@@ -331,7 +332,7 @@ public class CallsHandlingTest
         callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
 
         String callResource = callUri.substring(5);
-        GatewaySession session = osgi.getSipGateway().getSession(callResource);
+        SipGatewaySession session = osgi.getSipGateway().getSession(callResource);
         Call xmppCall = session.getJvbCall();
 
         // We joined JVB conference call
@@ -382,7 +383,7 @@ public class CallsHandlingTest
 
         // Now tear down, SIP calee ends the call
         // then XMPP cal should be terminated and MUC room left
-        GatewaySession session
+        SipGatewaySession session
             = osgi.getSipGateway().getActiveSessions().get(0);
         assertNotNull(session);
 
@@ -429,7 +430,7 @@ public class CallsHandlingTest
 
         // We expect to have 3 active sessions
         SipGateway gateway = osgi.getSipGateway();
-        List<GatewaySession> sessions = gateway.getActiveSessions();
+        List<SipGatewaySession> sessions = gateway.getActiveSessions();
 
         assertEquals(3, sessions.size());
 
@@ -490,10 +491,10 @@ public class CallsHandlingTest
 
         // We expect to have 1 active sessions
         SipGateway gateway = osgi.getSipGateway();
-        List<GatewaySession> sessions = gateway.getActiveSessions();
+        List<SipGatewaySession> sessions = gateway.getActiveSessions();
         assertEquals(1, sessions.size());
 
-        GatewaySession session1 = sessions.get(0);
+        SipGatewaySession session1 = sessions.get(0);
 
         GatewaySessionAsserts sessionWatch = new GatewaySessionAsserts();
         sessionWatch.assertJvbRoomJoined(session1, 1000);

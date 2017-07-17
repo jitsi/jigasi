@@ -32,6 +32,7 @@ import org.json.simple.*;
 /**
  * Implements statistics that are collected by the JIgasi.
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class Statistics
 {
@@ -151,7 +152,7 @@ public class Statistics
 
         stats.put(CONFERENCES, gateway.getActiveSessions().size());
         int participants = 0;
-        for(GatewaySession ses : gateway.getActiveSessions())
+        for(SipGatewaySession ses : gateway.getActiveSessions())
         {
             if (ses.getJvbChatRoom() == null)
             {

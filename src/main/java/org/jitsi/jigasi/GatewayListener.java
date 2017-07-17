@@ -21,18 +21,19 @@ package org.jitsi.jigasi;
  * Class used to listen for various {@link SipGateway} state changes.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
-public interface SipGatewayListener
+public interface GatewayListener
 {
     /**
      * Called when new session is added to the list of active sessions.
      * @param session the session that was added.
      */
-    void onSessionAdded(GatewaySession session);
+    void onSessionAdded(AbstractGatewaySession session);
 
     /**
      * Called when a session is removed from the list of active sessions.
      * @param session the session that was removed.
      */
-    void onSessionRemoved(GatewaySession session);
+    void onSessionRemoved(AbstractGatewaySession session);
 }

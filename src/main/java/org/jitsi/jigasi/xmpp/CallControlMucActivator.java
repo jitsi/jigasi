@@ -44,13 +44,14 @@ import java.util.*;
  * The focus use the stats to load balance between instances.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class CallControlMucActivator
     implements BundleActivator,
                ServiceListener,
                RegistrationStateChangeListener,
                GatewaySessionListener,
-               SipGatewayListener,
+               GatewayListener,
                PacketFilter
 {
     /**
@@ -113,7 +114,7 @@ public class CallControlMucActivator
             bundleContext, SipGateway.class);
         if (gateway != null)
         {
-            gateway.addSipGatewayListener(this);
+            gateway.addGatewayListener(this);
 
             if (this.callControl == null)
                 this.callControl = new CallControl(gateway, config);
@@ -179,7 +180,7 @@ public class CallControlMucActivator
         else if (service instanceof SipGateway)
         {
             SipGateway gateway = (SipGateway) service;
-            gateway.addSipGatewayListener(this);
+            gateway.addGatewayListener(this);
 
             if (this.callControl == null)
                 this.callControl = new CallControl(
@@ -281,13 +282,13 @@ public class CallControlMucActivator
     }
 
     @Override
-    public void onJvbRoomJoined(GatewaySession source)
+    public void onJvbRoomJoined(AbstractGatewaySession source)
     {
         updatePresenceStatusForXmppProviders();
     }
 
     @Override
-    public void onSessionAdded(GatewaySession session)
+    public void onSessionAdded(AbstractGatewaySession session)
     {
         session.addListener(this);
         // we are not updating anything here (stats), cause session was just
@@ -297,7 +298,7 @@ public class CallControlMucActivator
     }
 
     @Override
-    public void onSessionRemoved(GatewaySession session)
+    public void onSessionRemoved(AbstractGatewaySession session)
     {
         updatePresenceStatusForXmppProviders();
         session.removeListener(this);
@@ -315,7 +316,7 @@ public class CallControlMucActivator
             osgiContext, SipGateway.class);
 
         int participants = 0;
-        for(GatewaySession ses : gateway.getActiveSessions())
+        for(SipGatewaySession ses : gateway.getActiveSessions())
         {
             participants += ses.getJvbChatRoom().getMembersCount();
         }
@@ -396,7 +397,7 @@ public class CallControlMucActivator
             osgiContext, SipGateway.class);
 
         int participants = 0;
-        for(GatewaySession ses : gateway.getActiveSessions())
+        for(SipGatewaySession ses : gateway.getActiveSessions())
         {
             participants += ses.getJvbChatRoom().getMembersCount();
         }

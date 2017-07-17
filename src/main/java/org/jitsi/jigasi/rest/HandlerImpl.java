@@ -87,10 +87,11 @@ import org.osgi.framework.*;
  * </p>
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class HandlerImpl
     extends AbstractJSONHandler
-    implements SipGatewayListener
+    implements GatewayListener
 {
     /**
      * The HTTP resource which is used to trigger graceful shutdown.
@@ -134,7 +135,7 @@ public class HandlerImpl
 
         if (this.gateway != null)
         {
-            this.gateway.addSipGatewayListener(this);
+            this.gateway.addGatewayListener(this);
         }
         else
         {
@@ -159,7 +160,7 @@ public class HandlerImpl
 
                     SipGateway sipGw = (SipGateway) service;
                     HandlerImpl.this.gateway = sipGw;
-                    sipGw.addSipGatewayListener(HandlerImpl.this);
+                    sipGw.addGatewayListener(HandlerImpl.this);
                 }
             });
         }
@@ -309,7 +310,7 @@ public class HandlerImpl
     }
 
     @Override
-    public void onSessionAdded(GatewaySession session)
+    public void onSessionAdded(AbstractGatewaySession session)
     {}
 
     /**
@@ -318,7 +319,7 @@ public class HandlerImpl
      * @param session the session that was removed.
      */
     @Override
-    public void onSessionRemoved(GatewaySession session)
+    public void onSessionRemoved(AbstractGatewaySession session)
     {
         Statistics.addTotalConferencesCount(1);
         Statistics.addTotalParticipantsCount(

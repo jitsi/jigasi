@@ -29,6 +29,7 @@ import org.jivesoftware.smack.util.*;
  *  XMPP protocol for the purpose of SIP gateway calls management.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class CallControl
 {
@@ -157,7 +158,7 @@ public class CallControl
 
                 String callResource = hangUp.getTo();
 
-                GatewaySession session = gateway.getSession(callResource);
+                SipGatewaySession session = gateway.getSession(callResource);
 
                 if (session == null)
                     throw new RuntimeException(
