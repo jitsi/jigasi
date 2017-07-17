@@ -103,9 +103,9 @@ public class JvbConference
     }
 
     /**
-     * {@link GatewaySession} that uses this <tt>JvbConference</tt> instance.
+     * {@link SipGatewaySession} that uses this <tt>JvbConference</tt> instance.
      */
-    private final GatewaySession gatewaySession;
+    private final AbstractGatewaySession gatewaySession;
 
     /**
      * The XMPP account used for the call handled by this instance.
@@ -196,11 +196,11 @@ public class JvbConference
 
     /**
      * Creates new instance of <tt>JvbConference</tt>
-     * @param gatewaySession the <tt>GatewaySession</tt> that will be using this
-     *                       <tt>JvbConference</tt>.
+     * @param gatewaySession the <tt>SipGatewaySession</tt> that will be using
+     *                       this <tt>JvbConference</tt>.
      * @param ctx the call context of the current conference
      */
-    public JvbConference(GatewaySession gatewaySession, CallContext ctx)
+    public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
     {
         this.gatewaySession = gatewaySession;
         this.callContext = ctx;
@@ -256,19 +256,23 @@ public class JvbConference
     {
         String mucDisplayName = null;
 
-        String sipDestination = callContext.getDestination();
-        Call sipCall = gatewaySession.getSipCall();
+        // FIXME: 17/07/17 make JvbConference less reliant on SIP?
+        if(gatewaySession instanceof SipGatewaySession)
+        {
+            String sipDestination = callContext.getDestination();
+            Call sipCall = ((SipGatewaySession) gatewaySession).getSipCall();
 
-        if (sipDestination != null)
-        {
-            mucDisplayName = sipDestination;
-        }
-        else if (sipCall != null)
-        {
-            CallPeer firstPeer = sipCall.getCallPeers().next();
-            if (firstPeer != null)
+            if (sipDestination != null)
             {
-                mucDisplayName = firstPeer.getDisplayName();
+                mucDisplayName = sipDestination;
+            }
+            else if (sipCall != null)
+            {
+                CallPeer firstPeer = sipCall.getCallPeers().next();
+                if (firstPeer != null)
+                {
+                    mucDisplayName = firstPeer.getDisplayName();
+                }
             }
         }
 

@@ -35,14 +35,14 @@ import java.util.*;
  *
  * @author Pawel Domas
  */
-public class GatewaySession
-    implements OperationSetJitsiMeetTools.JitsiMeetRequestListener,
-               DTMFListener
+public class SipGatewaySession
+    extends AbstractGatewaySession
 {
     /**
      * The logger.
      */
-    private final static Logger logger = Logger.getLogger(GatewaySession.class);
+    private final static Logger logger = Logger.getLogger(
+            SipGatewaySession.class);
 
     /**
      * The name of the room password header to check in headers for a room
@@ -95,19 +95,9 @@ public class GatewaySession
         = "JITSI_MEET_DOMAIN_BASE_HEADER_NAME";
 
     /**
-     * The <tt>SipGateway</tt> that manages this session.
-     */
-    private SipGateway sipGateway;
-
-    /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
      */
     private final OperationSetJitsiMeetTools jitsiMeetTools;
-
-    /**
-     * The <tt>JvbConference</tt> that handles current JVB conference.
-     */
-    private JvbConference jvbConference;
 
     /**
      * The SIP call instance if any SIP call is active.
@@ -138,11 +128,6 @@ public class GatewaySession
     private String destination;
 
     /**
-     * The call context assigned for the current call.
-     */
-    private CallContext callContext;
-
-    /**
      * SIP protocol provider instance.
      */
     private ProtocolProviderService sipProvider;
@@ -159,18 +144,7 @@ public class GatewaySession
     private WaitForJvbRoomNameThread waitThread;
 
     /**
-     * Gateway session listeners.
-     */
-    private final ArrayList<GatewaySessionListener> listeners
-        = new ArrayList<>();
-
-    /**
-     * Global participant count during this session including the focus.
-     */
-    private int participantsCount = 0;
-
-    /**
-     * Creates new <tt>GatewaySession</tt> for given <tt>callResource</tt>
+     * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
      * had been received).
@@ -181,16 +155,16 @@ public class GatewaySession
      * @param sipCall the incoming SIP call instance which will be handled by
      *                this session.
      */
-    public GatewaySession(SipGateway gateway,
-                          CallContext callContext,
-                          Call       sipCall)
+    public SipGatewaySession(SipGateway gateway,
+                             CallContext callContext,
+                             Call       sipCall)
     {
         this(gateway, callContext);
         this.call = sipCall;
     }
 
     /**
-     * Creates new <tt>GatewaySession</tt> that can be used to initiate outgoing
+     * Creates new <tt>SipGatewaySession</tt> that can be used to initiate outgoing
      * SIP gateway session by using
      * {@link #createOutgoingCall()}
      * method.
@@ -199,10 +173,9 @@ public class GatewaySession
      *                that will control this session.
      * @param callContext the call context that identifies this session.
      */
-    public GatewaySession(SipGateway gateway, CallContext callContext)
+    public SipGatewaySession(SipGateway gateway, CallContext callContext)
     {
-        this.sipGateway = gateway;
-        this.callContext = callContext;
+        super(gateway, callContext);
         this.sipProvider = gateway.getSipProvider();
         this.jitsiMeetTools
             = sipProvider.getOperationSet(
@@ -221,20 +194,11 @@ public class GatewaySession
                 JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT);
     }
 
-    /**
-     * Returns the call context for the current session.
-     * @return the call context for the current session.
-     */
-    public CallContext getCallContext()
-    {
-        return callContext;
-    }
-
     private void allCallsEnded()
     {
-        CallContext ctx = callContext;
+        CallContext ctx = super.callContext;
 
-        sipGateway.notifyCallEnded(ctx);
+        super.gateway.notifyCallEnded(ctx);
 
         // clear call context after notifying that session ended as
         // listeners to still be able to check the values from context
@@ -256,11 +220,6 @@ public class GatewaySession
      */
     public void createOutgoingCall()
     {
-        if (jvbConference != null)
-        {
-            throw new IllegalStateException("Conference in progress");
-        }
-
         if (call != null)
         {
             throw new IllegalStateException("SIP call in progress");
@@ -268,34 +227,13 @@ public class GatewaySession
 
         this.destination = callContext.getDestination();
 
-        jvbConference = new JvbConference(this, callContext);
-
-        jvbConference.start();
-    }
-
-    /**
-     * Returns the name of the chat room that holds current JVB conference or
-     * <tt>null</tt> we're not in any room.
-     *
-     * @return the name of the chat room that holds current JVB conference or
-     *         <tt>null</tt> we're not in any room.
-     */
-    public String getJvbRoomName()
-    {
-        return jvbConference != null ? jvbConference.getRoomName() : null;
-    }
-
-    /**
-     * Returns <tt>ChatRoom</tt> that hosts JVB conference of this session
-     * if we're already/still in this room or <tt>null</tt> otherwise.
-     */
-    public ChatRoom getJvbChatRoom()
-    {
-        return jvbConference != null ? jvbConference.getJvbRoom() : null;
+        // connect to muc
+        super.createOutgoingCall();
     }
 
     /**
      * Returns the instance of SIP call if any is currently in progress.
+
      * @return the instance of SIP call if any is currently in progress.
      */
     public Call getSipCall()
@@ -308,18 +246,20 @@ public class GatewaySession
         hangUp(-1, null);
     }
 
+    private void hangUp(int reasionCode, String reason)
+    {
+        super.hangUp(); // to leave JvbConference
+        hangUpSipCall(-1, null);
+    }
+
     /**
-     * Cancels current session.
+     * Cancels current session by canceling sip call
      */
-    private void hangUp(int reasonCode, String reason)
+    private void hangUpSipCall(int reasonCode, String reason)
     {
         cancelWaitThread();
 
-        if (jvbConference != null)
-        {
-            jvbConference.stop();
-        }
-        else if (call != null)
+        if (call != null)
         {
             if (reasonCode != -1)
                 CallManager.hangupCall(call, reasonCode, reason);
@@ -393,11 +333,7 @@ public class GatewaySession
     }
 
     /**
-     * Method called by <tt>JvbConference</tt> to notify that JVB conference
-     * call has started.
-     * @param jvbConferenceCall JVB call instance.
-     * @return any <tt>Exception</tt> that might occurred during handling of the
-     *         event. FIXME: is this still needed ?
+     * {@inheritDoc}
      */
     Exception onConferenceCallStarted(Call jvbConferenceCall)
     {
@@ -486,8 +422,7 @@ public class GatewaySession
     }
 
     /**
-     * Caled by <tt>JvbConference</tt> to notify that JVB call has ended.
-     * @param jvbConference <tt>JvbConference</tt> instance.
+     * {@inheritDoc}
      */
     void onJvbConferenceStopped(JvbConference jvbConference,
                                 int reasonCode, String reason)
@@ -561,7 +496,7 @@ public class GatewaySession
 
     /**
      * Initializes this instance for incoming call which was passed to the
-     * constructor {@link #GatewaySession(SipGateway, CallContext, Call)}.
+     * constructor {@link #SipGatewaySession(SipGateway, CallContext, Call)}.
      */
     void initIncomingCall()
     {
@@ -600,73 +535,6 @@ public class GatewaySession
     public Call getJvbCall()
     {
         return jvbConferenceCall;
-    }
-
-    /**
-     * Adds new {@link GatewaySessionListener} on this instance.
-     * @param listener adds new {@link GatewaySessionListener} that will receive
-     *                 updates from this instance.
-     */
-    public void addListener(GatewaySessionListener listener)
-    {
-        synchronized(listeners)
-        {
-            if (!listeners.contains(listener))
-                listeners.add(listener);
-        }
-    }
-
-    /**
-     * Removes {@link GatewaySessionListener} from this instance.
-     * @param listener removes {@link GatewaySessionListener} that will  stop
-     *                 receiving updates from this instance.
-     */
-    public void removeListener(GatewaySessionListener listener)
-    {
-        synchronized(listeners)
-        {
-            listeners.remove(listener);
-        }
-    }
-
-    /**
-     * Notifies {@link GatewaySessionListener}(if any) that we have just joined
-     * the conference room(call is not started yet - just the MUC).
-     */
-    void notifyJvbRoomJoined()
-    {
-        // set initial participant count
-        participantsCount += getJvbChatRoom().getMembersCount();
-
-        Iterable<GatewaySessionListener> gwListeners;
-        synchronized (listeners)
-        {
-            gwListeners = new ArrayList<>(listeners);
-        }
-
-        for (GatewaySessionListener listener : gwListeners)
-        {
-            listener.onJvbRoomJoined(this);
-        }
-    }
-
-    /**
-     * Notifies {@link GatewaySessionListener} that member just joined
-     * the conference room(MUC).
-     */
-    void notifyMemberJoined(ChatRoomMember member)
-    {
-        participantsCount++;
-    }
-
-    /**
-     * Returns the cumulative number of participants that were active during
-     * this session including the focus.
-     * @return the participants count.
-     */
-    public int getParticipantsCount()
-    {
-        return participantsCount;
     }
 
     /**
@@ -875,7 +743,7 @@ public class GatewaySession
      * FIXME: to be removed
      */
     class WaitForJvbRoomNameThread
-        extends Thread
+            extends Thread
     {
         private boolean cancel = false;
 
@@ -895,19 +763,19 @@ public class GatewaySession
                     }
 
                     if (getJvbRoomName() == null
-                        && !CallState.CALL_ENDED.equals(call.getCallState()))
+                            && !CallState.CALL_ENDED.equals(call.getCallState()))
                     {
                         String defaultRoom
-                            = JigasiBundleActivator
-                            .getConfigurationService()
-                            .getString(
-                                SipGateway.P_NAME_DEFAULT_JVB_ROOM);
+                                = JigasiBundleActivator
+                                .getConfigurationService()
+                                .getString(
+                                        SipGateway.P_NAME_DEFAULT_JVB_ROOM);
 
                         if (defaultRoom != null)
                         {
                             logger.info(
-                                "Using default JVB room name property "
-                                    + defaultRoom);
+                                    "Using default JVB room name property "
+                                            + defaultRoom);
 
                             callContext.setRoomName(defaultRoom);
 
@@ -930,7 +798,7 @@ public class GatewaySession
                 }
                 finally
                 {
-                    jitsiMeetTools.removeRequestListener(GatewaySession.this);
+                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
                 }
             }
         }

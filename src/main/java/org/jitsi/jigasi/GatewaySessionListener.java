@@ -19,16 +19,18 @@ package org.jitsi.jigasi;
 
 
 /**
- * Class used to listen for various {@link GatewaySession} state changes.
+ * Class used to listen for various {@link AbstractGatewaySession} state
+ * changes.
  *
  * @author Pawel Domas
  */
-public interface GatewaySessionListener
+public interface GatewaySessionListener<T extends AbstractGatewaySession>
 {
     /**
-     * Called when SIP gateway session has joined the MUC and is now waiting for
-     * invite from the focus.
-     * @param source the {@link GatewaySession} on which the event takes place.
+     * Called when a <tt>AbstractGatewaySession</tt> has joined the MUC
+     *
+     * @param source the {@link AbstractGatewaySession} on which the event
+     *               takes place.
      */
-    void onJvbRoomJoined(GatewaySession source);
+    void onJvbRoomJoined(T source);
 }

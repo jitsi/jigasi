@@ -157,7 +157,7 @@ public class CallControl
 
                 String callResource = hangUp.getTo();
 
-                GatewaySession session = gateway.getSession(callResource);
+                SipGatewaySession session = gateway.getSession(callResource);
 
                 if (session == null)
                     throw new RuntimeException(

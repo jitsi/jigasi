@@ -22,17 +22,17 @@ package org.jitsi.jigasi;
  *
  * @author Damian Minkov
  */
-public interface SipGatewayListener
+public interface GatewayListener
 {
     /**
      * Called when new session is added to the list of active sessions.
      * @param session the session that was added.
      */
-    void onSessionAdded(GatewaySession session);
+    void onSessionAdded(AbstractGatewaySession session);
 
     /**
      * Called when a session is removed from the list of active sessions.
      * @param session the session that was removed.
      */
-    void onSessionRemoved(GatewaySession session);
+    void onSessionRemoved(AbstractGatewaySession session);
 }

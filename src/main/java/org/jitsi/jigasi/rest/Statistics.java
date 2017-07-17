@@ -151,7 +151,7 @@ public class Statistics
 
         stats.put(CONFERENCES, gateway.getActiveSessions().size());
         int participants = 0;
-        for(GatewaySession ses : gateway.getActiveSessions())
+        for(SipGatewaySession ses : gateway.getActiveSessions())
         {
             if (ses.getJvbChatRoom() == null)
             {

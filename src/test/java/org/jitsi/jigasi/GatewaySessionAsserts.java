@@ -22,7 +22,7 @@ import net.java.sip.communicator.service.protocol.*;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Class encapsulates some assertions about {@link GatewaySession}.
+ * Class encapsulates some assertions about {@link SipGatewaySession}.
  *
  * @author Pawel Domas
  */
@@ -30,7 +30,7 @@ public class GatewaySessionAsserts
     implements GatewaySessionListener
 {
     @Override
-    public void onJvbRoomJoined(GatewaySession source)
+    public void onJvbRoomJoined(AbstractGatewaySession source)
     {
         synchronized (this)
         {
@@ -38,7 +38,7 @@ public class GatewaySessionAsserts
         }
     }
 
-    public void assertJvbRoomJoined(GatewaySession session, long timeout)
+    public void assertJvbRoomJoined(AbstractGatewaySession session, long timeout)
         throws InterruptedException
     {
         synchronized (this)

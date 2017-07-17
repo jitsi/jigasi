@@ -19,53 +19,25 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.util.*;
 import org.osgi.framework.*;
 
-import java.util.*;
-
 /**
- * SIP gateway uses first registered SIP account. Manages {@link GatewaySession}
- * created for either outgoing or incoming SIP connections.
+ * SIP gateway uses first registered SIP account. Manages
+ * {@link SipGatewaySession} created for either outgoing or
+ * incoming SIP connections.
  *
  * @author Pawel Domas
  */
 public class SipGateway
-    implements RegistrationStateChangeListener,
-               GatewaySessionListener
+    extends AbstractGateway<SipGatewaySession>
 {
     /**
      * The logger
      */
     private final static Logger logger = Logger.getLogger(SipGateway.class);
-
-    /**
-     * Name of the property used to override incoming
-     */
-    public static final String P_NAME_DEFAULT_JVB_ROOM
-        = "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME";
-
-    /**
-     * Name of the property used to set default JVB conference invite timeout.
-     */
-    public static final String P_NAME_JVB_INVITE_TIMEOUT
-        = "org.jitsi.jigasi.JVB_INVITE_TIMEOUT";
-
-    /**
-     * Name of the property used to disable advertisement of ICE feature in 
-     * XMPP capabilities list. This allows conference manager to allocate
-     * channels with RAW transport and speed up connectivity process.
-     */
-    public static final String P_NAME_DISABLE_ICE
-        = "org.jitsi.jigasi.DISABLE_ICE";
     
-    /**
-     * Default JVB conference invite timeout.
-     */
-    public static final long DEFAULT_JVB_INVITE_TIMEOUT = 30L * 1000L;
-
     /**
      * SIP protocol provider instance.
      */
@@ -82,33 +54,11 @@ public class SipGateway
     private final SipCallListener callListener = new SipCallListener();
 
     /**
-     * SIP gateways map.
-     */
-    private final Map<CallContext, GatewaySession> sessions = new HashMap<>();
-
-    /**
-     * Indicates if jigasi instance has entered graceful shutdown mode.
-     */
-    private boolean shutdownInProgress;
-
-    /**
-     * The (OSGi) <tt>BundleContext</tt> in which this <tt>SipGateway</tt> has
-     * been started.
-     */
-    private BundleContext bundleContext;
-
-    /**
-     * Listeners that will be notified of SipGateway changes.
-     */
-    private final ArrayList<SipGatewayListener> sipGatewayListeners
-        = new ArrayList<>();
-
-    /**
      * Creates new instance of <tt>SipGateway</tt>.
      */
     public SipGateway(BundleContext bundleContext)
     {
-        this.bundleContext = bundleContext;
+        super(bundleContext);
     }
 
     /**
@@ -164,128 +114,19 @@ public class SipGateway
         telephony.addCallListener(callListener);
     }
 
-    @Override
-    public void registrationStateChanged(RegistrationStateChangeEvent evt)
-    {
-        ProtocolProviderService pps = evt.getProvider();
-
-        logger.info("REG STATE CHANGE " + pps + " -> " + evt);
-    }
-
-    /**
-     * Notified that current call has ended.
-     * @param callContext the context of the call ended.
-     */
-    void notifyCallEnded(CallContext callContext)
-    {
-        GatewaySession session;
-
-        synchronized (sessions)
-        {
-            session = sessions.remove(callContext);
-
-            if (session == null)
-            {
-                // FIXME: print some gateway ID or provider here
-                logger.error(
-                    "Call resource not exists for session "
-                        + callContext.getCallResource());
-                return;
-            }
-
-            fireGatewaySessionRemoved(session);
-        }
-
-        logger.info("Removed session for call "
-            + callContext.getCallResource());
-
-        // Check if it's the time to shutdown now
-        maybeDoShutdown();
-    }
-
     /**
      * Starts new outgoing session by dialing given SIP number and joining JVB
      * conference held in given MUC room.
      * @param ctx the call context for which to create a call
-     * @return the newly created GatewaySession.
+     * @return the newly created SipGatewaySession.
      */
-    public GatewaySession createOutgoingCall(CallContext ctx)
+    public SipGatewaySession createOutgoingCall(CallContext ctx)
     {
-        GatewaySession outgoingSession = new GatewaySession(this, ctx);
+        SipGatewaySession outgoingSession = new SipGatewaySession(this, ctx);
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 
         return outgoingSession;
-    }
-
-    /**
-     * When a room is joined for incoming/outgoing calls we store the session
-     * based on its call context and fire event that session had been added.
-     *
-     * @param source the {@link GatewaySession} on which the event takes place.
-     */
-    @Override
-    public void onJvbRoomJoined(GatewaySession source)
-    {
-        sessions.put(source.getCallContext(), source);
-
-        fireGatewaySessionAdded(source);
-    }
-
-    /**
-     * Finds {@link GatewaySession} for given <tt>callResource</tt> if one is
-     * currently active.
-     *
-     * @param callResource the call resource/URI of the <tt>GatewaySession</tt>
-     *                     to be found.
-     *
-     * @return {@link GatewaySession} for given <tt>callResource</tt> if there
-     *         is one currently active or <tt>null</tt> otherwise.
-     */
-    public GatewaySession getSession(String callResource)
-    {
-        synchronized (sessions)
-        {
-            for (Map.Entry<CallContext, GatewaySession> en
-                    : sessions.entrySet())
-            {
-                if (callResource.equals(en.getKey().getCallResource()))
-                    return en.getValue();
-            }
-
-            return null;
-        }
-    }
-
-    /**
-     * @return the list of <tt>GatewaySession</tt>s currently active.
-     */
-    public List<GatewaySession> getActiveSessions()
-    {
-        synchronized (sessions)
-        {
-            return new ArrayList<>(sessions.values());
-        }
-    }
-
-    /**
-     * Returns timeout for waiting for the JVB conference invite from the focus.
-     */
-    public static long getJvbInviteTimeout()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getLong(P_NAME_JVB_INVITE_TIMEOUT, DEFAULT_JVB_INVITE_TIMEOUT);
-    }
-
-    /**
-     * Sets new timeout for waiting for the JVB conference invite from the
-     * focus.
-     * @param newTimeout the new timeout value in ms to set.
-     */
-    public static void setJvbInviteTimeout(long newTimeout)
-    {
-        JigasiBundleActivator.getConfigurationService()
-            .setProperty(SipGateway.P_NAME_JVB_INVITE_TIMEOUT, newTimeout);
     }
 
     class SipCallListener
@@ -308,8 +149,8 @@ public class SipGateway
                     .getAccountPropertyString(
                         CallContext.DOMAIN_BASE_ACCOUNT_PROP));
 
-                GatewaySession incomingSession
-                    = new GatewaySession(
+                SipGatewaySession incomingSession
+                    = new SipGatewaySession(
                             SipGateway.this, ctx, call);
                 incomingSession.addListener(SipGateway.this);
 
@@ -328,121 +169,4 @@ public class SipGateway
         }
     }
 
-    /**
-     * Enables graceful shutdown mode on this jigasi instance and eventually
-     * starts the shutdown immediately if no conferences are currently being
-     * hosted. Otherwise jigasi will shutdown once all conferences expire.
-     */
-    public void enableGracefulShutdownMode()
-    {
-        if (!shutdownInProgress)
-        {
-            logger.info("Entered graceful shutdown mode");
-        }
-        this.shutdownInProgress = true;
-        maybeDoShutdown();
-    }
-
-    /**
-     * Returns {@code true} if this instance has entered graceful shutdown mode.
-     *
-     * @return {@code true} if this instance has entered graceful shutdown mode;
-     * otherwise, {@code false}
-     */
-    public boolean isShutdownInProgress()
-    {
-        return shutdownInProgress;
-    }
-
-    /**
-     * Triggers the shutdown given that we're in graceful shutdown mode and
-     * there are no conferences currently in progress.
-     */
-    private void maybeDoShutdown()
-    {
-        if (!shutdownInProgress)
-            return;
-
-        synchronized (sessions)
-        {
-            if (sessions.isEmpty())
-            {
-                this.stop();
-
-                ShutdownService shutdownService
-                    = ServiceUtils.getService(
-                    bundleContext,
-                    ShutdownService.class);
-
-                logger.info("Jigasi is shutting down NOW");
-                shutdownService.beginShutdown();
-            }
-        }
-    }
-
-    /**
-     * Adds a listener that will be notified of changes in our status.
-     *
-     * @param listener a sip gateway status listener.
-     */
-    public void addSipGatewayListener(SipGatewayListener listener)
-    {
-        synchronized(sipGatewayListeners)
-        {
-            if (!sipGatewayListeners.contains(listener))
-                sipGatewayListeners.add(listener);
-        }
-    }
-
-    /**
-     * Removes a listener that was being notified of changes in the status of
-     * SipGateway.
-     *
-     * @param listener a sip gateway status listener.
-     */
-    public void removeSipGatewayListener(SipGatewayListener listener)
-    {
-        synchronized(sipGatewayListeners)
-        {
-            sipGatewayListeners.remove(listener);
-        }
-    }
-
-    /**
-     * Delivers event that new GatewaySession was added to active sessions.
-     * @param session the session that was added.
-     */
-    private void fireGatewaySessionAdded(GatewaySession session)
-    {
-        Iterable<SipGatewayListener> listeners;
-        synchronized (sipGatewayListeners)
-        {
-            listeners
-                = new ArrayList<>(sipGatewayListeners);
-        }
-
-        for (SipGatewayListener listener : listeners)
-        {
-            listener.onSessionAdded(session);
-        }
-    }
-
-    /**
-     * Delivers event that a GatewaySession was removed from active sessions.
-     * @param session the session that was removed.
-     */
-    private void fireGatewaySessionRemoved(GatewaySession session)
-    {
-        Iterable<SipGatewayListener> listeners;
-        synchronized (sipGatewayListeners)
-        {
-            listeners
-                = new ArrayList<>(sipGatewayListeners);
-        }
-
-        for (SipGatewayListener listener : listeners)
-        {
-            listener.onSessionRemoved(session);
-        }
-    }
 }
