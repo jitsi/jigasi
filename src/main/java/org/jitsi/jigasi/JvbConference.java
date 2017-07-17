@@ -733,6 +733,7 @@ public class JvbConference
     {
         logger.info("Member presence change: "+evt);
 
+        ChatRoomMember member = evt.getChatRoomMember();
         String eventType = evt.getEventType();
 
         if (!ChatRoomMemberPresenceChangeEvent.MEMBER_KICKED.equals(eventType)
@@ -742,17 +743,19 @@ public class JvbConference
             if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED
                     .equals(eventType))
             {
-                gatewaySession.notifyMemberJoined(evt.getChatRoomMember());
+                gatewaySession.notifyMemberJoined(member);
             }
 
             return;
         }
+        else
+        {
+            gatewaySession.notifyMemberLeft(member);
+            logger.info(
+                    "Member left : " + member.getRole()
+                            + " " + member.getContactAddress());
+        }
 
-        ChatRoomMember member = evt.getChatRoomMember();
-
-        logger.info(
-            "Member left : " + member.getRole()
-                + " " + member.getContactAddress());
         // 2 members, us and the focus
         if (member.getContactAddress().equals(focusResourceAddr)
             || evt.getChatRoom().getMembersCount() == 2)
