@@ -23,6 +23,7 @@ package org.jitsi.jigasi;
  * changes.
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public interface GatewaySessionListener<T extends AbstractGatewaySession>
 {

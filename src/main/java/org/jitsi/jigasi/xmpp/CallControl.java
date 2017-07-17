@@ -29,6 +29,7 @@ import org.jivesoftware.smack.util.*;
  *  XMPP protocol for the purpose of SIP gateway calls management.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class CallControl
 {

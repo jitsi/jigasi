@@ -32,6 +32,7 @@ import java.util.*;
  * information retrieved from jvb conference which is joined
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public abstract class AbstractGateway<T extends AbstractGatewaySession>
     implements RegistrationStateChangeListener,
@@ -40,8 +41,8 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(AbstractGateway.
-                                                              class);
+    private final static Logger logger
+        = Logger.getLogger(AbstractGateway.class);
 
     /**
      * Name of the property used to override incoming
@@ -71,8 +72,7 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     /**
      * A map which matches CallContext to the specific session of a Gateway.
      */
-    private final Map<CallContext, T> sessions =
-        new HashMap<>();
+    private final Map<CallContext, T> sessions = new HashMap<>();
 
     /**
      * Indicates if jigasi instance has entered graceful shutdown mode.

@@ -21,6 +21,7 @@ package org.jitsi.jigasi;
  * Class used to listen for various {@link SipGateway} state changes.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public interface GatewayListener
 {

@@ -87,6 +87,7 @@ import org.osgi.framework.*;
  * </p>
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class HandlerImpl
     extends AbstractJSONHandler

@@ -32,6 +32,7 @@ import java.util.*;
  * (outgoing or incoming).
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public abstract class AbstractGatewaySession
     implements OperationSetJitsiMeetTools.JitsiMeetRequestListener,

@@ -32,6 +32,7 @@ import org.json.simple.*;
 /**
  * Implements statistics that are collected by the JIgasi.
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class Statistics
 {

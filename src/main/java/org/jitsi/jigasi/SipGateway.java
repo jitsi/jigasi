@@ -29,6 +29,7 @@ import org.osgi.framework.*;
  * incoming SIP connections.
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class SipGateway
     extends AbstractGateway<SipGatewaySession>

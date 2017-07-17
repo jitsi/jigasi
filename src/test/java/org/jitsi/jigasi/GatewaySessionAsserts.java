@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
  * Class encapsulates some assertions about {@link SipGatewaySession}.
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class GatewaySessionAsserts
     implements GatewaySessionListener

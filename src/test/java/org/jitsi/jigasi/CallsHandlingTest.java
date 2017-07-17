@@ -40,6 +40,7 @@ import static org.junit.Assert.*;
  * Test various call situations(not all :P).
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 @RunWith(JUnit4.class)
 public class CallsHandlingTest

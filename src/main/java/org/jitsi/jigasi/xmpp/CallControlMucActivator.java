@@ -44,6 +44,7 @@ import java.util.*;
  * The focus use the stats to load balance between instances.
  *
  * @author Damian Minkov
+ * @author Nik Vaessen
  */
 public class CallControlMucActivator
     implements BundleActivator,

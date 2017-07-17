@@ -34,6 +34,7 @@ import java.util.*;
  * (outgoing or incoming).
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class SipGatewaySession
     extends AbstractGatewaySession

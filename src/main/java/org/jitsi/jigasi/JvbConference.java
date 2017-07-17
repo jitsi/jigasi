@@ -43,6 +43,7 @@ import java.util.*;
  * {@link SipGateway} is notified about this fact and it handles it appropriate.
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class JvbConference
     implements RegistrationStateChangeListener,
