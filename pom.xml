@@ -33,11 +33,12 @@
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack</artifactId>
-      <version>3.2.2-jitsi-2-20170706.211228-4</version>
+      <version>3.2.2-jitsi-3-20170721.194509-1</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smackx</artifactId>
+      <version>3.2.2-jitsi-3-20170721.194511-1</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.whack</groupId>
