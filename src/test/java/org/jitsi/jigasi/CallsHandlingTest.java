@@ -65,6 +65,12 @@ public class CallsHandlingTest
         osgi = new OSGiHandler();
 
         osgi.init();
+
+        // give some time to osgi
+        Object o = new Object();
+        synchronized (o) {
+            o.wait(1500);
+        }
     }
 
     @Before
@@ -183,7 +189,8 @@ public class CallsHandlingTest
         CallContext ctx = new CallContext();
         ctx.setDestination(destination);
         ctx.setRoomName(roomName);
-        ctx.setCustomCallResource("callResourceUri" + roomName);
+        ctx.setCustomCallResource(
+            "callResourceUri" + roomName + "@conference.net");
 
         SipGatewaySession session = sipGw.createOutgoingCall(ctx);
         assertNotNull(session);
@@ -284,7 +291,7 @@ public class CallsHandlingTest
             = new CallControlComponent(
                     serverName, 1234, serverName, subdomain, "secret");
 
-        component.init();
+        component.postComponentStart();
 
         assertEquals(serverName, component.getDomain());
 
@@ -471,11 +478,14 @@ public class CallsHandlingTest
     {
         // Set wait for JVB invite timeout
         long jvbInviteTimeout = 200;
-        SipGateway.setJvbInviteTimeout(jvbInviteTimeout);
+        AbstractGateway.setJvbInviteTimeout(jvbInviteTimeout);
 
         // No setup - SIP peer will join and should leave after timeout
         // of waiting for the invitation
         //focus.setup();
+
+        SipGateway gateway = osgi.getSipGateway();
+        GatewaySessions gatewaySessions = new GatewaySessions(gateway);
 
         // After incoming SIP call is received gateway will join JVB rooms and
         // start calls
@@ -490,8 +500,7 @@ public class CallsHandlingTest
             sipCall1, CallState.CALL_INITIALIZATION, 1000);
 
         // We expect to have 1 active sessions
-        SipGateway gateway = osgi.getSipGateway();
-        List<SipGatewaySession> sessions = gateway.getActiveSessions();
+        List<SipGatewaySession> sessions = gatewaySessions.getSessions(1000);
         assertEquals(1, sessions.size());
 
         SipGatewaySession session1 = sessions.get(0);
@@ -513,7 +522,8 @@ public class CallsHandlingTest
 
         assertEquals(false, jvbRoom1.isJoined());
 
-        SipGateway.setJvbInviteTimeout(SipGateway.DEFAULT_JVB_INVITE_TIMEOUT);
+        AbstractGateway.setJvbInviteTimeout(
+            AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
     }
 
 }

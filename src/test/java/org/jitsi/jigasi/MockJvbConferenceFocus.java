@@ -55,7 +55,8 @@ public class MockJvbConferenceFocus
     {
         this.roomName = roomName;
 
-        myName = "JVB-focus-" + roomName;
+        // we now filter and do not allow invites from non focus user
+        myName = "focus";
     }
 
     public void setup()

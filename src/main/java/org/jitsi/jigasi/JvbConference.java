@@ -624,7 +624,7 @@ public class JvbConference
             gatewaySession.notifyJvbRoomJoined();
 
             inviteTimeout.scheduleTimeout(
-                SipGateway.getJvbInviteTimeout());
+                AbstractGateway.getJvbInviteTimeout());
         }
         catch (Exception e)
         {
@@ -1083,8 +1083,11 @@ public class JvbConference
 
         focusInviteIQ.setTo(focusResourceAddr + "." + callContext.getDomain());
         focusInviteIQ.setType(IQ.Type.SET);
-        ((ProtocolProviderServiceJabberImpl) xmppProvider)
-            .getConnection().sendPacket(focusInviteIQ);
+
+        // this check just skips an exception when running tests
+        if (xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+            ((ProtocolProviderServiceJabberImpl) xmppProvider)
+                .getConnection().sendPacket(focusInviteIQ);
     }
 
     /**

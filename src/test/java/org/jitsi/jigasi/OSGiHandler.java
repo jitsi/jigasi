@@ -105,9 +105,11 @@ public class OSGiHandler
 
     private void createMockSipProvider()
     {
+        Map accProps = new HashMap<String, String>();
+        accProps.put(CallContext.DOMAIN_BASE_ACCOUNT_PROP, "sipserver.net");
         MockAccountID mockSipAccount
             = new MockAccountID("sipuser@sipserver.net",
-                                new HashMap<String, String>(),
+                                accProps,
                                 ProtocolNames.SIP);
 
         sipProvider
