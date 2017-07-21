@@ -170,7 +170,22 @@ public class JvbConference
      * Handles timeout for the waiting for JVB conference call invite sent by
      * the focus.
      */
-    private JvbInviteTimeout inviteTimeout = new JvbInviteTimeout();
+    private JvbConferenceStopTimeout
+        inviteTimeout = new JvbConferenceStopTimeout(
+            "JvbInviteTimeout",
+            "No invite from conference focus",
+            "Did not received session invite"
+        );
+
+    /**
+     * Handles timeout for the waiting some participant to join.
+     */
+    private JvbConferenceStopTimeout
+        leaveTimeout = new JvbConferenceStopTimeout(
+            "JvbLeaveTimeout",
+            "No participant joined for long time",
+            "No participant joined for long time"
+        );
 
     /**
      * Call hang up reason string that will be sent to the SIP peer.
@@ -744,6 +759,8 @@ public class JvbConference
             if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED
                     .equals(eventType))
             {
+                leaveTimeout.cancel();
+
                 gatewaySession.notifyMemberJoined(member);
             }
 
@@ -757,16 +774,27 @@ public class JvbConference
                             + " " + member.getContactAddress());
         }
 
-        // 2 members, us and the focus
-        if (member.getContactAddress().equals(focusResourceAddr)
-            || evt.getChatRoom().getMembersCount() == 2)
+        // if it is the focus leaving
+        if (member.getContactAddress().equals(focusResourceAddr))
         {
-            logger.info(
-                member.getContactAddress().equals(focusResourceAddr) ?
-                    "Focus" : "Last participant"
-                + " left! - stopping");
-
+            logger.info("Focus left! - stopping");
             stop();
+
+            return;
+        }
+
+        // if it is us and the focus
+        if (evt.getChatRoom().getMembersCount() == 2)
+        {
+            long leaveTime = AbstractGateway.getLeaveTimeout();
+            if (leaveTime > 0)
+            {
+                leaveTimeout.scheduleTimeout(leaveTime);
+            }
+            else
+            {
+                stop();
+            }
         }
     }
 
@@ -1091,10 +1119,11 @@ public class JvbConference
     }
 
     /**
-     * Threads handles the timeout for the waiting for conference call invite
-     * sent by the focus.
+     * Threads handles the timeout for stopping the conference.
+     * For waiting for conference call invite sent by the focus or for waiting
+     * another participant to joins.
      */
-    class JvbInviteTimeout
+    class JvbConferenceStopTimeout
         implements Runnable
     {
         private final Object syncRoot = new Object();
@@ -1105,6 +1134,17 @@ public class JvbConference
 
         Thread timeoutThread;
 
+        private String errorLog = null;
+        private final String endReason;
+        private final String name;
+
+        JvbConferenceStopTimeout(String name, String reason, String errorLog)
+        {
+            this.name = name;
+            this.endReason = reason;
+            this.errorLog = errorLog;
+        }
+
         void scheduleTimeout(long timeout)
         {
             synchronized (syncRoot)
@@ -1114,8 +1154,8 @@ public class JvbConference
                 if (timeoutThread != null)
                     throw new IllegalStateException("already scheduled");
 
-                timeoutThread = new Thread(this, "JvbInviteTimeout");
-
+                timeoutThread = new Thread(this, name);
+                willCauseTimeout = true;
                 timeoutThread.start();
             }
         }
@@ -1131,13 +1171,10 @@ public class JvbConference
 
                     if (willCauseTimeout)
                     {
-                        logger.error(
-                            "Did not received session invite within "
-                                + timeout + " ms");
+                        logger.error(errorLog + " (" + timeout + " ms)");
 
-                        endReason
-                            = "No invite from conference focus";
-                        endReasonCode
+                        JvbConference.this.endReason = this.endReason;
+                        JvbConference.this.endReasonCode
                             = OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT;
 
                         stop();
