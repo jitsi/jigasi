@@ -26,7 +26,7 @@ import org.jivesoftware.smack.util.*;
 
 /**
  *  Implementation of call control that is capable of utilizing Rayo
- *  XMPP protocol for the purpose of SIP gateway calls management.
+ *  XMPP protocol for the purpose of SIP sipGateway calls management.
  *
  * @author Damian Minkov
  * @author Nik Vaessen
@@ -55,9 +55,15 @@ public class CallControl
         = "org.jitsi.jigasi.ALLOWED_JID";
 
     /**
-     * The {@link SipGateway} service which manages gateway sessions.
+     * The {@link SipGateway} service which manages SipGateway sessions.
      */
-    private SipGateway gateway;
+    private SipGateway sipGateway;
+
+    /**
+     * The {@link TranscriptionGateway} service which manges
+     * TranscriptionGatewaySession's
+     */
+    private TranscriptionGateway transcriptionGateway;
 
     /**
      * The only JID that will be allowed to create outgoing SIP calls. If not
@@ -66,14 +72,52 @@ public class CallControl
     private String allowedJid;
 
     /**
+     * Constructs new call control instance with a SipGateway
+     *
+     * @param sipGateway the SipGateway instance
+     * @param config the config service instance
+     */
+    public CallControl(SipGateway sipGateway, ConfigurationService config)
+    {
+        this(config);
+        this.sipGateway = sipGateway;
+    }
+
+    /**
+     * Constructs new call control instance with a SipGateway
+     *
+     * @param transcriptionGateway the TranscriptionGateway instance
+     * @param config the config service instance
+     */
+    public CallControl(TranscriptionGateway transcriptionGateway,
+                       ConfigurationService config)
+    {
+        this(config);
+        this.transcriptionGateway = transcriptionGateway;
+    }
+
+    /**
+     * Constructs new call control instance with a SipGateway
+     *
+     * @param sipGateway the SipGateway instance
+     * @param transcriptionGateway the TranscriptionGateway instance
+     * @param config the config service instance
+     */
+    public CallControl(SipGateway sipGateway,
+                       TranscriptionGateway transcriptionGateway,
+                       ConfigurationService config)
+    {
+        this(config);
+        this.sipGateway = sipGateway;
+        this.transcriptionGateway = transcriptionGateway;
+    }
+
+    /**
      * Constructs new call control instance.
-     * @param gateway the sip gateway instance.
      * @param config the config service instance.
      */
-    public CallControl(SipGateway gateway, ConfigurationService config)
+    public CallControl(ConfigurationService config)
     {
-        this.gateway = gateway;
-
         Boolean always_trust_mode = config.getBoolean(
             "net.java.sip.communicator.service.gui.ALWAYS_TRUST_MODE_ENABLED",
             false);
@@ -130,6 +174,7 @@ public class CallControl
 
                 String from = dialIq.getSource();
                 String to = dialIq.getDestination();
+
                 ctx.setDestination(to);
 
                 String roomName = dialIq.getHeader(ROOM_NAME_HEADER);
@@ -146,7 +191,14 @@ public class CallControl
 
                 String callResource = ctx.getCallResource();
 
-                gateway.createOutgoingCall(ctx);
+                if("transcribe:".equals(to))
+                {
+                    transcriptionGateway.createOutgoingCall(ctx);
+                }
+                else
+                {
+                    sipGateway.createOutgoingCall(ctx);
+                }
 
                 callResource = "xmpp:" + callResource;
 
@@ -154,15 +206,18 @@ public class CallControl
             }
             else if (iq instanceof HangUp)
             {
+                // FIXME: 23/07/17 Transcription sessions should also be able
+                // to be hangup ?
+
                 HangUp hangUp = (HangUp) iq;
 
                 String callResource = hangUp.getTo();
 
-                SipGatewaySession session = gateway.getSession(callResource);
+                SipGatewaySession session = sipGateway.getSession(callResource);
 
                 if (session == null)
                     throw new RuntimeException(
-                        "No gateway for call: " + callResource);
+                        "No sipGateway for call: " + callResource);
 
                 session.hangUp();
 
@@ -179,4 +234,47 @@ public class CallControl
             throw e;
         }
     }
+
+    /**
+     * Get the SipGateway this CallControl uses to create SipGatewaySession's
+     *
+     * @return the SipGateway
+     */
+    public SipGateway getSipGateway()
+    {
+        return sipGateway;
+    }
+
+    /**
+     * Set the SipGateway this CallControl uses to create SipGatewaySession's
+     *
+     * @param sipGateway the SipGateway to set
+     */
+    public void setSipGateway(SipGateway sipGateway)
+    {
+        this.sipGateway = sipGateway;
+    }
+
+    /**
+     * Get the TranscriptionGateway this CallControl uses to create
+     * TranscriptionGatewaySession's
+     *
+     * @return the TranscriptionGateway
+     */
+    public TranscriptionGateway getTranscriptionGateway()
+    {
+        return transcriptionGateway;
+    }
+
+    /**
+     * Set the TranscriptionGateway this CallControl uses to create
+     * TranscriptionGatewaySession's
+     *
+     * @param transcriptionGw the TranscriptionGateway
+     */
+    public void setTranscriptionGateway(TranscriptionGateway transcriptionGw)
+    {
+        this.transcriptionGateway = transcriptionGw;
+    }
+
 }
