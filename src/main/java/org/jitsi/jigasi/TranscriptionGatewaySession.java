@@ -128,7 +128,7 @@ public class TranscriptionGatewaySession
                     }
                     // FIXME: 18/07/17 what to do with video?
                     // will cause an exception when mediaType == VIDEO
-                    return null;
+                    return super.getDefaultDevice(mediaType, useCase);
                 }
             });
 
