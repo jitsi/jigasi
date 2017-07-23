@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import org.jitsi.jigasi.transcription.GoogleCloudTranscriptionService;
 import org.osgi.framework.BundleContext;
 
 /**
