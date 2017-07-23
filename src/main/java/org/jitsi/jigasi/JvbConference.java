@@ -268,11 +268,10 @@ public class JvbConference
         sendPresenceExtension(mediaPresence);
     }
 
-    private String getSipUri()
+    private String getMucDisplayName()
     {
         String mucDisplayName = null;
 
-        // FIXME: 17/07/17 make JvbConference less reliant on SIP?
         if(gatewaySession instanceof SipGatewaySession)
         {
             String sipDestination = callContext.getDestination();
@@ -290,6 +289,10 @@ public class JvbConference
                     mucDisplayName = firstPeer.getDisplayName();
                 }
             }
+        }
+        if(gatewaySession instanceof TranscriptionGatewaySession)
+        {
+            mucDisplayName = TranscriptionGatewaySession.DISPLAY_NAME;
         }
 
         return mucDisplayName;
@@ -319,7 +322,7 @@ public class JvbConference
             // anything that is not in the this regex class A-Za-z0-9- with a
             // dash.
 
-            resourceIdentifier = getSipUri();
+            resourceIdentifier = getMucDisplayName();
             if (!StringUtils.isNullOrEmpty(resourceIdentifier))
             {
                 int idx = resourceIdentifier.indexOf('@');
@@ -617,7 +620,7 @@ public class JvbConference
 
             mucRoom.addMemberPresenceListener(this);
 
-            String displayName = getSipUri();
+            String displayName = getMucDisplayName();
             if (displayName != null)
             {
                 Nick nick = new Nick(displayName);
