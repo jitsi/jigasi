@@ -17,8 +17,8 @@
  */
 package org.jitsi.jigasi;
 
-import org.jitsi.jigasi.transcription.GoogleCloudTranscriptionService;
-import org.osgi.framework.BundleContext;
+import org.jitsi.jigasi.transcription.*;
+import org.osgi.framework.*;
 
 /**
  * A Gateway which creates a TranscriptionGatewaySession when it has an outgoing call

@@ -18,16 +18,15 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.event.DTMFReceivedEvent;
-import net.java.sip.communicator.service.protocol.media.MediaAwareCallConference;
+import net.java.sip.communicator.service.protocol.event.*;
+import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.transcription.*;
-import org.jitsi.service.neomedia.MediaType;
-import org.jitsi.service.neomedia.MediaUseCase;
-import org.jitsi.service.neomedia.device.MediaDevice;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
 
 import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.function.*;
 
 /**
  * A TranscriptionGatewaySession is able to join a JVB conference and
