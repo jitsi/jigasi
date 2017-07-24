@@ -18,15 +18,15 @@
 package org.jitsi.jigasi.transcription;
 
 import com.google.api.gax.grpc.*;
-import com.google.cloud.speech.spi.v1.SpeechClient;
+import com.google.cloud.speech.spi.v1.*;
 import com.google.cloud.speech.v1.*;
-import com.google.protobuf.ByteString;
-import org.jitsi.util.Logger;
+import com.google.protobuf.*;
+import org.jitsi.util.*;
 
-import javax.media.format.AudioFormat;
+import javax.media.format.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.function.*;
 
 /**
  * Implements a TranscriptionService which will use Google Cloud

@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import java.util.function.Consumer;
+import java.util.function.*;
 
 /**
  * A TranscriptionService provides the ability to send audio either

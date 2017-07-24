@@ -17,9 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
-import org.jitsi.impl.neomedia.device.AudioSilenceMediaDevice;
-import org.jitsi.impl.neomedia.device.RawStreamListener;
+import org.jitsi.impl.neomedia.device.*;
 
 /**
  * AudioMixerMediaDevice which adds a RawStreamListener to itself which

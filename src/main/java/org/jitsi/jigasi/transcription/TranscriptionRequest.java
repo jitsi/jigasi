@@ -17,8 +17,8 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import javax.media.format.AudioFormat;
-import java.util.Locale;
+import javax.media.format.*;
+import java.util.*;
 
 /**
  * A TranscriptionRequest serves as a holder for some audio fragment
