@@ -144,6 +144,9 @@ public class GoogleCloudTranscriptionService
             "cmn-Hans-CN",
         };
 
+    /**
+     * The logger for this class
+     */
     private final static Logger logger
             = Logger.getLogger(GoogleCloudTranscriptionService.class);
 
@@ -166,8 +169,8 @@ public class GoogleCloudTranscriptionService
      * Sends audio as an array of bytes to speech-to-text API of google cloud
      *
      * @param request the TranscriptionRequest which holds the audio to be sent
-     * @return a Future which will have the TranscriptionResult of the
-     * audio
+     * @param resultConsumer a Consumer which will handle the
+     *                       TranscriptionResult
      */
     @Override
     public void sent(final TranscriptionRequest request,
@@ -179,7 +182,6 @@ public class GoogleCloudTranscriptionService
             try
             {
                 SpeechClient client = SpeechClient.create();
-
 
                 RecognitionConfig config = getRecognitionConfig(request);
 
@@ -237,8 +239,9 @@ public class GoogleCloudTranscriptionService
     public class GoogleCloudStreamingRecognitionSession
         implements StreamingRecognitionSession
     {
+
         /**
-         * The SpeechClient which will be used to initiate and end the
+         * The SpeechClient which will be used to initiate and to end the
          * session
          */
         private SpeechClient client;
@@ -251,18 +254,10 @@ public class GoogleCloudTranscriptionService
             responseObserver = new ResponseApiStreamingObserver<>();
 
         /**
-         * The ApiStreamObserver which will send new audio request to be
-         * transcribed
+         * A manager which acts as a ApiStreamObserver which will send new audio
+         * request to be transcribed
          */
-        private ApiStreamObserver<StreamingRecognizeRequest> requestObserver;
-
-        /**
-         * The first request should contain the configuration of the audio,
-         * while all subsequent request should only contain audio.
-         * This flag will be false when the first request containing the config
-         * has not yet been sent
-         */
-        private boolean hasSentInitialRequest = false;
+        private RequestApiStreamObserverManager requestManager;
 
         /**
          * A single thread which is used to sent all requests to the API.
@@ -278,6 +273,9 @@ public class GoogleCloudTranscriptionService
             try
             {
                 this.client = SpeechClient.create();
+                this.requestManager
+                    = new RequestApiStreamObserverManager(client,
+                                                          responseObserver);
             }
             catch(Exception e)
             {
@@ -285,69 +283,10 @@ public class GoogleCloudTranscriptionService
             }
         }
 
-        /**
-         * Sent the request to the google cloud API. Makes sure that the first
-         * request ever sent only provides the config
-         *
-         * @param request the request to send
-         */
-        private void sentRequest(TranscriptionRequest request)
-        {
-            logger.trace("Trying to send request");
-            if(!hasSentInitialRequest)
-            {
-                // make sure this only happens once
-                hasSentInitialRequest = true;
-
-                // RecognitionConfig which holds information about the audio
-                // which will be passed to the API
-                RecognitionConfig recConfig = getRecognitionConfig(request);
-
-                // StreamingRecognitionConfig which will hold information
-                // about the streaming session, including the RecognitionConfig
-                StreamingRecognitionConfig streamingRecognitionConfig =
-                    StreamingRecognitionConfig.newBuilder()
-                                              .setConfig(recConfig)
-                                              .build();
-
-                // StreamingCallable manages sending the audio and receiving
-                // the results
-                StreamingCallable<StreamingRecognizeRequest,
-                    StreamingRecognizeResponse> callable = client
-                    .streamingRecognizeCallable();
-
-                // An ApiObserver which will be used to send all requests
-                // The responses will be delivered to the responseObserver
-                // which is already created
-                this.requestObserver = callable
-                    .bidiStreamingCall(responseObserver);
-
-                // Sent the first request which needs to **only** contain the
-                // StreamingRecognitionConfig
-                requestObserver.onNext(
-                    StreamingRecognizeRequest.newBuilder()
-                                             .setStreamingConfig(
-                                                 streamingRecognitionConfig)
-                                             .build());
-
-                logger.trace("Send initial Request");
-            }
-
-            // If the first request with the config has been sent,
-            // all other requests need to contain **only** the audio ByteString
-            byte[] audio = request.getAudio();
-            ByteString audioBytes = ByteString.copyFrom(audio);
-            requestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                                                            .setAudioContent(
-                                                                audioBytes)
-                                                            .build());
-            logger.trace("Sent a request");
-        }
-
         @Override
         public void give(final TranscriptionRequest request)
         {
-            this.service.submit(() -> sentRequest(request));
+            this.service.submit(() -> requestManager.sentRequest(request));
             logger.trace("queued request");
         }
 
@@ -362,8 +301,8 @@ public class GoogleCloudTranscriptionService
         {
             try
             {
-                requestObserver.onCompleted();
                 client.close();
+                requestManager.stop();
                 service.shutdown();
                 // Note that we can't close the responseObserver yet
                 // as new results can still come in
@@ -379,6 +318,196 @@ public class GoogleCloudTranscriptionService
         public void addTranscriptionListener(TranscriptionListener listener)
         {
             responseObserver.addListener(listener);
+        }
+
+    }
+
+    /**
+     * A Manager for RequestApiStreamObserver instances.
+     * It will make sure a RequestApiStreamObserver will only be used for a
+     * minute, as that is the maximum amount of time supported by the Google API
+     * Every 50 seconds, a new observer is created, which will overlap with
+     * the last 5 seconds of the previous observer. Each observer will last 55
+     * seconds
+     */
+    private static class RequestApiStreamObserverManager
+    {
+        /**
+         * The SpeechClient which will be used to initiate the session
+         */
+        private SpeechClient client;
+
+        /**
+         * The ApiStreamObserver which will retrieve new incoming transcription
+         * results
+         */
+        private ResponseApiStreamingObserver<StreamingRecognizeResponse>
+            responseObserver;
+
+        /**
+         * The ApiStreamObserver which will send new audio request to be
+         * transcribed
+         */
+        private ApiStreamObserver<StreamingRecognizeRequest>
+            currentRequestObserver;
+
+        /**
+         * The upcoming ApiStreamObserver which will send new audio request to be
+         * transcribed
+         */
+        private ApiStreamObserver<StreamingRecognizeRequest>
+            upcomingRequestObserver;
+
+        /**
+         * The timestamp from when the **current**
+         */
+        private long creationTimeStamp;
+
+        /**
+         * Create a new RequestApiStreamObserverManager, which will try
+         * to mimic a streaming session of indefinite lenth
+         *
+         * @param client the SpeechClient with which to open new sessions
+         */
+        RequestApiStreamObserverManager(SpeechClient client,
+                                        ResponseApiStreamingObserver
+                                            <StreamingRecognizeResponse>
+                                            responseObserver )
+        {
+            this.client = client;
+            this.responseObserver = responseObserver;
+        }
+
+        /**
+         * Create a new ApiStreamObserver by instantialing it and sending the first
+         * request, which contains the configuration
+         *
+         * @param config the configuration of the session
+         * @return the ApiStreamObserver, which will be "open" for the coming
+         * 55 seconds
+         */
+        public ApiStreamObserver<StreamingRecognizeRequest> createObserver(
+            RecognitionConfig config)
+        {
+            // StreamingRecognitionConfig which will hold information
+            // about the streaming session, including the RecognitionConfig
+            StreamingRecognitionConfig streamingRecognitionConfig =
+                StreamingRecognitionConfig.newBuilder()
+                    .setConfig(config)
+                    .build();
+
+            // StreamingCallable manages sending the audio and receiving
+            // the results
+            StreamingCallable<StreamingRecognizeRequest,
+                StreamingRecognizeResponse> callable = client
+                .streamingRecognizeCallable();
+
+            // An ApiObserver which will be used to send all requests
+            // The responses will be delivered to the responseObserver
+            // which is already created
+            ApiStreamObserver<StreamingRecognizeRequest> requestObserver
+                = callable.bidiStreamingCall(responseObserver);
+
+            // Sent the first request which needs to **only** contain the
+            // StreamingRecognitionConfig
+            requestObserver.onNext(
+                StreamingRecognizeRequest.newBuilder()
+                    .setStreamingConfig(streamingRecognitionConfig)
+                    .build());
+
+            return requestObserver;
+        }
+
+        /**
+         * Sent an audio request to the streaming sessions
+         *
+         * @param request the audio to send
+         */
+        private void sendAudioRequest(TranscriptionRequest request)
+        {
+            // If the first request with the config has been sent,
+            // all other requests need to contain **only** the audio ByteString
+            byte[] audio = request.getAudio();
+            ByteString audioBytes = ByteString.copyFrom(audio);
+
+            currentRequestObserver.onNext(
+                StreamingRecognizeRequest.newBuilder()
+                    .setAudioContent(audioBytes)
+                    .build());
+
+            if(upcomingRequestObserver != null)
+            {
+                upcomingRequestObserver.onNext(
+                    StreamingRecognizeRequest.newBuilder()
+                        .setAudioContent(audioBytes)
+                        .build());
+            }
+
+            logger.trace("Sent a request");
+        }
+
+        /**
+         * Sent a request to the streaming observer to be transcribed
+         *
+         * @param request the request to transcribe
+         */
+        public void sentRequest(TranscriptionRequest request)
+        {
+            handleTimeStamp(request);
+            sendAudioRequest(request);
+        }
+
+        /**
+         * Manage sessions based on time passed. If 50 seconds have passed, wind
+         * up a new session. If 55 seconds have passed, replace the current one
+         *
+         * @param request a request such that the congigation can be retrieved
+         *                if necessary
+         */
+        private void handleTimeStamp(TranscriptionRequest request)
+        {
+            //initial creation
+            if(currentRequestObserver == null)
+            {
+                logger.debug("Creating initial Session");
+                currentRequestObserver
+                    = createObserver(getRecognitionConfig(request));
+                creationTimeStamp = System.currentTimeMillis();
+                return;
+            }
+
+            long msPassed = System.currentTimeMillis() - creationTimeStamp;
+            if(msPassed > 50000 && upcomingRequestObserver == null)
+            {
+                logger.debug("50 seconds have passed, creating upcoming" +
+                    "session");
+                upcomingRequestObserver
+                    = createObserver(getRecognitionConfig(request));
+            }
+            else if(msPassed > 55000)
+            {
+                logger.debug("55 seconds have passed, retiring current" +
+                    "session");
+                currentRequestObserver.onCompleted();
+                currentRequestObserver = upcomingRequestObserver;
+                upcomingRequestObserver = null;
+                creationTimeStamp = System.currentTimeMillis() - 5000;
+            }
+        }
+
+        /**
+         * Stop the manager
+         */
+        public void stop()
+        {
+            if(currentRequestObserver != null)
+            {
+                currentRequestObserver.onCompleted();
+            }
+            if(upcomingRequestObserver != null)
+            {
+                upcomingRequestObserver.onCompleted();
+            }
         }
     }
 
