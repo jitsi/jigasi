@@ -77,6 +77,19 @@ public class JvbConference
         = "org.jitsi.jigasi.USE_SIP_USER_AS_XMPP_RESOURCE";
 
     /**
+     * The name of the property that is used to define the MUC service address.
+     * There are cases when authentication is used the authenticated user is
+     * using domain auth.main.domain and the muc service is under
+     * conference.main.domain. Then when joining a room without specifying
+     * the full address we will try searching using disco info for muc service
+     * under the domain auth.main.domain which will fail.
+     * We will use this property to fix those cases by manually configuring
+     * the address.
+     */
+    private static final String P_NAME_MUC_SERVICE_ADDRESS
+        = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
+
+    /**
      * Default status of our participant before we get any state from
      * the <tt>CallPeer</tt>.
      */
@@ -587,6 +600,17 @@ public class JvbConference
         try
         {
             String roomName = callContext.getRoomName();
+            if (!roomName.contains("@"))
+            {
+                // we check for optional muc service
+                String mucService
+                    = JigasiBundleActivator.getConfigurationService()
+                        .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
+                if (!StringUtils.isNullOrEmpty(mucService))
+                {
+                    roomName = roomName + "@" + mucService;
+                }
+            }
             String roomPassword = callContext.getRoomPassword();
 
             logger.info("Joining JVB conference room: " + roomName);
