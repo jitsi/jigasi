@@ -17,16 +17,14 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import com.google.api.gax.grpc.ApiStreamObserver;
-import com.google.api.gax.grpc.StreamingCallable;
+import com.google.api.gax.grpc.*;
 import com.google.cloud.speech.spi.v1.SpeechClient;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.ByteString;
 import org.jitsi.util.Logger;
 
 import javax.media.format.AudioFormat;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -151,13 +149,6 @@ public class GoogleCloudTranscriptionService
             = Logger.getLogger(GoogleCloudTranscriptionService.class);
 
     /**
-     * ExecutorService which will manage the async requests of audio
-     * transcriptions. CashedThreadPool is chosen because sending
-     * audio chunks are small short-lived async tasks.
-     */
-    private ExecutorService executorService = Executors.newCachedThreadPool();
-
-    /**
      * Create a TranscriptionService which will send audio to the google cloud
      * platform to get a transcription
      */
@@ -173,44 +164,41 @@ public class GoogleCloudTranscriptionService
      *                       TranscriptionResult
      */
     @Override
-    public void sent(final TranscriptionRequest request,
+    public void sentSingleRequest(final TranscriptionRequest request,
                      final Consumer<TranscriptionResult> resultConsumer)
     {
-        executorService.submit(() ->
+        // Try to create the client, which can throw an IOException
+        try
         {
-            // Try to create the client, which can throw an IOException
-            try
+            SpeechClient client = SpeechClient.create();
+
+            RecognitionConfig config = getRecognitionConfig(request);
+
+            ByteString audioBytes = ByteString.copyFrom(request.getAudio());
+            RecognitionAudio audio = RecognitionAudio.newBuilder()
+                    .setContent(audioBytes)
+                    .build();
+
+            RecognizeResponse recognizeResponse =
+                    client.recognize(config, audio);
+
+            client.close();
+
+            StringBuilder builder = new StringBuilder();
+            for (SpeechRecognitionResult result :
+                    recognizeResponse.getResultsList())
             {
-                SpeechClient client = SpeechClient.create();
-
-                RecognitionConfig config = getRecognitionConfig(request);
-
-                ByteString audioBytes = ByteString.copyFrom(request.getAudio());
-                RecognitionAudio audio = RecognitionAudio.newBuilder()
-                        .setContent(audioBytes)
-                        .build();
-
-                RecognizeResponse recognizeResponse =
-                        client.recognize(config, audio);
-
-                client.close();
-
-                StringBuilder builder = new StringBuilder();
-                for (SpeechRecognitionResult result :
-                        recognizeResponse.getResultsList())
-                {
-                    builder.append(result.toString());
-                    builder.append(" ");
-                }
-
-                String transcription = builder.toString().trim();
-                resultConsumer.accept(new TranscriptionResult(transcription));
+                builder.append(result.toString());
+                builder.append(" ");
             }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-        });
+
+            String transcription = builder.toString().trim();
+            resultConsumer.accept(new TranscriptionResult(transcription));
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -359,7 +347,7 @@ public class GoogleCloudTranscriptionService
             upcomingRequestObserver;
 
         /**
-         * The timestamp from when the **current**
+         * The timestamp from when the **current** session was created
          */
         private long creationTimeStamp;
 

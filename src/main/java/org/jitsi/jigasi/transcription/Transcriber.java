@@ -27,10 +27,7 @@ import javax.media.rtp.ReceiveStream;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -548,7 +545,8 @@ public class Transcriber
                 // audio volume is silent for a "decent amount of time"
                 // only relevant if Streaming recognition is not supported
                 // by the TranscriptionService
-                transcriptionService.sent(request, Participant.this::notify);
+                transcriptionService.sentSingleRequest(request,
+                    Participant.this::notify);
             }
         }
     }
