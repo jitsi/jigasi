@@ -17,8 +17,6 @@
  */
 package org.jitsi.jigasi;
 
-import java.util.*;
-
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
@@ -29,6 +27,8 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
+
+import java.util.*;
 
 /**
  * Jigasi bundle activator. Registers {@link SipGateway} and waits for the first

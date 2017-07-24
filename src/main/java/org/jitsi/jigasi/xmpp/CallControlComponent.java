@@ -19,7 +19,6 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
-
 import org.jitsi.jigasi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
