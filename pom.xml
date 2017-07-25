@@ -23,6 +23,16 @@
 
   <dependencies>
     <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>18.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-speech</artifactId>
+        <version>0.17.1-alpha</version>
+    </dependency>
+    <dependency>
       <groupId>dom4j</groupId>
       <artifactId>dom4j</artifactId>
     </dependency>
@@ -106,7 +116,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-20170519.190756-278</version>
+      <version>1.0-20170724.205625-298</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -293,7 +303,15 @@
 
   <build>
     <plugins>
-      <plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <source>1.8</source>
+                <target>1.8</target>
+            </configuration>
+        </plugin>
+        <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
