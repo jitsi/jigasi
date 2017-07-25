@@ -35,13 +35,18 @@ import java.util.concurrent.*;
  * @author Nik Vaessen
  */
 public class Transcriber
-    implements RawStreamListener
+    implements ReceiveStreamBufferListener
 {
 
     /**
      * The logger of this class
      */
     private final static Logger logger = Logger.getLogger(Transcriber.class);
+
+    /**
+     * Currently assume everyone to have this locale
+     */
+    private final static Locale ENGLISH_LOCALE = Locale.forLanguageTag("en-US");
 
     /**
      * The states the transcriber can be in. The Transcriber
@@ -120,7 +125,6 @@ public class Transcriber
      * {@link Transcriber#stop()}
      */
     private ExecutorService executorService;
-
 
     /**
      * Create a transcription object which can be used to add and remove
@@ -287,41 +291,37 @@ public class Transcriber
     }
 
     /**
-     * The transcriber can be used as a RawStreamListener to listen for new
-     * audio packets coming in through a MediaDevice. It will try to filter
-     * them based on the SSRC of the packet. If the SSRC does not match
-     * a participant added to the transcribed, an exception will be thrown
+     * The transcriber can be used as a {@link ReceiveStreamBufferListener}
+     * to listen for new audio packets coming in through a MediaDevice. It will
+     * try to filter them based on the SSRC of the packet. If the SSRC does not
+     * match a participant added to the transcribed, an exception will be thrown
      *
-     * An ExecutorService is used to offload work on the thread managing
-     * audio packets
+     * Note that this code is run in a Thread doing audio mixing and only
+     * has 20 ms for each frame
      *
      * @param receiveStream the stream from which the audio was received
      * @param buffer the containing the audio as well as meta-data
      */
     @Override
-    public void samplesRead(ReceiveStream receiveStream, Buffer buffer)
+    public void bufferReceived(ReceiveStream receiveStream, Buffer buffer)
     {
         if(!isTranscribing())
         {
             return;
         }
 
-        executorService.submit(() ->
-        {
-            // ReceiveStream uses unsigned longs
-            long ssrc = receiveStream.getSSRC() & 0xffffffffL;
+        long ssrc = receiveStream.getSSRC() & 0xffffffffL;
 
-            Participant p = participants.get(ssrc);
-            if(p != null)
-            {
-                participants.get(ssrc).giveBuffer(buffer);
-            }
-            else
-            {
-                logger.warn("Reading from SSRC " + ssrc + " while it is "+
-                        "not known as a participant");
-            }
-        });
+        Participant p = participants.get(ssrc);
+        if(p != null)
+        {
+            p.giveBuffer(buffer);
+        }
+        else
+        {
+            logger.warn("Reading from SSRC " + ssrc + " while it is "+
+                "not known as a participant");
+        }
     }
 
     /**
@@ -343,26 +343,29 @@ public class Transcriber
     private class Participant
             implements TranscriptionListener
     {
-        /**
-         * Currently assume everyone to have this locale
-         */
-        private final Locale ENGLISH_LOCALE = Locale.forLanguageTag("en-US");
 
         /**
-         * The expected amount of bytes each buffer will have
+         * The expected amount of bytes each given buffer will have. Webrtc
+         * usually has 20ms opus frames which are decoded to 2 bytes per sample
+         * and 48000Hz sampling rate, which results in 2 * 48000 = 96000 bytes
+         * per second, and because frames are 20 ms we have 1000/20 = 50
+         * packets per second. Each packet will thus contain
+         * 96000 / 50 = 1920 bytes
          */
-        private final int EXPECTED_AUDIO_LENGTH = 1920;
+        private static final int EXPECTED_AUDIO_LENGTH = 1920;
 
         /**
          * The size of the local buffer. A single packet is expected to contain
-         * 1920 bytes, so the size should be a multiple of 1920
+         * 1920 bytes, so the size should be a multiple of 1920. Using
+         * 25 results in 20 ms * 25 packets = 500 ms of audio being buffered
+         * locally before being send to the TranscriptionService
          */
-        private final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
+        private static final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
 
         /**
          * Whether we should buffer locally before sending
          */
-        private final Boolean USE_LOCAL_BUFFER = true;
+        private static final boolean USE_LOCAL_BUFFER = true;
 
         /**
          * The name of the participant
@@ -375,7 +378,7 @@ public class Transcriber
         private long ssrc;
 
         /**
-         * The streaming
+         * The streaming session which will constantly receive audio
          */
         private TranscriptionService.StreamingRecognitionSession session;
 
@@ -385,7 +388,7 @@ public class Transcriber
         private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         /**
-         * The AudioFormat of the audio being read. It assumed to not change
+         * The AudioFormat of the audio being read. It is assumed to not change
          * after initialization
          */
         private AudioFormat audioFormat;
@@ -435,17 +438,20 @@ public class Transcriber
             if (transcriptionService.supportsStreamRecognition())
             {
                 session = transcriptionService.initStreamingSession();
-                session.addTranscriptionListener(this);
+                session.addTranscriptionListener(Participant.this);
             }
         }
 
         /**
-         * When a participant left it does not accept audio and thus no new
+         * When a participant has left it does not accept audio and thus no new
          * results will come in
          */
         void left()
         {
-            session.end();
+            if (session != null)
+            {
+                session.end();
+            }
         }
 
         /**
@@ -518,32 +524,39 @@ public class Transcriber
 
         /**
          * Send the specified audio to the TranscriptionService.
+         * <p>
+         * An ExecutorService is used to offload work on the mxing thread
          *
          * @param audio the audio to send
          */
         private void sendRequest(byte[] audio)
         {
-            TranscriptionRequest request
+            executorService.submit(() ->
+            {
+                TranscriptionRequest request
                     = new TranscriptionRequest(audio,
-                        audioFormat, ENGLISH_LOCALE);
+                    audioFormat, ENGLISH_LOCALE);
 
-            if (session != null && !session.ended())
-            {
-                session.give(request);
-            }
-            else // fallback if TranscriptionService does not support streams
-                 // or session got ended prematurely
-            {
-                // FIXME: 22/07/17 This just assumes given BUFFER_LENGTH is
-                // long enough to get decent audio length. Also does not take
-                // into account that participant's audio will be cut of
-                // midsentence. For better results, try to buffer until
-                // audio volume is silent for a "decent amount of time"
-                // only relevant if Streaming recognition is not supported
-                // by the TranscriptionService
-                transcriptionService.sentSingleRequest(request,
-                    Participant.this::notify);
-            }
+                if (session != null && !session.ended())
+                {
+                    session.sendRequest(request);
+                }
+                else
+                // fallback if TranscriptionService does not support streams
+                // or session got ended prematurely
+                {
+                    // FIXME: 22/07/17 This just assumes given BUFFER_LENGTH
+                    // is long enough to get decent audio length. Also does
+                    // not take into account that participant's audio will
+                    // be cut of midsentence. For better results, try to
+                    // buffer until audio volume is silent for a "decent
+                    // amount of time". Only relevant if Streaming
+                    // recognition is not supported by the
+                    // TranscriptionService
+                    transcriptionService.sendSingleRequest(request,
+                        Participant.this::notify);
+                }
+            });
         }
     }
 

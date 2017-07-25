@@ -163,8 +163,8 @@ public class GoogleCloudTranscriptionService
      *                       TranscriptionResult
      */
     @Override
-    public void sentSingleRequest(final TranscriptionRequest request,
-                     final Consumer<TranscriptionResult> resultConsumer)
+    public void sendSingleRequest(final TranscriptionRequest request,
+                            final Consumer<TranscriptionResult> resultConsumer)
     {
         // Try to create the client, which can throw an IOException
         try
@@ -271,7 +271,7 @@ public class GoogleCloudTranscriptionService
         }
 
         @Override
-        public void give(final TranscriptionRequest request)
+        public void sendRequest(final TranscriptionRequest request)
         {
             this.service.submit(() -> requestManager.sentRequest(request));
             logger.trace("queued request");

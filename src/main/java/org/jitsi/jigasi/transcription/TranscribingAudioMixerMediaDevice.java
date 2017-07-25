@@ -20,11 +20,11 @@ package org.jitsi.jigasi.transcription;
 import org.jitsi.impl.neomedia.device.*;
 
 /**
- * AudioMixerMediaDevice which adds a RawStreamListener to itself which
- * gets all the audio data going to the AudioMixer.
+ * AudioMixerMediaDevice which adds a {@link ReceiveStreamBufferListener} to
+ * itself which gets all the audio data going to the AudioMixer.
  *
  * This audio can be distinguished by participant by looking at the SSRC
- * of the ReceiveStream providing the audio
+ * of the {@link javax.media.rtp.ReceiveStream} providing the audio
  *
  * @author Nik Vaessen
  */
@@ -36,10 +36,11 @@ public class TranscribingAudioMixerMediaDevice
      * Create a new MediaDevice which does not output any audio
      * and has a listener for all other audio
      */
-    public TranscribingAudioMixerMediaDevice(RawStreamListener listener)
+    public TranscribingAudioMixerMediaDevice(
+        ReceiveStreamBufferListener listener)
     {
         super(new AudioSilenceMediaDevice());
-        super.setRawStreamListener(listener);
+        super.setReceiveStreamBufferListener(listener);
     }
 
 }
