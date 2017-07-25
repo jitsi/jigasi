@@ -17,14 +17,14 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
-import net.java.sip.communicator.impl.protocol.jabber.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.util.Logger;
+import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
@@ -281,32 +281,6 @@ public class JvbConference
         sendPresenceExtension(mediaPresence);
     }
 
-    private String getSipUri()
-    {
-        String mucDisplayName = null;
-
-        // FIXME: 17/07/17 make JvbConference less reliant on SIP?
-        if(gatewaySession instanceof SipGatewaySession)
-        {
-            String sipDestination = callContext.getDestination();
-            Call sipCall = ((SipGatewaySession) gatewaySession).getSipCall();
-
-            if (sipDestination != null)
-            {
-                mucDisplayName = sipDestination;
-            }
-            else if (sipCall != null)
-            {
-                CallPeer firstPeer = sipCall.getCallPeers().next();
-                if (firstPeer != null)
-                {
-                    mucDisplayName = firstPeer.getDisplayName();
-                }
-            }
-        }
-
-        return mucDisplayName;
-    }
 
     private String getResourceIdentifier()
     {
@@ -332,7 +306,7 @@ public class JvbConference
             // anything that is not in the this regex class A-Za-z0-9- with a
             // dash.
 
-            resourceIdentifier = getSipUri();
+            resourceIdentifier = gatewaySession.getMucDisplayName();
             if (!StringUtils.isNullOrEmpty(resourceIdentifier))
             {
                 int idx = resourceIdentifier.indexOf('@');
@@ -641,7 +615,7 @@ public class JvbConference
 
             mucRoom.addMemberPresenceListener(this);
 
-            String displayName = getSipUri();
+            String displayName = gatewaySession.getMucDisplayName();
             if (displayName != null)
             {
                 Nick nick = new Nick(displayName);

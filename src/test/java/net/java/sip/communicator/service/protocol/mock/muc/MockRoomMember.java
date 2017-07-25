@@ -86,6 +86,12 @@ public class MockRoomMember
     }
 
     @Override
+    public String getDisplayName()
+    {
+        return null;
+    }
+
+    @Override
     public PresenceStatus getPresenceStatus()
     {
         return null;

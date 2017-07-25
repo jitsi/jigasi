@@ -257,4 +257,12 @@ public abstract class AbstractGatewaySession
         return participantsCount;
     }
 
+    /**
+     * Get the name this instance should have in the conference and with which
+     * is can be identified
+     *
+     * @return the name
+     */
+    public abstract String getMucDisplayName();
+
 }
