@@ -28,7 +28,13 @@ import org.osgi.framework.*;
 public class TranscriptionGateway
     extends AbstractGateway<TranscriptionGatewaySession>
 {
-
+    /**
+     * Create a new TranscriptionGateway, which manages
+     * TranscriptionGatewaySessions in conferences, such that the audio
+     * in those conferences can be transcribed
+     *
+     * @param context the context containing information about calls
+     */
     public TranscriptionGateway(BundleContext context)
     {
         super(context);

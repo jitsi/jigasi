@@ -600,6 +600,30 @@ public class SipGatewaySession
         return false;
     }
 
+    @Override
+    public String getMucDisplayName()
+    {
+        String mucDisplayName = null;
+
+        String sipDestination = callContext.getDestination();
+        Call sipCall = getSipCall();
+
+        if (sipDestination != null)
+        {
+            mucDisplayName = sipDestination;
+        }
+        else if (sipCall != null)
+        {
+            CallPeer firstPeer = sipCall.getCallPeers().next();
+            if (firstPeer != null)
+            {
+                mucDisplayName = firstPeer.getDisplayName();
+            }
+        }
+
+        return mucDisplayName;
+    }
+
     class SipCallStateListener
         implements CallChangeListener
     {

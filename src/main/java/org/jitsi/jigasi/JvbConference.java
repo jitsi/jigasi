@@ -268,35 +268,6 @@ public class JvbConference
         sendPresenceExtension(mediaPresence);
     }
 
-    private String getMucDisplayName()
-    {
-        String mucDisplayName = null;
-
-        if(gatewaySession instanceof SipGatewaySession)
-        {
-            String sipDestination = callContext.getDestination();
-            Call sipCall = ((SipGatewaySession) gatewaySession).getSipCall();
-
-            if (sipDestination != null)
-            {
-                mucDisplayName = sipDestination;
-            }
-            else if (sipCall != null)
-            {
-                CallPeer firstPeer = sipCall.getCallPeers().next();
-                if (firstPeer != null)
-                {
-                    mucDisplayName = firstPeer.getDisplayName();
-                }
-            }
-        }
-        if(gatewaySession instanceof TranscriptionGatewaySession)
-        {
-            mucDisplayName = TranscriptionGatewaySession.DISPLAY_NAME;
-        }
-
-        return mucDisplayName;
-    }
 
     private String getResourceIdentifier()
     {
@@ -322,7 +293,7 @@ public class JvbConference
             // anything that is not in the this regex class A-Za-z0-9- with a
             // dash.
 
-            resourceIdentifier = getMucDisplayName();
+            resourceIdentifier = gatewaySession.getMucDisplayName();
             if (!StringUtils.isNullOrEmpty(resourceIdentifier))
             {
                 int idx = resourceIdentifier.indexOf('@');
@@ -620,7 +591,7 @@ public class JvbConference
 
             mucRoom.addMemberPresenceListener(this);
 
-            String displayName = getMucDisplayName();
+            String displayName = gatewaySession.getMucDisplayName();
             if (displayName != null)
             {
                 Nick nick = new Nick(displayName);

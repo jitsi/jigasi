@@ -493,6 +493,12 @@ public class TranscriptionGatewaySession
         }
     }
 
+    @Override
+    public String getMucDisplayName()
+    {
+        return TranscriptionGatewaySession.DISPLAY_NAME;
+    }
+
     /**
      * This Thread is used in the
      * {@link TranscriptionGatewaySession#notifyMemberJoined(ChatRoomMember)} and
