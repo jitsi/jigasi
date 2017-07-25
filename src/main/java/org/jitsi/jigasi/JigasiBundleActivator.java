@@ -39,6 +39,7 @@ import java.util.*;
  * when the DialIQ is "transcriber"
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class JigasiBundleActivator
     implements BundleActivator,
@@ -53,7 +54,16 @@ public class JigasiBundleActivator
 
     public static BundleContext osgiContext;
 
+    /**
+     * The Gateway which will manage bridging between a jvb conference and a sip
+     * call
+     */
     private SipGateway sipGateway;
+
+    /**
+     * The Gateway which will manage a bridge between a jvb conference and a
+     * transcription service
+     */
     private TranscriptionGateway transcriptionGateway;
 
     private UIServiceStub uiServiceStub = new UIServiceStub();
@@ -112,6 +122,7 @@ public class JigasiBundleActivator
         logger.info("Stopping JigasiBundleActivator");
 
         sipGateway.stop();
+        transcriptionGateway.stop();
     }
 
     @Override

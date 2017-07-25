@@ -55,6 +55,13 @@ public class CallControl
         = "org.jitsi.jigasi.ALLOWED_JID";
 
     /**
+     * If a dial IQ has this destination we should invite a
+     * TranscriptionGatewaySession
+     */
+    public static final String TRANSCRIPTION_DIAL_IQ_DESTINATION
+        = "jitsi_meet_transcribe";
+
+    /**
      * The {@link SipGateway} service which manages SipGateway sessions.
      */
     private SipGateway sipGateway;
@@ -191,7 +198,7 @@ public class CallControl
 
                 String callResource = ctx.getCallResource();
 
-                if("transcribe:".equals(to))
+                if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
                 {
                     transcriptionGateway.createOutgoingCall(ctx);
                 }
