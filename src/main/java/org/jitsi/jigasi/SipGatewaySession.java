@@ -572,6 +572,12 @@ public class SipGatewaySession
         }
     }
 
+    @Override
+    public boolean isTranslatorSupported()
+    {
+        return true;
+    }
+
     /**
      * Adds a ssrc rewriter to the peers media stream.
      * @param peer the peer which media streams to manipulate

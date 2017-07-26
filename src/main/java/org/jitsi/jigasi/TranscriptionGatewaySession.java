@@ -202,6 +202,12 @@ public class TranscriptionGatewaySession
         }
     }
 
+    @Override
+    public boolean isTranslatorSupported()
+    {
+        return false;
+    }
+
     /**
      * Find the ConferenceMember which has the same ID as the given
      * ChatRoomMember, if any exists

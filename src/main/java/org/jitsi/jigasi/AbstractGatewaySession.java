@@ -265,4 +265,12 @@ public abstract class AbstractGatewaySession
      */
     public abstract String getMucDisplayName();
 
+    /**
+     * Get whether this GatewaySession will work when xmpp uses translator in
+     * conference
+     *
+     * @return true when this GatewaySession will work with translator, false
+     * otherwise
+     */
+    public abstract boolean isTranslatorSupported();
 }
