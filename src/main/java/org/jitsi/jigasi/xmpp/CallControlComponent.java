@@ -19,7 +19,6 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
-
 import org.jitsi.jigasi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
@@ -107,14 +106,17 @@ public class CallControlComponent
     public void start(BundleContext bundleContext)
         throws Exception
     {
-        SipGateway gateway
-            = ServiceUtils.getService(
-                    bundleContext, SipGateway.class);
+        SipGateway sipGateway
+                = ServiceUtils.getService(
+                bundleContext, SipGateway.class);
+
+        TranscriptionGateway transcriptionGateway
+                = ServiceUtils.getService(
+                bundleContext, TranscriptionGateway.class);
 
         bundleContext.addServiceListener(this);
 
-        if (gateway != null)
-            internalStart(gateway, bundleContext);
+        internalStart(bundleContext, sipGateway, transcriptionGateway);
     }
 
     @Override
@@ -129,10 +131,21 @@ public class CallControlComponent
 
         Object service = bundleContext.getService(ref);
 
-        if (service instanceof SipGateway
-            && this.callControl == null)
+        if(this.callControl == null)
         {
-            internalStart((SipGateway) service, bundleContext);
+            internalStart(bundleContext, null, null);
+        }
+
+        if (service instanceof SipGateway
+                && this.callControl.getSipGateway() == null)
+        {
+            this.callControl.setSipGateway((SipGateway) service);
+        }
+        else if(service instanceof TranscriptionGateway
+                && this.callControl.getTranscriptionGateway() == null)
+        {
+            this.callControl.setTranscriptionGateway(
+                    (TranscriptionGateway) service);
         }
         else if (service instanceof ProtocolProviderService)
         {
@@ -146,20 +159,54 @@ public class CallControlComponent
     }
 
     /**
-     * Creates new call control instance.
-     * @param gateway the SipGateway instance.
-     * @param bundleContext the osgi context for this bundle.
+     * Start CallControl
+     *
+     * @param bundleContext the bundleContext used to start CallControl
+     * @param sipGateway the potential SipGateway
+     * @param transcriptionGateway the potential TranscriptionGateway
      */
-    private void internalStart(SipGateway gateway, BundleContext bundleContext)
+    private void internalStart(BundleContext bundleContext,
+                               SipGateway sipGateway,
+                               TranscriptionGateway transcriptionGateway)
     {
         ConfigurationService config = ServiceUtils.getService(
-            bundleContext, ConfigurationService.class);
-        this.callControl = new CallControl(gateway, config);
+                bundleContext, ConfigurationService.class);
+        this.callControl = new CallControl(config);
 
-        if (gateway.getSipProvider() != null)
+        if (sipGateway != null)
         {
-            updateSipProviderProperties(gateway.getSipProvider());
+            internalStartSip(sipGateway);
         }
+        if(transcriptionGateway != null)
+        {
+            internalStartTranscription(transcriptionGateway);
+        }
+    }
+
+    /**
+     * Make the CallControl instance handle sip calls
+     *
+     * @param sipGateway the SipGateway instance.
+     */
+    private void internalStartSip(SipGateway sipGateway)
+    {
+
+        this.callControl.setSipGateway(sipGateway);
+
+        if (sipGateway.getSipProvider() != null)
+        {
+            updateSipProviderProperties(sipGateway.getSipProvider());
+        }
+    }
+
+    /**
+     * Make the CallControl instance handles transcription
+     *
+     * @param gateway the TranscriptionGateway
+     */
+    private void internalStartTranscription(TranscriptionGateway gateway)
+    {
+        this.callControl.setTranscriptionGateway(gateway);
     }
 
     /**

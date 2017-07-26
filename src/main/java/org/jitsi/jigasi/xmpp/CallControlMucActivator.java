@@ -24,11 +24,9 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
-import net.java.sip.communicator.util.Logger;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.configuration.*;
-
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.packet.*;
@@ -110,14 +108,23 @@ public class CallControlMucActivator
             initializeNewProvider(osgiContext.getService(ref));
         }
 
-        SipGateway gateway = ServiceUtils.getService(
+        SipGateway sipGateway = ServiceUtils.getService(
             bundleContext, SipGateway.class);
-        if (gateway != null)
-        {
-            gateway.addGatewayListener(this);
 
-            if (this.callControl == null)
-                this.callControl = new CallControl(gateway, config);
+        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
+                bundleContext, TranscriptionGateway.class);
+
+        this.callControl = new CallControl(config);
+
+        if (sipGateway != null)
+        {
+            sipGateway.addGatewayListener(this);
+            this.callControl.setSipGateway(sipGateway);
+        }
+        if (transcriptionGateway != null)
+        {
+            transcriptionGateway.addGatewayListener(this);
+            this.callControl.setTranscriptionGateway(transcriptionGateway);
         }
     }
 
@@ -183,8 +190,29 @@ public class CallControlMucActivator
             gateway.addGatewayListener(this);
 
             if (this.callControl == null)
+            {
                 this.callControl = new CallControl(
-                    gateway, getConfigurationService());
+                        gateway, getConfigurationService());
+            }
+            else
+            {
+                this.callControl.setSipGateway(gateway);
+            }
+        }
+        else if (service instanceof TranscriptionGateway)
+        {
+            TranscriptionGateway gateway = (TranscriptionGateway) service;
+            gateway.addGatewayListener(this);
+
+            if (this.callControl == null)
+            {
+                this.callControl = new CallControl(
+                        gateway, getConfigurationService());
+            }
+            else
+            {
+                this.callControl.setTranscriptionGateway(gateway);
+            }
         }
     }
 

@@ -17,8 +17,6 @@
  */
 package org.jitsi.jigasi;
 
-import java.util.*;
-
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
@@ -30,12 +28,18 @@ import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
 
+import java.util.*;
+
 /**
  * Jigasi bundle activator. Registers {@link SipGateway} and waits for the first
  * SIP protocol provider service to be registered. Once SIP providers is
- * retrieved it is used by the gateway for establishing SIP calls.
+ * retrieved it is used by the sipGateway for establishing SIP calls.
+ *
+ * Also registers {@link TranscriptionGateway}, which will only join a room
+ * when the DialIQ is "transcriber"
  *
  * @author Pawel Domas
+ * @author Nik Vaessen
  */
 public class JigasiBundleActivator
     implements BundleActivator,
@@ -50,7 +54,17 @@ public class JigasiBundleActivator
 
     public static BundleContext osgiContext;
 
-    private SipGateway gateway;
+    /**
+     * The Gateway which will manage bridging between a jvb conference and a sip
+     * call
+     */
+    private SipGateway sipGateway;
+
+    /**
+     * The Gateway which will manage a bridge between a jvb conference and a
+     * transcription service
+     */
+    private TranscriptionGateway transcriptionGateway;
 
     private UIServiceStub uiServiceStub = new UIServiceStub();
 
@@ -72,9 +86,12 @@ public class JigasiBundleActivator
 
         bundleContext.registerService(UIService.class, uiServiceStub, null);
 
-        gateway = new SipGateway(bundleContext);
+        sipGateway = new SipGateway(bundleContext);
+        transcriptionGateway = new TranscriptionGateway(bundleContext);
 
-        osgiContext.registerService(SipGateway.class, gateway, null);
+        osgiContext.registerService(SipGateway.class, sipGateway, null);
+        osgiContext.registerService(TranscriptionGateway.class,
+                transcriptionGateway, null);
 
         bundleContext.addServiceListener(this);
 
@@ -89,7 +106,7 @@ public class JigasiBundleActivator
 
             if (ProtocolNames.SIP.equals(pps.getProtocolName()))
             {
-                gateway.setSipProvider(pps);
+                sipGateway.setSipProvider(pps);
             }
         }
 
@@ -104,7 +121,8 @@ public class JigasiBundleActivator
     {
         logger.info("Stopping JigasiBundleActivator");
 
-        gateway.stop();
+        sipGateway.stop();
+        transcriptionGateway.stop();
     }
 
     @Override
@@ -130,10 +148,10 @@ public class JigasiBundleActivator
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
 
-        if (gateway.getSipProvider() == null &&
+        if (sipGateway.getSipProvider() == null &&
             ProtocolNames.SIP.equals(pps.getProtocolName()))
         {
-            gateway.setSipProvider(pps);
+            sipGateway.setSipProvider(pps);
         }
     }
 }
