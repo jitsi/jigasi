@@ -273,4 +273,13 @@ public abstract class AbstractGatewaySession
      * otherwise
      */
     public abstract boolean isTranslatorSupported();
+
+    /**
+     * Returns the gateway used for this session.
+     * @return the gateway used for this session.
+     */
+    public AbstractGateway getGateway()
+    {
+        return gateway;
+    }
 }

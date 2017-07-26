@@ -332,6 +332,10 @@ public class CallControlMucActivator
         session.removeListener(this);
     }
 
+    @Override
+    public void onSessionFailed(AbstractGatewaySession session)
+    {}
+
     /**
      * Gets the list of active sessions and update their presence in their
      * control room.
@@ -471,7 +475,8 @@ public class CallControlMucActivator
             {
                 if (packet instanceof HangUp)
                 {
-                    // hangup is not currently supported
+                    // hangup is not currently supported to be send to
+                    // muc controller
                     resultIQ = IQ.createResultIQ((IQ)packet);
                     resultIQ.setError(new XMPPError(
                         XMPPError.Condition.feature_not_implemented));
@@ -480,7 +485,7 @@ public class CallControlMucActivator
                 {
                     AccountID acc = pps.getAccountID();
 
-                    CallContext ctx = new CallContext();
+                    final CallContext ctx = new CallContext();
                     ctx.setDomain(acc.getAccountPropertyString(
                         CallContext.DOMAIN_BASE_ACCOUNT_PROP));
                     ctx.setBoshURL(acc.getAccountPropertyString(
@@ -489,6 +494,49 @@ public class CallControlMucActivator
                         CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
 
                     resultIQ = callControl.handleIQ((IQ) packet, ctx);
+                    final RefIq response = (RefIq)resultIQ;
+
+                    final AbstractGatewaySession sess =
+                        callControl.getSession(ctx.getCallResource());
+                    if (sess != null)
+                    {
+                        sendDialResponse(response, sess);
+                    }
+                    else
+                    {
+                        callControl.addGatewayListener(new GatewayListener()
+                        {
+                            @Override
+                            public void onSessionAdded(
+                                AbstractGatewaySession session)
+                            {
+                                if (session.getCallContext().equals(ctx))
+                                {
+                                    sendDialResponse(response, session);
+                                    // we had processed the dial response
+                                    // no more interested in this events
+                                    callControl.removeGatewayListener(this);
+                                }
+                            }
+
+                            @Override
+                            public void onSessionRemoved(
+                                AbstractGatewaySession session)
+                            {}
+
+                            @Override
+                            public void onSessionFailed(
+                                AbstractGatewaySession session)
+                            {
+                                if (session.getCallContext().equals(ctx))
+                                {
+                                    callControl.removeGatewayListener(this);
+                                }
+                            }
+                        });
+                    }
+
+                    return;
                 }
             }
             catch (Exception e)
@@ -502,6 +550,45 @@ public class CallControlMucActivator
             // send response
             ((ProtocolProviderServiceJabberImpl) pps).getConnection()
                 .sendPacket(resultIQ);
+        }
+
+        /**
+         * Sends the dial response by replacing the uri in RefIq response
+         * by placing there the address of the muc participant.
+         * This way the participant can receive hangup iqs and we listen for
+         * them and handle them.
+         * We do not care for removing listeners there cause they are added to
+         * the xmpp protocol provider which will be unregistered and removed
+         * from osgi.
+         *
+         * @param response the response to modify and send.
+         * @param session the session created that needs that response.
+         */
+        private void sendDialResponse(
+            RefIq response, final AbstractGatewaySession session)
+        {
+            ChatRoom room = session.getJvbChatRoom();
+            response.setUri(
+                "xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
+
+            // we send the response where we have received using the provider
+            // registered in the control muc
+            ((ProtocolProviderServiceJabberImpl) pps)
+                .getConnection().sendPacket(response);
+
+            final Connection roomConnection
+                = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
+                    .getConnection();
+
+            roomConnection.addPacketListener(
+                packet ->
+                {
+                    HangUp hangUpIq = (HangUp) packet;
+                    session.hangUp();
+                    roomConnection.sendPacket(IQ.createResultIQ(hangUpIq));
+                },
+                packet -> packet instanceof HangUp
+            );
         }
     }
 }

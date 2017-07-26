@@ -643,6 +643,10 @@ public class JvbConference
         {
             logger.error(e, e);
 
+            // inform that this session had failed
+            gatewaySession.getGateway()
+                .fireGatewaySessionFailed(gatewaySession);
+
             stop();
         }
     }

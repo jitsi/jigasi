@@ -36,4 +36,10 @@ public interface GatewayListener
      * @param session the session that was removed.
      */
     void onSessionRemoved(AbstractGatewaySession session);
+
+    /**
+     * Called when a session failed to establish.
+     * @param session the session that failed.
+     */
+    void onSessionFailed(AbstractGatewaySession session);
 }

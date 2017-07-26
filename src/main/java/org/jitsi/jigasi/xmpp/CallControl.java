@@ -284,4 +284,52 @@ public class CallControl
         this.transcriptionGateway = transcriptionGw;
     }
 
+    /**
+     * Finds {@link AbstractGatewaySession} for given <tt>callResource</tt> if
+     * one is currently active.
+     * Searches for the sessions in SipGateway and TranscriptionGateway.
+     *
+     * @param callResource the call resource/URI of the
+     *                     <tt>AbstractGatewaySession</tt> to be found.
+     *
+     * @return {@link AbstractGatewaySession} for given <tt>callResource</tt> if
+     * there is one currently active or <tt>null</tt> otherwise.
+     */
+    public AbstractGatewaySession getSession(String callResource)
+    {
+        AbstractGatewaySession result
+            = this.sipGateway.getSession(callResource);
+        if (result == null)
+        {
+            result
+                = this.transcriptionGateway.getSession(callResource);
+        }
+
+        return result;
+    }
+
+    /**
+     * Adds a listener that will be notified of changes in any gateway status.
+     *
+     * @param listener a gateway status listener.
+     */
+    public void addGatewayListener(GatewayListener listener)
+    {
+        this.sipGateway.addGatewayListener(listener);
+        this.transcriptionGateway.addGatewayListener(listener);
+    }
+
+    /**
+     * Removes a listener that was being notified of changes in the status of
+     * any of the AbstractGateway.
+     *
+     * @param listener a gateway status listener.
+     */
+    public void removeGatewayListener(GatewayListener listener)
+    {
+        this.sipGateway.removeGatewayListener(listener);
+        this.transcriptionGateway.removeGatewayListener(listener);
+    }
+
+
 }

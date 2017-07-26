@@ -329,4 +329,8 @@ public class HandlerImpl
                 System.currentTimeMillis()
                     - session.getCallContext().getTimestamp()));
     }
+
+    @Override
+    public void onSessionFailed(AbstractGatewaySession session)
+    {}
 }

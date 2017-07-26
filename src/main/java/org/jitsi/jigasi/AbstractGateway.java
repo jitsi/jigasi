@@ -363,4 +363,24 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
             listener.onSessionRemoved(session);
         }
     }
+
+    /**
+     * Delivers event that a GatewaySession had failed establishing.
+     * Room joining failed.
+     * @param session the session that failed.
+     */
+    void fireGatewaySessionFailed(AbstractGatewaySession session)
+    {
+        Iterable<GatewayListener> listeners;
+        synchronized (gatewayListeners)
+        {
+            listeners
+                = new ArrayList<>(gatewayListeners);
+        }
+
+        for (GatewayListener listener : listeners)
+        {
+            listener.onSessionFailed(session);
+        }
+    }
 }
