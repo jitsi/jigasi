@@ -1081,6 +1081,14 @@ public class JvbConference
         String accountUID = "Jabber:" + userID + "/" + resourceName;
         properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
+        // Because some AbstractGatewaySessions needs access to the audio,
+        // we can't always use translator
+        if(!gatewaySession.isTranslatorSupported())
+        {
+            properties.put(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                "false");
+        }
+
         return properties;
     }
 
