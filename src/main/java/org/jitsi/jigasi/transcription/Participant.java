@@ -170,6 +170,7 @@ public class Participant
     public void notify(TranscriptionResult result)
     {
         logger.debug(result);
+        result.setParticipant(this);
         transcriber.notify(result);
     }
 
