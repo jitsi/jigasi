@@ -43,6 +43,8 @@ public class Participant
      */
     private static final boolean USE_LOCAL_BUFFER = true;
 
+    public static final String UNKNOWN_NAME = "Unknown";
+
     /**
      * The {@link Transcriber} which owns this {@link Participant}.
      */
@@ -93,7 +95,7 @@ public class Participant
      */
     public String getName()
     {
-        return name;
+        return name == null ? UNKNOWN_NAME : name;
     }
 
     /**
@@ -122,7 +124,7 @@ public class Participant
         if (transcriptionService.supportsStreamRecognition())
         {
             session = transcriptionService.initStreamingSession();
-            session.addTranscriptionListener(Participant.this);
+            session.addTranscriptionListener(this);
         }
     }
 
@@ -167,7 +169,6 @@ public class Participant
     @Override
     public void notify(TranscriptionResult result)
     {
-        result.setName(this.name);
         logger.debug(result);
         transcriber.notify(result);
     }

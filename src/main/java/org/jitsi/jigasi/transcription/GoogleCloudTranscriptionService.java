@@ -142,6 +142,10 @@ public class GoogleCloudTranscriptionService
         };
 
     /**
+     * The maximum number of alternative transcriptions.
+     */
+    private static final int MAX_ALTERNATIVES = 3;
+    /**
      * The logger for this class
      */
     private final static Logger logger
@@ -192,7 +196,9 @@ public class GoogleCloudTranscriptionService
             }
 
             String transcription = builder.toString().trim();
-            resultConsumer.accept(new TranscriptionResult(transcription));
+            resultConsumer.accept(
+                    new TranscriptionResult(
+                            new TranscriptionAlternative(transcription)));
         }
         catch (Exception e)
         {
@@ -528,14 +534,23 @@ public class GoogleCloudTranscriptionService
             {
                 if(result.getAlternativesCount() > 0)
                 {
-                    builder.append(result.getAlternatives(0).
-                        getTranscript());
-                    builder.append(" ");
+                    TranscriptionResult transcriptionResult
+                        = new TranscriptionResult();
+                    for (int i = 0;
+                         i < result.getAlternativesCount()
+                             && i < MAX_ALTERNATIVES;
+                         i++)
+                    {
+                        SpeechRecognitionAlternative alt
+                            = result.getAlternatives(i);
+                        transcriptionResult.addAlternative(
+                                new TranscriptionAlternative(
+                                        alt.getTranscript(),
+                                        alt.getConfidence()));
+                    }
+                    sent(transcriptionResult);
                 }
             }
-
-            String transcription = builder.toString().trim();
-            sent(new TranscriptionResult(transcription));
         }
 
         @Override
@@ -613,6 +628,7 @@ public class GoogleCloudTranscriptionService
         String languageTag = request.getLocale().toLanguageTag();
         validateLanguageTag(languageTag);
         builder.setLanguageCode(languageTag);
+        builder.setMaxAlternatives(MAX_ALTERNATIVES);
 
         return builder.build();
     }
