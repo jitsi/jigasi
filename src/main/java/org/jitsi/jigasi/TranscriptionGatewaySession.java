@@ -265,12 +265,7 @@ public class TranscriptionGatewaySession
     @Override
     public void notify(TranscriptionResult result)
     {
-        String toSend = (result.getName() == null ?
-                            FALLBACK_NAME :
-                            result.getName())
-                + ": " + result.getTranscription();
-
-        sendMessageToRoom(toSend);
+        sendMessageToRoom(result.toString());
     }
 
     /**
