@@ -51,7 +51,8 @@ public class TranscriptionGateway
     {
         TranscriptionGatewaySession outgoingSession =
                 new TranscriptionGatewaySession(this, ctx,
-                        new GoogleCloudTranscriptionService());
+                        new GoogleCloudTranscriptionService(),
+                        new LocalTxtTranscriptHandler());
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 

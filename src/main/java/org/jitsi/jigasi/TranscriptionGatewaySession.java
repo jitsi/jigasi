@@ -62,6 +62,12 @@ public class TranscriptionGatewaySession
     private TranscriptionService service;
 
     /**
+     * The TranscriptHandler which can format and save a transcript of the
+     * transcribed
+     */
+    private TranscriptHandler<?> handler;
+
+    /**
      * The ChatRoom of the conference which is going to be transcribed.
      * We will post messages to the ChatRoom to update users of progress
      * of transcription
@@ -87,20 +93,23 @@ public class TranscriptionGatewaySession
      * @param context the context of the call this session is joining
      * @param service the TranscriptionService which should be used
      *                to transcribe the audio in the conference
+     * @param handler the TranscriptHandler which should handle the transcript
      */
     public TranscriptionGatewaySession(AbstractGateway gateway,
                                        CallContext context,
-                                       TranscriptionService service)
+                                       TranscriptionService service,
+                                       TranscriptHandler<?> handler)
     {
         super(gateway, context);
         this.service = service;
+        this.handler = handler;
     }
 
     @Override
     void onConferenceCallInvited(Call incomingCall)
     {
         // We got invited to a room, ready up the transcriber!
-        transcriber = new Transcriber(service);
+        transcriber = new Transcriber(getJvbRoomName(), service);
         transcriber.addTranscriptionListener(this);
         logger.debug("Invited for conference");
     }
@@ -156,6 +165,7 @@ public class TranscriptionGatewaySession
         if(!transcriber.finished())
         {
             transcriber.stop();
+            transcriber.getTranscript().saveTranscript(handler);
         }
 
         logger.debug("Conference ended");
@@ -283,8 +293,8 @@ public class TranscriptionGatewaySession
         // FIXME: 19/07/17 Insert link!
         // FIXME: 23/07/17 This will actually never be seen as there is no way
         // to stop transcription before jigasi leaves conference
-        sendMessageToRoom("The complete transcription can be " +
-                "found at <insert_link_here>");
+//        sendMessageToRoom("The complete transcription can be " +
+//                "found at <insert_link_here>");
     }
 
     @Override
@@ -304,6 +314,8 @@ public class TranscriptionGatewaySession
 
     /**
      * Add every participant already in the room to the transcriber
+     * and give the initial people in the room to the transcriber to create
+     * the header of the transcript(s)
      */
     private void addInitialMembers()
     {
@@ -369,8 +381,9 @@ public class TranscriptionGatewaySession
             name = FALLBACK_NAME;
         }
         long ssrc = getConferenceMemberAudioSSRC(confMember);
+        String id = getConferenceMemberID(confMember);
 
-        transcriber.add(name, ssrc);
+        transcriber.add(name,id, ssrc);
     }
 
     /**
@@ -388,8 +401,9 @@ public class TranscriptionGatewaySession
             name = FALLBACK_NAME;
         }
         long ssrc = getConferenceMemberAudioSSRC(confMember);
+        String id = getConferenceMemberID(confMember);
 
-        transcriber.remove(name, ssrc);
+        transcriber.remove(name, id, ssrc);
     }
 
     /**
@@ -495,7 +509,7 @@ public class TranscriptionGatewaySession
         }
         catch (OperationFailedException e)
         {
-            e.printStackTrace();
+            logger.warn("Failed to send message " + messageString, e);
         }
     }
 

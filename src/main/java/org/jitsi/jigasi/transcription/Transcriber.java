@@ -37,7 +37,6 @@ import java.util.concurrent.*;
 public class Transcriber
     implements ReceiveStreamBufferListener
 {
-
     /**
      * The logger of this class
      */
@@ -96,7 +95,7 @@ public class Transcriber
      * and which will be continuously updated as newly transcribed
      * audio comes in
      */
-    private Transcription transcription = new Transcription();
+    private Transcript transcript = new Transcript();
 
     /**
      * The MediaDevice which will get all audio to transcribe
@@ -127,6 +126,33 @@ public class Transcriber
     private ExecutorService executorService;
 
     /**
+     * The name of the room of the conference which will be transcribed
+     */
+    private String roomName;
+
+    /**
+     * Create a transcription object which can be used to add and remove
+     * participants of a conference to a list of audio streams which will
+     * be transcribed.
+     *
+     * @param roomName the roomanem the transcription will take place in
+     * @param service the transcription service which will be used to transcribe
+     *                the audio streams
+     */
+    public Transcriber(String roomName, TranscriptionService service)
+    {
+        if(!service.supportsStreamRecognition())
+        {
+            throw new IllegalArgumentException("Currently only services which" +
+                " support streaming recognition are supported");
+        }
+        this.transcriptionService = service;
+        addTranscriptionListener(this.transcript);
+        this.roomName = roomName;
+    }
+
+
+    /**
      * Create a transcription object which can be used to add and remove
      * participants of a conference to a list of audio streams which will
      * be transcribed.
@@ -136,21 +162,17 @@ public class Transcriber
      */
     public Transcriber(TranscriptionService service)
     {
-        if(!service.supportsStreamRecognition())
-        {
-            throw new IllegalArgumentException("Currently only services which" +
-                    " support streaming recognition are supported");
-        }
-        this.transcriptionService = service;
+        this(null, service);
     }
 
     /**
      * Add a participant to the list of participants being transcribed
      *
      * @param name the name of the participant to be added
+     * @param id the id in the JID of the participant to be added
      * @param ssrc the ssrc of the participant to be added
      */
-    public void add(String name, long ssrc)
+    public void add(String name, String id, long ssrc)
     {
         Participant participant;
         if(this.participants.containsKey(ssrc))
@@ -159,11 +181,12 @@ public class Transcriber
         }
         else
         {
-            participant = new Participant(name, ssrc);
+            participant = new Participant(name, id, ssrc);
             this.participants.put(ssrc, participant);
         }
 
         participant.joined();
+        transcript.notifyJoined(name);
         logger.debug("Added participant " + name + " with ssrc " + ssrc);
     }
 
@@ -171,16 +194,19 @@ public class Transcriber
      * Remove a participant from the list of participants being transcribed
      *
      * @param name the name of the participant to be removed
+     * @param id the id in the JID of the participant to be removed
      * @param ssrc the ssrc of the participant to be removed
      */
-    public void remove(String name, long ssrc)
+    public void remove(String name, String id, long ssrc)
     {
+        transcript.notifyLeft(name);
         if(this.participants.containsKey(ssrc))
         {
             participants.get(ssrc).left();
             logger.debug("Removed participant "+name+" with ssrc "+ssrc);
             return;
         }
+
         logger.warn("Asked to remove participant" + name + " with ssrc " +
                 ssrc + " which did not exist");
     }
@@ -192,8 +218,20 @@ public class Transcriber
     {
         if(State.NOT_STARTED.equals(this.state))
         {
+            logger.debug("Transcriber is now transcribing");
             this.state = State.TRANSCRIBING;
-            executorService = Executors.newSingleThreadExecutor();
+            this.executorService = Executors.newSingleThreadExecutor();
+
+            List<String> names = new ArrayList<>(participants.size());
+            participants.values().forEach((p) -> {
+                String name;
+                if((name = p.getName()) == null)
+                {
+                    name = p.getId();
+                }
+                names.add(name);
+            });
+            this.transcript.started(roomName, names);
         }
         else
         {
@@ -209,8 +247,13 @@ public class Transcriber
     {
         if(State.TRANSCRIBING.equals(this.state))
         {
+            logger.debug("Transcriber is now finishing up");
             this.state = State.FINISHING_UP;
-            executorService.shutdown();
+            this.executorService.shutdown();
+            this.transcript.ended();
+
+            checkIfFinishedUp();
+
         }
         else
         {
@@ -260,12 +303,12 @@ public class Transcriber
      * Provides the (ongoing) transcription of the conference this object
      * is transcribing
      *
-     * @return the Transcription object which will be updated
+     * @return the Transcript object which will be updated
      * as long as this object keeps transcribing
      */
-    public Transcription getTranscription()
+    public Transcript getTranscript()
     {
-        return transcription;
+        return transcript;
     }
 
     /**
@@ -336,6 +379,30 @@ public class Transcriber
     }
 
     /**
+     * Check if all participant have been completely transcribed. When this
+     * is the case, set the state from FINISHING_UP to FINISHED
+     */
+    private void checkIfFinishedUp()
+    {
+        if(State.FINISHING_UP.equals(this.state))
+        {
+            for(Participant participant : participants.values())
+            {
+                if(!participant.isCompleted)
+                {
+                    return;
+                }
+            }
+            logger.debug("Transcriber is now finished");
+            this.state = State.FINISHED;
+            for(TranscriptionListener listener : listeners)
+            {
+                listener.completed();
+            }
+        }
+    }
+
+    /**
      * This class describes a participant in a conference whose
      * transcription is required. It manages the transcription if its own audio
      * will locally buffered until enough audio is collected
@@ -378,6 +445,11 @@ public class Transcriber
         private long ssrc;
 
         /**
+         * The ID used in the JID of a participant
+         */
+        private String id;
+
+        /**
          * The streaming session which will constantly receive audio
          */
         private TranscriptionService.StreamingRecognitionSession session;
@@ -394,13 +466,21 @@ public class Transcriber
         private AudioFormat audioFormat;
 
         /**
+         * Whether the current session is still transcribing
+         */
+        private boolean isCompleted = false;
+
+        /**
          * Create a participant with a given name and audio stream
          *
          * @param name the name of the participant
+         * @param id the id in the JID of this participant
+         * @param ssrc the ssrc of the audio of this participant
          */
-        Participant(String name, long ssrc)
+        Participant(String name, String id, long ssrc)
         {
             this.name = name;
+            this.id = id;
             this.ssrc = ssrc;
         }
 
@@ -415,13 +495,23 @@ public class Transcriber
         }
 
         /**
-         * Get the id of the audio of this participant
+         * Get the ssrc of the audio of this participant
          *
-         * @return the id
+         * @return the srrc
          */
         public long getSSRC()
         {
             return ssrc;
+        }
+
+        /**
+         * Get the id in the JID of this participant
+         *
+         * @return the id
+         */
+        public String getId()
+        {
+            return this.id;
         }
 
         /**
@@ -439,6 +529,7 @@ public class Transcriber
             {
                 session = transcriptionService.initStreamingSession();
                 session.addTranscriptionListener(Participant.this);
+                isCompleted = false;
             }
         }
 
@@ -494,7 +585,18 @@ public class Transcriber
         @Override
         public void completed()
         {
-            // nothing to do
+            isCompleted = true;
+            checkIfFinishedUp();
+        }
+
+        /**
+         * Get whether everything this participant said has been transcribed
+         *
+         * @return true if completed transcribing, false otherwise
+         */
+        public boolean isCompleted()
+        {
+            return isCompleted;
         }
 
         /**
