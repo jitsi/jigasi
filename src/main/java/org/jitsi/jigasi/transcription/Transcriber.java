@@ -148,6 +148,7 @@ public class Transcriber
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
+        this.roomName = roomName;
     }
 
 
@@ -222,7 +223,14 @@ public class Transcriber
             this.executorService = Executors.newSingleThreadExecutor();
 
             List<String> names = new ArrayList<>(participants.size());
-            participants.values().forEach((p) -> names.add(p.getName()));
+            participants.values().forEach((p) -> {
+                String name;
+                if((name = p.getName()) == null)
+                {
+                    name = p.getId();
+                }
+                names.add(name);
+            });
             this.transcript.started(roomName, names);
         }
         else
@@ -244,7 +252,7 @@ public class Transcriber
             this.executorService.shutdown();
             this.transcript.ended();
 
-            isFinishedUp();
+            checkIfFinishedUp();
 
         }
         else
@@ -371,10 +379,10 @@ public class Transcriber
     }
 
     /**
-     * If all participant have been completely transcribed, and state is
-     * FINISHING_UP, the state can be set to FINISHED
+     * Check if all participant have been completely transcribed. When this
+     * is the case, set the state from FINISHING_UP to FINISHED
      */
-    private void isFinishedUp()
+    private void checkIfFinishedUp()
     {
         if(State.FINISHING_UP.equals(this.state))
         {
@@ -578,7 +586,7 @@ public class Transcriber
         public void completed()
         {
             isCompleted = true;
-            isFinishedUp();
+            checkIfFinishedUp();
         }
 
         /**

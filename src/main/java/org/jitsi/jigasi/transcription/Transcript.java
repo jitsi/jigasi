@@ -37,7 +37,7 @@ public class Transcript
     private static final DateTimeFormatter timeFormatter
         = DateTimeFormatter
         .ofLocalizedTime(FormatStyle.MEDIUM)
-        .withZone(ZoneId.systemDefault());
+        .withZone(ZoneOffset.UTC);
 
     /**
      * Formats an Instant to a date in the preferred way of the Zone the
@@ -46,7 +46,7 @@ public class Transcript
     private static final DateTimeFormatter dateFormatter
         = DateTimeFormatter
         .ofLocalizedDate(FormatStyle.MEDIUM)
-        .withZone(ZoneId.systemDefault());
+        .withZone(ZoneOffset.UTC);
 
     /**
      * Formats an Instant to a date and time in the timezone the machine is
@@ -55,7 +55,7 @@ public class Transcript
     private static final DateTimeFormatter dateTimeFormatter
         = DateTimeFormatter
         .ofLocalizedDateTime(FormatStyle.MEDIUM)
-        .withZone(ZoneId.systemDefault());
+        .withZone(ZoneOffset.UTC);
 
     /**
      * The list of all received speechEvents
@@ -153,7 +153,7 @@ public class Transcript
      */
     public void started(List<String> initialNames)
     {
-        if(started != null)
+        if(started == null)
         {
             this.started = new TranscriptEvent(Instant.now());
             this.initialParticipantNames.addAll(initialNames);

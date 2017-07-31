@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.jigasi.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -38,15 +39,18 @@ public class LocalTxtTranscriptHandler
     private static final Logger logger = Logger.getLogger(Transcript.class);
 
     /**
-     * The root dir where a new directory will be created in to store
-     * transcripts
+     * Property name for the directory in which the final transcripts should be
+     * stored
      */
-    private static final String ROOT_DIR = System.getProperty("user.dir");
+    public final static String P_NAME_TRANSCRIPT_DIRECTORY
+        = "org.jitsi.jigasi.transcription.LocalTxtTranscriptHandler.DIRECTORY";
 
     /**
-     * The name of dir which will contain all published transcripts
+     * The default value for the directory to save the final transcripts in
+     * is the current working directory
      */
-    private static final String LOG_DIR = "transcripts";
+    public final static String TRANSCRIPT_DIRECTORY_DEFAULT_VALUE =
+        System.getProperty("user.dir") + File.separator + "transcripts";
 
     /**
      * The maximum amount of characters on a single line in the
@@ -169,14 +173,14 @@ public class LocalTxtTranscriptHandler
     @Override
     public void publish(String transcript)
     {
-        File logDir = new File(ROOT_DIR, LOG_DIR);
+        File logDir = new File(getLogDirPath());
         // If there is a file with the directory name, delete it
         if(logDir.exists() && !logDir.isDirectory())
         {
             if(!logDir.delete())
             {
                 logger.warn("Was not able to safe a transcript because" +
-                    "there is a file called " + ROOT_DIR + " which cannot" +
+                    "there is a file called " + logDir + " which cannot" +
                     "be deleted");
                 return;
             }
@@ -188,7 +192,7 @@ public class LocalTxtTranscriptHandler
             if(!logDir.mkdir())
             {
                 logger.warn("Was not able to safe a transcript because" +
-                    "unable to make a directory called" + ROOT_DIR);
+                    "unable to make a directory called " + logDir);
                 return;
             }
         }
@@ -198,12 +202,25 @@ public class LocalTxtTranscriptHandler
         try(FileWriter writer = new FileWriter(t))
         {
             writer.write(transcript);
-            System.out.println(transcript);
+            logger.info("wrote final transcript to " + t);
         }
         catch(IOException e)
         {
             logger.warn("Unable to safe transcript", e);
         }
+    }
+
+    /**
+     * Get the string representing the path of the directory wherein the
+     * final transcripts should be stored
+     *
+     * @return the path as a String
+     */
+    private String getLogDirPath()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_TRANSCRIPT_DIRECTORY,
+                TRANSCRIPT_DIRECTORY_DEFAULT_VALUE);
     }
 
     @Override
