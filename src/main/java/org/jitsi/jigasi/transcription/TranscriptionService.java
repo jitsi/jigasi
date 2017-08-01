@@ -77,6 +77,14 @@ public interface TranscriptionService
         throws UnsupportedOperationException;
 
     /**
+     * Get whether this service is properly configured and able to connect
+     * to the service
+     *
+     * @return true when properly configured, false otherwise
+     */
+    boolean isConfiguredProperly();
+
+    /**
      * An interface for a session managing the transcription of a stream of
      * audio. Allows giving small packets of audio as well as subscribing
      * (multiple) listener(s) which will retrieve TranscriptionResults
