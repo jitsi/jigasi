@@ -126,10 +126,12 @@ public class TranscriptionGatewaySession
         // point in continuing this session, so end it immediately
         if(!service.isConfiguredProperly())
         {
-            logger.warn("TranscriptionService is not properly set");
-            sendMessageToRoom("Transcriber is not properly configured. " +
-                    "Contact the host and let him now! I will now leave");
+            logger.warn("TranscriptionService is not properly configured");
+            sendMessageToRoom("Transcriber is not properly " +
+                "configured. Contact the service administrators and let them " +
+                "know! I will now leave.");
             jvbConference.stop();
+            return null;
         }
 
         // We create a MediaWareCallConference whose MediaDevice
