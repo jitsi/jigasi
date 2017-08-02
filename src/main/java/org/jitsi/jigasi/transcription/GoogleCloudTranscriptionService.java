@@ -18,12 +18,14 @@
 package org.jitsi.jigasi.transcription;
 
 import com.google.api.gax.grpc.*;
+import com.google.auth.oauth2.*;
 import com.google.cloud.speech.spi.v1.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
 import org.jitsi.util.*;
 
 import javax.media.format.*;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
@@ -153,6 +155,26 @@ public class GoogleCloudTranscriptionService
      */
     public GoogleCloudTranscriptionService()
     {
+    }
+
+    /**
+     * Get whether Google credentials are properly set
+     *
+     * @return true when able to authenticate to the Google Cloud service, false
+     * otherwise
+     */
+    public boolean isConfiguredProperly()
+    {
+        try
+        {
+            GoogleCredentials.getApplicationDefault();
+            return true;
+        }
+        catch (IOException e)
+        {
+            logger.warn("Google Credentials are not properly set", e);
+            return false;
+        }
     }
 
     /**

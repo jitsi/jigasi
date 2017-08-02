@@ -122,6 +122,18 @@ public class TranscriptionGatewaySession
         this.jvbCall = jvbConferenceCall;
         this.chatRoom = super.jvbConference.getJvbRoom();
 
+        // If the transcription service is not correctly configured, there is no
+        // point in continuing this session, so end it immediately
+        if(!service.isConfiguredProperly())
+        {
+            logger.warn("TranscriptionService is not properly configured");
+            sendMessageToRoom("Transcriber is not properly " +
+                "configured. Contact the service administrators and let them " +
+                "know! I will now leave.");
+            jvbConference.stop();
+            return null;
+        }
+
         // We create a MediaWareCallConference whose MediaDevice
         // will get the get all of the audio and video packets
         jvbConferenceCall.setConference(new MediaAwareCallConference()
