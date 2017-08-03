@@ -21,9 +21,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
 import javax.media.Buffer;
-import javax.media.format.*;
 import javax.media.rtp.*;
-import java.nio.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -41,11 +39,6 @@ public class Transcriber
      * The logger of this class
      */
     private final static Logger logger = Logger.getLogger(Transcriber.class);
-
-    /**
-     * Currently assume everyone to have this locale
-     */
-    private final static Locale ENGLISH_LOCALE = Locale.forLanguageTag("en-US");
 
     /**
      * The states the transcriber can be in. The Transcriber
@@ -101,7 +94,7 @@ public class Transcriber
      * The MediaDevice which will get all audio to transcribe
      */
     private TranscribingAudioMixerMediaDevice mediaDevice
-            = new TranscribingAudioMixerMediaDevice(this);
+        = new TranscribingAudioMixerMediaDevice(this);
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -119,11 +112,11 @@ public class Transcriber
      * A single thread which is used to manage the buffering and sending
      * of audio packets. This is used to offload work from the thread dealing
      * with all packets, which only has 20 ms before new packets come in.
-     *
+     * <p>
      * Will be created in {@link Transcriber#start()} and shutdown in
      * {@link Transcriber#stop()}
      */
-    private ExecutorService executorService;
+    ExecutorService executorService;
 
     /**
      * The name of the room of the conference which will be transcribed
@@ -137,14 +130,14 @@ public class Transcriber
      *
      * @param roomName the roomanem the transcription will take place in
      * @param service the transcription service which will be used to transcribe
-     *                the audio streams
+     * the audio streams
      */
     public Transcriber(String roomName, TranscriptionService service)
     {
-        if(!service.supportsStreamRecognition())
+        if (!service.supportsStreamRecognition())
         {
             throw new IllegalArgumentException("Currently only services which" +
-                " support streaming recognition are supported");
+                                                   " support streaming recognition are supported");
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
@@ -158,7 +151,7 @@ public class Transcriber
      * be transcribed.
      *
      * @param service the transcription service which will be used to transcribe
-     *                the audio streams
+     * the audio streams
      */
     public Transcriber(TranscriptionService service)
     {
@@ -175,13 +168,13 @@ public class Transcriber
     public void add(String name, String id, long ssrc)
     {
         Participant participant;
-        if(this.participants.containsKey(ssrc))
+        if (this.participants.containsKey(ssrc))
         {
             participant = this.participants.get(ssrc);
         }
         else
         {
-            participant = new Participant(name, id, ssrc);
+            participant = new Participant(this, name, id, ssrc);
             this.participants.put(ssrc, participant);
         }
 
@@ -200,15 +193,15 @@ public class Transcriber
     public void remove(String name, String id, long ssrc)
     {
         transcript.notifyLeft(name);
-        if(this.participants.containsKey(ssrc))
+        if (this.participants.containsKey(ssrc))
         {
             participants.get(ssrc).left();
-            logger.debug("Removed participant "+name+" with ssrc "+ssrc);
+            logger.debug("Removed participant " + name + " with ssrc " + ssrc);
             return;
         }
 
         logger.warn("Asked to remove participant" + name + " with ssrc " +
-                ssrc + " which did not exist");
+                        ssrc + " which did not exist");
     }
 
     /**
@@ -216,27 +209,28 @@ public class Transcriber
      */
     public void start()
     {
-        if(State.NOT_STARTED.equals(this.state))
+        if (State.NOT_STARTED.equals(this.state))
         {
             logger.debug("Transcriber is now transcribing");
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
 
             List<String> names = new ArrayList<>(participants.size());
-            participants.values().forEach((p) -> {
-                String name;
-                if((name = p.getName()) == null)
-                {
-                    name = p.getId();
-                }
-                names.add(name);
-            });
+            participants.values().forEach((p) ->
+                                          {
+                                              String name;
+                                              if ((name = p.getName()) == null)
+                                              {
+                                                  name = p.getId();
+                                              }
+                                              names.add(name);
+                                          });
             this.transcript.started(roomName, names);
         }
         else
         {
             logger.warn("Trying to start Transcriber while it is" +
-                    "already started");
+                            "already started");
         }
     }
 
@@ -245,7 +239,7 @@ public class Transcriber
      */
     public void stop()
     {
-        if(State.TRANSCRIBING.equals(this.state))
+        if (State.TRANSCRIBING.equals(this.state))
         {
             logger.debug("Transcriber is now finishing up");
             this.state = State.FINISHING_UP;
@@ -258,15 +252,15 @@ public class Transcriber
         else
         {
             logger.warn("Trying to stop Transcriber while it is" +
-                    "already stopped");
+                            "already stopped");
         }
     }
 
     /**
      * Get whether the transcriber has been started
      *
-     * @return true when the transcriber has been started
-     * false when not yet started or already stopped
+     * @return true when the transcriber has been started false when not yet
+     * started or already stopped
      */
     public boolean isTranscribing()
     {
@@ -303,8 +297,8 @@ public class Transcriber
      * Provides the (ongoing) transcription of the conference this object
      * is transcribing
      *
-     * @return the Transcript object which will be updated
-     * as long as this object keeps transcribing
+     * @return the Transcript object which will be updated as long as this
+     * object keeps transcribing
      */
     public Transcript getTranscript()
     {
@@ -338,7 +332,7 @@ public class Transcriber
      * to listen for new audio packets coming in through a MediaDevice. It will
      * try to filter them based on the SSRC of the packet. If the SSRC does not
      * match a participant added to the transcribed, an exception will be thrown
-     *
+     * <p>
      * Note that this code is run in a Thread doing audio mixing and only
      * has 20 ms for each frame
      *
@@ -348,7 +342,7 @@ public class Transcriber
     @Override
     public void bufferReceived(ReceiveStream receiveStream, Buffer buffer)
     {
-        if(!isTranscribing())
+        if (!isTranscribing())
         {
             return;
         }
@@ -356,22 +350,22 @@ public class Transcriber
         long ssrc = receiveStream.getSSRC() & 0xffffffffL;
 
         Participant p = participants.get(ssrc);
-        if(p != null)
+        if (p != null)
         {
             p.giveBuffer(buffer);
         }
         else
         {
-            logger.warn("Reading from SSRC " + ssrc + " while it is "+
-                "not known as a participant");
+            logger.warn("Reading from SSRC " + ssrc + " while it is " +
+                            "not known as a participant");
         }
     }
 
     /**
      * Get the MediaDevice this transcriber is listening to for audio
      *
-     * @return the AudioMixerMediaDevice which should receive all audio
-     * needed to be transcribed
+     * @return the AudioMixerMediaDevice which should receive all audio needed
+     * to be transcribed
      */
     public AudioMixerMediaDevice getMediaDevice()
     {
@@ -379,23 +373,23 @@ public class Transcriber
     }
 
     /**
-     * Check if all participant have been completely transcribed. When this
+     * Check if all participants have been completely transcribed. When this
      * is the case, set the state from FINISHING_UP to FINISHED
      */
-    private void checkIfFinishedUp()
+    void checkIfFinishedUp()
     {
-        if(State.FINISHING_UP.equals(this.state))
+        if (State.FINISHING_UP.equals(this.state))
         {
-            for(Participant participant : participants.values())
+            for (Participant participant : participants.values())
             {
-                if(!participant.isCompleted)
+                if (!participant.isCompleted())
                 {
                     return;
                 }
             }
             logger.debug("Transcriber is now finished");
             this.state = State.FINISHED;
-            for(TranscriptionListener listener : listeners)
+            for (TranscriptionListener listener : listeners)
             {
                 listener.completed();
             }
@@ -403,263 +397,24 @@ public class Transcriber
     }
 
     /**
-     * This class describes a participant in a conference whose
-     * transcription is required. It manages the transcription if its own audio
-     * will locally buffered until enough audio is collected
+     * @return the {@link TranscriptionService}.
      */
-    private class Participant
-            implements TranscriptionListener
+    public TranscriptionService getTranscriptionService()
     {
-
-        /**
-         * The expected amount of bytes each given buffer will have. Webrtc
-         * usually has 20ms opus frames which are decoded to 2 bytes per sample
-         * and 48000Hz sampling rate, which results in 2 * 48000 = 96000 bytes
-         * per second, and because frames are 20 ms we have 1000/20 = 50
-         * packets per second. Each packet will thus contain
-         * 96000 / 50 = 1920 bytes
-         */
-        private static final int EXPECTED_AUDIO_LENGTH = 1920;
-
-        /**
-         * The size of the local buffer. A single packet is expected to contain
-         * 1920 bytes, so the size should be a multiple of 1920. Using
-         * 25 results in 20 ms * 25 packets = 500 ms of audio being buffered
-         * locally before being send to the TranscriptionService
-         */
-        private static final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
-
-        /**
-         * Whether we should buffer locally before sending
-         */
-        private static final boolean USE_LOCAL_BUFFER = true;
-
-        /**
-         * The name of the participant
-         */
-        private String name;
-
-        /**
-         * The id identifying audio belonging to this participant
-         */
-        private long ssrc;
-
-        /**
-         * The ID used in the JID of a participant
-         */
-        private String id;
-
-        /**
-         * The streaming session which will constantly receive audio
-         */
-        private TranscriptionService.StreamingRecognitionSession session;
-
-        /**
-         * A buffer which is used to locally store audio before sending
-         */
-        private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-
-        /**
-         * The AudioFormat of the audio being read. It is assumed to not change
-         * after initialization
-         */
-        private AudioFormat audioFormat;
-
-        /**
-         * Whether the current session is still transcribing
-         */
-        private boolean isCompleted = false;
-
-        /**
-         * Create a participant with a given name and audio stream
-         *
-         * @param name the name of the participant
-         * @param id the id in the JID of this participant
-         * @param ssrc the ssrc of the audio of this participant
-         */
-        Participant(String name, String id, long ssrc)
-        {
-            this.name = name;
-            this.id = id;
-            this.ssrc = ssrc;
-        }
-
-        /**
-         * Get the name of the participant
-         *
-         * @return the name of this particular participant
-         */
-        public String getName()
-        {
-            return name;
-        }
-
-        /**
-         * Get the ssrc of the audio of this participant
-         *
-         * @return the srrc
-         */
-        public long getSSRC()
-        {
-            return ssrc;
-        }
-
-        /**
-         * Get the id in the JID of this participant
-         *
-         * @return the id
-         */
-        public String getId()
-        {
-            return this.id;
-        }
-
-        /**
-         * When a participant joined it accepts audio and will send it
-         * to be transcribed
-         */
-        void joined()
-        {
-            if (session != null && !session.ended())
-            {
-                return; // no need to create new session
-            }
-
-            if (transcriptionService.supportsStreamRecognition())
-            {
-                session = transcriptionService.initStreamingSession();
-                session.addTranscriptionListener(Participant.this);
-                isCompleted = false;
-            }
-        }
-
-        /**
-         * When a participant has left it does not accept audio and thus no new
-         * results will come in
-         */
-        void left()
-        {
-            if (session != null)
-            {
-                session.end();
-            }
-        }
-
-        /**
-         * Give a packet of the audio of this participant such that it can be
-         * buffered and sent to the transcription once enough has been stored
-         *
-         * @param buffer a buffer which is expected to contain a single packet
-         *               of audio of this participant
-         */
-        void giveBuffer(Buffer buffer)
-        {
-            if (audioFormat == null)
-            {
-                audioFormat = (AudioFormat) buffer.getFormat();
-            }
-
-            byte[] audio = (byte[]) buffer.getData();
-
-            if (USE_LOCAL_BUFFER)
-            {
-                buffer(audio);
-            }
-            else
-            {
-                sendRequest(audio);
-            }
-        }
-
-        @Override
-        public void notify(TranscriptionResult result)
-        {
-            result.setName(this.name);
-            logger.debug(result);
-            for (TranscriptionListener listener : listeners)
-            {
-                listener.notify(result);
-            }
-        }
-
-        @Override
-        public void completed()
-        {
-            isCompleted = true;
-            checkIfFinishedUp();
-        }
-
-        /**
-         * Get whether everything this participant said has been transcribed
-         *
-         * @return true if completed transcribing, false otherwise
-         */
-        public boolean isCompleted()
-        {
-            return isCompleted;
-        }
-
-        /**
-         * Store the given audio in a buffer. When the buffer is full,
-         * send the audio
-         *
-         * @param audio the audio to buffer
-         */
-        private void buffer(byte[] audio)
-        {
-            try
-            {
-                buffer.put(audio);
-            }
-            catch (BufferOverflowException | ReadOnlyBufferException e)
-            {
-                e.printStackTrace();
-            }
-
-            int spaceLeft = buffer.limit() - buffer.position();
-            if(spaceLeft < EXPECTED_AUDIO_LENGTH)
-            {
-                sendRequest(buffer.array());
-                buffer.clear();
-            }
-        }
-
-        /**
-         * Send the specified audio to the TranscriptionService.
-         * <p>
-         * An ExecutorService is used to offload work on the mxing thread
-         *
-         * @param audio the audio to send
-         */
-        private void sendRequest(byte[] audio)
-        {
-            executorService.submit(() ->
-            {
-                TranscriptionRequest request
-                    = new TranscriptionRequest(audio,
-                    audioFormat, ENGLISH_LOCALE);
-
-                if (session != null && !session.ended())
-                {
-                    session.sendRequest(request);
-                }
-                else
-                // fallback if TranscriptionService does not support streams
-                // or session got ended prematurely
-                {
-                    // FIXME: 22/07/17 This just assumes given BUFFER_LENGTH
-                    // is long enough to get decent audio length. Also does
-                    // not take into account that participant's audio will
-                    // be cut of midsentence. For better results, try to
-                    // buffer until audio volume is silent for a "decent
-                    // amount of time". Only relevant if Streaming
-                    // recognition is not supported by the
-                    // TranscriptionService
-                    transcriptionService.sendSingleRequest(request,
-                        Participant.this::notify);
-                }
-            });
-        }
+        return transcriptionService;
     }
 
+    /**
+     * Notifies all of the listeners of this {@link Transcriber} of a new
+     * {@link TranscriptionResult} which was received.
+     *
+     * @param result the result.
+     */
+    void notify(TranscriptionResult result)
+    {
+        for (TranscriptionListener listener : listeners)
+        {
+            listener.notify(result);
+        }
+    }
 }
