@@ -131,13 +131,21 @@ class Participant
     }
 
     /**
-     * Get the name of the participant
-     *
-     * @return the name of this particular participant
+     * @return the string to uses when identifying this participant in the
+     * transcript (if a display name wasn't specifically set we use the id or
+     * a default string).
      */
     public String getName()
     {
-        return name == null ? UNKNOWN_NAME : name;
+        if (name != null)
+        {
+            return name;
+        }
+        if (id != null)
+        {
+            return id;
+        }
+        return UNKNOWN_NAME;
     }
 
     /**
