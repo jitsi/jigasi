@@ -67,7 +67,18 @@ class Participant
      */
     private static final boolean USE_LOCAL_BUFFER = true;
 
+    /**
+     * The string to use when a participant's name is unknown.
+     * TODO: assign unique easy to read names to unknown participants (e.g.
+     * Speaker 1, Speaker 2, etc.).
+     */
+    public static final String UNKNOWN_NAME = "Unknown";
+
+    /**
+     * The {@link Transcriber} which owns this {@link Participant}.
+     */
     private Transcriber transcriber;
+
     /**
      * The name of the participant
      */
@@ -126,7 +137,7 @@ class Participant
      */
     public String getName()
     {
-        return name;
+        return name == null ? UNKNOWN_NAME : name;
     }
 
     /**
@@ -164,7 +175,7 @@ class Participant
         {
             session
                 = transcriber.getTranscriptionService().initStreamingSession();
-            session.addTranscriptionListener(Participant.this);
+            session.addTranscriptionListener(this);
             isCompleted = false;
         }
     }
@@ -210,7 +221,7 @@ class Participant
     @Override
     public void notify(TranscriptionResult result)
     {
-        result.setName(this.name);
+        result.setParticipant(this);
         logger.debug(result);
         transcriber.notify(result);
     }

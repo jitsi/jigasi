@@ -303,7 +303,9 @@ public class GoogleCloudTranscriptionService
             }
 
             String transcription = builder.toString().trim();
-            resultConsumer.accept(new TranscriptionResult(transcription));
+            resultConsumer.accept(
+                    new TranscriptionResult(
+                            new TranscriptionAlternative(transcription)));
         }
         catch (Exception e)
         {
@@ -703,21 +705,17 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            StringBuilder builder = new StringBuilder();
-            // fixme assume here that max alternative is 0, boris has
-            // another branch with the logic for writing more
-            // alternatives
+            TranscriptionResult transcriptionResult
+                = new TranscriptionResult();
             for(SpeechRecognitionAlternative alternative : alternatives)
             {
-                builder.append(alternative.getTranscript());
+                transcriptionResult.addAlternative(
+                    new TranscriptionAlternative(
+                            alternative.getTranscript(),
+                            alternative.getConfidence()));
             }
 
-            String transcription = builder.toString().trim();
-
-            if(!transcription.isEmpty())
-            {
-                sent(new TranscriptionResult(transcription));
-            }
+            sent(transcriptionResult);
 
             requestManager.terminateCurrentSession();
         }

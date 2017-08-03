@@ -17,59 +17,122 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import java.util.*;
+
 /**
  * A TranscriptionResult which is created when audio has been transcribed
  * by a speech-to-text service. It holds the request which result an instance
  * of this class represents
  *
  * @author Nik Vaessen
+ * @author Boris Grozev
  */
 public class TranscriptionResult
 {
     /**
-     * The transcription of the audio in the request
+     * The {@link Participant} whose audio this {@link TranscriptionResult} is
+     * a transcription of.
      */
-    private String transcription;
+    private Participant participant;
 
     /**
-     * The name of the participant saying the transcription
-     * Can be added after result has come in if TranscriptionService has no way
-     * of knowing
+     * The alternative transcriptions of this {@link TranscriptionResult}.
      */
-    private String name;
+    private final List<TranscriptionAlternative> alternatives
+        = new LinkedList<>();
 
     /**
      * Create a TranscriptionResult of a TranscriptionRequest which
      * will hold the text of the audio
      *
-     * @param transcription the transcription of the audio in the request
+     * @param participant the participant whose audio was transcribed.
+     * @param alternatives the alternative transcriptions.
      */
-    public TranscriptionResult(String transcription)
+    public TranscriptionResult(
+            Participant participant,
+            Collection<TranscriptionAlternative> alternatives)
     {
-        this.transcription = transcription;
+        this.participant = participant;
+        if (alternatives != null)
+        {
+            this.alternatives.addAll(alternatives);
+        }
     }
 
     /**
      * Create a TranscriptionResult of a TranscriptionRequest which
      * will hold the text of the audio
      *
-     * @param transcription the transcription of the audio in the request
-     * @param name the name of the participant who said the transcription
+     * @param participant the participant whose audio was transcribed.
+     * @param alternative the single alternative transcription to add.
      */
-    public TranscriptionResult(String transcription, String name)
+    public TranscriptionResult(
+        Participant participant,
+        TranscriptionAlternative alternative)
     {
-        this.transcription = transcription;
-        this.name = name;
+        this.participant = participant;
+        alternatives.add(alternative);
     }
 
     /**
-     * The transcription of the audio in the request
+     * Create a TranscriptionResult of a TranscriptionRequest which
+     * will hold the text of the audio
      *
-     * @return the transcription as a String
+     * @param alternative the single alternative transcription to add.
      */
-    public String getTranscription()
+    public TranscriptionResult(TranscriptionAlternative alternative)
     {
-        return transcription;
+        participant = null;
+        alternatives.add(alternative);
+    }
+
+    /**
+     * Create a TranscriptionResult of a TranscriptionRequest which
+     * will hold the text of the audio
+     *
+     * @param alternatives the alternative transcriptions.
+     */
+    public TranscriptionResult(
+        Collection<TranscriptionAlternative> alternatives)
+    {
+        this(null, alternatives);
+    }
+
+    /**
+     * Create a TranscriptionResult of a TranscriptionRequest which
+     * will hold the text of the audio
+     *
+     * @param participant the participant whose audio was transcribed.
+     */
+    public TranscriptionResult(Participant participant)
+    {
+        this.participant = participant;
+    }
+
+    /**
+     * Create a TranscriptionResult of a TranscriptionRequest which
+     * will hold the text of the audio
+     */
+    public TranscriptionResult()
+    {
+        participant = null;
+    }
+
+    /**
+     * Adds an alternative transcription to this {@link TranscriptionResult}.
+     * @param alternative the alternative.
+     */
+    public void addAlternative(TranscriptionAlternative alternative)
+    {
+        alternatives.add(alternative);
+    }
+
+    /**
+     * @return all alternative transcription of this {@link TranscriptionResult}.
+     */
+    public Collection<TranscriptionAlternative> getAlternatives()
+    {
+        return alternatives;
     }
 
     /**
@@ -79,23 +142,41 @@ public class TranscriptionResult
      */
     public String getName()
     {
-        return name;
+        return participant == null
+            ? Participant.UNKNOWN_NAME
+            : participant.getName();
     }
 
     /**
-     * Set the name of the participant who said this piece of transcription
-     *
-     * @param name the name
+     * {@inheritDoc}
+     * </p>
+     * In this default implementation we include all alternative transcriptions.
      */
-    public void setName(String name)
-    {
-        this.name = name;
-    }
-
     @Override
     public String toString()
     {
-        return name == null ?
-                transcription : name + ": " + transcription;
+        String name = getName();
+        if (name == null)
+        {
+            name = Participant.UNKNOWN_NAME;
+        }
+
+        StringBuilder sb = new StringBuilder(name);
+        sb.append(": ");
+        if (!alternatives.isEmpty())
+        {
+            sb.append(alternatives.get(0).getTranscription());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Set this {@link TranscriptionResult}'s {@link Participant}.
+     *
+     * @param participant the {@link Participant}.
+     */
+    public void setParticipant(Participant participant)
+    {
+        this.participant = participant;
     }
 }
