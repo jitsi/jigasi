@@ -165,7 +165,10 @@ public class TranscriptionResult
         sb.append(": ");
         if (!alternatives.isEmpty())
         {
-            sb.append(alternatives.get(0).getTranscription());
+            sb.append('[')
+                .append(alternatives.get(0).getConfidence())
+                .append("] ")
+                .append(alternatives.get(0).getTranscription());
         }
         return sb.toString();
     }
