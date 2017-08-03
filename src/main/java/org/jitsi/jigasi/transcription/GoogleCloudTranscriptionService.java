@@ -150,6 +150,95 @@ public class GoogleCloudTranscriptionService
             = Logger.getLogger(GoogleCloudTranscriptionService.class);
 
     /**
+     * The maximum amount of alternative transcriptions desired. The server may
+     * return fewer than MAXIMUM_DESIRED_ALTERNATIVES.
+     * Valid values are 0-30. A value of 0 or 1 will return a maximum of one.
+     * If omitted from a {@link RecognitionConfig} will return a maximum of one.
+     */
+    private final static int MAXIMUM_DESIRED_ALTERNATIVES = 0;
+
+    /**
+     * Whether the Google cloud API sends interim, non-final results
+     */
+    private final static boolean RETRIEVE_INTERIM_RESULTS = false;
+
+    /**
+     * Whether the Google Cloud API only listens for a single utterance
+     * or continuous to listen once an utterance is over
+     */
+    private final static boolean SINGLE_UTTERANCE_ONLY = true;
+
+    /**
+     * The amount of ms after which a StreamingRecognize session will be closed
+     * when no new audio is given. This is to make sure the session retrieves
+     * audio in "real-time"
+     */
+    private final static int STREAMING_SESSION_TIMEOUT_MS = 10000;
+
+    /**
+     * Creates the RecognitionConfig the Google service uses based
+     * on the TranscriptionRequest
+     *
+     * @param request the transcriptionRequest which will need to be transcribed
+     * @return the config based on the audio contained in the request
+     * @throws UnsupportedOperationException when this service cannot process
+     * the given request
+     */
+    private static RecognitionConfig getRecognitionConfig(TranscriptionRequest
+                                                              request)
+        throws UnsupportedOperationException
+    {
+        RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
+
+        // Set the sampling rate and encoding of the audio
+        AudioFormat format = request.getFormat();
+        builder.setSampleRateHertz(new Double(format.getSampleRate())
+            .intValue());
+        switch(format.getEncoding())
+        {
+            case "LINEAR":
+                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
+                break;
+            default:
+                throw new IllegalArgumentException("Given AudioFormat" +
+                    "has unexpected" +
+                    "encoding");
+        }
+
+        // set the Language tag
+        String languageTag = request.getLocale().toLanguageTag();
+        validateLanguageTag(languageTag);
+        builder.setLanguageCode(languageTag);
+
+        // set the requested alternatives
+        builder.setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES);
+
+        return builder.build();
+    }
+
+    /**
+     * Check whether the given string contains a supported language tag
+     *
+     * @param tag the language tag
+     * @throws UnsupportedOperationException when the google cloud API does not
+     * support the given language
+     */
+    private static void validateLanguageTag(String tag)
+        throws UnsupportedOperationException
+    {
+        for(String supportedTag : SUPPORTED_LANGUAGE_TAGS)
+        {
+            if(supportedTag.equals(tag))
+            {
+                return;
+            }
+        }
+        throw new UnsupportedOperationException(tag + " is not a language " +
+            "supported by the Google " +
+            "Cloud speech-to-text API");
+    }
+
+    /**
      * Create a TranscriptionService which will send audio to the google cloud
      * platform to get a transcription
      */
@@ -256,13 +345,6 @@ public class GoogleCloudTranscriptionService
         private SpeechClient client;
 
         /**
-         * The ApiStreamObserver which will retrieve new incoming transcription
-         * results
-         */
-        private ResponseApiStreamingObserver<StreamingRecognizeResponse>
-            responseObserver = new ResponseApiStreamingObserver<>();
-
-        /**
          * A manager which acts as a ApiStreamObserver which will send new audio
          * request to be transcribed
          */
@@ -283,8 +365,7 @@ public class GoogleCloudTranscriptionService
             {
                 this.client = SpeechClient.create();
                 this.requestManager
-                    = new RequestApiStreamObserverManager(client,
-                                                          responseObserver);
+                    = new RequestApiStreamObserverManager(client);
             }
             catch(Exception e)
             {
@@ -295,7 +376,16 @@ public class GoogleCloudTranscriptionService
         @Override
         public void sendRequest(final TranscriptionRequest request)
         {
-            this.service.submit(() -> requestManager.sentRequest(request));
+            this.service.submit(() -> {
+                try
+                {
+                    requestManager.sentRequest(request);
+                }
+                catch(Exception e)
+                {
+                    logger.warn("Not able to send request", e);
+                }
+            });
             logger.trace("queued request");
         }
 
@@ -322,11 +412,10 @@ public class GoogleCloudTranscriptionService
             }
         }
 
-
         @Override
         public void addTranscriptionListener(TranscriptionListener listener)
         {
-            responseObserver.addListener(listener);
+            requestManager.getResponseObserver().addListener(listener);
         }
 
     }
@@ -361,16 +450,20 @@ public class GoogleCloudTranscriptionService
             currentRequestObserver;
 
         /**
-         * The upcoming ApiStreamObserver which will send new audio request to be
-         * transcribed
+         * Lock used to access the currentRequestObserver
          */
-        private ApiStreamObserver<StreamingRecognizeRequest>
-            upcomingRequestObserver;
+        private final Object currentRequestObserverLock = new Object();
 
         /**
-         * The timestamp from when the **current** session was created
+         *
          */
-        private long creationTimeStamp;
+        private TerminatingSessionThread terminatingSessionThread;
+
+        /**
+         * Whether this manager has stopped and will not make new sessions
+         * anymore
+         */
+        private boolean stopped = false;
 
         /**
          * Create a new RequestApiStreamObserverManager, which will try
@@ -378,24 +471,32 @@ public class GoogleCloudTranscriptionService
          *
          * @param client the SpeechClient with which to open new sessions
          */
-        RequestApiStreamObserverManager(SpeechClient client,
-                                        ResponseApiStreamingObserver
-                                            <StreamingRecognizeResponse>
-                                            responseObserver )
+        RequestApiStreamObserverManager(SpeechClient client)
         {
             this.client = client;
-            this.responseObserver = responseObserver;
+            this.responseObserver = new ResponseApiStreamingObserver<>(this);
+        }
+
+
+        /**
+         * Get the response observer
+         *
+         * @return the response observer
+         */
+        public ResponseApiStreamingObserver<StreamingRecognizeResponse>
+            getResponseObserver()
+        {
+            return responseObserver;
         }
 
         /**
-         * Create a new ApiStreamObserver by instantialing it and sending the first
-         * request, which contains the configuration
+         * Create a new ApiStreamObserver by instantiating it and sending the
+         * first request, which contains the configuration
          *
          * @param config the configuration of the session
-         * @return the ApiStreamObserver, which will be "open" for the coming
-         * 55 seconds
+         * @return the ApiStreamObserver
          */
-        public ApiStreamObserver<StreamingRecognizeRequest> createObserver(
+        private ApiStreamObserver<StreamingRecognizeRequest> createObserver(
             RecognitionConfig config)
         {
             // StreamingRecognitionConfig which will hold information
@@ -403,6 +504,8 @@ public class GoogleCloudTranscriptionService
             StreamingRecognitionConfig streamingRecognitionConfig =
                 StreamingRecognitionConfig.newBuilder()
                     .setConfig(config)
+                    .setInterimResults(RETRIEVE_INTERIM_RESULTS)
+                    .setSingleUtterance(SINGLE_UTTERANCE_ONLY)
                     .build();
 
             // StreamingCallable manages sending the audio and receiving
@@ -424,35 +527,14 @@ public class GoogleCloudTranscriptionService
                     .setStreamingConfig(streamingRecognitionConfig)
                     .build());
 
+            // Create the thread which will cancel this session when
+            // it is not receiving audio
+            terminatingSessionThread
+                = new TerminatingSessionThread(this,
+                                                STREAMING_SESSION_TIMEOUT_MS);
+            terminatingSessionThread.start();
+
             return requestObserver;
-        }
-
-        /**
-         * Sent an audio request to the streaming sessions
-         *
-         * @param request the audio to send
-         */
-        private void sendAudioRequest(TranscriptionRequest request)
-        {
-            // If the first request with the config has been sent,
-            // all other requests need to contain **only** the audio ByteString
-            byte[] audio = request.getAudio();
-            ByteString audioBytes = ByteString.copyFrom(audio);
-
-            currentRequestObserver.onNext(
-                StreamingRecognizeRequest.newBuilder()
-                    .setAudioContent(audioBytes)
-                    .build());
-
-            if(upcomingRequestObserver != null)
-            {
-                upcomingRequestObserver.onNext(
-                    StreamingRecognizeRequest.newBuilder()
-                        .setAudioContent(audioBytes)
-                        .build());
-            }
-
-            logger.trace("Sent a request");
         }
 
         /**
@@ -460,48 +542,38 @@ public class GoogleCloudTranscriptionService
          *
          * @param request the request to transcribe
          */
-        public void sentRequest(TranscriptionRequest request)
+        void sentRequest(TranscriptionRequest request)
         {
-            handleTimeStamp(request);
-            sendAudioRequest(request);
-        }
-
-        /**
-         * Manage sessions based on time passed. If 50 seconds have passed, wind
-         * up a new session. If 55 seconds have passed, replace the current one
-         *
-         * @param request a request such that the congigation can be retrieved
-         *                if necessary
-         */
-        private void handleTimeStamp(TranscriptionRequest request)
-        {
-            //initial creation
-            if(currentRequestObserver == null)
+            if(stopped)
             {
-                logger.debug("Creating initial Session");
-                currentRequestObserver
-                    = createObserver(getRecognitionConfig(request));
-                creationTimeStamp = System.currentTimeMillis();
+                logger.warn("not able to send request because" +
+                    " manager was already stopped");
                 return;
             }
 
-            long msPassed = System.currentTimeMillis() - creationTimeStamp;
-            if(msPassed > 50000 && upcomingRequestObserver == null)
+            // If the first request with the config has been sent,
+            // all other requests need to contain **only** the audio
+            // ByteString
+            byte[] audio = request.getAudio();
+            ByteString audioBytes = ByteString.copyFrom(audio);
+
+            synchronized(currentRequestObserverLock)
             {
-                logger.debug("50 seconds have passed, creating upcoming" +
-                    "session");
-                upcomingRequestObserver
-                    = createObserver(getRecognitionConfig(request));
+                if(currentRequestObserver == null)
+                {
+                    logger.debug("Created a new session");
+                    currentRequestObserver
+                        = createObserver(getRecognitionConfig(request));
+                }
+
+                currentRequestObserver.onNext(
+                    StreamingRecognizeRequest.newBuilder()
+                        .setAudioContent(audioBytes)
+                        .build());
+
+                terminatingSessionThread.interrupt();
             }
-            else if(msPassed > 55000)
-            {
-                logger.debug("55 seconds have passed, retiring current" +
-                    "session");
-                currentRequestObserver.onCompleted();
-                currentRequestObserver = upcomingRequestObserver;
-                upcomingRequestObserver = null;
-                creationTimeStamp = System.currentTimeMillis() - 5000;
-            }
+            logger.trace("Sent a request");
         }
 
         /**
@@ -509,13 +581,32 @@ public class GoogleCloudTranscriptionService
          */
         public void stop()
         {
-            if(currentRequestObserver != null)
+            stopped = true;
+            terminateCurrentSession();
+        }
+
+        /**
+         * Close the currentRequestObserver if there is one
+         */
+        void terminateCurrentSession()
+        {
+            synchronized(currentRequestObserverLock)
             {
-                currentRequestObserver.onCompleted();
-            }
-            if(upcomingRequestObserver != null)
-            {
-                upcomingRequestObserver.onCompleted();
+                if(currentRequestObserver != null)
+                {
+                    logger.debug("Terminated current session");
+
+                    currentRequestObserver.onCompleted();
+                    currentRequestObserver = null;
+                }
+
+                if(terminatingSessionThread != null &&
+                    terminatingSessionThread.isAlive())
+                {
+                    terminatingSessionThread.setStopIfInterrupted(true);
+                    terminatingSessionThread.interrupt();
+                    terminatingSessionThread = null;
+                }
             }
         }
     }
@@ -540,30 +631,102 @@ public class GoogleCloudTranscriptionService
          */
         private final List<TranscriptionListener> listeners = new ArrayList<>();
 
+        /**
+         * The manager which is used to send new audio requests. Should be
+         * notified when a final result comes in to be able to start a new
+         * session
+         */
+        private RequestApiStreamObserverManager requestManager;
+
+        /**
+         * Create a ResponseApiStreamingObserver which listens for transcription
+         * results
+         *
+         * @param manager the manager of requests
+         */
+        ResponseApiStreamingObserver(RequestApiStreamObserverManager manager)
+        {
+            requestManager = manager;
+        }
+
         @Override
         public void onNext(StreamingRecognizeResponse message)
         {
-            logger.debug("received a result");
-            StringBuilder builder = new StringBuilder();
-            for(StreamingRecognitionResult result :
-                message.getResultsList())
+            logger.debug("Received a StreamingRecognizeResponse");
+            if(message.hasError())
             {
-                if(result.getAlternativesCount() > 0)
-                {
-                    builder.append(result.getAlternatives(0).
-                        getTranscript());
-                    builder.append(" ");
-                }
+                // it is expected to get an error if the 60 seconds are exceeded
+                // without any speech in the audio OR if someone muted their mic
+                // and no new audio is coming in
+                // thus we cancel the current session and start a new one
+                // when new audio comes in
+                logger.debug("Received error from StreamingRecognizeResponse: "
+                    + message.getError().getMessage());
+                requestManager.terminateCurrentSession();
+                return;
+            }
+
+            // this will happen when SINGLE_UTTERANCE is set to true but the
+            // audio being sent does not have any speech in it after ~10 seconds
+            // after this response you can still send audio but no new results
+            // will come in, so we have to terminate
+            if(message.getResultsCount() == 0)
+            {
+                logger.debug("Received a message with an empty results list");
+                requestManager.terminateCurrentSession();
+                return;
+            }
+
+            List<StreamingRecognitionResult> results = message.getResultsList();
+
+            // If there is a result with is_final=true, it's always the first
+            // and there is only ever 1
+            StreamingRecognitionResult finalRequest = results.get(0);
+            if(!finalRequest.getIsFinal())
+            {
+                // wait until we get a final result
+                return;
+            }
+
+            // should always contains one result
+            List<SpeechRecognitionAlternative> alternatives
+                = finalRequest.getAlternativesList();
+
+            // If empty, the session has reached it's time limit and
+            // nothing new was said, but there should be an error in the message
+            // so this is never supposed to happen
+            if(alternatives.isEmpty())
+            {
+                logger.warn("Received a list of alternatives which" +
+                    " was empty");
+                requestManager.terminateCurrentSession();
+                return;
+            }
+
+            StringBuilder builder = new StringBuilder();
+            // fixme assume here that max alternative is 0, boris has
+            // another branch with the logic for writing more
+            // alternatives
+            for(SpeechRecognitionAlternative alternative : alternatives)
+            {
+                builder.append(alternative.getTranscript());
             }
 
             String transcription = builder.toString().trim();
-            sent(new TranscriptionResult(transcription));
+
+            if(!transcription.isEmpty())
+            {
+                sent(new TranscriptionResult(transcription));
+            }
+
+            requestManager.terminateCurrentSession();
         }
 
         @Override
         public void onError(Throwable t)
         {
-            t.printStackTrace();
+            logger.warn("Received an error from the Google Cloud API", t);
+            requestManager.terminateCurrentSession();
         }
 
         @Override
@@ -598,67 +761,79 @@ public class GoogleCloudTranscriptionService
                 listener.notify(result);
             }
         }
-
     }
 
     /**
-     * Creates the RecognitionConfig the Google service uses based
-     * on the TranscriptionRequest
-     *
-     * @param request the transcriptionRequest which will need to be transcribed
-     * @return the config based on the audio contained in the request
-     * @throws UnsupportedOperationException when this service cannot process
-     * the given request
+     * This thread is used to cancel a RequestObserver when no new audio is
+     * being given. The thread needs to be kept-alive by using the
+     * {@link TerminatingSessionThread#interrupt()} ()} method, which resets the
+     * timer to 0
      */
-    private static RecognitionConfig getRecognitionConfig(TranscriptionRequest
-                                                              request)
-        throws UnsupportedOperationException
+    private static class TerminatingSessionThread
+        extends Thread
     {
-        RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
 
-        // Set the sampling rate and encoding of the audio
-        AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(new Double(format.getSampleRate())
-                                       .intValue());
-        switch(format.getEncoding())
+        /**
+         * The manager which will be told to terminate the current session
+         * when the specified amount of time has passed
+         */
+        private RequestApiStreamObserverManager manager;
+
+        /**
+         * The amount of ms after which the manager should be told to terminate
+         * the session
+         */
+        private int terminateAfter;
+
+        /**
+         * If this is set to true, interrupting the thread will kill the thread
+         * instead of resetting the counter
+         */
+        private boolean stopIfInterrupted = false;
+
+        /**
+         * Create a Thread which will tell the given manager to terminate its
+         * thread as soon as the given amount of ms has passed, unless
+         * {@link TerminatingSessionThread#interrupt()} ()} has been called
+         *
+         * @param manager the manager
+         * @param ms the amount of time in ms
+         */
+        TerminatingSessionThread(RequestApiStreamObserverManager manager,
+                                        int ms)
         {
-            case "LINEAR":
-                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
-                break;
-            default:
-                    throw new IllegalArgumentException("Given AudioFormat" +
-                                                       "has unexpected" +
-                                                       "encoding");
+            this.manager = manager;
+            this.terminateAfter = ms;
         }
 
-        // set the Language tag
-        String languageTag = request.getLocale().toLanguageTag();
-        validateLanguageTag(languageTag);
-        builder.setLanguageCode(languageTag);
-
-        return builder.build();
-    }
-
-    /**
-     * Check whether the given string contains a supported language tag
-     *
-     * @param tag the language tag
-     * @throws UnsupportedOperationException when the google cloud API does not
-     * support the given language
-     */
-    private static void validateLanguageTag(String tag)
-        throws UnsupportedOperationException
-    {
-        for(String supportedTag : SUPPORTED_LANGUAGE_TAGS)
+        @Override
+        public void run()
         {
-            if(supportedTag.equals(tag))
+            try
             {
-                return;
+                sleep(terminateAfter);
+                manager.terminateCurrentSession();
+            }
+            catch(InterruptedException e)
+            {
+                if(!stopIfInterrupted)
+                {
+                    run();
+                }
             }
         }
-        throw new UnsupportedOperationException(tag + " is not a language " +
-                                                "supported by the Google " +
-                                                "Cloud speech-to-text API");
+
+        /**
+         * Set whether the thread should kill itself when interrupted or reset
+         * the counter
+         *
+         * @param stopIfInterrupted If true, thread will kill itself when
+         *                          interrupted, otherwise counter will be reset
+         */
+        void setStopIfInterrupted(boolean stopIfInterrupted)
+        {
+            this.stopIfInterrupted = stopIfInterrupted;
+        }
     }
 
 }
