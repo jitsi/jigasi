@@ -155,13 +155,7 @@ public class TranscriptionResult
     @Override
     public String toString()
     {
-        String name = getName();
-        if (name == null)
-        {
-            name = Participant.UNKNOWN_NAME;
-        }
-
-        StringBuilder sb = new StringBuilder(name);
+        StringBuilder sb = new StringBuilder(getName());
         sb.append(": ");
         if (!alternatives.isEmpty())
         {
