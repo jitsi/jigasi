@@ -171,7 +171,8 @@ public class GoogleCloudTranscriptionService
     /**
      * The amount of ms after which a StreamingRecognize session will be closed
      * when no new audio is given. This is to make sure the session retrieves
-     * audio in "real-time"
+     * audio in "real-time". This also ensures that participants using push-
+     * to-talk do not have delayed results
      */
     private final static int STREAMING_SESSION_TIMEOUT_MS = 2000;
 
