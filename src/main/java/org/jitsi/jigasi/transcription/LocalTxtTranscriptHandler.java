@@ -228,7 +228,8 @@ public class LocalTxtTranscriptHandler
     {
         String name = e.getName();
         String timeStamp = e.getTimeString();
-        String transcription = e.getResult().getTranscription();
+        String transcription = e.getResult().getAlternatives().iterator().next()
+            .getTranscription();
 
         String base = String.format(UNFORMATTED_EVENT_BASE, timeStamp, name);
         String speech = String.format(UNFORMATTED_SPEECH, transcription);
