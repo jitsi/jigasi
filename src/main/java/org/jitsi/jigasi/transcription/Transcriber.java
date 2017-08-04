@@ -136,8 +136,9 @@ public class Transcriber
     {
         if (!service.supportsStreamRecognition())
         {
-            throw new IllegalArgumentException("Currently only services which" +
-                                                   " support streaming recognition are supported");
+            throw new IllegalArgumentException(
+                    "Currently only services which support streaming "
+                    + "recognition are supported");
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
@@ -216,15 +217,7 @@ public class Transcriber
             this.executorService = Executors.newSingleThreadExecutor();
 
             List<String> names = new ArrayList<>(participants.size());
-            participants.values().forEach((p) ->
-                                          {
-                                              String name;
-                                              if ((name = p.getName()) == null)
-                                              {
-                                                  name = p.getId();
-                                              }
-                                              names.add(name);
-                                          });
+            participants.values().forEach((p) -> names.add(p.getName()));
             this.transcript.started(roomName, names);
         }
         else
