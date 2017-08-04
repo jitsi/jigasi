@@ -173,7 +173,7 @@ public class GoogleCloudTranscriptionService
      * when no new audio is given. This is to make sure the session retrieves
      * audio in "real-time"
      */
-    private final static int STREAMING_SESSION_TIMEOUT_MS = 10000;
+    private final static int STREAMING_SESSION_TIMEOUT_MS = 2000;
 
     /**
      * Creates the RecognitionConfig the Google service uses based
