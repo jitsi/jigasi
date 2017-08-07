@@ -17,8 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import com.google.gson.*;
-import com.sun.org.apache.bcel.internal.generic.*;
 import org.json.simple.*;
 
 import java.time.*;
@@ -171,12 +169,7 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(JSONObject transcript)
     {
-        String uglyJSON = transcript.toJSONString();
-
-        String prettyJSOn = new GsonBuilder().setPrettyPrinting().create().
-            toJson(new JsonParser().parse(uglyJSON));
-
-        new LocalTxtTranscriptHandler().publish(prettyJSOn);
+        new LocalTxtTranscriptHandler().publish(transcript.toString());
     }
 
     @Override

@@ -54,7 +54,7 @@ public class TranscriptionGateway
                     this,
                     ctx,
                     new GoogleCloudTranscriptionService(),
-                    new LocalJsonTranscriptHandler());
+                    new LocalTxtTranscriptHandler());
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 
