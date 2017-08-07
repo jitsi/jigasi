@@ -321,7 +321,8 @@ public class LocalTxtTranscriptHandler
      * @param initialMembers the list of people present to put in the header
      */
     private String createHeader(Instant startInstant,
-                                String roomName, List<String> initialMembers)
+                                String roomName,
+                                List<Participant> initialMembers)
     {
         String initialMembersString;
         if(initialMembers == null || initialMembers.isEmpty())
@@ -330,7 +331,10 @@ public class LocalTxtTranscriptHandler
         }
         else
         {
-            initialMembersString = "\t" + String.join("\n\t", initialMembers)
+            List<String> memberNames = new ArrayList<>();
+            initialMembers.forEach((p) -> memberNames.add(p.getName()));
+
+            initialMembersString = "\t" + String.join("\n\t", memberNames)
                 + NEW_LINE;
         }
 
