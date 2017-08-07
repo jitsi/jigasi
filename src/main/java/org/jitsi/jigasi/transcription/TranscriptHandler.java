@@ -80,10 +80,10 @@ public interface TranscriptHandler<T>
         /**
          * Format a transcript which includes the list of initial participant
          *
-         * @param names the list of names
+         * @param participants the list of participants
          * @return this formatter
          */
-        Formatter<T> initialParticipants(List<String> names);
+        Formatter<T> initialParticipants(List<Participant> participants);
 
         /**
          * Format a transcript which includes what everyone who was transcribed

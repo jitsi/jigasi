@@ -217,9 +217,12 @@ public class Transcriber
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
 
-            List<String> names = new ArrayList<>(participants.size());
-            participants.values().forEach((p) -> names.add(p.getName()));
-            this.transcript.started(roomName, names);
+            List<Participant> participantsClone
+                = new ArrayList<>(this.participants.size());
+
+            participantsClone.addAll(this.participants.values());
+
+            this.transcript.started(roomName, participantsClone);
         }
         else
         {

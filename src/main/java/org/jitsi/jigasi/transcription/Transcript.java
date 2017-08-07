@@ -73,10 +73,10 @@ public class Transcript
     private TranscriptEvent ended;
 
     /**
-     * A list of names of participants who are present when the transcription
+     * A list of participants who are present when the transcription
      * started
      */
-    private List<String> initialParticipantNames = new LinkedList<>();
+    private List<Participant> initialParticipantNames = new LinkedList<>();
 
     /**
      * The name of the room of the conference this transcript belongs to
@@ -133,15 +133,16 @@ public class Transcript
      * Notify the transcript that the conference started at this exact moment
      * Will be ignored if already told the conference started
      *
-     * @param initialNames the names of the participants currently in the room
+     * @param initialParticipants the names of the participants currently in
+     *                            the room
      */
-    public void started(List<String> initialNames)
+    public void started(List<Participant> initialParticipants)
     {
         if(started == null)
         {
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
-            this.initialParticipantNames.addAll(initialNames);
+            this.initialParticipantNames.addAll(initialParticipants);
         }
     }
 
@@ -151,16 +152,17 @@ public class Transcript
      * Will be ignored if already told the conference started
      *
      * @param roomName the roomName of the conference
-     * @param initialNames the names of the participants currently in the room
+     * @param initialParticipants the  participants currently in the room
      */
-    protected void started(String roomName, List<String> initialNames)
+    protected void started(String roomName,
+                           List<Participant> initialParticipants)
     {
         if(started == null)
         {
             this.roomName = roomName;
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
-            this.initialParticipantNames.addAll(initialNames);
+            this.initialParticipantNames.addAll(initialParticipants);
         }
     }
 

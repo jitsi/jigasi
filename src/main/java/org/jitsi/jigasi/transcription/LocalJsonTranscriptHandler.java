@@ -26,7 +26,7 @@ import java.util.*;
 
 /**
  * This TranscriptHandler uses JSON as the underlying data structure of the
- * transcript. There are 3 kinds of JSON objects:
+ * transcript. There are 4 kinds of JSON objects:
  *
  * 1. "final_transcript" object: contains all data regarding a conference which
  * was transcribed: start time, end time, room name, initial members, all events
@@ -36,8 +36,11 @@ import java.util.*;
  * If it is a speech event, it includes the speech-to-text result
  * which is stored as an json-array of alternatives
  *
- * 3. "alternatives object": This object stores one possible speech-to-text
+ * 3. "alternatives" object: This object stores one possible speech-to-text
  * result. It only has 2 fields: the text and the confidence
+ *
+ * 4. "Participant" object: This object stores the information of a participant:
+ * the name and the (j)id
  *
  */
 public class LocalJsonTranscriptHandler
@@ -58,7 +61,8 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_FINAL_TRANSCRIPT_EVENTS = "events";
 
     /**
-     * This field stores the names of the initial members as an JSON array
+     * This field stores "Participant" objects of the initial members as an
+     * JSON array
      */
     public final static String JSON_KEY_FINAL_TRANSCRIPT_INITIAL_PARTICIPANTS
         = "initial_participants";
@@ -93,16 +97,10 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_EVENT_TIMESTAMP = "timestamp";
 
     /**
-     * This field stores the name of the participant who caused the event as
-     * a string
+     * This field stores the  the participant who caused the event as
+     * a Participant object
      */
-    public final static String JSON_KEY_EVENT_PARTICIPANT_NAME = "name";
-
-    /**
-     * This field stores the id of the participant who caused the event as a
-     * string.
-     */
-    public final static String JSON_KEY_EVENT_PARTICIPANT_ID = "id";
+    public final static String JSON_KEY_EVENT_PARTICIPANT = "participant";
 
     /**
      * This field stores the alternative JSON objects as a JSON array
@@ -139,6 +137,17 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_ALTERNATIVE_CONFIDENCE = "confidence";
 
+    // "participant" JSON object fields
+
+    /**
+     * This fields stores the name of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_NAME = "name";
+
+    /**
+     * This fields stores the (j)id of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
     @Override
     public TranscriptHandler.Formatter<JSONObject> format()
@@ -216,8 +225,12 @@ public class LocalJsonTranscriptHandler
     {
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());
         jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toString());
-        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT_NAME, e.getName());
-        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT_ID, e.getID());
+
+        JSONObject participant = new JSONObject();
+        participant.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
+        participant.put(JSON_KEY_PARTICIPANT_ID, e.getID());
+
+        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participant);
     }
 
     /**
@@ -270,7 +283,7 @@ public class LocalJsonTranscriptHandler
     @SuppressWarnings("unchecked")
     private void addTranscriptDescription(JSONObject jsonObject,
                                           String roomName,
-                                          Collection<String> names,
+                                          Collection<Participant> participants,
                                           Instant start,
                                           Instant end,
                                           Collection<JSONObject> events)
@@ -288,13 +301,22 @@ public class LocalJsonTranscriptHandler
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_END_TIME, end.toString());
         }
-        if(names != null && !names.isEmpty())
+        if(participants != null && !participants.isEmpty())
         {
-            JSONArray nameArray = new JSONArray();
-            nameArray.addAll(names);
+            JSONArray participantArray = new JSONArray();
+
+            for(Participant participant : participants)
+            {
+                JSONObject pJSON = new JSONObject();
+
+                pJSON.put(JSON_KEY_PARTICIPANT_NAME, participant.getName());
+                pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
+
+                participantArray.add(pJSON);
+            }
 
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_INITIAL_PARTICIPANTS,
-                nameArray);
+                participantArray);
         }
         if(events != null && !events.isEmpty())
         {

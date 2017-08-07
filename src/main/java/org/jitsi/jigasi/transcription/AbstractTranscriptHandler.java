@@ -87,7 +87,7 @@ public abstract class AbstractTranscriptHandler<T>
         /**
          * A list of initial participant names
          */
-        protected List<String> initialMembers = new LinkedList<>();
+        protected List<Participant> initialMembers = new LinkedList<>();
 
         /**
          * A map which maps a timestamp to the given event type
@@ -117,9 +117,9 @@ public abstract class AbstractTranscriptHandler<T>
 
         @Override
         public TranscriptHandler.Formatter<T> initialParticipants(
-            List<String> names)
+            List<Participant> participants)
         {
-            this.initialMembers.addAll(names);
+            this.initialMembers.addAll(participants);
             return this;
         }
 
