@@ -198,14 +198,10 @@ public class LocalTxtTranscriptHandler
     public String formatTranscriptionResult(TranscriptionResult result)
     {
         String name = result.getName();
-        String timeStamp = timeFormatter.format(Instant.now());
         String transcription = result.getAlternatives().iterator()
             .next().getTranscription();
 
-        String base = String.format(UNFORMATTED_EVENT_BASE, timeStamp, name);
-        String speech = String.format(UNFORMATTED_SPEECH, transcription);
-
-        return base + speech;
+        return name + ": " + transcription;
     }
 
     /**
