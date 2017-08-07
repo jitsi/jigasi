@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import java.time.*;
 import java.util.*;
 
 /**
@@ -36,7 +37,7 @@ public abstract class AbstractTranscriptHandler<T>
      * @param e the speech event
      * @return the SpeechEvent formatted in the desired type
      */
-    protected abstract T formatSpeechEvent(Transcript.SpeechEvent e);
+    protected abstract T formatSpeechEvent(SpeechEvent e);
 
     /**
      * Format a join event to the used format
@@ -44,7 +45,7 @@ public abstract class AbstractTranscriptHandler<T>
      * @param e the join event
      * @return the join event formatted in the desired type
      */
-    protected abstract T formatJoinEvent(Transcript.TranscriptEvent e);
+    protected abstract T formatJoinEvent(TranscriptEvent e);
 
     /**
      * Format a leave event to the used format
@@ -52,7 +53,7 @@ public abstract class AbstractTranscriptHandler<T>
      * @param e the join event
      * @return the leave event formatted in the desired type
      */
-    protected abstract T formatLeaveEvent(Transcript.TranscriptEvent e);
+    protected abstract T formatLeaveEvent(TranscriptEvent e);
 
     /**
      * Format a raised hand event to the used format
@@ -60,7 +61,7 @@ public abstract class AbstractTranscriptHandler<T>
      * @param e the raised hand event
      * @return the raised hand event formatted in the desired type
      */
-    protected abstract T formatRaisedHandEvent(Transcript.TranscriptEvent e);
+    protected abstract T formatRaisedHandEvent(TranscriptEvent e);
 
     /**
      *
@@ -69,14 +70,14 @@ public abstract class AbstractTranscriptHandler<T>
         implements TranscriptHandler.Formatter<T>
     {
         /**
-         * A string of the date of when the conference started
+         * The instant when the conference started
          */
-        protected String startDate;
+        protected Instant startInstant;
 
         /**
-         * A string of the the time of when the conference started
+         * The instant when the conference ended
          */
-        protected String startTime;
+        protected Instant endInstant;
 
         /**
          * A string of the room name
@@ -89,24 +90,17 @@ public abstract class AbstractTranscriptHandler<T>
         protected List<String> initialMembers = new LinkedList<>();
 
         /**
-         * A string of the date and time the conference ended
-         */
-        protected String endDateAndTime;
-
-        /**
          * A map which maps a timestamp to the given event type
          */
-        protected Map<Transcript.TranscriptEvent, T> formattedEvents
-            = new HashMap<>();
+        protected Map<TranscriptEvent, T> formattedEvents = new HashMap<>();
 
         @Override
-        public TranscriptHandler.Formatter<T> startedOn(
-            Transcript.TranscriptEvent event)
+        public TranscriptHandler.Formatter<T> startedOn(TranscriptEvent event)
         {
-            if(event != null)
+            if(event != null && event.getEvent().equals(
+                Transcript.TranscriptEventType.START))
             {
-                this.startDate = event.getDateString();
-                this.startTime = event.getTimeString();
+                this.startInstant = event.getTimeStamp();
             }
             return this;
         }
@@ -131,57 +125,92 @@ public abstract class AbstractTranscriptHandler<T>
 
         @Override
         public TranscriptHandler.Formatter<T> speechEvents(
-            List<Transcript.SpeechEvent> events)
+            List<SpeechEvent> events)
         {
-            for(Transcript.SpeechEvent e : events)
+            for(SpeechEvent e : events)
             {
-                formattedEvents.put(e, formatSpeechEvent(e));
+                if(e.getEvent().equals(Transcript.TranscriptEventType.SPEECH))
+                {
+                    formattedEvents.put(e, formatSpeechEvent(e));
+                }
             }
             return this;
         }
 
         @Override
         public TranscriptHandler.Formatter<T> joinEvents(
-            List<Transcript.TranscriptEvent> events)
+            List<TranscriptEvent> events)
         {
-            for(Transcript.TranscriptEvent e : events)
+            for(TranscriptEvent e : events)
             {
-                formattedEvents.put(e, formatJoinEvent(e));
+                if(e.getEvent().equals(Transcript.TranscriptEventType.JOIN))
+                {
+                    formattedEvents.put(e, formatJoinEvent(e));
+                }
             }
             return this;
         }
 
         @Override
         public TranscriptHandler.Formatter<T> leaveEvents(
-            List<Transcript.TranscriptEvent> events)
+            List<TranscriptEvent> events)
         {
-            for(Transcript.TranscriptEvent e : events)
+            for(TranscriptEvent e : events)
             {
-                formattedEvents.put(e, formatLeaveEvent(e));
+                if(e.getEvent().equals(Transcript.TranscriptEventType.LEAVE))
+                {
+                    formattedEvents.put(e, formatLeaveEvent(e));
+                }
             }
             return this;
         }
 
         @Override
         public TranscriptHandler.Formatter<T> raiseHandEvents(
-            List<Transcript.TranscriptEvent> events)
+            List<TranscriptEvent> events)
         {
-            for(Transcript.TranscriptEvent e : events)
+            for(TranscriptEvent e : events)
             {
-                formattedEvents.put(e, formatRaisedHandEvent(e));
+                if(e.getEvent().equals(
+                    Transcript.TranscriptEventType.RAISE_HAND))
+                {
+                    formattedEvents.put(e, formatRaisedHandEvent(e));
+                }
             }
             return this;
         }
 
         @Override
         public TranscriptHandler.Formatter<T> endedOn(
-            Transcript.TranscriptEvent event)
+            TranscriptEvent event)
         {
-            if(event != null)
+            if(event != null && event.getEvent().equals(
+                Transcript.TranscriptEventType.END))
             {
-                this.endDateAndTime = event.getDateTimeString();
+                this.endInstant = event.getTimeStamp();
             }
             return this;
+        }
+
+        /**
+         * Get all the events which were added to this formatter in their
+         * formatted version, sorted earliest to latest event
+         *
+         * @return the sorted list
+         */
+        protected List<T> getSortedEvents()
+        {
+            List<TranscriptEvent> sortedKeys =
+                new ArrayList<>(formattedEvents.keySet());
+            Collections.sort(sortedKeys);
+
+            List<T> sortedEvents = new ArrayList<>(sortedKeys.size());
+            for(TranscriptEvent event : sortedKeys)
+            {
+                sortedEvents.add(formattedEvents.get(event));
+            }
+
+            return sortedEvents;
         }
 
         @Override

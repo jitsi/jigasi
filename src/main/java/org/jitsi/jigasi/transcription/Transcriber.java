@@ -180,7 +180,7 @@ public class Transcriber
         }
 
         participant.joined();
-        transcript.notifyJoined(name);
+        transcript.notifyJoined(participant);
         logger.debug("Added participant " + name + " with ssrc " + ssrc);
     }
 
@@ -193,10 +193,11 @@ public class Transcriber
      */
     public void remove(String name, String id, long ssrc)
     {
-        transcript.notifyLeft(name);
         if (this.participants.containsKey(ssrc))
         {
-            participants.get(ssrc).left();
+            Participant participant =  participants.get(ssrc);
+            participant.left();
+            transcript.notifyLeft(participant);
             logger.debug("Removed participant " + name + " with ssrc " + ssrc);
             return;
         }
