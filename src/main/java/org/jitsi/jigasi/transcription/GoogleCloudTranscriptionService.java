@@ -306,6 +306,10 @@ public class GoogleCloudTranscriptionService
             String transcription = builder.toString().trim();
             resultConsumer.accept(
                     new TranscriptionResult(
+                            null,
+                            UUID.randomUUID(),
+                            false,
+                            request.getLocale().toLanguageTag(),
                             new TranscriptionAlternative(transcription)));
         }
         catch (Exception e)
@@ -427,9 +431,6 @@ public class GoogleCloudTranscriptionService
      * A Manager for RequestApiStreamObserver instances.
      * It will make sure a RequestApiStreamObserver will only be used for a
      * minute, as that is the maximum amount of time supported by the Google API
-     * Every 50 seconds, a new observer is created, which will overlap with
-     * the last 5 seconds of the previous observer. Each observer will last 55
-     * seconds
      */
     private static class RequestApiStreamObserverManager
     {
@@ -458,9 +459,20 @@ public class GoogleCloudTranscriptionService
         private final Object currentRequestObserverLock = new Object();
 
         /**
-         *
+         * Thread used to terminate a session when no new requests are coming in
          */
         private TerminatingSessionThread terminatingSessionThread;
+
+        /**
+         * The language of the speech being provided in the current session
+         */
+        private String languageTag;
+
+        /**
+         * A {@link UUID} which identifies the results (interim and final) of
+         * the current session
+         */
+        private UUID messageID;
 
         /**
          * Whether this manager has stopped and will not make new sessions
@@ -479,7 +491,6 @@ public class GoogleCloudTranscriptionService
             this.client = client;
             this.responseObserver = new ResponseApiStreamingObserver<>(this);
         }
-
 
         /**
          * Get the response observer
@@ -502,6 +513,10 @@ public class GoogleCloudTranscriptionService
         private ApiStreamObserver<StreamingRecognizeRequest> createObserver(
             RecognitionConfig config)
         {
+            // Set a UUID and a language tag for the new session
+            this.messageID = UUID.randomUUID();
+            this.languageTag = config.getLanguageCode();
+
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
             StreamingRecognitionConfig streamingRecognitionConfig =
@@ -612,6 +627,26 @@ public class GoogleCloudTranscriptionService
                 }
             }
         }
+
+        /**
+         * Get the language tag in which results are being given
+         *
+         * @return the language tag
+         */
+        String getLanguageTag()
+        {
+            return languageTag;
+        }
+
+        /**
+         * Get the {@link UUID} which identifies the current results
+         *
+         * @return the UUID
+         */
+        UUID getCurrentMessageID()
+        {
+            return messageID;
+        }
     }
 
     /**
@@ -684,16 +719,21 @@ public class GoogleCloudTranscriptionService
 
             // If there is a result with is_final=true, it's always the first
             // and there is only ever 1
-            StreamingRecognitionResult finalRequest = results.get(0);
-            if(!finalRequest.getIsFinal())
+            StreamingRecognitionResult finalResult = results.get(0);
+            if(!finalResult.getIsFinal())
             {
-                // wait until we get a final result
+                // handle the interim results and continue waiting for
+                // final result
+                for(StreamingRecognitionResult interimResult : results)
+                {
+                    handleResult(interimResult);
+                }
                 return;
             }
 
             // should always contains one result
             List<SpeechRecognitionAlternative> alternatives
-                = finalRequest.getAlternativesList();
+                = finalResult.getAlternativesList();
 
             // If empty, the session has reached it's time limit and
             // nothing new was said, but there should be an error in the message
@@ -706,19 +746,43 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            TranscriptionResult transcriptionResult
-                = new TranscriptionResult();
+            handleResult(finalResult);
+
+            requestManager.terminateCurrentSession();
+        }
+
+        /**
+         * Handle a single {@link StreamingRecognitionResult} by creating
+         * a {@link TranscriptionResult} based on the result and notifying all
+         * all registered {@link TranscriptionListener}s
+         *
+         * @param result the result to handle
+         */
+        private void handleResult(StreamingRecognitionResult result)
+        {
+            List<SpeechRecognitionAlternative> alternatives
+                = result.getAlternativesList();
+
+            if(alternatives.isEmpty())
+            {
+                return;
+            }
+
+            TranscriptionResult transcriptionResult = new TranscriptionResult(
+                null,
+                requestManager.getCurrentMessageID(),
+                !result.getIsFinal(),
+                requestManager.getLanguageTag());
+
             for(SpeechRecognitionAlternative alternative : alternatives)
             {
                 transcriptionResult.addAlternative(
                     new TranscriptionAlternative(
-                            alternative.getTranscript(),
-                            alternative.getConfidence()));
+                        alternative.getTranscript(),
+                        alternative.getConfidence()));
             }
 
             sent(transcriptionResult);
-
-            requestManager.terminateCurrentSession();
         }
 
         @Override
