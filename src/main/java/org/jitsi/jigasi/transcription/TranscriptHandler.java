@@ -37,6 +37,14 @@ public interface TranscriptHandler<T>
     Formatter<T> format();
 
     /**
+     * Format a single result into
+     *
+     * @param result the result
+     * @return the formatted result
+     */
+    T formatTranscriptionResult(TranscriptionResult result);
+
+    /**
      * Publish a formatted transcript to a desired location
      *
      * @param transcript the formatted transcript to publish
@@ -51,13 +59,15 @@ public interface TranscriptHandler<T>
     interface Formatter<T>
     {
         /**
-         * Format a transcript which includes when it started
+         * Format a transcript which includes when it started.
+         * Ignored when the given event does not have the event type
+         * {@link Transcript.TranscriptEventType#START}
          *
          * @param event a event without a name which has the timestamp of when
          *              the conference started
          * @return this formatter
          */
-        Formatter<T> startedOn(Transcript.TranscriptEvent event);
+        Formatter<T> startedOn(TranscriptEvent event);
 
         /**
          * Format a transcript which includes the room name
@@ -77,46 +87,54 @@ public interface TranscriptHandler<T>
 
         /**
          * Format a transcript which includes what everyone who was transcribed
-         * said
+         * said. Ignored when the given event does not have the event type
+         * {@link Transcript.TranscriptEventType#SPEECH}
          *
          * @param events a list of events containing the transcriptions
          * @return this formatter
          */
-        Formatter<T> speechEvents(List<Transcript.SpeechEvent> events);
+        Formatter<T> speechEvents(List<SpeechEvent> events);
 
         /**
-         * Format a transcript which includes when anyone joined the conference
+         * Format a transcript which includes when anyone joined the conference.
+         * Ignored when the given event does not have the event type
+         * {@link Transcript.TranscriptEventType#JOIN}
          *
          * @param events a list of events containing the transcriptions
          * @return this formatter
          */
-        Formatter<T> joinEvents(List<Transcript.TranscriptEvent> events);
+        Formatter<T> joinEvents(List<TranscriptEvent> events);
 
         /**
-         * Format a transcript which includes when anyone left the conference
+         * Format a transcript which includes when anyone left the conference.
+         * Ignored when the given event does not have the event type
+         * {@link Transcript.TranscriptEventType#LEAVE}
          *
          * @param events a list of events containing the transcriptions
          * @return this formatter
          */
-        Formatter<T> leaveEvents(List<Transcript.TranscriptEvent> events);
+        Formatter<T> leaveEvents(List<TranscriptEvent> events);
 
         /**
          * Format a transcript which includes when anyone raised their hand
-         * to speak
+         * to speak. Ignored when the given event does not have the event type
+         * {@link Transcript.TranscriptEventType#RAISE_HAND}
          *
          * @param events a list of events containing the transcriptions
          * @return this formatter
          */
-        Formatter<T> raiseHandEvents(List<Transcript.TranscriptEvent> events);
+        Formatter<T> raiseHandEvents(List<TranscriptEvent> events);
 
         /**
-         * Format a transcript which includes when it ended
+         * Format a transcript which includes when it ended. Ignored when the
+         * given event does not have the event type
+         * {@link Transcript.TranscriptEventType#END}
          *
          * @param event a event without a name which has the timestamp of when
          *              the conference ended
          * @return this formatter
          */
-        Formatter<T> endedOn(Transcript.TranscriptEvent event);
+        Formatter<T> endedOn(TranscriptEvent event);
 
         /**
          * Finish the formatting by returning the formatted transcript

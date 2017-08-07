@@ -18,7 +18,6 @@
 package org.jitsi.jigasi.transcription;
 
 import java.time.*;
-import java.time.format.*;
 import java.util.*;
 
 /**
@@ -31,31 +30,17 @@ public class Transcript
     implements TranscriptionListener
 {
     /**
-     * Formats an Instant to <hour:minute:second> in the timezone the machine
-     * is running on
+     * Events which can take place in the transcript
      */
-    private static final DateTimeFormatter timeFormatter
-        = DateTimeFormatter
-        .ofLocalizedTime(FormatStyle.MEDIUM)
-        .withZone(ZoneOffset.UTC);
-
-    /**
-     * Formats an Instant to a date in the preferred way of the Zone the
-     * machine is running in
-     */
-    private static final DateTimeFormatter dateFormatter
-        = DateTimeFormatter
-        .ofLocalizedDate(FormatStyle.MEDIUM)
-        .withZone(ZoneOffset.UTC);
-
-    /**
-     * Formats an Instant to a date and time in the timezone the machine is
-     * running in
-     */
-    private static final DateTimeFormatter dateTimeFormatter
-        = DateTimeFormatter
-        .ofLocalizedDateTime(FormatStyle.MEDIUM)
-        .withZone(ZoneOffset.UTC);
+    public enum TranscriptEventType
+    {
+        START,
+        SPEECH,
+        JOIN,
+        LEAVE,
+        RAISE_HAND,
+        END
+    }
 
     /**
      * The list of all received speechEvents
@@ -122,7 +107,6 @@ public class Transcript
      * Speech can be stored using the TranscriptionListener
      * Other events, such as people joining and leaving, can be stored using
      * their instance methods
-     *
      */
     Transcript()
     {
@@ -155,7 +139,8 @@ public class Transcript
     {
         if(started == null)
         {
-            this.started = new TranscriptEvent(Instant.now());
+            this.started
+                = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
             this.initialParticipantNames.addAll(initialNames);
         }
     }
@@ -173,7 +158,8 @@ public class Transcript
         if(started == null)
         {
             this.roomName = roomName;
-            this.started = new TranscriptEvent(Instant.now());
+            this.started
+                = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
             this.initialParticipantNames.addAll(initialNames);
         }
     }
@@ -187,35 +173,38 @@ public class Transcript
     {
         if(started != null && ended == null)
         {
-            this.ended = new TranscriptEvent(Instant.now());
+            this.ended
+                = new TranscriptEvent(Instant.now(), TranscriptEventType.END);
         }
     }
 
     /**
-     * Notify the transcript that someone joined at this exact moment
+     * Notify the transcript that someone joined at this exact moment.
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param name the name of that person
+     * @param participant the participant who joined
      */
-    public void notifyJoined(String name)
+    public void notifyJoined(Participant participant)
     {
         if(started != null && ended == null)
         {
-            joinedEvents.add(new TranscriptEvent(Instant.now(), name));
+            joinedEvents.add(new TranscriptEvent(Instant.now(), participant,
+                TranscriptEventType.JOIN));
         }
     }
 
     /**
-     * Notify the transcript that someone left at this exact moment
+     * Notify the transcript that someone left at this exact moment.
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param name the name of that person
+     * @param participant the participant who left
      */
-    public void notifyLeft(String name)
+    public void notifyLeft(Participant participant)
     {
         if(started != null && ended == null)
         {
-            leftEvents.add(new TranscriptEvent(Instant.now(), name));
+            leftEvents.add(new TranscriptEvent(Instant.now(), participant,
+                TranscriptEventType.LEAVE));
         }
     }
 
@@ -223,13 +212,14 @@ public class Transcript
      * Notify the transcript that someone raised their hand at this exact moment
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param name the name of that person
-     */
-    public void notifyRaisedHand(String name)
+     * @param participant the participant who raised their hand
+     * */
+    public void notifyRaisedHand(Participant participant)
     {
         if(started != null && ended == null)
         {
-            raisedHandEvents.add(new TranscriptEvent(Instant.now(), name));
+            raisedHandEvents.add(new TranscriptEvent(Instant.now(), participant,
+                TranscriptEventType.RAISE_HAND));
         }
     }
 
@@ -265,163 +255,4 @@ public class Transcript
     {
         handler.publish(getTranscript(handler));
     }
-
-    /**
-     * Describe an TranscriptEvent which took place at a certain time and
-     * can belong to a named person
-     */
-    public class TranscriptEvent
-        implements Comparable<TranscriptEvent>
-    {
-        /**
-         * The time when the event took place
-         */
-        private Instant timeStamp;
-
-        /**
-         * The name of the person who caused this event
-         */
-        private String name;
-
-        /**
-         * Create a TranscriptEvent which has a TimeStamp and a name
-         *
-         * @param timeStamp the time the event took place
-         * @param name  the name of who caused this event
-         */
-        TranscriptEvent(Instant timeStamp, String name)
-        {
-            this.timeStamp = timeStamp;
-            this.name = name;
-        }
-
-        /**
-         * Create a TranscriptEvent which has a TimeStamp and a name
-         *
-         * @param timeStamp the time the event took place
-         */
-        TranscriptEvent(Instant timeStamp)
-        {
-            this(timeStamp, "");
-        }
-
-        /**
-         * Get the Instant of when this event took place
-         *
-         * @return the instant
-         */
-        public Instant getTimeStamp()
-        {
-            return timeStamp;
-        }
-
-        /**
-         * Get the name of the person who caused this event
-         *
-         * @return the name as a String
-         */
-        public String getName()
-        {
-            return name;
-        }
-
-        /**
-         * Events can be compared by the TimeStamp they took place. When another
-         * event took place earlier than this one, it is compared as smaller
-         * (< 0), when it took place at exactly the same time, they are equal
-         * (0), and when another event took place later, it is bigger (> 0)
-         *
-         * @return negative int when smaller, 0 when equal, positive int when
-         * bigger
-         * @throws NullPointerException when other is null
-         */
-        @Override
-        public int compareTo(TranscriptEvent other)
-            throws NullPointerException
-        {
-            return this.timeStamp.compareTo(other.timeStamp);
-        }
-
-        /**
-         * Overwritten to have expected behaviour with compareTo method
-         */
-        @Override
-        public boolean equals(Object obj)
-        {
-            return obj instanceof TranscriptEvent &&
-                this.timeStamp.equals(((TranscriptEvent) obj).timeStamp);
-        }
-
-        /**
-         * Get a string representing the hours, minutes and seconds of when this
-         * event took place, in the time-zone of the machine running the app
-         *
-         * @return a time string
-         */
-        public String getTimeString()
-        {
-            return timeFormatter.format(this.timeStamp);
-        }
-
-        /**
-         * Get a string representing the date this event took place, in the
-         * time-zone and format of the machine running the app
-         *
-         * @return a date string
-         */
-        public String getDateString()
-        {
-            return dateFormatter.format(this.timeStamp);
-        }
-
-        /**
-         * Get a string representing the date and hours, minutes and seconds of
-         * when this event took place, in the time-zone of the machine running
-         * the app
-         *
-         * @return a date time string
-         */
-        public String getDateTimeString()
-        {
-            return dateTimeFormatter.format(this.timeStamp);
-        }
-
-    }
-
-    /**
-     * A SpeechEvent extends a normal TranscriptEvent by including a
-     * TranscriptionResult
-     */
-    public class SpeechEvent
-        extends TranscriptEvent
-    {
-        /**
-         * The transcriptionResult
-         */
-        private TranscriptionResult result;
-
-        /**
-         * Create a ResultHolder with a given TranscriptionResult and timestamp
-         *
-         * @param timeStamp the time when the result was received
-         * @param result the result which was received
-         */
-        private SpeechEvent(Instant timeStamp, TranscriptionResult result)
-        {
-            super(timeStamp, result.getName());
-            this.result = result;
-        }
-
-        /**
-         * Get the TranscriptionResult this holder is holding
-         *
-         * @return the result
-         */
-        public TranscriptionResult getResult()
-        {
-            return result;
-        }
-
-    }
-
 }

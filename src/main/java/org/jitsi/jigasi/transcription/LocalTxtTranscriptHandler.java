@@ -22,6 +22,7 @@ import org.jitsi.util.*;
 
 import java.io.*;
 import java.time.*;
+import java.time.format.*;
 import java.util.*;
 
 /**
@@ -159,10 +160,52 @@ public class LocalTxtTranscriptHandler
     private static final String UNFORMATTED_RAISED_HAND
         = UNFORMATTED_EVENT_BASE + " raised their hand";
 
+    /**
+     * Formats an Instant to <hour:minute:second> in the timezone the machine
+     * is running on
+     */
+    private static final DateTimeFormatter timeFormatter
+        = DateTimeFormatter
+        .ofLocalizedTime(FormatStyle.MEDIUM)
+        .withZone(ZoneOffset.UTC);
+
+    /**
+     * Formats an Instant to a date in the preferred way of the Zone the
+     * machine is running in
+     */
+    private static final DateTimeFormatter dateFormatter
+        = DateTimeFormatter
+        .ofLocalizedDate(FormatStyle.MEDIUM)
+        .withZone(ZoneOffset.UTC);
+
+    /**
+     * Formats an Instant to a date and time in the timezone the machine is
+     * running in
+     */
+    private static final DateTimeFormatter dateTimeFormatter
+        = DateTimeFormatter
+        .ofLocalizedDateTime(FormatStyle.MEDIUM)
+        .withZone(ZoneOffset.UTC);
+
+
     @Override
     public TranscriptHandler.Formatter<String> format()
     {
-        return new MarkDownFormatter();
+        return new TxtFormatter();
+    }
+
+    @Override
+    public String formatTranscriptionResult(TranscriptionResult result)
+    {
+        String name = result.getName();
+        String timeStamp = timeFormatter.format(Instant.now());
+        String transcription = result.getAlternatives().iterator()
+            .next().getTranscription();
+
+        String base = String.format(UNFORMATTED_EVENT_BASE, timeStamp, name);
+        String speech = String.format(UNFORMATTED_SPEECH, transcription);
+
+        return base + speech;
     }
 
     /**
@@ -224,10 +267,10 @@ public class LocalTxtTranscriptHandler
     }
 
     @Override
-    protected String formatSpeechEvent(Transcript.SpeechEvent e)
+    protected String formatSpeechEvent(SpeechEvent e)
     {
         String name = e.getName();
-        String timeStamp = e.getTimeString();
+        String timeStamp = timeFormatter.format(e.getTimeStamp());
         String transcription = e.getResult().getAlternatives().iterator().next()
             .getTranscription();
 
@@ -242,28 +285,28 @@ public class LocalTxtTranscriptHandler
     }
 
     @Override
-    protected String formatJoinEvent(Transcript.TranscriptEvent e)
+    protected String formatJoinEvent(TranscriptEvent e)
     {
         String name = e.getName();
-        String timeStamp = e.getTimeString();
+        String timeStamp = timeFormatter.format(e.getTimeStamp());
 
         return String.format(UNFORMATTED_JOIN, timeStamp, name) + NEW_LINE;
     }
 
     @Override
-    protected String formatLeaveEvent(Transcript.TranscriptEvent e)
+    protected String formatLeaveEvent(TranscriptEvent e)
     {
         String name = e.getName();
-        String timeStamp = e.getTimeString();
+        String timeStamp = timeFormatter.format(e.getTimeStamp());
 
         return String.format(UNFORMATTED_LEAVE, timeStamp, name) + NEW_LINE;
     }
 
     @Override
-    protected String formatRaisedHandEvent(Transcript.TranscriptEvent e)
+    protected String formatRaisedHandEvent(TranscriptEvent e)
     {
         String name = e.getName();
-        String timeStamp = e.getTimeString();
+        String timeStamp = timeFormatter.format(e.getTimeStamp());
 
         return String.format(UNFORMATTED_RAISED_HAND, timeStamp, name)
             + NEW_LINE;
@@ -273,11 +316,11 @@ public class LocalTxtTranscriptHandler
      * Create a header for the transcript, which will contain the date, name
      * of the conference room, and the initial people present.
      *
-     *
+     * @param startInstant the instant the conference started
      * @param roomName the room name to put in the header
      * @param initialMembers the list of people present to put in the header
      */
-    private String createHeader(String dateString, String timeString,
+    private String createHeader(Instant startInstant,
                                 String roomName, List<String> initialMembers)
     {
         String initialMembersString;
@@ -292,6 +335,8 @@ public class LocalTxtTranscriptHandler
         }
 
         String header;
+        String dateString = dateFormatter.format(startInstant);
+        String timeString = timeFormatter.format(startInstant);
         if(roomName == null)
         {
             header = String.format(UNFORMATTED_HEADER,
@@ -317,9 +362,13 @@ public class LocalTxtTranscriptHandler
      * The footer of the transcript can only be created once. Only the first
      * call will result in the creation of the footer, following calls will be
      * ignored
+     *
+     * @param endInstant the instant when the conference ended
      */
-    private String createFooter(String dateTimeString)
+    private String createFooter(Instant endInstant)
     {
+        String dateTimeString = dateTimeFormatter.format(endInstant);
+
         return getDelimiter() + NEW_LINE
             + String.format(UNFORMATTED_FOOTER, dateTimeString);
     }
@@ -401,26 +450,30 @@ public class LocalTxtTranscriptHandler
         return formattedBuilder.toString();
     }
 
-    private class MarkDownFormatter
+    /**
+     * Builds a string which can be written into a .txt file to store a
+     * final transcript
+     */
+    private class TxtFormatter
         extends BaseFormatter
     {
         @Override
         public String finish()
         {
-            String header = createHeader(super.startDate, super.startTime,
-                super.roomName, super.initialMembers);
-            String footer = createFooter(super.endDateAndTime);
+            String header = createHeader(super.startInstant, super.roomName,
+                super.initialMembers);
+            String footer = createFooter(super.endInstant);
 
             final StringBuilder builder = new StringBuilder();
             builder.append(header);
 
-            List<Transcript.TranscriptEvent> sortedKeys =
+            List<TranscriptEvent> sortedKeys =
                 new ArrayList<>(super.formattedEvents.keySet());
             Collections.sort(sortedKeys);
 
-            for(Transcript.TranscriptEvent key : sortedKeys)
+            for(String event : super.getSortedEvents())
             {
-                builder.append(super.formattedEvents.get(key));
+                builder.append(event);
             }
 
             builder.append(footer);

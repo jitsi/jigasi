@@ -287,7 +287,7 @@ public class TranscriptionGatewaySession
     @Override
     public void notify(TranscriptionResult result)
     {
-        sendMessageToRoom(result.toString());
+        sendMessageToRoom(handler.formatTranscriptionResult(result).toString());
     }
 
     /**
