@@ -21,8 +21,7 @@ import java.util.*;
 
 /**
  * A TranscriptionResult which is created when audio has been transcribed
- * by a speech-to-text service. It holds the request which result an instance
- * of this class represents
+ * by a speech-to-text service.
  *
  * @author Nik Vaessen
  * @author Boris Grozev
@@ -31,7 +30,7 @@ public class TranscriptionResult
 {
     /**
      * The {@link Participant} whose audio this {@link TranscriptionResult} is
-     * a transcription of.
+     * a transcription of. Can be null.
      */
     private Participant participant;
 
@@ -42,17 +41,65 @@ public class TranscriptionResult
         = new LinkedList<>();
 
     /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
+     * A {@link UUID} to identify this result. If {@link this#isInterim} is
+     * true new result, which can either also be interim or final and which
+     * belong to this result, are expected to have the same UUID
+     */
+    private UUID messageID;
+
+    /**
+     * Whether this result is an interim result, and thus it should be expected
+     * that other {@link TranscriptionResult}s have the same
+     * {@link this#messageID} value
+     */
+    private boolean isInterim;
+
+    /**
+     * The language, expected to be represented as a BCP-47 tag, of this
+     * result's text.
+     */
+    private String language;
+
+    /**
+     * Create a TranscriptionResult
      *
      * @param participant the participant whose audio was transcribed.
+     * @param isInterim whether this result is an interim result
+     * @param messageID uuid of this result
+     * @param language the language of the text of this result
+     * @param alternative the single alternative to add
+     */
+    public TranscriptionResult(
+        Participant participant,
+        UUID messageID,
+        boolean isInterim,
+        String language,
+        TranscriptionAlternative alternative)
+    {
+        this(participant, messageID, isInterim, language);
+        if (alternative != null)
+        {
+            this.alternatives.add(alternative);
+        }
+    }
+
+    /**
+     * Create a TranscriptionResult
+     *
+     * @param participant the participant whose audio was transcribed.
+     * @param isInterim whether this result is an interim result
+     * @param messageID uuid of this result
+     * @param language the language of the text of this result
      * @param alternatives the alternative transcriptions.
      */
     public TranscriptionResult(
-            Participant participant,
-            Collection<TranscriptionAlternative> alternatives)
+        Participant participant,
+        UUID messageID,
+        boolean isInterim,
+        String language,
+        Collection<TranscriptionAlternative> alternatives)
     {
-        this.participant = participant;
+        this(participant, messageID, isInterim, language);
         if (alternatives != null)
         {
             this.alternatives.addAll(alternatives);
@@ -60,62 +107,23 @@ public class TranscriptionResult
     }
 
     /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
+     * Create a TranscriptionResult
      *
      * @param participant the participant whose audio was transcribed.
-     * @param alternative the single alternative transcription to add.
+     * @param isInterim whether this result is an interim result
+     * @param messageID uuid of this result
+     * @param language the language of the text of this result
      */
     public TranscriptionResult(
         Participant participant,
-        TranscriptionAlternative alternative)
+        UUID messageID,
+        boolean isInterim,
+        String language)
     {
         this.participant = participant;
-        alternatives.add(alternative);
-    }
-
-    /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
-     *
-     * @param alternative the single alternative transcription to add.
-     */
-    public TranscriptionResult(TranscriptionAlternative alternative)
-    {
-        participant = null;
-        alternatives.add(alternative);
-    }
-
-    /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
-     *
-     * @param alternatives the alternative transcriptions.
-     */
-    public TranscriptionResult(
-        Collection<TranscriptionAlternative> alternatives)
-    {
-        this(null, alternatives);
-    }
-
-    /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
-     *
-     * @param participant the participant whose audio was transcribed.
-     */
-    public TranscriptionResult(Participant participant)
-    {
-        this.participant = participant;
-    }
-
-    /**
-     * Create a TranscriptionResult of a TranscriptionRequest which
-     * will hold the text of the audio
-     */
-    public TranscriptionResult()
-    {
-        participant = null;
+        this.messageID = messageID;
+        this.isInterim = isInterim;
+        this.language = language;
     }
 
     /**
@@ -148,6 +156,37 @@ public class TranscriptionResult
     }
 
     /**
+     * Get the {@link UUID} of this message
+     *
+     * @return the UUID
+     */
+    public UUID getMessageID()
+    {
+        return messageID;
+    }
+
+    /**
+     * Get whether this result is an interim result
+     *
+     * @return true if interim result, false otherwise
+     */
+    public boolean isInterim()
+    {
+        return isInterim;
+    }
+
+    /**
+     * Get the language tag of this TranscriptionAlternative's transcription
+     * text
+     *
+     * @return the language tag as a String
+     */
+    public String getLanguage()
+    {
+        return language;
+    }
+
+    /**
      * {@inheritDoc}
      * </p>
      * In this default implementation we include all alternative transcriptions.
@@ -175,5 +214,15 @@ public class TranscriptionResult
     public void setParticipant(Participant participant)
     {
         this.participant = participant;
+    }
+
+    /**
+     * Get this {@link TranscriptionResult}'s {@link Participant}.
+     *
+     * @return the {@link Participant}.
+     */
+    public Participant getParticipant()
+    {
+        return participant;
     }
 }
