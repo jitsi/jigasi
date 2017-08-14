@@ -22,6 +22,8 @@ import java.time.*;
 /**
  * A SpeechEvent extends a normal TranscriptEvent by including a
  * TranscriptionResult
+ *
+ * @author Nik Vaessen
  */
 public class SpeechEvent
     extends TranscriptEvent

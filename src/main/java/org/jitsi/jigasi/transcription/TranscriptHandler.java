@@ -17,130 +17,103 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
+
 import java.util.*;
 
 /**
- * A TranscriptHandler can build a Transcript in a desired format and
- * publish it to a desired location
- *
- * @param <T> the type wherein the transcript will be made
+ * This class is used to publish TranscriptionResults and Transcript to the
+ * what is desired by adding the necessary {@link TranscriptionResultPublisher}
+ * and {@link TranscriptPublisher}s
  *
  * @author Nik Vaessen
  */
-public interface TranscriptHandler<T>
+public class TranscriptHandler
 {
     /**
-     * Start building a formatted transcript
-     *
-     * @return the builder
+     * The list of {@link TranscriptionResultPublisher} which will handle
+     * {@link TranscriptionResult}s
      */
-    Formatter<T> format();
+    private List<TranscriptionResultPublisher> resultPublishers
+        = new LinkedList<>();
 
     /**
-     * Format a single result into
-     *
-     * @param result the result
-     * @return the formatted result
+     * The list of {@link TranscriptPublisher} which will handle
+     * {@link Transcript}s
      */
-    T formatTranscriptionResult(TranscriptionResult result);
+    private List<TranscriptPublisher> transcriptPublishers = new LinkedList<>();
 
     /**
-     * Publish a formatted transcript to a desired location
+     * Handle a {@link TranscriptionResult} with all given
+     * {@link TranscriptionResultPublisher}'s
      *
-     * @param transcript the formatted transcript to publish
+     * @param room the {@link ChatRoom} to send the result to
+     * @param result the {@link TranscriptionResult} to handle
      */
-    void publish(T transcript);
-
-    /**
-     * The Formatter which used a fluent API
-     *
-     * @param <T> the type wherein the transcript will be formatted
-     */
-    interface Formatter<T>
+    public void publishTranscriptionResult(ChatRoom room,
+                                           TranscriptionResult result)
     {
-        /**
-         * Format a transcript which includes when it started.
-         * Ignored when the given event does not have the event type
-         * {@link Transcript.TranscriptEventType#START}
-         *
-         * @param event a event without a name which has the timestamp of when
-         *              the conference started
-         * @return this formatter
-         */
-        Formatter<T> startedOn(TranscriptEvent event);
+        for(TranscriptionResultPublisher p : resultPublishers)
+        {
+            p.publish(room, result);
+        }
+    }
 
-        /**
-         * Format a transcript which includes the room name
-         *
-         * @param roomName the name of the room
-         * @return this formatter
-         */
-        Formatter<T> tookPlaceInRoom(String roomName);
+    /**
+     * Get the {@link TranscriptPublisher.Promise}s which can handle a
+     * {@link Transcript} for all given {@link TranscriptPublisher}s
+     *
+     * @return a list of {@link TranscriptPublisher.Promise}s
+     */
+    public List<TranscriptPublisher.Promise> getTranscriptPublishPromises()
+    {
+        List<TranscriptPublisher.Promise> promises = new LinkedList<>();
+        for(TranscriptPublisher p : transcriptPublishers)
+        {
+            promises.add(p.getPublishPromise());
+        }
 
-        /**
-         * Format a transcript which includes the list of initial participant
-         *
-         * @param participants the list of participants
-         * @return this formatter
-         */
-        Formatter<T> initialParticipants(List<Participant> participants);
+        return promises;
+    }
 
-        /**
-         * Format a transcript which includes what everyone who was transcribed
-         * said. Ignored when the given event does not have the event type
-         * {@link Transcript.TranscriptEventType#SPEECH}
-         *
-         * @param events a list of events containing the transcriptions
-         * @return this formatter
-         */
-        Formatter<T> speechEvents(List<SpeechEvent> events);
+    /**
+     * Add a {@link TranscriptPublisher}
+     *
+     * @param publisher the {@link TranscriptPublisher} to add
+     */
+    public void add(TranscriptPublisher publisher)
+    {
+        transcriptPublishers.add(publisher);
+    }
 
-        /**
-         * Format a transcript which includes when anyone joined the conference.
-         * Ignored when the given event does not have the event type
-         * {@link Transcript.TranscriptEventType#JOIN}
-         *
-         * @param events a list of events containing the transcriptions
-         * @return this formatter
-         */
-        Formatter<T> joinEvents(List<TranscriptEvent> events);
+    /**
+     * Remove a {@link TranscriptPublisher}
+     *
+     * @param publisher the {@link TranscriptPublisher} to remove
+     */
+    public void remove(TranscriptPublisher publisher)
+    {
+        transcriptPublishers.remove(publisher);
+    }
 
-        /**
-         * Format a transcript which includes when anyone left the conference.
-         * Ignored when the given event does not have the event type
-         * {@link Transcript.TranscriptEventType#LEAVE}
-         *
-         * @param events a list of events containing the transcriptions
-         * @return this formatter
-         */
-        Formatter<T> leaveEvents(List<TranscriptEvent> events);
 
-        /**
-         * Format a transcript which includes when anyone raised their hand
-         * to speak. Ignored when the given event does not have the event type
-         * {@link Transcript.TranscriptEventType#RAISE_HAND}
-         *
-         * @param events a list of events containing the transcriptions
-         * @return this formatter
-         */
-        Formatter<T> raiseHandEvents(List<TranscriptEvent> events);
+    /**
+     * Add a {@link TranscriptionResultPublisher}
+     *
+     * @param publisher the {@link TranscriptionResultPublisher} to add
+     */
+    public void add(TranscriptionResultPublisher publisher)
+    {
+        resultPublishers.add(publisher);
+    }
 
-        /**
-         * Format a transcript which includes when it ended. Ignored when the
-         * given event does not have the event type
-         * {@link Transcript.TranscriptEventType#END}
-         *
-         * @param event a event without a name which has the timestamp of when
-         *              the conference ended
-         * @return this formatter
-         */
-        Formatter<T> endedOn(TranscriptEvent event);
-
-        /**
-         * Finish the formatting by returning the formatted transcript
-         *
-         * @return the transcript
-         */
-        T finish();
+    /**
+     * Remove a {@link TranscriptionResultPublisher}
+     *
+     * @param publisher the {@link TranscriptionResultPublisher} to remove
+     */
+    public void remove(TranscriptionResultPublisher publisher)
+    {
+        resultPublishers.remove(publisher);
     }
 }

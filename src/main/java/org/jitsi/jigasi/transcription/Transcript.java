@@ -228,13 +228,14 @@ public class Transcript
     /**
      * Get a formatted transcript of the events stored by this object
      *
-     * @param handler the handler being able to format
+     * @param publisher a publisher which has a formatter to create a transcript
+     *                  in the desired type
      * @param <T> the type in which the transcript will be stored
      * @return a formatted transcript with type T
      */
-    public <T> T getTranscript(TranscriptHandler<T> handler)
+    public <T> T getTranscript(AbstractTranscriptPublisher<T> publisher)
     {
-        return handler.format()
+        return publisher.getFormatter()
             .startedOn(started)
             .initialParticipants(initialParticipantNames)
             .tookPlaceInRoom(roomName)
@@ -246,15 +247,4 @@ public class Transcript
             .finish();
     }
 
-    /**
-     * Save the events stored by this transcript using the given handler
-     *
-     * @param handler the handler which is able to format and store the
-     *                transcript
-     * @param <T> the type the handler uses to format the transcript
-     */
-    public <T> void saveTranscript(TranscriptHandler<T> handler)
-    {
-        handler.publish(getTranscript(handler));
-    }
 }
