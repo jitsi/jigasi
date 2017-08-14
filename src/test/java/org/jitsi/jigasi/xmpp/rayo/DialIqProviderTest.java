@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.xmpp.rayo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
-import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.xmpp.util.IQUtils;
 import org.jivesoftware.smack.packet.IQ;
 import org.junit.Test;
 import org.junit.runner.*;
@@ -67,7 +67,7 @@ public class DialIqProviderTest
 
     private String getDialIqXML(String to, String from)
     {
-        return RayoIqProvider.DialIq.create(to, from).toXML();
+        return RayoIqProvider.DialIq.create(to, from).toXML().toString();
     }
 
     @Test
@@ -78,7 +78,7 @@ public class DialIqProviderTest
 
         RayoIqProvider.DialIq dialIq = RayoIqProvider.DialIq.create(dst, src);
 
-        String id = dialIq.getPacketID();
+        String id = dialIq.getStanzaId();
         String type = dialIq.getType().toString();
 
         assertEquals(
@@ -88,7 +88,7 @@ public class DialIqProviderTest
                     " from='%s' to='%s' />" +
                 "</iq>",
                 id, type, src, dst),
-            dialIq.toXML()
+            dialIq.toXML().toString()
         );
 
         dialIq.setHeader("h1", "v1");
@@ -101,7 +101,7 @@ public class DialIqProviderTest
                     "</dial>" +
                     "</iq>",
                 id, type, src, dst),
-            dialIq.toXML()
+            dialIq.toXML().toString()
         );
     }
 
@@ -122,10 +122,10 @@ public class DialIqProviderTest
                     dialIqXml, new RayoIqProvider());
 
         // IQ
-        assertEquals("123", iq.getPacketID());
-        assertEquals(IQ.Type.SET, iq.getType());
-        assertEquals("fromJid", iq.getFrom());
-        assertEquals("toJid", iq.getTo());
+        assertEquals("123", iq.getStanzaId());
+        assertEquals(IQ.Type.set, iq.getType());
+        assertEquals("fromJid", iq.getFrom().toString());
+        assertEquals("toJid", iq.getTo().toString());
         // Dial
         assertEquals("source", iq.getSource());
         assertEquals("dest", iq.getDestination());

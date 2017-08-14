@@ -18,6 +18,9 @@
 package org.jitsi.jigasi;
 
 import org.jitsi.util.*;
+import org.jxmpp.jid.Jid;
+import org.jxmpp.jid.impl.JidCreate;
+import org.jxmpp.stringprep.XmppStringprepException;
 
 /**
  * The call context with all the parameters needed while
@@ -106,13 +109,13 @@ public class CallContext
      * Call resource identifying this call context.
      * Generated in the form 'timestamp@domain' or 'timestamp@subdomain.domain'.
      */
-    private String callResource;
+    private Jid callResource;
 
     /**
      * There is an option for setting custom call resource, currently used only
      * in tests.
      */
-    private String customCallResource = null;
+    private Jid customCallResource = null;
 
     /**
      * Constructs new CallContext saving the timestamp at which it was created.
@@ -247,7 +250,7 @@ public class CallContext
      * Returns the call resource to use for this call context.
      * @return the call resource to use for this call context.
      */
-    public String getCallResource()
+    public Jid getCallResource()
     {
         if (customCallResource != null)
             return customCallResource;
@@ -259,7 +262,7 @@ public class CallContext
      * Sets custom call resource to use.
      * @param customCallResource custom call resource to use.
      */
-    public void setCustomCallResource(String customCallResource)
+    public void setCustomCallResource(Jid customCallResource)
     {
         this.customCallResource = customCallResource;
     }
@@ -281,11 +284,18 @@ public class CallContext
     {
         if (this.domain != null)
         {
-            this.callResource
-                = Long.toHexString(this.timestamp)
-                + "@"
-                + (this.subDomain != null ? this.subDomain + "." : "")
-                + this.domain;
+            try
+            {
+                this.callResource = JidCreate.entityBareFrom(
+                    Long.toHexString(this.timestamp)
+                    + "@"
+                    + (this.subDomain != null ? this.subDomain + "." : "")
+                    + this.domain);
+            }
+            catch (XmppStringprepException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
     }
 

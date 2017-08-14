@@ -110,15 +110,8 @@ public class UIServiceStub
     }
 
     @Override
-    public void setExitOnMainWindowClose(boolean exitOnClose)
+    public void setMainWindowCanHide(boolean canHide)
     {
-
-    }
-
-    @Override
-    public boolean getExitOnMainWindowClose()
-    {
-        return false;
     }
 
     @Override

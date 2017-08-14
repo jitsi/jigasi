@@ -19,6 +19,8 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
+    <smack.version>4.2.1-beta1</smack.version>
+    <jitsi-desktop.version>2.11-SNAPSHOT</jitsi-desktop.version>
   </properties>
 
   <dependencies>
@@ -42,13 +44,8 @@
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
-      <artifactId>smack</artifactId>
-      <version>3.2.2-jitsi-3-20170721.194509-1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.igniterealtime.smack</groupId>
-      <artifactId>smackx</artifactId>
-      <version>3.2.2-jitsi-3-20170721.194511-1</version>
+      <artifactId>smack-extensions</artifactId>
+      <version>${smack.version}</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.whack</groupId>
@@ -58,7 +55,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
-      <version>1.0-20161122.205032-37</version>
+      <version>1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -67,51 +64,57 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-configuration</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-contactlist</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-fileaccess</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-muc</artifactId>
-      <version>2.9-20160516.065848-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-neomedia</artifactId>
-      <version>2.9-20160516.070005-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol</artifactId>
-      <version>2.11-20170724.170155-4</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-jabber</artifactId>
-      <version>2.11-20170724.170120-10</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-media</artifactId>
-      <version>2.11-20170523.194521-3</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-resourcemanager</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-ui-service</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-util</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -145,16 +148,17 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-sip</artifactId>
-      <version>2.11-20170426.193649-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-packetlogging</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-argdelegation</artifactId>
-      <version>2.9-20160511.141853-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <!--

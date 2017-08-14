@@ -22,7 +22,9 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smack.util.*;
+import org.jxmpp.jid.Jid;
+import org.jxmpp.jid.impl.JidCreate;
+import org.jxmpp.stringprep.XmppStringprepException;
 
 /**
  *  Implementation of call control that is capable of utilizing Rayo
@@ -76,7 +78,7 @@ public class CallControl
      * The only JID that will be allowed to create outgoing SIP calls. If not
      * set then anybody is allowed to do so.
      */
-    private String allowedJid;
+    private Jid allowedJid;
 
     /**
      * Constructs new call control instance with a SipGateway
@@ -137,7 +139,18 @@ public class CallControl
                 "Always trust in remote TLS certificates mode is enabled");
         }
 
-        this.allowedJid = config.getString(ALLOWED_JID_P_NAME, null);
+        String allowedJidString = config.getString(ALLOWED_JID_P_NAME, null);
+        if (allowedJidString != null)
+        {
+            try
+            {
+                this.allowedJid = JidCreate.from(allowedJidString);
+            }
+            catch (XmppStringprepException e)
+            {
+                logger.error("Invalid call control JID", e);
+            }
+        }
 
         if (allowedJid != null)
         {
@@ -163,12 +176,12 @@ public class CallControl
     {
         try
         {
-            String fromBareJid = StringUtils.parseBareAddress(iq.getFrom());
+            Jid fromBareJid = iq.getFrom().asBareJid();
             if (allowedJid != null && !allowedJid.equals(fromBareJid))
             {
                 return IQ.createErrorResponse(
                     iq,
-                    new XMPPError(XMPPError.Condition.not_allowed));
+                    XMPPError.getBuilder(XMPPError.Condition.not_allowed));
             }
             else if (allowedJid == null)
             {
@@ -196,7 +209,7 @@ public class CallControl
                     "Got dial request " + from + " -> " + to
                         + " room: " + roomName);
 
-                String callResource = ctx.getCallResource();
+                Jid callResource = ctx.getCallResource();
 
                 if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
                 {
@@ -207,9 +220,8 @@ public class CallControl
                     sipGateway.createOutgoingCall(ctx);
                 }
 
-                callResource = "xmpp:" + callResource;
-
-                return RefIq.createResult(iq, callResource);
+                String callResourceUri = "xmpp:" + callResource.toString();
+                return RefIq.createResult(iq, callResourceUri);
             }
             else if (iq instanceof HangUp)
             {
@@ -218,7 +230,7 @@ public class CallControl
 
                 HangUp hangUp = (HangUp) iq;
 
-                String callResource = hangUp.getTo();
+                Jid callResource = hangUp.getTo();
 
                 SipGatewaySession session = sipGateway.getSession(callResource);
 
@@ -295,7 +307,7 @@ public class CallControl
      * @return {@link AbstractGatewaySession} for given <tt>callResource</tt> if
      * there is one currently active or <tt>null</tt> otherwise.
      */
-    public AbstractGatewaySession getSession(String callResource)
+    public AbstractGatewaySession getSession(Jid callResource)
     {
         AbstractGatewaySession result
             = this.sipGateway.getSession(callResource);

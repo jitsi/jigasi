@@ -141,20 +141,30 @@ public class MockCallPeer
 
     public void putOnHold()
     {
-        logger.info(this + " is now on hold, last state: " + lastState);
-
-        getMediaHandler().setLocallyOnHold(true);
-
-        setState(CallPeerState.ON_HOLD_LOCALLY);
+        try
+        {
+            getMediaHandler().setLocallyOnHold(true);
+            setState(CallPeerState.ON_HOLD_LOCALLY);
+            logger.info(this + " is now on hold, last state: " + lastState);
+        }
+        catch (OperationFailedException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public void putOffHold()
     {
-        logger.info(this + " is now off hold, switch to: " + lastState);
-
-        getMediaHandler().setLocallyOnHold(false);
-
-        setState(lastState);
+        try
+        {
+            getMediaHandler().setLocallyOnHold(false);
+            setState(lastState);
+            logger.info(this + " is now off hold, switch to: " + lastState);
+        }
+        catch (OperationFailedException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
 }

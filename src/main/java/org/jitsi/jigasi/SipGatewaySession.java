@@ -440,7 +440,7 @@ public class SipGatewaySession
         }
     }
 
-    private void sendPresenceExtension(PacketExtension extension)
+    private void sendPresenceExtension(ExtensionElement extension)
     {
         if (jvbConference != null)
         {

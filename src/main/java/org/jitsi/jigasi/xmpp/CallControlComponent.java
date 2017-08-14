@@ -23,6 +23,7 @@ import org.jitsi.jigasi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.xmpp.component.*;
+import org.jitsi.xmpp.util.IQUtils;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.*;
@@ -125,7 +126,7 @@ public class CallControlComponent
         if (serviceEvent.getType() != ServiceEvent.REGISTERED)
             return;
 
-        ServiceReference ref = serviceEvent.getServiceReference();
+        ServiceReference<?> ref = serviceEvent.getServiceReference();
         BundleContext bundleContext
             = ref.getBundle().getBundleContext();
 

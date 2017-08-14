@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
+import org.jxmpp.jid.Jid;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -187,7 +188,7 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      * @return {@link AbstractGatewaySession} for given <tt>callResource</tt> if
      * there is one currently active or <tt>null</tt> otherwise.
      */
-    public T getSession(String callResource)
+    public T getSession(Jid callResource)
     {
         synchronized (sessions)
         {

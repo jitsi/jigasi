@@ -34,6 +34,8 @@ import org.osgi.framework.*;
 
 import java.util.*;
 
+import static org.jivesoftware.smack.SmackException.*;
+
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
  * of SIP gateway calls management.
@@ -50,7 +52,7 @@ public class CallControlMucActivator
                RegistrationStateChangeListener,
                GatewaySessionListener,
                GatewayListener,
-               PacketFilter
+               StanzaFilter
 {
     /**
      * The logger
@@ -176,7 +178,7 @@ public class CallControlMucActivator
         if (serviceEvent.getType() != ServiceEvent.REGISTERED)
             return;
 
-        ServiceReference ref = serviceEvent.getServiceReference();
+        ServiceReference<?> ref = serviceEvent.getServiceReference();
 
         Object service = osgiContext.getService(ref);
 
@@ -300,7 +302,8 @@ public class CallControlMucActivator
                 // gets disconnected and connects again it should create new
                 // connection and scrap old
                 ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                    .addPacketListener(new PProviderPacketListener(pps), this);
+                    .addAsyncStanzaListener(
+                        new PProviderPacketListener(pps), this);
             }
         }
         catch (Exception e)
@@ -442,7 +445,7 @@ public class CallControlMucActivator
      * {@inheritDoc}
      */
     @Override
-    public boolean accept(Packet packet)
+    public boolean accept(Stanza packet)
     {
         return packet instanceof RayoIq;
     }
@@ -453,7 +456,7 @@ public class CallControlMucActivator
      * processing incoming iq.
      */
     private class PProviderPacketListener
-        implements PacketListener
+        implements StanzaListener
     {
         private final ProtocolProviderService pps;
 
@@ -463,7 +466,7 @@ public class CallControlMucActivator
         }
 
         @Override
-        public void processPacket(Packet packet)
+        public void processStanza(Stanza packet)
         {
             if (logger.isDebugEnabled())
             {
@@ -477,9 +480,9 @@ public class CallControlMucActivator
                 {
                     // hangup is not currently supported to be send to
                     // muc controller
-                    resultIQ = IQ.createResultIQ((IQ)packet);
-                    resultIQ.setError(new XMPPError(
-                        XMPPError.Condition.feature_not_implemented));
+                    resultIQ = IQ.createErrorResponse((IQ)packet,
+                        XMPPError.getBuilder(
+                            XMPPError.Condition.feature_not_implemented));
                 }
                 else
                 {
@@ -542,14 +545,21 @@ public class CallControlMucActivator
             catch (Exception e)
             {
                 logger.error("Error processing RayoIq", e);
-                resultIQ = IQ.createResultIQ((IQ)packet);
-                resultIQ.setError(new XMPPError(
-                    XMPPError.Condition.interna_server_error, e.getMessage()));
+                resultIQ = IQ.createErrorResponse((IQ)packet, XMPPError.from(
+                    XMPPError.Condition.internal_server_error, e.getMessage()));
             }
 
             // send response
-            ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                .sendPacket(resultIQ);
+            try
+            {
+                //FIXME smack4: needs to use IQ handler
+                ((ProtocolProviderServiceJabberImpl) pps).getConnection()
+                    .sendStanza(resultIQ);
+            }
+            catch (NotConnectedException | InterruptedException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
 
         /**
@@ -573,19 +583,28 @@ public class CallControlMucActivator
 
             // we send the response where we have received using the provider
             // registered in the control muc
-            ((ProtocolProviderServiceJabberImpl) pps)
-                .getConnection().sendPacket(response);
+            try
+            {
+                ((ProtocolProviderServiceJabberImpl) pps)
+                    .getConnection().sendStanza(response);
+            }
+            catch (NotConnectedException | InterruptedException e)
+            {
+                //FIXME smack4: needs to use IQ handler
+                throw new RuntimeException(e);
+            }
 
-            final Connection roomConnection
+            final XMPPConnection roomConnection
                 = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
                     .getConnection();
 
-            roomConnection.addPacketListener(
+            //FIXME smack4: doesn't work anymore
+            roomConnection.addAsyncStanzaListener(
                 packet ->
                 {
                     HangUp hangUpIq = (HangUp) packet;
                     session.hangUp();
-                    roomConnection.sendPacket(IQ.createResultIQ(hangUpIq));
+                    roomConnection.sendStanza(IQ.createResultIQ(hangUpIq));
                 },
                 packet -> packet instanceof HangUp
             );

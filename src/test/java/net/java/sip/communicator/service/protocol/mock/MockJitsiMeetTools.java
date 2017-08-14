@@ -69,14 +69,14 @@ public class MockJitsiMeetTools
 
     @Override
     public void sendPresenceExtension(ChatRoom chatRoom,
-                                      PacketExtension extension)
+                                      ExtensionElement extension)
     {
         //FIXME: to be tested
     }
 
     @Override
     public void removePresenceExtension(
-        ChatRoom chatRoom, PacketExtension packetExtension)
+        ChatRoom chatRoom, ExtensionElement packetExtension)
     {
         //FIXME: to be tested
     }

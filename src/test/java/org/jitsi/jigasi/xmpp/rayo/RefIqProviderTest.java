@@ -19,6 +19,7 @@ package org.jitsi.jigasi.xmpp.rayo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.xmpp.util.IQUtils;
 import org.junit.*;
 import org.junit.runner.*;
 import org.junit.runners.*;
@@ -58,7 +59,7 @@ public class RefIqProviderTest
 
     private String getRefIqXML(String uri)
     {
-        return RayoIqProvider.RefIq.create(uri).toXML();
+        return RayoIqProvider.RefIq.create(uri).toXML().toString();
     }
 
     @Test
@@ -68,7 +69,7 @@ public class RefIqProviderTest
 
         RayoIqProvider.RefIq refIq = RayoIqProvider.RefIq.create(uri);
 
-        String id = refIq.getPacketID();
+        String id = refIq.getStanzaId();
         String type = refIq.getType().toString();
 
         assertEquals(
@@ -78,7 +79,7 @@ public class RefIqProviderTest
                     " uri='%s' />" +
                     "</iq>",
                 id, type, uri),
-            refIq.toXML()
+            refIq.toXML().toString()
         );
     }
 }
