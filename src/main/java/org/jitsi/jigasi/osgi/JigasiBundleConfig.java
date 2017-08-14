@@ -144,6 +144,9 @@ public class JigasiBundleConfig
                 "org/jitsi/jigasi/rest/RESTBundleActivator"
             },
             {
+                "org/jitsi/jigasi/rest/TranscriptServerBundleActivator"
+            },
+            {
                 "org/jitsi/jigasi/xmpp/CallControlMucActivator"
             }
         };

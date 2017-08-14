@@ -170,7 +170,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return the path as a String
      */
-    public String getLogDirPath()
+    public static String getLogDirPath()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getString(P_NAME_TRANSCRIPT_DIRECTORY,
