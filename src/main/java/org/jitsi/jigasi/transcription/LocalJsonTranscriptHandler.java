@@ -20,7 +20,6 @@ package org.jitsi.jigasi.transcription;
 import net.java.sip.communicator.service.protocol.*;
 import org.json.simple.*;
 
-import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 
@@ -351,7 +350,7 @@ public class LocalJsonTranscriptHandler
         /**
          * The filename wherein the Transcript will be published
          */
-        private String fileName = getHardToGuessFileName() + ".json";
+        private String fileName = generateHardToGuessFileName() + ".json";
 
         /**
          * Whether {@link this#publish(Transcript)} has already been called once

@@ -198,7 +198,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return the file name
      */
-    protected String getHardToGuessFileName()
+    protected static String generateHardToGuessFileName()
     {
         return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
     }
