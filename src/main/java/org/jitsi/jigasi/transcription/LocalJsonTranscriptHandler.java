@@ -17,8 +17,10 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
 import org.json.simple.*;
 
+import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 
@@ -40,9 +42,10 @@ import java.util.*;
  * 4. "Participant" object: This object stores the information of a participant:
  * the name and the (j)id
  *
+ * @author Nik Vaessen
  */
 public class LocalJsonTranscriptHandler
-    extends AbstractTranscriptHandler<JSONObject>
+    extends AbstractTranscriptPublisher<JSONObject>
 {
 
     // "final transcript" JSON object fields
@@ -148,28 +151,27 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
     @Override
-    public TranscriptHandler.Formatter<JSONObject> format()
+    public JSONFormatter getFormatter()
     {
         return new JSONFormatter();
     }
 
     @Override
-    public JSONObject formatTranscriptionResult(TranscriptionResult result)
+    public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject object = new JSONObject();
-
         SpeechEvent event = new SpeechEvent(Instant.now(), result);
 
         addEventDescriptions(object, event);
         addAlternatives(object, event);
 
-        return object;
+        super.sendMessage(room, object);
     }
 
     @Override
-    public void publish(JSONObject transcript)
+    public Promise getPublishPromise()
     {
-        new LocalTxtTranscriptHandler().publish(transcript.toString());
+        return new JSONPublishPromise();
     }
 
     @Override
@@ -268,7 +270,7 @@ public class LocalJsonTranscriptHandler
      *
      * @param jsonObject the object to add the fields to
      * @param roomName the room name
-     * @param names the names of the initial participants
+     * @param participants the initial participants
      * @param start the start time
      * @param end the end time
      * @param events a collection of "event" json objects
@@ -320,7 +322,7 @@ public class LocalJsonTranscriptHandler
     }
 
     /**
-     *
+     * Formats a transcript into the "final_transcript" object
      */
     private class JSONFormatter
         extends BaseFormatter
@@ -343,4 +345,36 @@ public class LocalJsonTranscriptHandler
         }
     }
 
+    private class JSONPublishPromise
+        extends BasePromise
+    {
+        /**
+         * The filename wherein the Transcript will be published
+         */
+        private String fileName = getHardToGuessFileName() + ".json";
+
+        /**
+         * Whether {@link this#publish(Transcript)} has already been called once
+         */
+        private boolean published = false;
+
+        @Override
+        public synchronized void publish(Transcript transcript)
+        {
+            if(!published)
+            {
+                published = true;
+
+                JSONObject t
+                    = transcript.getTranscript(LocalJsonTranscriptHandler.this);
+                saveTranscriptToFile(getFileName(), t);
+            }
+        }
+
+        @Override
+        protected String getFileName()
+        {
+            return this.fileName;
+        }
+    }
 }

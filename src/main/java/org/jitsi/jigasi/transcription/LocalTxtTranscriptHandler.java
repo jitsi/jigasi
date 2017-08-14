@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.util.*;
 
@@ -31,27 +32,13 @@ import java.util.*;
  * @author Nik Vaessen
  */
 public class LocalTxtTranscriptHandler
-    extends AbstractTranscriptHandler<String>
+    extends AbstractTranscriptPublisher<String>
 {
 
     /**
      * The logger of this class
      */
     private static final Logger logger = Logger.getLogger(Transcript.class);
-
-    /**
-     * Property name for the directory in which the final transcripts should be
-     * stored
-     */
-    public final static String P_NAME_TRANSCRIPT_DIRECTORY
-        = "org.jitsi.jigasi.transcription.LocalTxtTranscriptHandler.DIRECTORY";
-
-    /**
-     * The default value for the directory to save the final transcripts in
-     * is the current working directory
-     */
-    public final static String TRANSCRIPT_DIRECTORY_DEFAULT_VALUE =
-        System.getProperty("user.dir") + File.separator + "transcripts";
 
     /**
      * The maximum amount of characters on a single line in the
@@ -189,77 +176,26 @@ public class LocalTxtTranscriptHandler
 
 
     @Override
-    public TranscriptHandler.Formatter<String> format()
-    {
-        return new TxtFormatter();
-    }
-
-    @Override
-    public String formatTranscriptionResult(TranscriptionResult result)
+    public void publish(ChatRoom chatRoom, TranscriptionResult result)
     {
         String name = result.getName();
         String transcription = result.getAlternatives().iterator()
             .next().getTranscription();
 
-        return name + ": " + transcription;
+        String toSend = name + ": " + transcription;
+        super.sendMessage(chatRoom, toSend);
     }
 
-    /**
-     * Save the given string to the config directory
-     *
-     * @param transcript the formatted transcript to save
-     */
     @Override
-    public void publish(String transcript)
+    public Promise getPublishPromise()
     {
-        File logDir = new File(getLogDirPath());
-        // If there is a file with the directory name, delete it
-        if(logDir.exists() && !logDir.isDirectory())
-        {
-            if(!logDir.delete())
-            {
-                logger.warn("Was not able to safe a transcript because" +
-                    "there is a file called " + logDir + " which cannot" +
-                    "be deleted");
-                return;
-            }
-        }
-        // Now, either it does't exist because it was deleted, it didn't
-        // exist in the first place or everything is ok
-        if(!logDir.exists())
-        {
-            if(!logDir.mkdir())
-            {
-                logger.warn("Was not able to safe a transcript because" +
-                    "unable to make a directory called " + logDir);
-                return;
-            }
-        }
-
-        File t = new File(logDir, "transcript_" + Instant.now() + ".txt");
-
-        try(FileWriter writer = new FileWriter(t))
-        {
-            writer.write(transcript);
-            logger.info("wrote final transcript to " + t);
-        }
-        catch(IOException e)
-        {
-            logger.warn("Unable to safe transcript", e);
-        }
+        return new TxtPublishPromise();
     }
 
-    /**
-     * Get the string representing the path of the directory wherein the
-     * final transcripts should be stored
-     *
-     * @return the path as a String
-     */
-    private String getLogDirPath()
+    @Override
+    public BaseFormatter getFormatter()
     {
-        return JigasiBundleActivator.getConfigurationService()
-            .getString(P_NAME_TRANSCRIPT_DIRECTORY,
-                TRANSCRIPT_DIRECTORY_DEFAULT_VALUE);
+        return new TxtFormatter();
     }
 
     @Override
@@ -479,6 +415,39 @@ public class LocalTxtTranscriptHandler
             builder.append(footer);
 
             return builder.toString();
+        }
+    }
+
+    private class TxtPublishPromise
+        extends BasePromise
+    {
+        /**
+         * The filename wherein the Transcript will be published
+         */
+        private String fileName = getHardToGuessFileName() + ".txt";
+
+        /**
+         * Whether {@link this#publish(Transcript)} has already been called once
+         */
+        private boolean published = false;
+
+        @Override
+        public synchronized void publish(Transcript transcript)
+        {
+            if(!published)
+            {
+                published = true;
+
+                String t
+                    = transcript.getTranscript(LocalTxtTranscriptHandler.this);
+                saveTranscriptToFile(getFileName(), t);
+            }
+        }
+
+        @Override
+        protected String getFileName()
+        {
+            return this.fileName;
         }
     }
 }
