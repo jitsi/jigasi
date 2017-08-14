@@ -18,10 +18,8 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.jigasi.*;
 import org.jitsi.util.*;
 
-import java.io.*;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
@@ -424,7 +422,7 @@ public class LocalTxtTranscriptHandler
         /**
          * The filename wherein the Transcript will be published
          */
-        private String fileName = getHardToGuessFileName() + ".txt";
+        private String fileName = generateHardToGuessFileName() + ".txt";
 
         /**
          * Whether {@link this#publish(Transcript)} has already been called once
