@@ -77,13 +77,24 @@ public abstract class AbstractTranscriptPublisher<T>
     /**
      * By default do not advertise the URL
      */
-    public boolean ADVERTISE_URL_DEFAULT_VALUE = false;
+    public final static boolean ADVERTISE_URL_DEFAULT_VALUE = false;
 
     /**
      * The logger of this class
      */
     private static final Logger logger
         = Logger.getLogger(AbstractTranscriptPublisher.class);
+
+    /**
+     * Get a file name for a transcript, which includes the time and some ID
+     * to make it hard to guess
+     *
+     * @return the file name
+     */
+    protected static String generateHardToGuessFileName()
+    {
+        return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
+    }
 
     /**
      * Send a message to the muc room
@@ -190,17 +201,6 @@ public abstract class AbstractTranscriptPublisher<T>
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ADVERTISE_URL,
                 ADVERTISE_URL_DEFAULT_VALUE);
-    }
-
-    /**
-     * Get a file name for a transcript, which includes the time and some ID
-     * to make it hard to guess
-     *
-     * @return the file name
-     */
-    protected static String generateHardToGuessFileName()
-    {
-        return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
     }
 
     /**
