@@ -204,41 +204,43 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-hid</artifactId>
-      <version>2.9-20160513.134540-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-certificate</artifactId>
-      <version>2.9-20160516.070021-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-credentialsstorage</artifactId>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-dns</artifactId>
-      <version>2.9-20160516.070031-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-desktoputil</artifactId>
-      <version>2.9-20160516.070045-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-dnsservice</artifactId>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-globaldisplaydetails</artifactId>
-      <version>2.9-20160516.070050-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -249,31 +251,31 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-notification-service</artifactId>
-      <version>2.9-20160516.070101-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-reconnect</artifactId>
-      <version>2.9-20160516.070112-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-sysactivity</artifactId>
-      <version>2.9-20160516.070159-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-systray-service</artifactId>
-      <version>2.9-20160516.070206-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-version</artifactId>
-      <version>2.9-20160511.122033-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
