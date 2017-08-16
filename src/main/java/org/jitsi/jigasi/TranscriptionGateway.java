@@ -29,53 +29,6 @@ import org.osgi.framework.*;
 public class TranscriptionGateway
     extends AbstractGateway<TranscriptionGatewaySession>
 {
-
-    /**
-     * Property name for saving transcript in json
-     */
-    public final static String P_NAME_SAVE_TRANSCRIPT_JSON
-        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_TRANSCRIPT_JSON";
-    /**
-     * Property name for saving transcript in txt
-     */
-    public final static String P_NAME_SAVE_TRANSCRIPT_TXT
-        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_TRANSCRIPT_TXT";
-
-    /**
-     * Property name for sending result in json
-     */
-    public final static String P_NAME_SEND_RESULT_JSON
-        = "org.jitsi.jigasi.TranscriptionGateway.SEND_RESULT_JSON";
-
-    /**
-     * Property name for sending result in txt
-     */
-    public final static String P_NAME_SEND_RESULT_TXT
-        = "org.jitsi.jigasi.TranscriptionGateway.SEND_RESULT_TXT";
-
-    /**
-     * Whether to publish final transcripts by locally saving them in json
-     * format
-     */
-    private final static boolean SAVE_TRANSCRIPT_JSON = true;
-
-    /**
-     * Whether to publish final transcripts by locally saving them in txt format
-     */
-    private final static boolean SAVE_TRANSCRIPT_TXT = false;
-
-    /**
-     * Whether to send results in json to
-     * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
-     */
-    private final static boolean SEND_RESULT_JSON = false;
-
-    /**
-     * Whether to send results in txt to
-     * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
-     */
-    private final static boolean SEND_RESULT_TXT = true;
-
     /**
      * Class which manages the desired {@link TranscriptPublisher} and
      * {@link TranscriptionResultPublisher}
@@ -92,27 +45,6 @@ public class TranscriptionGateway
     public TranscriptionGateway(BundleContext context)
     {
         super(context);
-
-        LocalJsonTranscriptHandler jsonHandler
-            = new LocalJsonTranscriptHandler();
-        LocalTxtTranscriptHandler txtHandler = new LocalTxtTranscriptHandler();
-
-        if(getStoreInJson())
-        {
-            handler.add((TranscriptPublisher) jsonHandler);
-        }
-        if(getStoreInTxt())
-        {
-            handler.add((TranscriptPublisher) txtHandler);
-        }
-        if(getSendInJSON())
-        {
-            handler.add((TranscriptionResultPublisher) jsonHandler);
-        }
-        if(getSendInTxt())
-        {
-            handler.add((TranscriptionResultPublisher) txtHandler);
-        }
     }
 
     @Override
@@ -134,49 +66,5 @@ public class TranscriptionGateway
         outgoingSession.createOutgoingCall();
 
         return outgoingSession;
-    }
-
-    /**
-     * Get whether to send results in JSON
-     *
-     * @return true if results are send in json, false otherwise
-     */
-    private boolean getSendInJSON()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_SEND_RESULT_JSON, SEND_RESULT_JSON);
-    }
-
-    /**
-     * Get whether to send results in TXT
-     *
-     * @return true if results are send in txt, false otherwise
-     */
-    private boolean getSendInTxt()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_SEND_RESULT_TXT, SEND_RESULT_TXT);
-    }
-
-    /**
-     * Get whether to save transcript in JSON
-     *
-     * @return true if saved in json, false otherwise
-     */
-    private boolean getStoreInJson()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_SAVE_TRANSCRIPT_JSON, SAVE_TRANSCRIPT_JSON);
-    }
-
-    /**
-     * Get whether to save transcripts in txt
-     *
-     * @return true if saved in txt, false otherwise
-     */
-    private boolean getStoreInTxt()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_SAVE_TRANSCRIPT_TXT, SAVE_TRANSCRIPT_TXT);
     }
 }
