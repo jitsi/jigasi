@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 
 import java.util.*;
 
@@ -31,6 +32,52 @@ import java.util.*;
 public class TranscriptHandler
 {
     /**
+     * Property name for saving transcript in json
+     */
+    public final static String P_NAME_SAVE_JSON
+        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_JSON";
+    /**
+     * Property name for saving transcript in txt
+     */
+    public final static String P_NAME_SAVE_TXT
+        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_TXT";
+
+    /**
+     * Property name for sending result in json
+     */
+    public final static String P_NAME_SEND_JSON
+        = "org.jitsi.jigasi.TranscriptionGateway.SEND_JSON";
+
+    /**
+     * Property name for sending result in txt
+     */
+    public final static String P_NAME_SEND_TXT
+        = "org.jitsi.jigasi.TranscriptionGateway.SEND_TXT";
+
+    /**
+     * Whether to publish final transcripts by locally saving them in json
+     * format
+     */
+    private final static boolean SAVE_JSON = true;
+
+    /**
+     * Whether to publish final transcripts by locally saving them in txt format
+     */
+    private final static boolean SAVE_TXT = false;
+
+    /**
+     * Whether to send results in json to
+     * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
+     */
+    private final static boolean SEND_JSON = false;
+
+    /**
+     * Whether to send results in txt to
+     * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
+     */
+    private final static boolean SEND_TXT = true;
+
+    /**
      * The list of {@link TranscriptionResultPublisher} which will handle
      * {@link TranscriptionResult}s
      */
@@ -42,6 +89,35 @@ public class TranscriptHandler
      * {@link Transcript}s
      */
     private List<TranscriptPublisher> transcriptPublishers = new LinkedList<>();
+
+    /**
+     * Set up a new TranscriptHandler. The {@link TranscriptPublisher} and
+     * {@link TranscriptionResultPublisher}s can be manually added or some of
+     * them can be added via setting the static boolean flags.
+     */
+    public TranscriptHandler()
+    {
+        LocalJsonTranscriptHandler jsonHandler
+            = new LocalJsonTranscriptHandler();
+        LocalTxtTranscriptHandler txtHandler = new LocalTxtTranscriptHandler();
+
+        if(getStoreInJson())
+        {
+            this.add((TranscriptPublisher) jsonHandler);
+        }
+        if(getStoreInTxt())
+        {
+            this.add((TranscriptPublisher) txtHandler);
+        }
+        if(getSendInJSON())
+        {
+            this.add((TranscriptionResultPublisher) jsonHandler);
+        }
+        if(getSendInTxt())
+        {
+            this.add((TranscriptionResultPublisher) txtHandler);
+        }
+    }
 
     /**
      * Handle a {@link TranscriptionResult} with all given
@@ -60,8 +136,10 @@ public class TranscriptHandler
     }
 
     /**
-     * Get the {@link TranscriptPublisher.Promise}s which can handle a
-     * {@link Transcript} for all given {@link TranscriptPublisher}s
+     * Get a list of {@link TranscriptPublisher.Promise}s which can handle a
+     * {@link Transcript}. The list will contain such a
+     * {@link TranscriptPublisher.Promise} for all {@link TranscriptPublisher}s
+     * added to this {@link TranscriptHandler}
      *
      * @return a list of {@link TranscriptPublisher.Promise}s
      */
@@ -115,5 +193,49 @@ public class TranscriptHandler
     public void remove(TranscriptionResultPublisher publisher)
     {
         resultPublishers.remove(publisher);
+    }
+
+    /**
+     * Get whether to send results in JSON
+     *
+     * @return true if results are send in json, false otherwise
+     */
+    private boolean getSendInJSON()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_SEND_JSON, SEND_JSON);
+    }
+
+    /**
+     * Get whether to send results in TXT
+     *
+     * @return true if results are send in txt, false otherwise
+     */
+    private boolean getSendInTxt()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_SEND_TXT, SEND_TXT);
+    }
+
+    /**
+     * Get whether to save transcript in JSON
+     *
+     * @return true if saved in json, false otherwise
+     */
+    private boolean getStoreInJson()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_SAVE_JSON, SAVE_JSON);
+    }
+
+    /**
+     * Get whether to save transcripts in txt
+     *
+     * @return true if saved in txt, false otherwise
+     */
+    private boolean getStoreInTxt()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_SAVE_TXT, SAVE_TXT);
     }
 }
