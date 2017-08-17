@@ -35,24 +35,24 @@ public class TranscriptHandler
      * Property name for saving transcript in json
      */
     public final static String P_NAME_SAVE_JSON
-        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_JSON";
+        = "org.jitsi.jigasi.transcription.SAVE_JSON";
     /**
      * Property name for saving transcript in txt
      */
     public final static String P_NAME_SAVE_TXT
-        = "org.jitsi.jigasi.TranscriptionGateway.SAVE_TXT";
+        = "org.jitsi.jigasi.transcription.SAVE_TXT";
 
     /**
      * Property name for sending result in json
      */
     public final static String P_NAME_SEND_JSON
-        = "org.jitsi.jigasi.TranscriptionGateway.SEND_JSON";
+        = "org.jitsi.jigasi.transcription.SEND_JSON";
 
     /**
      * Property name for sending result in txt
      */
     public final static String P_NAME_SEND_TXT
-        = "org.jitsi.jigasi.TranscriptionGateway.SEND_TXT";
+        = "org.jitsi.jigasi.transcription.SEND_TXT";
 
     /**
      * Whether to publish final transcripts by locally saving them in json
