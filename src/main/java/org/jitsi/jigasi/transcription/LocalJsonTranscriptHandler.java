@@ -41,6 +41,13 @@ import java.util.*;
  * 4. "Participant" object: This object stores the information of a participant:
  * the name and the (j)id
  *
+ * When sending a single {@link TranscriptionResult} to the {@link ChatRoom},
+ * a special JSON object is required. It needs 2 fields:
+ *
+ * 1. jitsi-meet-muc-msg-topic: which in our case will be a string
+ *    "transcription-result"
+ * 2. payload: which will be the "event" object described in point 2 above
+ *
  * @author Nik Vaessen
  */
 public class LocalJsonTranscriptHandler
@@ -149,6 +156,23 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
+    // JSON object to send to MUC
+
+    /**
+     * This fields stores the topic of the muc message as a string
+     */
+    public final static String JSON_KEY_TOPIC = "jitsi-meet-muc-msg-topic";
+
+    /**
+     * This field stores the value of the topic of the muc message as a string
+     */
+    public final static String JSON_VALUE_TOPIC = "transcription-result";
+
+    /**
+     * This field stores the payload object which will be send as a muc message
+     */
+    public final static String JSON_KEY_PAYLOAD = "payload";
+
     @Override
     public JSONFormatter getFormatter()
     {
@@ -158,13 +182,31 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject object = new JSONObject();
+        JSONObject eventObject = new JSONObject();
         SpeechEvent event = new SpeechEvent(Instant.now(), result);
 
-        addEventDescriptions(object, event);
-        addAlternatives(object, event);
+        addEventDescriptions(eventObject, event);
+        addAlternatives(eventObject, event);
 
-        super.sendMessage(room, object);
+        JSONObject encapsulatingObject = new JSONObject();
+        createEncapsulatingObject(encapsulatingObject, eventObject);
+
+        super.sendMessage(room, encapsulatingObject);
+    }
+
+    /**
+     * Create the JSON object will be send to the {@link ChatRoom}
+     *
+     * @param encapsulatingObject the json object which will be send
+     * @param transcriptResultObject the json object which will be added as
+     *                               payload
+     */
+    @SuppressWarnings("unchecked")
+    private void createEncapsulatingObject(JSONObject encapsulatingObject,
+                                           JSONObject transcriptResultObject)
+    {
+        encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
+        encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
     }
 
     @Override

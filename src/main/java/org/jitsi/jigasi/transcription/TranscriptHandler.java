@@ -69,13 +69,13 @@ public class TranscriptHandler
      * Whether to send results in json to
      * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
      */
-    private final static boolean SEND_JSON = false;
+    private final static boolean SEND_JSON = true;
 
     /**
      * Whether to send results in txt to
      * {@link net.java.sip.communicator.service.protocol.ChatRoom} of muc
      */
-    private final static boolean SEND_TXT = true;
+    private final static boolean SEND_TXT = false;
 
     /**
      * The list of {@link TranscriptionResultPublisher} which will handle
