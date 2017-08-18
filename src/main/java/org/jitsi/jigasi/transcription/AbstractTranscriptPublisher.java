@@ -170,7 +170,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return the path as a String
      */
-    public String getLogDirPath()
+    public static String getLogDirPath()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getString(P_NAME_TRANSCRIPT_DIRECTORY,
@@ -183,7 +183,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return the base URL as a String
      */
-    protected String getBaseURL()
+    protected static String getBaseURL()
     {
        return JigasiBundleActivator.getConfigurationService()
            .getString(P_NAME_TRANSCRIPT_BASE_URL,
@@ -201,6 +201,17 @@ public abstract class AbstractTranscriptPublisher<T>
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ADVERTISE_URL,
                 ADVERTISE_URL_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get a file name for a transcript, which includes the time and some ID
+     * to make it hard to guess
+     *
+     * @return the file name
+     */
+    protected String getHardToGuessFileName()
+    {
+        return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
     }
 
     /**
