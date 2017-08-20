@@ -159,98 +159,91 @@ public class CallControl
     }
 
     /**
-     * Handles an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza of type
-     * <tt>set</tt> which represents a request.
+     * Handles an {@link IQ} stanza of type {@link IQ.Type#set} which
+     * represents a request.
      *
-     * @param iq the <tt>org.jivesoftware.smack.packet.IQ</tt> stanza of type
-     * <tt>set</tt> which represents the request to handle
-     * @param ctx the call context to process
-     * @return an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza which
-     * represents the response to the specified request or <tt>null</tt> to
-     * reply with <tt>feature-not-implemented</tt>
-     * @throws Exception to reply with <tt>internal-server-error</tt> to the
-     * specified request
+     * @param iq the {@link IQ} of type {@link IQ.Type#set} which represents
+     * the request to handle
+     * @return a {@link RefIq} which represents the response to the request.
      */
-    public IQ handleIQ(IQ iq, CallContext ctx)
-        throws Exception
+    public RefIq handleDialIq(DialIq iq, CallContext ctx,
+        AbstractGatewaySession[] createdSession)
+        throws CallControlAuthorizationException
     {
-        try
+        checkAuthorized(iq);
+
+        String from = iq.getSource();
+        String to = iq.getDestination();
+
+        ctx.setDestination(to);
+
+        String roomName = iq.getHeader(ROOM_NAME_HEADER);
+        ctx.setRoomName(roomName);
+
+        String roomPassword = iq.getHeader(ROOM_PASSWORD_HEADER);
+        ctx.setRoomPassword(roomPassword);
+        if (roomName == null)
+            throw new RuntimeException("No JvbRoomName header found");
+
+        logger.info(
+            "Got dial request " + from + " -> " + to + " room: " + roomName);
+
+        AbstractGatewaySession session;
+        if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
         {
-            Jid fromBareJid = iq.getFrom().asBareJid();
-            if (allowedJid != null && !allowedJid.equals(fromBareJid))
-            {
-                return IQ.createErrorResponse(
-                    iq,
-                    XMPPError.getBuilder(XMPPError.Condition.not_allowed));
-            }
-            else if (allowedJid == null)
-            {
-                logger.warn("Requests are not secured by JID filter!");
-            }
-
-            if (iq instanceof DialIq)
-            {
-                DialIq dialIq = (DialIq) iq;
-
-                String from = dialIq.getSource();
-                String to = dialIq.getDestination();
-
-                ctx.setDestination(to);
-
-                String roomName = dialIq.getHeader(ROOM_NAME_HEADER);
-                ctx.setRoomName(roomName);
-
-                String roomPassword = dialIq.getHeader(ROOM_PASSWORD_HEADER);
-                ctx.setRoomPassword(roomPassword);
-                if (roomName == null)
-                    throw new RuntimeException("No JvbRoomName header found");
-
-                logger.info(
-                    "Got dial request " + from + " -> " + to
-                        + " room: " + roomName);
-
-                Jid callResource = ctx.getCallResource();
-
-                if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
-                {
-                    transcriptionGateway.createOutgoingCall(ctx);
-                }
-                else
-                {
-                    sipGateway.createOutgoingCall(ctx);
-                }
-
-                String callResourceUri = "xmpp:" + callResource.toString();
-                return RefIq.createResult(iq, callResourceUri);
-            }
-            else if (iq instanceof HangUp)
-            {
-                // FIXME: 23/07/17 Transcription sessions should also be able
-                // to be hangup ?
-
-                HangUp hangUp = (HangUp) iq;
-
-                Jid callResource = hangUp.getTo();
-
-                SipGatewaySession session = sipGateway.getSession(callResource);
-
-                if (session == null)
-                    throw new RuntimeException(
-                        "No sipGateway for call: " + callResource);
-
-                session.hangUp();
-
-                return IQ.createResultIQ(iq);
-            }
-            else
-            {
-                return null;
-            }
+            session = transcriptionGateway.createOutgoingCall(ctx);
         }
-        catch (Exception e)
+        else
         {
-            logger.error(e, e);
-            throw e;
+            session = sipGateway.createOutgoingCall(ctx);
+        }
+
+        if (createdSession != null && createdSession.length == 1)
+        {
+            createdSession[0] = session;
+        }
+
+        return RefIq.createResult(iq, "xmpp:" + ctx.getCallResource());
+    }
+
+    /**
+     * Handles an {@link IQ} stanza of type {@link IQ.Type#set} which
+     * represents a request.
+     *
+     * @param iq the {@link IQ} of type {@link IQ.Type#set} which represents
+     * the request to handle
+     * @return an {@link IQ} stanza which represents the response to the
+     * specified request.
+     */
+    public IQ handleHangUp(HangUp iq)
+        throws CallControlAuthorizationException
+    {
+        checkAuthorized(iq);
+
+        // FIXME: 23/07/17 Transcription sessions should also be able
+        // to be hangup ?
+
+        Jid callResource = iq.getTo();
+        SipGatewaySession session = sipGateway.getSession(callResource);
+        if (session == null)
+            throw new RuntimeException(
+                "No sipGateway for call: " + callResource);
+
+        session.hangUp();
+        return IQ.createResultIQ(iq);
+    }
+
+    private void checkAuthorized(IQ iq)
+        throws CallControlAuthorizationException
+    {
+        Jid fromBareJid = iq.getFrom().asBareJid();
+        if (allowedJid != null && !allowedJid.equals(fromBareJid))
+        {
+            throw new CallControlAuthorizationException(iq);
+        }
+        else if (allowedJid == null)
+        {
+            logger.warn("Requests are not secured by JID filter!");
         }
     }
 

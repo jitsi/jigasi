@@ -17,13 +17,14 @@
  */
 package org.jitsi.jigasi.xmpp;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.xmpp.component.*;
-import org.jitsi.xmpp.util.IQUtils;
+import org.jitsi.xmpp.util.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.*;
@@ -302,7 +303,7 @@ public class CallControlComponent
     public IQ handleIQ(IQ iq)
         throws Exception
     {
-        org.jivesoftware.smack.packet.IQ resultIQ;
+        org.jivesoftware.smack.packet.IQ resultIQ = null;
         if (callControl == null)
         {
             logger.warn("Call controller not initialized");
@@ -318,7 +319,23 @@ public class CallControlComponent
             ctx.setDomain(getDomain());
             ctx.setSubDomain(getSubdomain());
 
-            resultIQ = callControl.handleIQ(IQUtils.convert(iq), ctx);
+            org.jivesoftware.smack.packet.IQ smackIq = IQUtils.convert(iq);
+            try
+            {
+                if (smackIq instanceof DialIq)
+                {
+                    resultIQ = callControl.handleDialIq((DialIq)smackIq, ctx,
+                        null);
+                }
+                else if (smackIq instanceof HangUp)
+                {
+                    resultIQ = callControl.handleHangUp((HangUp)smackIq);
+                }
+            }
+            catch (CallControlAuthorizationException ccae)
+            {
+                resultIQ = ccae.getErrorIq();
+            }
         }
 
         if (resultIQ != null)

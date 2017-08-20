@@ -19,6 +19,7 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
@@ -28,13 +29,11 @@ import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
-import org.jivesoftware.smack.filter.*;
+import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.osgi.framework.*;
 
 import java.util.*;
-
-import static org.jivesoftware.smack.SmackException.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -51,8 +50,7 @@ public class CallControlMucActivator
                ServiceListener,
                RegistrationStateChangeListener,
                GatewaySessionListener,
-               GatewayListener,
-               StanzaFilter
+               GatewayListener
 {
     /**
      * The logger
@@ -301,9 +299,11 @@ public class CallControlMucActivator
                 // as its added to the connection, if the protocol provider
                 // gets disconnected and connects again it should create new
                 // connection and scrap old
-                ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                    .addAsyncStanzaListener(
-                        new PProviderPacketListener(pps), this);
+
+                XMPPConnection conn =
+                    ((ProtocolProviderServiceJabberImpl) pps).getConnection();
+                conn.registerIQRequestHandler(new DialIqHandler(pps));
+                conn.registerIQRequestHandler(new HangUpIqHandler(pps));
             }
         }
         catch (Exception e)
@@ -441,173 +441,120 @@ public class CallControlMucActivator
     }
 
     /**
-     * Accepts only  {@link RayoIq}.
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean accept(Stanza packet)
-    {
-        return packet instanceof RayoIq;
-    }
-
-    /**
      * Packet listener per protocol provider. Used to get the custom
      * bosh URL property from its account properties and to pass it when
      * processing incoming iq.
      */
-    private class PProviderPacketListener
-        implements StanzaListener
+    private class DialIqHandler
+        extends RayoIqHandler<DialIq>
     {
-        private final ProtocolProviderService pps;
-
-        PProviderPacketListener(ProtocolProviderService pps)
+        DialIqHandler(ProtocolProviderService pps)
         {
-            this.pps = pps;
+            super(DialIq.ELEMENT_NAME, IQ.Type.set, pps);
         }
 
         @Override
-        public void processStanza(Stanza packet)
+        public IQ processIQ(DialIq packet, CallContext ctx)
         {
             if (logger.isDebugEnabled())
             {
                 logger.debug("Processing a RayoIq: " + packet.toXML());
             }
 
-            IQ resultIQ;
             try
             {
-                if (packet instanceof HangUp)
-                {
-                    // hangup is not currently supported to be send to
-                    // muc controller
-                    resultIQ = IQ.createErrorResponse((IQ)packet,
-                        XMPPError.getBuilder(
-                            XMPPError.Condition.feature_not_implemented));
-                }
-                else
-                {
-                    AccountID acc = pps.getAccountID();
-
-                    final CallContext ctx = new CallContext();
-                    ctx.setDomain(acc.getAccountPropertyString(
-                        CallContext.DOMAIN_BASE_ACCOUNT_PROP));
-                    ctx.setBoshURL(acc.getAccountPropertyString(
-                        CallContext.BOSH_URL_ACCOUNT_PROP));
-                    ctx.setMucAddressPrefix(acc.getAccountPropertyString(
-                        CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
-
-                    resultIQ = callControl.handleIQ((IQ) packet, ctx);
-                    final RefIq response = (RefIq)resultIQ;
-
-                    final AbstractGatewaySession sess =
-                        callControl.getSession(ctx.getCallResource());
-                    if (sess != null)
-                    {
-                        sendDialResponse(response, sess);
-                    }
-                    else
-                    {
-                        callControl.addGatewayListener(new GatewayListener()
-                        {
-                            @Override
-                            public void onSessionAdded(
-                                AbstractGatewaySession session)
-                            {
-                                if (session.getCallContext().equals(ctx))
-                                {
-                                    sendDialResponse(response, session);
-                                    // we had processed the dial response
-                                    // no more interested in this events
-                                    callControl.removeGatewayListener(this);
-                                }
-                            }
-
-                            @Override
-                            public void onSessionRemoved(
-                                AbstractGatewaySession session)
-                            {}
-
-                            @Override
-                            public void onSessionFailed(
-                                AbstractGatewaySession session)
-                            {
-                                if (session.getCallContext().equals(ctx))
-                                {
-                                    callControl.removeGatewayListener(this);
-                                }
-                            }
-                        });
-                    }
-
-                    return;
-                }
+                AbstractGatewaySession[] session = { null };
+                RefIq resultIQ = callControl.handleDialIq(packet, ctx, session);
+                setDialResponseAndRegisterHangUpHandler(resultIQ, session[0]);
+                return resultIQ;
+            }
+            catch (CallControlAuthorizationException ccae)
+            {
+                return ccae.getErrorIq();
             }
             catch (Exception e)
             {
                 logger.error("Error processing RayoIq", e);
-                resultIQ = IQ.createErrorResponse((IQ)packet, XMPPError.from(
+                return IQ.createErrorResponse(packet, XMPPError.from(
                     XMPPError.Condition.internal_server_error, e.getMessage()));
-            }
-
-            // send response
-            try
-            {
-                //FIXME smack4: needs to use IQ handler
-                ((ProtocolProviderServiceJabberImpl) pps).getConnection()
-                    .sendStanza(resultIQ);
-            }
-            catch (NotConnectedException | InterruptedException e)
-            {
-                throw new RuntimeException(e);
             }
         }
 
         /**
-         * Sends the dial response by replacing the uri in RefIq response
-         * by placing there the address of the muc participant.
-         * This way the participant can receive hangup iqs and we listen for
-         * them and handle them.
-         * We do not care for removing listeners there cause they are added to
-         * the xmpp protocol provider which will be unregistered and removed
-         * from osgi.
+         * Replaces the uri in RefIq response with the address of the MUC
+         * participant.
          *
-         * @param response the response to modify and send.
+         * This way the participant can receive hangup IQs, listen and handle
+         * them.
+         *
+         * We do not care for removing handlers because they are added to
+         * the xmpp protocol provider which will be unregistered and removed
+         * by OSGi.
+         *
+         * @param response the response to modify.
          * @param session the session created that needs that response.
          */
-        private void sendDialResponse(
+        private void setDialResponseAndRegisterHangUpHandler(
             RefIq response, final AbstractGatewaySession session)
         {
             ChatRoom room = session.getJvbChatRoom();
             response.setUri(
                 "xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
 
-            // we send the response where we have received using the provider
-            // registered in the control muc
-            try
-            {
-                ((ProtocolProviderServiceJabberImpl) pps)
-                    .getConnection().sendStanza(response);
-            }
-            catch (NotConnectedException | InterruptedException e)
-            {
-                //FIXME smack4: needs to use IQ handler
-                throw new RuntimeException(e);
-            }
-
             final XMPPConnection roomConnection
                 = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
                     .getConnection();
-
-            //FIXME smack4: doesn't work anymore
-            roomConnection.addAsyncStanzaListener(
-                packet ->
-                {
-                    HangUp hangUpIq = (HangUp) packet;
-                    session.hangUp();
-                    roomConnection.sendStanza(IQ.createResultIQ(hangUpIq));
-                },
-                packet -> packet instanceof HangUp
-            );
+            roomConnection.registerIQRequestHandler(
+                new HangUpIqHandler(room.getParentProvider()));
         }
+    }
+
+    private class HangUpIqHandler
+        extends RayoIqHandler<HangUp>
+    {
+        HangUpIqHandler(ProtocolProviderService pps)
+        {
+            super(HangUp.ELEMENT_NAME, IQ.Type.set, pps);
+        }
+
+        @Override
+        public IQ processIQ(HangUp iqRequest, CallContext ctx)
+        {
+            final AbstractGatewaySession session =
+                callControl.getSession(ctx.getCallResource());
+            session.hangUp();
+            return IQ.createResultIQ(iqRequest);
+        }
+    }
+
+    private abstract class RayoIqHandler<T extends RayoIq>
+        extends AbstractIqRequestHandler
+    {
+        private ProtocolProviderService pps;
+
+        RayoIqHandler(String element, IQ.Type type, ProtocolProviderService pps)
+        {
+            super(element, RayoIqProvider.NAMESPACE, type, Mode.sync);
+            this.pps = pps;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public final IQ handleIQRequest(IQ iqRequest)
+        {
+            AccountID acc = pps.getAccountID();
+
+            final CallContext ctx = new CallContext();
+            ctx.setDomain(acc.getAccountPropertyString(
+                CallContext.DOMAIN_BASE_ACCOUNT_PROP));
+            ctx.setBoshURL(acc.getAccountPropertyString(
+                CallContext.BOSH_URL_ACCOUNT_PROP));
+            ctx.setMucAddressPrefix(acc.getAccountPropertyString(
+                CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
+
+            return processIQ((T)iqRequest, ctx);
+        }
+
+        protected abstract IQ processIQ(T iq, CallContext ctx);
     }
 }
