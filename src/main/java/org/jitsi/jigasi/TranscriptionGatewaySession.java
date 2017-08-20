@@ -62,10 +62,10 @@ public class TranscriptionGatewaySession
     private TranscriptionService service;
 
     /**
-     * The TranscriptHandler which can format and save a transcript of the
-     * transcribed
+     * The TranscriptHandler which enables publishing a {@link Transcript} and
+     * sending {@link TranscriptionResult} to a {@link ChatRoom}
      */
-    private TranscriptHandler<?> handler;
+    private TranscriptHandler handler;
 
     /**
      * The ChatRoom of the conference which is going to be transcribed.
@@ -86,6 +86,13 @@ public class TranscriptionGatewaySession
     private Call jvbCall = null;
 
     /**
+     * A list of {@link TranscriptPublisher.Promise}s which will be used
+     * to handle the {@link Transcript} when the session is stopped
+     */
+    private List<TranscriptPublisher.Promise> finalTranscriptPromises
+        = new LinkedList<>();
+
+    /**
      * Create a TranscriptionGatewaySession which can handle the transcription
      * of a JVB conference
      *
@@ -93,12 +100,13 @@ public class TranscriptionGatewaySession
      * @param context the context of the call this session is joining
      * @param service the TranscriptionService which should be used
      *                to transcribe the audio in the conference
-     * @param handler the TranscriptHandler which should handle the transcript
+     * @param handler the TranscriptHandler which can handle the
+     * {@link Transcript} and incoming {@link TranscriptionResult}
      */
     public TranscriptionGatewaySession(AbstractGateway gateway,
                                        CallContext context,
                                        TranscriptionService service,
-                                       TranscriptHandler<?> handler)
+                                       TranscriptHandler handler)
     {
         super(gateway, context);
         this.service = service;
@@ -158,7 +166,20 @@ public class TranscriptionGatewaySession
 
         // FIXME: 20/07/17 Do we want to start transcribing on joining room?
         transcriber.start();
-        sendMessageToRoom("Started transcription!");
+
+        StringBuilder welcomeMessage =
+            new StringBuilder("Started transcription!\n");
+
+        finalTranscriptPromises.addAll(handler.getTranscriptPublishPromises());
+        for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
+        {
+            if(promise.hasDescription())
+            {
+                welcomeMessage.append(promise.getDescription());
+            }
+        }
+
+        sendMessageToRoom(welcomeMessage.toString());
 
         logger.debug("TranscriptionGatewaySession started transcribing");
 
@@ -169,15 +190,19 @@ public class TranscriptionGatewaySession
     void onJvbConferenceStopped(JvbConference jvbConference,
                                 int reasonCode, String reason)
     {
-        // FIXME: 22/07/17 this actually happens only every user leaves
-        // instead of when transcription is user.
+        // FIXME: 22/07/17 this actually happens only when every user leaves
+        // instead of when transcription is over.
         // Need a solution for stopping the transcription earlier
 
         // The conference is over, make sure the transcriber stops
         if(!transcriber.finished())
         {
             transcriber.stop();
-            transcriber.getTranscript().saveTranscript(handler);
+
+            for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
+            {
+                promise.publish(transcriber.getTranscript());
+            }
         }
 
         logger.debug("Conference ended");
@@ -287,7 +312,7 @@ public class TranscriptionGatewaySession
     @Override
     public void notify(TranscriptionResult result)
     {
-        sendMessageToRoom(handler.formatTranscriptionResult(result).toString());
+        sendTranscriptionResultToRoom(result);
     }
 
     /**
@@ -315,8 +340,8 @@ public class TranscriptionGatewaySession
     @Override
     public void toneReceived(DTMFReceivedEvent dtmfReceivedEvent)
     {
-        throw new UnsupportedOperationException("TranscriptionGatewaySession does " +
-                "not support receiving DTMF tones");
+        throw new UnsupportedOperationException("TranscriptionGatewaySession " +
+            "does " + "not support receiving DTMF tones");
     }
 
     /**
@@ -520,6 +545,16 @@ public class TranscriptionGatewaySession
         }
     }
 
+    /**
+     * Send a {@link TranscriptionResult} to the {@link ChatRoom}
+     *
+     * @param result the {@link TranscriptionResult} to send
+     */
+    private void sendTranscriptionResultToRoom(TranscriptionResult result)
+    {
+        handler.publishTranscriptionResult(this.chatRoom, result);
+    }
+
     @Override
     public String getMucDisplayName()
     {
@@ -528,10 +563,11 @@ public class TranscriptionGatewaySession
 
     /**
      * This Thread is used in the
-     * {@link TranscriptionGatewaySession#notifyMemberJoined(ChatRoomMember)} and
-     * {@link TranscriptionGatewaySession#notifyMemberLeft(ChatRoomMember)} methods
-     * to wait for a matching ConferenceMember, which might be added to the
-     * CallPeer later than the ChatRoomMember gets added to the ChatRoom
+     * {@link TranscriptionGatewaySession#notifyMemberJoined(ChatRoomMember)}
+     * and
+     * {@link TranscriptionGatewaySession#notifyMemberLeft(ChatRoomMember)}
+     * methods to wait for a matching ConferenceMember, which might be added to
+     * the CallPeer later than the ChatRoomMember gets added to the ChatRoom
      */
     private class WaitForConferenceMemberThread
         extends Thread

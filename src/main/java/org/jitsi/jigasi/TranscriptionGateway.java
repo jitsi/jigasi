@@ -21,13 +21,20 @@ import org.jitsi.jigasi.transcription.*;
 import org.osgi.framework.*;
 
 /**
- * A Gateway which creates a TranscriptionGatewaySession when it has an outgoing call
+ * A Gateway which creates a TranscriptionGatewaySession when it has an outgoing
+ * call
  *
  * @author Nik Vaessen
  */
 public class TranscriptionGateway
     extends AbstractGateway<TranscriptionGatewaySession>
 {
+    /**
+     * Class which manages the desired {@link TranscriptPublisher} and
+     * {@link TranscriptionResultPublisher}
+     */
+    private TranscriptHandler handler = new TranscriptHandler();
+
     /**
      * Create a new TranscriptionGateway, which manages
      * TranscriptionGatewaySessions in conferences, such that the audio
@@ -54,7 +61,7 @@ public class TranscriptionGateway
                     this,
                     ctx,
                     new GoogleCloudTranscriptionService(),
-                    new LocalTxtTranscriptHandler());
+                    this.handler);
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 

@@ -22,6 +22,8 @@ import java.time.*;
 /**
  * Describe an TranscriptEvent which took place at a certain time and
  * can belong to a named person
+ *
+ * @author Nik Vaessen
  */
 public class TranscriptEvent
     implements Comparable<TranscriptEvent>

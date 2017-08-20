@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
 import org.json.simple.*;
 
 import java.time.*;
@@ -40,9 +41,17 @@ import java.util.*;
  * 4. "Participant" object: This object stores the information of a participant:
  * the name and the (j)id
  *
+ * When sending a single {@link TranscriptionResult} to the {@link ChatRoom},
+ * a special JSON object is required. It needs 2 fields:
+ *
+ * 1. jitsi-meet-muc-msg-topic: which in our case will be a string
+ *    "transcription-result"
+ * 2. payload: which will be the "event" object described in point 2 above
+ *
+ * @author Nik Vaessen
  */
 public class LocalJsonTranscriptHandler
-    extends AbstractTranscriptHandler<JSONObject>
+    extends AbstractTranscriptPublisher<JSONObject>
 {
 
     // "final transcript" JSON object fields
@@ -147,29 +156,63 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
+    // JSON object to send to MUC
+
+    /**
+     * This fields stores the topic of the muc message as a string
+     */
+    public final static String JSON_KEY_TOPIC = "jitsi-meet-muc-msg-topic";
+
+    /**
+     * This field stores the value of the topic of the muc message as a string
+     */
+    public final static String JSON_VALUE_TOPIC = "transcription-result";
+
+    /**
+     * This field stores the payload object which will be send as a muc message
+     */
+    public final static String JSON_KEY_PAYLOAD = "payload";
+
     @Override
-    public TranscriptHandler.Formatter<JSONObject> format()
+    public JSONFormatter getFormatter()
     {
         return new JSONFormatter();
     }
 
     @Override
-    public JSONObject formatTranscriptionResult(TranscriptionResult result)
+    public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject object = new JSONObject();
-
+        JSONObject eventObject = new JSONObject();
         SpeechEvent event = new SpeechEvent(Instant.now(), result);
 
-        addEventDescriptions(object, event);
-        addAlternatives(object, event);
+        addEventDescriptions(eventObject, event);
+        addAlternatives(eventObject, event);
 
-        return object;
+        JSONObject encapsulatingObject = new JSONObject();
+        createEncapsulatingObject(encapsulatingObject, eventObject);
+
+        super.sendMessage(room, encapsulatingObject);
+    }
+
+    /**
+     * Create the JSON object will be send to the {@link ChatRoom}
+     *
+     * @param encapsulatingObject the json object which will be send
+     * @param transcriptResultObject the json object which will be added as
+     *                               payload
+     */
+    @SuppressWarnings("unchecked")
+    private void createEncapsulatingObject(JSONObject encapsulatingObject,
+                                           JSONObject transcriptResultObject)
+    {
+        encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
+        encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
     }
 
     @Override
-    public void publish(JSONObject transcript)
+    public Promise getPublishPromise()
     {
-        new LocalTxtTranscriptHandler().publish(transcript.toString());
+        return new JSONPublishPromise();
     }
 
     @Override
@@ -268,7 +311,7 @@ public class LocalJsonTranscriptHandler
      *
      * @param jsonObject the object to add the fields to
      * @param roomName the room name
-     * @param names the names of the initial participants
+     * @param participants the initial participants
      * @param start the start time
      * @param end the end time
      * @param events a collection of "event" json objects
@@ -320,7 +363,7 @@ public class LocalJsonTranscriptHandler
     }
 
     /**
-     *
+     * Formats a transcript into the "final_transcript" object
      */
     private class JSONFormatter
         extends BaseFormatter
@@ -343,4 +386,36 @@ public class LocalJsonTranscriptHandler
         }
     }
 
+    private class JSONPublishPromise
+        extends BasePromise
+    {
+        /**
+         * The filename wherein the Transcript will be published
+         */
+        private String fileName = generateHardToGuessFileName() + ".json";
+
+        /**
+         * Whether {@link this#publish(Transcript)} has already been called once
+         */
+        private boolean published = false;
+
+        @Override
+        public synchronized void publish(Transcript transcript)
+        {
+            if(!published)
+            {
+                published = true;
+
+                JSONObject t
+                    = transcript.getTranscript(LocalJsonTranscriptHandler.this);
+                saveTranscriptToFile(getFileName(), t);
+            }
+        }
+
+        @Override
+        protected String getFileName()
+        {
+            return this.fileName;
+        }
+    }
 }
