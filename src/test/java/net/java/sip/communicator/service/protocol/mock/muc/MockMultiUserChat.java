@@ -32,6 +32,7 @@ public class MockMultiUserChat
     extends AbstractChatRoom
 {
     private final String roomName;
+    private final String roomIdentifier;
 
     private final ProtocolProviderService protocolProvider;
 
@@ -54,6 +55,8 @@ public class MockMultiUserChat
     {
         this.roomName = roomName;
         this.protocolProvider = protocolProviderService;
+        this.roomIdentifier = roomName + "@" + this.protocolProvider
+            .getAccountID().getAccountProperties().get("SERVER_ADDRESS");
     }
 
     @Override
@@ -65,7 +68,7 @@ public class MockMultiUserChat
     @Override
     public String getIdentifier()
     {
-        return null;
+        return roomIdentifier;
     }
 
     @Override

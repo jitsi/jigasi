@@ -70,7 +70,7 @@ public class MockJvbConferenceFocus
     {
         if (serviceEvent.getType() == ServiceEvent.REGISTERED)
         {
-            ServiceReference ref = serviceEvent.getServiceReference();
+            ServiceReference<?> ref = serviceEvent.getServiceReference();
 
             Object service = JigasiBundleActivator.osgiContext.getService(ref);
             if (service instanceof ProtocolProviderService)

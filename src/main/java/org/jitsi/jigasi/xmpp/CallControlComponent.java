@@ -341,6 +341,6 @@ public class CallControlComponent
         if (resultIQ != null)
             return IQUtils.convert(resultIQ);
 
-        return super.handleIQSet(iq);
+        return super.handleIQSetImpl(iq);
     }
 }

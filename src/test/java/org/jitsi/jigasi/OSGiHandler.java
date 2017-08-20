@@ -47,6 +47,9 @@ public class OSGiHandler
     public void init()
         throws InterruptedException
     {
+        System.setProperty(
+            "net.java.sip.communicator.impl.configuration.USE_PROPFILE_CONFIG",
+            "true");
 
         // Disable SingleCallInProgressPolicy
         System.setProperty(
