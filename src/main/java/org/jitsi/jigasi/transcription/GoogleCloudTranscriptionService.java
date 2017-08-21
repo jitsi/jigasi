@@ -310,6 +310,7 @@ public class GoogleCloudTranscriptionService
                             UUID.randomUUID(),
                             false,
                             request.getLocale().toLanguageTag(),
+                            0,
                             new TranscriptionAlternative(transcription)));
         }
         catch (Exception e)
@@ -772,7 +773,8 @@ public class GoogleCloudTranscriptionService
                 null,
                 requestManager.getCurrentMessageID(),
                 !result.getIsFinal(),
-                requestManager.getLanguageTag());
+                requestManager.getLanguageTag(),
+                result.getStability());
 
             for(SpeechRecognitionAlternative alternative : alternatives)
             {
