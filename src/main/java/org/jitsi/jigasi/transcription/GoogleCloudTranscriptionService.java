@@ -160,7 +160,7 @@ public class GoogleCloudTranscriptionService
     /**
      * Whether the Google cloud API sends interim, non-final results
      */
-    private final static boolean RETRIEVE_INTERIM_RESULTS = false;
+    private final static boolean RETRIEVE_INTERIM_RESULTS = true;
 
     /**
      * Whether the Google Cloud API only listens for a single utterance

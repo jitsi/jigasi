@@ -173,9 +173,20 @@ public class LocalTxtTranscriptHandler
         .withZone(ZoneOffset.UTC);
 
 
+    /**
+     * Publish final results to the chatroom in plain text. Interim results
+     * are not handled as it would flood the chatroom with senseless results.
+     *
+     * {@inheritDoc}
+     */
     @Override
     public void publish(ChatRoom chatRoom, TranscriptionResult result)
     {
+        if(result.isInterim())
+        {
+            return;
+        }
+
         String name = result.getName();
         String transcription = result.getAlternatives().iterator()
             .next().getTranscription();

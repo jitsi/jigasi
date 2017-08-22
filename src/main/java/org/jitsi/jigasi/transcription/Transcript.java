@@ -113,10 +113,16 @@ public class Transcript
         this.roomName = "";
     }
 
+    /**
+     * The transcript gets notified when a new result comes in. Any final
+     * {@link TranscriptionResult} should be stored in the final transcript.
+     *
+     * @param result the result which has come in
+     */
     @Override
     public void notify(TranscriptionResult result)
     {
-        if(started != null)
+        if(started != null && !result.isInterim())
         {
             SpeechEvent speechEvent = new SpeechEvent(Instant.now(), result);
             speechEvents.add(speechEvent);
