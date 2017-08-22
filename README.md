@@ -66,3 +66,92 @@ Jigasi will register on your SIP server with some identity and it will accept ca
 Example:
 
 Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.jit.si/room1234' (assuming that our domain is 'meet.jit.si').
+
+
+Using Jigasi to transcribe a Jitsi Meet conference
+==================================================
+
+It is also possible to use Jigasi as a provider of nearly real-time transcription
+while a conference is ongoing as well as serving a complete transcription
+after the conference is over. This can be done by using the SIP dial button and 
+using the the URI `jitsi_meet_transcribe`. 
+Currently Jigasi can send speech-to-text results to
+the chat of a Jitsi Meet room as either plain text or JSON. If it's send in JSON,
+Jitsi Meet will provide subtitles in the left corner of the video, while plain text
+will just be posted in the chat. Jigasi will also provide a link to where the final, 
+complete transcript will be served when it enters the room.
+
+For jigasi to act as a transcriber, it sends the audio of all participants in the
+room to an external speech-to-text service. Currently only the [Google Cloud speech-to-text API](https://cloud.google.com/speech/) is supported.
+It is required to install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/)
+on the machine running Jigasi. To install on a regular debian/ubuntu environment:
+
+```
+export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+sudo apt-get update && sudo apt-get install google-cloud-sdk google-cloud-sdk-app-engine-java
+gcloud init
+gcloud auth application-default login
+```
+There are several configuration options regarding transcription. These should
+be placed in `~/jigasi/jigasi-home/sip-communicator.properties`. The default 
+value will be used when the property is not set in the property file. A valid 
+XMPP account must also be set to make Jigasi be able to join a conference room.
+<table>
+    <tr>
+        <th>Property name</th>
+        <th>Default value</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.DIRECTORY</td>
+        <td>/var/lib/jigasi/transcripts</td>
+        <td>The folder which will be used to store and serve the final 
+            transcripts.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.BASE_URL</td>
+        <td>http://localhost/</td>
+        <td>The base URL which will be used to serve the final transcripts. 
+            The URL used to serve a transcript will be this base appended by the
+            filename of the transcript.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.PORT</td>
+        <td>-1</td>
+        <td>The port which will be used to serve the final transcripts. Its 
+            default value is -1, which means the Jetty instance serving the 
+            transcript files is turned off.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.ADVERTISE_URL</td>
+        <td>false</td>
+        <td>Whether or not to advertise the URL which will serve the final 
+            transcript when Jigasi joins the room.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.SAVE_JSON</td>
+        <td>false</td>
+        <td>Whether or not to save the final transcript in JSON. Note that this
+            format is not very human readable.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.SAVE_TXT</td>
+        <td>true</td>
+        <td>Whether or not to save the final transcript in plain text.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.SEND_JSON</td>
+        <td>true</td>
+        <td>Whether or not to send results, when they come in, to the chatroom 
+            in JSON. Note that this will result in subtitles being shown.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.SEND_TXT</td>
+        <td>false</td>
+        <td>Whether or not to send results, when they come in, to the chatroom 
+            in plain text. Note that this will result in the chat being somewhat
+            spammed.</td>
+    </tr>
+</table>
