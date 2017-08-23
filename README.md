@@ -118,7 +118,7 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
             filename of the transcript.</td>
     </tr>
     <tr>
-        <td>org.jitsi.jigasi.transcription.PORT</td>
+        <td>org.jitsi.jigasi.transcription.jetty.port</td>
         <td>-1</td>
         <td>The port which will be used to serve the final transcripts. Its 
             default value is -1, which means the Jetty instance serving the 

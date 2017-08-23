@@ -43,17 +43,6 @@ public class TranscriptServerBundleActivator
         = "org.jitsi.jigasi.transcription";
 
     /**
-     * Property name for the port which will be used by this Jetty instance.
-     */
-    public static final String P_NAME_TRANSCRIPT_PORT
-        = "org.jitsi.jigasi.transcription.PORT";
-
-    /**
-     * Default value for the port. It is -1 to disable jetty by default.
-     */
-    public static final int TRANSCRIPT_PORT_DEFAULT_VALUE = -1;
-
-    /**
      * Create a new Bundle which serves locally stored
      * {@link org.jitsi.jigasi.transcription.Transcript}s formatted by a
      * {@link org.jitsi.jigasi.transcription.TranscriptPublisher}
@@ -69,8 +58,16 @@ public class TranscriptServerBundleActivator
     @Override
     protected int getDefaultPort()
     {
-        return JigasiBundleActivator.getConfigurationService().getInt(
-            P_NAME_TRANSCRIPT_PORT, TRANSCRIPT_PORT_DEFAULT_VALUE);
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int getDefaultTlsPort()
+    {
+        return -1;
     }
 
     /**
