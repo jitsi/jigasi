@@ -11,7 +11,7 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 [quick install instructions]: https://github.com/jitsi/jitsi-meet/blob/master/doc/quick-install.md
 
 1. Checkout latest source:
- 
+
  ```
  git clone https://github.com/jitsi/jigasi.git
  ```
@@ -19,9 +19,9 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 
  ```
  cd jigasi
- ant make
+ mvn -Dassembly.skipAssembly=false package
  ```
- 
+
 3. Configure external component in your XMPP server. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua and append following lines to your config (assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
 
  ```
@@ -33,7 +33,7 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
  Go to jigasi/jigasi-home and edit sip-communicator.properties file. Replace ```<<JIGASI_SIPUSER>>``` tag with SIP username for example: "user1232@sipserver.net". Then put Base64 encoded password in place of ```<<JIGASI_SIPPWD>>```.
 
 5. Start Jigasi
- 
+
  ```
  ./jigasi.sh --domain=meet.jit.si --subdomain=callcontrol --secret=topsecret
  ```
