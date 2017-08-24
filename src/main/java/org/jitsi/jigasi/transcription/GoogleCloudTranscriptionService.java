@@ -423,7 +423,7 @@ public class GoogleCloudTranscriptionService
         @Override
         public void addTranscriptionListener(TranscriptionListener listener)
         {
-            requestManager.getResponseObserver().addListener(listener);
+            requestManager.addListener(listener);
         }
 
     }
@@ -441,11 +441,10 @@ public class GoogleCloudTranscriptionService
         private SpeechClient client;
 
         /**
-         * The ApiStreamObserver which will retrieve new incoming transcription
-         * results
+         * List of TranscriptionListeners which will be notified when a
+         * result comes in
          */
-        private ResponseApiStreamingObserver<StreamingRecognizeResponse>
-            responseObserver;
+        private final List<TranscriptionListener> listeners = new ArrayList<>();
 
         /**
          * The ApiStreamObserver which will send new audio request to be
@@ -465,17 +464,6 @@ public class GoogleCloudTranscriptionService
         private TerminatingSessionThread terminatingSessionThread;
 
         /**
-         * The language of the speech being provided in the current session
-         */
-        private String languageTag;
-
-        /**
-         * A {@link UUID} which identifies the results (interim and final) of
-         * the current session
-         */
-        private UUID messageID;
-
-        /**
          * Whether this manager has stopped and will not make new sessions
          * anymore
          */
@@ -490,18 +478,6 @@ public class GoogleCloudTranscriptionService
         RequestApiStreamObserverManager(SpeechClient client)
         {
             this.client = client;
-            this.responseObserver = new ResponseApiStreamingObserver<>(this);
-        }
-
-        /**
-         * Get the response observer
-         *
-         * @return the response observer
-         */
-        public ResponseApiStreamingObserver<StreamingRecognizeResponse>
-            getResponseObserver()
-        {
-            return responseObserver;
         }
 
         /**
@@ -514,9 +490,13 @@ public class GoogleCloudTranscriptionService
         private ApiStreamObserver<StreamingRecognizeRequest> createObserver(
             RecognitionConfig config)
         {
-            // Set a UUID and a language tag for the new session
-            this.messageID = UUID.randomUUID();
-            this.languageTag = config.getLanguageCode();
+            // Each observer gets its own responseObserver to be able to
+            // to get an unique ID
+            ResponseApiStreamingObserver<StreamingRecognizeResponse>
+                responseObserver =
+                new ResponseApiStreamingObserver<StreamingRecognizeResponse>(
+                    this,
+                    config.getLanguageCode());
 
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
@@ -596,6 +576,28 @@ public class GoogleCloudTranscriptionService
         }
 
         /**
+         * Add a listener to the list of listeners to be notified when a new
+         * result comes in
+         *
+         * @param listener the listener to add
+         */
+        void addListener(TranscriptionListener listener)
+        {
+            listeners.add(listener);
+        }
+
+        /**
+         * Get the {@link TranscriptionListener} added to this
+         * {@link TranscriptionService.StreamingRecognitionSession}
+         *
+         * @return the list of {@link TranscriptionListener}
+         */
+        public List<TranscriptionListener> getListeners()
+        {
+            return listeners;
+        }
+
+        /**
          * Stop the manager
          */
         public void stop()
@@ -628,26 +630,6 @@ public class GoogleCloudTranscriptionService
                 }
             }
         }
-
-        /**
-         * Get the language tag in which results are being given
-         *
-         * @return the language tag
-         */
-        String getLanguageTag()
-        {
-            return languageTag;
-        }
-
-        /**
-         * Get the {@link UUID} which identifies the current results
-         *
-         * @return the UUID
-         */
-        UUID getCurrentMessageID()
-        {
-            return messageID;
-        }
     }
 
     /**
@@ -663,13 +645,6 @@ public class GoogleCloudTranscriptionService
         <T extends StreamingRecognizeResponse>
         implements ApiStreamObserver<T>
     {
-
-        /**
-         * List of TranscriptionListeners which will be notified when a
-         * result comes in
-         */
-        private final List<TranscriptionListener> listeners = new ArrayList<>();
-
         /**
          * The manager which is used to send new audio requests. Should be
          * notified when a final result comes in to be able to start a new
@@ -678,14 +653,29 @@ public class GoogleCloudTranscriptionService
         private RequestApiStreamObserverManager requestManager;
 
         /**
+         * The language of the speech being provided in the current session
+         */
+        private String languageTag;
+
+        /**
+         * A {@link UUID} which identifies the results (interim and final) of
+         * the current session
+         */
+        private UUID messageID;
+
+        /**
          * Create a ResponseApiStreamingObserver which listens for transcription
          * results
          *
          * @param manager the manager of requests
          */
-        ResponseApiStreamingObserver(RequestApiStreamObserverManager manager)
+        ResponseApiStreamingObserver(RequestApiStreamObserverManager manager,
+                                     String languageTag)
         {
-            requestManager = manager;
+            this.requestManager = manager;
+            this.languageTag = languageTag;
+
+            messageID = UUID.randomUUID();
         }
 
         @Override
@@ -705,11 +695,11 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            // this will happen when SINGLE_UTTERANCE is set to true but the
-            // audio being sent does not have any speech in it after ~10 seconds
-            // after this response you can still send audio but no new results
-            // will come in, so we have to terminate
-            if(message.getResultsCount() == 0)
+            // This will happen when SINGLE_UTTERANCE is set to true
+            // and the server has detected the end of the user's speech
+            // utterance.
+            if(isEndOfSingleUtteranceMessage(message) ||
+                message.getResultsCount() == 0)
             {
                 logger.debug("Received a message with an empty results list");
                 requestManager.terminateCurrentSession();
@@ -753,6 +743,25 @@ public class GoogleCloudTranscriptionService
         }
 
         /**
+         * Get whether a {@link StreamingRecognizeResponse} has an
+         * {@link StreamingRecognizeResponse#speechEventType_} of
+         * {@link StreamingRecognizeResponse.SpeechEventType#
+         * END_OF_SINGLE_UTTERANCE}
+         *
+         * @param message the message to check
+         * @return true if the message has the eventType
+         * {@link StreamingRecognizeResponse.SpeechEventType
+         * #END_OF_SINGLE_UTTERANCE}, false otherwise
+         */
+        private boolean isEndOfSingleUtteranceMessage(
+            StreamingRecognizeResponse message)
+        {
+            return message.getSpeechEventType().
+                equals(StreamingRecognizeResponse.SpeechEventType.
+                    END_OF_SINGLE_UTTERANCE);
+        }
+
+        /**
          * Handle a single {@link StreamingRecognitionResult} by creating
          * a {@link TranscriptionResult} based on the result and notifying all
          * all registered {@link TranscriptionListener}s
@@ -771,9 +780,9 @@ public class GoogleCloudTranscriptionService
 
             TranscriptionResult transcriptionResult = new TranscriptionResult(
                 null,
-                requestManager.getCurrentMessageID(),
+                this.messageID,
                 !result.getIsFinal(),
-                requestManager.getLanguageTag(),
+                this.languageTag,
                 result.getStability());
 
             for(SpeechRecognitionAlternative alternative : alternatives)
@@ -797,21 +806,10 @@ public class GoogleCloudTranscriptionService
         @Override
         public void onCompleted()
         {
-            for(TranscriptionListener listener : listeners)
+            for(TranscriptionListener listener : requestManager.getListeners())
             {
                 listener.completed();
             }
-        }
-
-        /**
-         * Add a listener to the list of listeners to be notified when a new
-         * result comes in
-         *
-         * @param listener the listener to add
-         */
-        void addListener(TranscriptionListener listener)
-        {
-            listeners.add(listener);
         }
 
         /**
@@ -821,7 +819,7 @@ public class GoogleCloudTranscriptionService
          */
         private void sent(TranscriptionResult result)
         {
-            for(TranscriptionListener listener : listeners)
+            for(TranscriptionListener listener : requestManager.getListeners())
             {
                 listener.notify(result);
             }
