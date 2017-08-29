@@ -42,30 +42,27 @@ public abstract class AbstractTranscriptPublisher<T>
      * stored
      */
     public final static String P_NAME_TRANSCRIPT_DIRECTORY
-        = "org.jitsi.jigasi.transcription.AbstractTranscriptPublisher." +
-        "DIRECTORY";
+        = "org.jitsi.jigasi.transcription.DIRECTORY";
 
     /**
      * Property name for the basic URL which the server will use to serve the
      * final transcript
      */
     public final static String P_NAME_TRANSCRIPT_BASE_URL
-        = "org.jitsi.jigasi.transcription.AbstractTranscriptPublisher." +
-        "BASE_URL";
+        = "org.jitsi.jigasi.transcription.BASE_URL";
 
     /**
      * The property name for the boolean value whether the URL should be
      * advertised or not
      */
     public final static String P_NAME_ADVERTISE_URL
-        =  "org.jitsi.jigasi.transcription.AbstractTranscriptPublisher." +
-        "ADVERTISE_URL";
+        =  "org.jitsi.jigasi.transcription.ADVERTISE_URL";
 
     /**
      * The default for the url
      */
     public final static String TRANSCRIPT_BASE_URL_DEFAULT_VALUE
-        = "http://localhost/transcripts/";
+        = "http://localhost/";
 
     /**
      * The default value for the directory to save the final transcripts in
@@ -170,7 +167,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return the path as a String
      */
-    public String getLogDirPath()
+    public static String getLogDirPath()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getString(P_NAME_TRANSCRIPT_DIRECTORY,

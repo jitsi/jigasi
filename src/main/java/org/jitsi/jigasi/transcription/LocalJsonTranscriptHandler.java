@@ -131,6 +131,12 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_EVENT_IS_INTERIM = "is_interim";
 
+    /**
+     * This feild stores the stability value (between 0 and 1) of an interim
+     * result, which indicates the likelihood that the result will change.
+     */
+    public final static String JSON_KEY_EVENT_STABILITY = "stability";
+
     // "alternative" JSON object fields
 
     /**
@@ -298,10 +304,11 @@ public class LocalJsonTranscriptHandler
         }
 
         jsonObject.put(JSON_KEY_EVENT_TRANSCRIPT, alternativeJSONArray);
-        jsonObject.put(JSON_KEY_EVENT_LANGUAGE, e.getResult().getLanguage());
-        jsonObject.put(JSON_KEY_EVENT_IS_INTERIM, e.getResult().isInterim());
+        jsonObject.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
+        jsonObject.put(JSON_KEY_EVENT_IS_INTERIM, result.isInterim());
         jsonObject.put(JSON_KEY_EVENT_MESSAGE_ID,
-            e.getResult().getMessageID().toString());
+            result.getMessageID().toString());
+        jsonObject.put(JSON_KEY_EVENT_STABILITY, result.getStability());
     }
 
     /**

@@ -61,6 +61,15 @@ public class TranscriptionResult
     private String language;
 
     /**
+     * The stability of this result. It is an estimate of the likelihood that
+     * the recognizer will not change its guess about this interim result.
+     * Values range from 0.0 (completely unstable) to 1.0 (completely stable).
+     * This field is only provided for interim results.
+     * The default of 0.0 is a sentinel value indicating stability was not set.
+     */
+    private double stability;
+
+    /**
      * Create a TranscriptionResult
      *
      * @param participant the participant whose audio was transcribed.
@@ -68,15 +77,18 @@ public class TranscriptionResult
      * @param messageID uuid of this result
      * @param language the language of the text of this result
      * @param alternative the single alternative to add
+     * @param stability the stability if this result. Only > 0 when
+     * {@link this#isInterim()} is true
      */
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
         boolean isInterim,
         String language,
+        double stability,
         TranscriptionAlternative alternative)
     {
-        this(participant, messageID, isInterim, language);
+        this(participant, messageID, isInterim, language, stability);
         if (alternative != null)
         {
             this.alternatives.add(alternative);
@@ -91,15 +103,18 @@ public class TranscriptionResult
      * @param messageID uuid of this result
      * @param language the language of the text of this result
      * @param alternatives the alternative transcriptions.
+     * @param stability the stability if this result. Only > 0 when
+     * {@link this#isInterim()} is true
      */
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
         boolean isInterim,
         String language,
+        double stability,
         Collection<TranscriptionAlternative> alternatives)
     {
-        this(participant, messageID, isInterim, language);
+        this(participant, messageID, isInterim, language, stability);
         if (alternatives != null)
         {
             this.alternatives.addAll(alternatives);
@@ -113,17 +128,21 @@ public class TranscriptionResult
      * @param isInterim whether this result is an interim result
      * @param messageID uuid of this result
      * @param language the language of the text of this result
+     * @param stability the stability if this result. Only > 0 when
+     * {@link this#isInterim()} is true
      */
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
         boolean isInterim,
-        String language)
+        String language,
+        double stability)
     {
         this.participant = participant;
         this.messageID = messageID;
         this.isInterim = isInterim;
         this.language = language;
+        this.stability = stability;
     }
 
     /**
@@ -173,6 +192,22 @@ public class TranscriptionResult
     public boolean isInterim()
     {
         return isInterim;
+    }
+
+    /**
+     * Get the stability of the result. This value is only > 0 when
+     * {@link this#isInterim()} is true.
+     * Values range from 0.0 (completely unstable) to 1.0 (completely stable).
+     * This field is only provided for interim results.
+     * The default of 0.0 is a sentinel value indicating stability was not set.
+     *
+     * @return a value between 0 and 1 indicated the likelihood that this result
+     * will change for further results. 0 means that the value is not actually
+     * set
+     */
+    public double getStability()
+    {
+        return stability;
     }
 
     /**

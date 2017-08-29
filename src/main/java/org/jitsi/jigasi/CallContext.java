@@ -328,6 +328,9 @@ public class CallContext
             return;
         }
 
+        // we have domain let's update it
+        boshURL = boshURL.replace("{host}", domain);
+
         String subdomain = "";
         if (roomName != null && roomName.contains("@"))
         {
@@ -355,9 +358,12 @@ public class CallContext
                     subdomain = "/" + subdomain;
                 }
             }
-        }
 
-        boshURL = boshURL.replace("{host}", domain)
-            .replace("{subdomain}", subdomain);
+            // update subdomain only when roomName is provided
+            // otherwise subdomain will be empty and we will loose the template,
+            // before we have a chance to check for subdomain in the
+            // target room name
+            boshURL = boshURL.replace("{subdomain}", subdomain);
+        }
     }
 }

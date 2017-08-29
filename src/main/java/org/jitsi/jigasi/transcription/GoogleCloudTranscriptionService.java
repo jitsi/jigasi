@@ -160,7 +160,7 @@ public class GoogleCloudTranscriptionService
     /**
      * Whether the Google cloud API sends interim, non-final results
      */
-    private final static boolean RETRIEVE_INTERIM_RESULTS = false;
+    private final static boolean RETRIEVE_INTERIM_RESULTS = true;
 
     /**
      * Whether the Google Cloud API only listens for a single utterance
@@ -310,6 +310,7 @@ public class GoogleCloudTranscriptionService
                             UUID.randomUUID(),
                             false,
                             request.getLocale().toLanguageTag(),
+                            0,
                             new TranscriptionAlternative(transcription)));
         }
         catch (Exception e)
@@ -772,7 +773,8 @@ public class GoogleCloudTranscriptionService
                 null,
                 requestManager.getCurrentMessageID(),
                 !result.getIsFinal(),
-                requestManager.getLanguageTag());
+                requestManager.getLanguageTag(),
+                result.getStability());
 
             for(SpeechRecognitionAlternative alternative : alternatives)
             {
