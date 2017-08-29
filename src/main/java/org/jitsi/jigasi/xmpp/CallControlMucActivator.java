@@ -299,7 +299,6 @@ public class CallControlMucActivator
                 // as its added to the connection, if the protocol provider
                 // gets disconnected and connects again it should create new
                 // connection and scrap old
-
                 XMPPConnection conn =
                     ((ProtocolProviderServiceJabberImpl) pps).getConnection();
                 conn.registerIQRequestHandler(new DialIqHandler(pps));

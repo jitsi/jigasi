@@ -22,9 +22,9 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
-import org.jxmpp.jid.Jid;
-import org.jxmpp.jid.impl.JidCreate;
-import org.jxmpp.stringprep.XmppStringprepException;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
 /**
  *  Implementation of call control that is capable of utilizing Rayo

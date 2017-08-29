@@ -18,9 +18,9 @@
 package org.jitsi.jigasi;
 
 import org.jitsi.util.*;
-import org.jxmpp.jid.Jid;
-import org.jxmpp.jid.impl.JidCreate;
-import org.jxmpp.stringprep.XmppStringprepException;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
 /**
  * The call context with all the parameters needed while
