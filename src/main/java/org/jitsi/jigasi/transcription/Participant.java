@@ -230,7 +230,8 @@ public class Participant
     public void notify(TranscriptionResult result)
     {
         result.setParticipant(this);
-        logger.debug(result);
+        if (logger.isDebugEnabled())
+            logger.debug(result);
         transcriber.notify(result);
     }
 

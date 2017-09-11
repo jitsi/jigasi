@@ -112,7 +112,8 @@ public abstract class AbstractTranscriptPublisher<T>
         try
         {
             chatRoom.sendMessage(chatRoomMessage);
-            logger.debug("Sending message: \"" + messageString + "\"");
+            if (logger.isDebugEnabled())
+                logger.debug("Sending message: \"" + messageString + "\"");
         }
         catch (OperationFailedException e)
         {

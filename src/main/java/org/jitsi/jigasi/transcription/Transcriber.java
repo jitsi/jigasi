@@ -181,7 +181,9 @@ public class Transcriber
 
         participant.joined();
         transcript.notifyJoined(participant);
-        logger.debug("Added participant " + name + " with ssrc " + ssrc);
+
+        if (logger.isDebugEnabled())
+            logger.debug("Added participant " + name + " with ssrc " + ssrc);
     }
 
     /**
@@ -198,7 +200,11 @@ public class Transcriber
             Participant participant =  participants.get(ssrc);
             participant.left();
             transcript.notifyLeft(participant);
-            logger.debug("Removed participant " + name + " with ssrc " + ssrc);
+
+            if (logger.isDebugEnabled())
+                logger.debug(
+                    "Removed participant " + name + " with ssrc " + ssrc);
+
             return;
         }
 
@@ -213,7 +219,9 @@ public class Transcriber
     {
         if (State.NOT_STARTED.equals(this.state))
         {
-            logger.debug("Transcriber is now transcribing");
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now transcribing");
+
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
 
@@ -238,7 +246,9 @@ public class Transcriber
     {
         if (State.TRANSCRIBING.equals(this.state))
         {
-            logger.debug("Transcriber is now finishing up");
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now finishing up");
+
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
             this.transcript.ended();
@@ -384,7 +394,10 @@ public class Transcriber
                     return;
                 }
             }
-            logger.debug("Transcriber is now finished");
+
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now finished");
+
             this.state = State.FINISHED;
             for (TranscriptionListener listener : listeners)
             {

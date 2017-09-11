@@ -610,7 +610,9 @@ public class GoogleCloudTranscriptionService
             {
                 if(currentRequestObserver == null)
                 {
-                    logger.debug("Created a new session");
+                    if (logger.isDebugEnabled())
+                        logger.debug("Created a new session");
+
                     currentRequestObserver
                         = createObserver(getRecognitionConfig(request));
                 }
@@ -643,7 +645,8 @@ public class GoogleCloudTranscriptionService
             {
                 if(currentRequestObserver != null)
                 {
-                    logger.debug("Terminated current session");
+                    if (logger.isDebugEnabled())
+                        logger.debug("Terminated current session");
 
                     currentRequestObserver.onCompleted();
                     currentRequestObserver = null;
@@ -721,7 +724,8 @@ public class GoogleCloudTranscriptionService
         @Override
         public void onNext(StreamingRecognizeResponse message)
         {
-            logger.debug("Received a StreamingRecognizeResponse");
+            if (logger.isDebugEnabled())
+                logger.debug("Received a StreamingRecognizeResponse");
             if(message.hasError())
             {
                 // it is expected to get an error if the 60 seconds are exceeded
@@ -729,8 +733,10 @@ public class GoogleCloudTranscriptionService
                 // and no new audio is coming in
                 // thus we cancel the current session and start a new one
                 // when new audio comes in
-                logger.debug("Received error from StreamingRecognizeResponse: "
-                    + message.getError().getMessage());
+                if (logger.isDebugEnabled())
+                    logger.debug(
+                        "Received error from StreamingRecognizeResponse: "
+                        + message.getError().getMessage());
                 requestManager.terminateCurrentSession();
                 return;
             }
@@ -741,7 +747,10 @@ public class GoogleCloudTranscriptionService
             // will come in, so we have to terminate
             if(message.getResultsCount() == 0)
             {
-                logger.debug("Received a message with an empty results list");
+                if (logger.isDebugEnabled())
+                    logger.debug(
+                        "Received a message with an empty results list");
+
                 requestManager.terminateCurrentSession();
                 return;
             }
