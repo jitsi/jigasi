@@ -230,8 +230,7 @@ public class Participant
     public void notify(TranscriptionResult result)
     {
         result.setParticipant(this);
-        if (!result.isInterim())
-        logger.info(result);
+        logger.debug(result);
         transcriber.notify(result);
     }
 
