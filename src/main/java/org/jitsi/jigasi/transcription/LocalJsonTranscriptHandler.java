@@ -276,7 +276,7 @@ public class LocalJsonTranscriptHandler
      * @param e the event which holds the information to add to the JSON object
      */
     @SuppressWarnings("unchecked")
-    private static void addEventDescriptions(
+    public static void addEventDescriptions(
         JSONObject jsonObject, TranscriptEvent e)
     {
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());

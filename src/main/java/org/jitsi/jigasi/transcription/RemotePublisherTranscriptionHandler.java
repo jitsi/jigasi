@@ -29,6 +29,7 @@ import java.util.*;
  */
 public class RemotePublisherTranscriptionHandler
     extends LocalJsonTranscriptHandler
+    implements TranscriptionEventListener
 {
     /**
      * List of remote services to notify for transcriptions.
@@ -72,6 +73,35 @@ public class RemotePublisherTranscriptionHandler
         for (String url : urls)
         {
             Util.postJSON(url, encapsulatingObject);
+        }
+    }
+
+    @Override
+    public void notify(Transcriber transcriber, TranscriptEvent event)
+    {
+        JSONObject object = new JSONObject();
+        object.put(
+            LocalJsonTranscriptHandler
+                .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
+            transcriber.getRoomName());
+
+        if (event.getEvent() == Transcript.TranscriptEventType.JOIN
+            || event.getEvent() == Transcript.TranscriptEventType.LEAVE)
+        {
+            addEventDescriptions(object, event);
+        }
+        else if (event.getEvent() == Transcript.TranscriptEventType.START
+            || event.getEvent() == Transcript.TranscriptEventType.END)
+        {
+            object.put(JSON_KEY_EVENT_EVENT_TYPE,
+                event.getEvent().toString());
+            object.put(JSON_KEY_EVENT_TIMESTAMP,
+                event.getTimeStamp().toString());
+        }
+
+        for (String url : urls)
+        {
+            Util.postJSON(url, object);
         }
     }
 }

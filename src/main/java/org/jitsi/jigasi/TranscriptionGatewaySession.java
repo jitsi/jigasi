@@ -164,6 +164,15 @@ public class TranscriptionGatewaySession
         // to the transcriber
         addInitialMembers();
 
+        // adds all TranscriptionEventListener among TranscriptResultPublishers
+        for (TranscriptionResultPublisher pub
+            : handler.getTranscriptResultPublishers())
+        {
+            if (pub instanceof TranscriptionEventListener)
+                transcriber.addTranscriptionEventListener(
+                    (TranscriptionEventListener)pub);
+        }
+
         // FIXME: 20/07/17 Do we want to start transcribing on joining room?
         transcriber.start();
 

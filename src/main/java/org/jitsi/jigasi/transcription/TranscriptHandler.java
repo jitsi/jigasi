@@ -167,6 +167,17 @@ public class TranscriptHandler
     }
 
     /**
+     * Get a list of {@link TranscriptionResultPublisher}s which can handle a
+     * {@link Transcript}.
+     *
+     * @return a list of {@link TranscriptionResultPublisher}s
+     */
+    public List<TranscriptionResultPublisher> getTranscriptResultPublishers()
+    {
+        return resultPublishers;
+    }
+
+    /**
      * Add a {@link TranscriptPublisher}
      *
      * @param publisher the {@link TranscriptPublisher} to add

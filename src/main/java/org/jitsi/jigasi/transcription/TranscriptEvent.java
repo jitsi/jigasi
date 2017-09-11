@@ -152,4 +152,12 @@ public class TranscriptEvent
             this.timeStamp.equals(((TranscriptEvent) obj).timeStamp);
     }
 
+    /**
+     * Returns the participant for this event if any.
+     * @return the participant for this event if any.
+     */
+    public Participant getParticipant()
+    {
+        return participant;
+    }
 }

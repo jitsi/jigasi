@@ -103,6 +103,13 @@ public class Transcriber
     private ArrayList<TranscriptionListener> listeners = new ArrayList<>();
 
     /**
+     * Every listener which will be notified when a new <tt>TranscriptEvent</tt>
+     * is created.
+     */
+    private ArrayList<TranscriptionEventListener> transcriptionEventListeners
+        = new ArrayList<>();
+
+    /**
      * The service which is used to send audio and receive the
      * transcription of said audio
      */
@@ -180,7 +187,11 @@ public class Transcriber
         }
 
         participant.joined();
-        transcript.notifyJoined(participant);
+        TranscriptEvent event = transcript.notifyJoined(participant);
+        if (event != null)
+        {
+            fireTranscribeEvent(event);
+        }
 
         if (logger.isDebugEnabled())
             logger.debug("Added participant " + name + " with ssrc " + ssrc);
@@ -199,7 +210,11 @@ public class Transcriber
         {
             Participant participant =  participants.get(ssrc);
             participant.left();
-            transcript.notifyLeft(participant);
+            TranscriptEvent event = transcript.notifyLeft(participant);
+            if (event != null)
+            {
+                fireTranscribeEvent(event);
+            }
 
             if (logger.isDebugEnabled())
                 logger.debug(
@@ -230,7 +245,12 @@ public class Transcriber
 
             participantsClone.addAll(this.participants.values());
 
-            this.transcript.started(roomName, participantsClone);
+            TranscriptEvent event
+                = this.transcript.started(roomName, participantsClone);
+            if (event != null)
+            {
+                fireTranscribeEvent(event);
+            }
         }
         else
         {
@@ -251,7 +271,7 @@ public class Transcriber
 
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
-            this.transcript.ended();
+            fireTranscribeEvent(this.transcript.ended());
 
             checkIfFinishedUp();
 
@@ -332,6 +352,30 @@ public class Transcriber
     public void removeTranscriptionListener(TranscriptionListener listener)
     {
         listeners.remove(listener);
+    }
+
+    /**
+     * Add a TranscriptionEventListener which will be notified when
+     * the TranscriptionEvent is created.
+     *
+     * @param listener the listener which will be notified
+     */
+    public void addTranscriptionEventListener(
+        TranscriptionEventListener listener)
+    {
+        transcriptionEventListeners.add(listener);
+    }
+
+    /**
+     * Remove a TranscriptionListener such that it will no longer be
+     * notified of new results
+     *
+     * @param listener the listener to remove
+     */
+    public void removeTranscriptionEventListener(
+        TranscriptionEventListener listener)
+    {
+        transcriptionEventListeners.remove(listener);
     }
 
     /**
@@ -435,5 +479,18 @@ public class Transcriber
     public String getRoomName()
     {
         return roomName;
+    }
+
+    /**
+     * Notifies all <tt>TranscriptionEventListener</tt>s for new
+     * <tt>TranscriptEvent</tt>.
+     * @param event the new event.
+     */
+    private void fireTranscribeEvent(TranscriptEvent event)
+    {
+        for (TranscriptionEventListener listener : transcriptionEventListeners)
+        {
+            listener.notify(this, event);
+        }
     }
 }

@@ -141,15 +141,20 @@ public class Transcript
      *
      * @param initialParticipants the names of the participants currently in
      *                            the room
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    public void started(List<Participant> initialParticipants)
+    public TranscriptEvent started(List<Participant> initialParticipants)
     {
         if(started == null)
         {
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
             this.initialParticipantNames.addAll(initialParticipants);
+
+            return this.started;
         }
+
+        return null;
     }
 
 
@@ -159,8 +164,9 @@ public class Transcript
      *
      * @param roomName the roomName of the conference
      * @param initialParticipants the  participants currently in the room
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    protected void started(String roomName,
+    protected TranscriptEvent started(String roomName,
                            List<Participant> initialParticipants)
     {
         if(started == null)
@@ -169,66 +175,91 @@ public class Transcript
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
             this.initialParticipantNames.addAll(initialParticipants);
+
+            return this.started;
         }
+
+        return null;
     }
 
     /**
      * Notify the transcript that the conference ended at this exact moment
      * Will be ignored if this transcript has not been told the conference
-     * started or if it already ended
+     * started or if it already ended.
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    protected void ended()
+    protected TranscriptEvent ended()
     {
         if(started != null && ended == null)
         {
             this.ended
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.END);
         }
+
+        return this.ended;
     }
 
     /**
      * Notify the transcript that someone joined at this exact moment.
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param participant the participant who joined
+     * @param participant the participant who joined.
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    public void notifyJoined(Participant participant)
+    public TranscriptEvent notifyJoined(Participant participant)
     {
         if(started != null && ended == null)
         {
-            joinedEvents.add(new TranscriptEvent(Instant.now(), participant,
-                TranscriptEventType.JOIN));
+            TranscriptEvent event = new TranscriptEvent(
+                Instant.now(), participant, TranscriptEventType.JOIN);
+            joinedEvents.add(event);
+
+            return event;
         }
+
+        return null;
     }
 
     /**
      * Notify the transcript that someone left at this exact moment.
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param participant the participant who left
+     * @param participant the participant who left.
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    public void notifyLeft(Participant participant)
+    public TranscriptEvent notifyLeft(Participant participant)
     {
         if(started != null && ended == null)
         {
-            leftEvents.add(new TranscriptEvent(Instant.now(), participant,
-                TranscriptEventType.LEAVE));
+            TranscriptEvent event = new TranscriptEvent(
+                Instant.now(), participant, TranscriptEventType.LEAVE);
+            leftEvents.add(event);
+
+            return event;
         }
+
+        return null;
     }
 
     /**
      * Notify the transcript that someone raised their hand at this exact moment
      * Will be ignored if this transcript was told the conference ended
      *
-     * @param participant the participant who raised their hand
+     * @param participant the participant who raised their hand.
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
      * */
-    public void notifyRaisedHand(Participant participant)
+    public TranscriptEvent notifyRaisedHand(Participant participant)
     {
         if(started != null && ended == null)
         {
-            raisedHandEvents.add(new TranscriptEvent(Instant.now(), participant,
-                TranscriptEventType.RAISE_HAND));
+            TranscriptEvent event = new TranscriptEvent(
+                Instant.now(), participant, TranscriptEventType.RAISE_HAND);
+            raisedHandEvents.add(event);
+
+            return event;
         }
+
+        return null;
     }
 
     /**
