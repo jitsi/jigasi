@@ -163,6 +163,11 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
+    /**
+     * This fields stores the email of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_EMAIL = "email";
+
     // JSON object to send to MUC
 
     /**
@@ -286,6 +291,11 @@ public class LocalJsonTranscriptHandler
         participant.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
         participant.put(JSON_KEY_PARTICIPANT_ID, e.getID());
 
+        // adds email if it exists
+        Participant p = e.getParticipant();
+        if (p.getEmail() != null)
+            participant.put(JSON_KEY_PARTICIPANT_EMAIL, p.getEmail());
+
         jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participant);
     }
 
@@ -368,6 +378,12 @@ public class LocalJsonTranscriptHandler
 
                 pJSON.put(JSON_KEY_PARTICIPANT_NAME, participant.getName());
                 pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
+
+                // adds email if it exists
+                if (participant.getEmail() != null)
+                    pJSON.put(
+                        JSON_KEY_PARTICIPANT_EMAIL,
+                        participant.getEmail());
 
                 participantArray.add(pJSON);
             }

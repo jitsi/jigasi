@@ -51,12 +51,6 @@ public class TranscriptionGatewaySession
     public final static String DISPLAY_NAME = "Transcriber";
 
     /**
-     * The name which should be fell back on when a participants's name
-     * cannot be retrieved
-     */
-    private final static String FALLBACK_NAME = "Unknown";
-
-    /**
      * The TranscriptionService used by this session
      */
     private TranscriptionService service;
@@ -160,10 +154,6 @@ public class TranscriptionGatewaySession
                 }
             });
 
-        // for every member already in the room, now is the time to add them
-        // to the transcriber
-        addInitialMembers();
-
         // adds all TranscriptionEventListener among TranscriptResultPublishers
         for (TranscriptionResultPublisher pub
             : handler.getTranscriptResultPublishers())
@@ -175,6 +165,10 @@ public class TranscriptionGatewaySession
 
         // FIXME: 20/07/17 Do we want to start transcribing on joining room?
         transcriber.start();
+
+        // for every member already in the room, now is the time to add them
+        // to the transcriber
+        addInitialMembers();
 
         StringBuilder welcomeMessage =
             new StringBuilder("Started transcription!\n");
@@ -416,15 +410,8 @@ public class TranscriptionGatewaySession
     private void addParticipant(ChatRoomMember chatMember,
                                 ConferenceMember confMember)
     {
-        String name;
-        if((name = chatMember.getDisplayName()) == null)
-        {
-            name = FALLBACK_NAME;
-        }
         long ssrc = getConferenceMemberAudioSSRC(confMember);
-        String id = getConferenceMemberID(confMember);
-
-        transcriber.add(name,id, ssrc);
+        transcriber.add(chatMember, ssrc);
     }
 
     /**
@@ -436,15 +423,8 @@ public class TranscriptionGatewaySession
     private void removeParticipant(ChatRoomMember chatMember,
                                    ConferenceMember confMember)
     {
-        String name;
-        if((name = chatMember.getDisplayName()) == null)
-        {
-            name = FALLBACK_NAME;
-        }
         long ssrc = getConferenceMemberAudioSSRC(confMember);
-        String id = getConferenceMemberID(confMember);
-
-        transcriber.remove(name, id, ssrc);
+        transcriber.remove(chatMember, ssrc);
     }
 
     /**

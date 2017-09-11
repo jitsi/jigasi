@@ -206,10 +206,18 @@ public class Transcript
      * @param participant the participant who joined.
      * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
-    public TranscriptEvent notifyJoined(Participant participant)
+    public synchronized TranscriptEvent notifyJoined(Participant participant)
     {
         if(started != null && ended == null)
         {
+            // do not duplicate join events, can happen on conference start
+            // because of WaitForConferenceMemberThread in transcript gw session
+            for (TranscriptEvent ev : joinedEvents)
+            {
+                if (ev.getParticipant().equals(participant))
+                    return null;
+            }
+
             TranscriptEvent event = new TranscriptEvent(
                 Instant.now(), participant, TranscriptEventType.JOIN);
             joinedEvents.add(event);

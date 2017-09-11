@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
@@ -169,11 +170,10 @@ public class Transcriber
     /**
      * Add a participant to the list of participants being transcribed
      *
-     * @param name the name of the participant to be added
-     * @param id the id in the JID of the participant to be added
+     * @param chatMember the chat participant to be added
      * @param ssrc the ssrc of the participant to be added
      */
-    public void add(String name, String id, long ssrc)
+    public void add(ChatRoomMember chatMember, long ssrc)
     {
         Participant participant;
         if (this.participants.containsKey(ssrc))
@@ -182,7 +182,7 @@ public class Transcriber
         }
         else
         {
-            participant = new Participant(this, name, id, ssrc);
+            participant = new Participant(this, chatMember, ssrc);
             this.participants.put(ssrc, participant);
         }
 
@@ -194,17 +194,17 @@ public class Transcriber
         }
 
         if (logger.isDebugEnabled())
-            logger.debug("Added participant " + name + " with ssrc " + ssrc);
+            logger.debug("Added participant " + chatMember.getDisplayName()
+                + " with ssrc " + ssrc);
     }
 
     /**
      * Remove a participant from the list of participants being transcribed
      *
-     * @param name the name of the participant to be removed
-     * @param id the id in the JID of the participant to be removed
+     * @param chatMember the chat participant to be removed
      * @param ssrc the ssrc of the participant to be removed
      */
-    public void remove(String name, String id, long ssrc)
+    public void remove(ChatRoomMember chatMember, long ssrc)
     {
         if (this.participants.containsKey(ssrc))
         {
@@ -218,13 +218,14 @@ public class Transcriber
 
             if (logger.isDebugEnabled())
                 logger.debug(
-                    "Removed participant " + name + " with ssrc " + ssrc);
+                    "Removed participant " + chatMember.getDisplayName()
+                        + " with ssrc " + ssrc);
 
             return;
         }
 
-        logger.warn("Asked to remove participant" + name + " with ssrc " +
-                        ssrc + " which did not exist");
+        logger.warn("Asked to remove participant" + chatMember.getDisplayName()
+            + " with ssrc " + ssrc + " which did not exist");
     }
 
     /**
