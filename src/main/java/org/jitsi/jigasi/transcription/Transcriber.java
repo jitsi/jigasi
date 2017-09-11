@@ -19,6 +19,7 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
 import javax.media.Buffer;
@@ -272,10 +273,13 @@ public class Transcriber
 
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
-            fireTranscribeEvent(this.transcript.ended());
+
+            TranscriptEvent event = this.transcript.ended();
+            fireTranscribeEvent(event);
+            ActionServicesHandler.getInstance()
+                .notifyActionServices(this, event);
 
             checkIfFinishedUp();
-
         }
         else
         {

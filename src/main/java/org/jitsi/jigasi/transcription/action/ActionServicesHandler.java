@@ -82,6 +82,12 @@ public class ActionServicesHandler
     private Map<Pattern, ActionHandler> patterns = new HashMap<>();
 
     /**
+     * Set of all conferences we had detected an action and service was
+     * notified for it.
+     */
+    private Map<String, List<ActionHandler>> actionSources = new HashMap<>();
+
+    /**
      * Constructs this single instance of actions service handler and
      * initialize all configured actions.
      * @param ctx the bundle context
@@ -182,10 +188,12 @@ public class ActionServicesHandler
 
                 JSONObject jsonResult =
                     LocalJsonTranscriptHandler.createJSONObject(result);
+                String roomName
+                    = result.getParticipant().getTranscriber().getRoomName();
                 jsonResult.put(
                     LocalJsonTranscriptHandler
                         .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
-                    result.getParticipant().getTranscriber().getRoomName());
+                    roomName);
 
 
                 ActionHandler handler = en.getValue();
@@ -195,9 +203,57 @@ public class ActionServicesHandler
                         + ", will push to address:" + handler.getUrl());
                 }
 
+                // store that we had sent a result to that handler for this room
+                if (!actionSources.containsKey(roomName))
+                {
+                    List<ActionHandler> handlers = new ArrayList<>();
+                    handlers.add(handler);
+                    actionSources.put(roomName, handlers);
+                }
+                else
+                {
+                    List<ActionHandler> handlers = actionSources.get(roomName);
+                    if (!handlers.contains(handler))
+                    {
+                        handlers.add(handler);
+                    }
+                }
+
                 // post to action url
                 Util.postJSON(handler.getUrl(), jsonResult);
             }
+        }
+    }
+
+    /**
+     * Notifies action services for a conference end, only if we had ever
+     * sent some results to them.
+     *
+     * @param transcriber the transcriber
+     * @param event the event
+     */
+    public void notifyActionServices(
+        Transcriber transcriber, TranscriptEvent event)
+    {
+        String roomName = transcriber.getRoomName();
+
+        if (event.getEvent() != Transcript.TranscriptEventType.END
+            || !actionSources.containsKey(roomName))
+            return;
+
+        JSONObject object = new JSONObject();
+        object.put(
+            LocalJsonTranscriptHandler
+                .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
+            roomName);
+        object.put(LocalJsonTranscriptHandler.JSON_KEY_EVENT_EVENT_TYPE,
+            event.getEvent().toString());
+        object.put(LocalJsonTranscriptHandler.JSON_KEY_EVENT_TIMESTAMP,
+            event.getTimeStamp().toString());
+
+        for (ActionHandler handler : actionSources.remove(roomName))
+        {
+            Util.postJSON(handler.getUrl(), object);
         }
     }
 }

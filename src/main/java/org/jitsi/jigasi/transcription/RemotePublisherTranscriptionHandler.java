@@ -81,8 +81,7 @@ public class RemotePublisherTranscriptionHandler
     {
         JSONObject object = new JSONObject();
         object.put(
-            LocalJsonTranscriptHandler
-                .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
+            JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
             transcriber.getRoomName());
 
         if (event.getEvent() == Transcript.TranscriptEventType.JOIN
