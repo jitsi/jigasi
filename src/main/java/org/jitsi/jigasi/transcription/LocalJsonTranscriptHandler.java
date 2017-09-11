@@ -205,7 +205,7 @@ public class LocalJsonTranscriptHandler
      *                               payload
      */
     @SuppressWarnings("unchecked")
-    private void createEncapsulatingObject(JSONObject encapsulatingObject,
+    protected void createEncapsulatingObject(JSONObject encapsulatingObject,
                                            JSONObject transcriptResultObject)
     {
         encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
