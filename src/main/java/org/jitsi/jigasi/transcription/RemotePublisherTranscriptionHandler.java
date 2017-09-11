@@ -70,6 +70,13 @@ public class RemotePublisherTranscriptionHandler
                 .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
             result.getParticipant().getTranscriber().getRoomName());
 
+        // adds event type to the encapsulating object to be consistent
+        // with the events we push to the remote service
+        encapsulatingObject.put(
+            LocalJsonTranscriptHandler
+                .JSON_KEY_EVENT_EVENT_TYPE,
+            Transcript.TranscriptEventType.SPEECH.toString());
+
         for (String url : urls)
         {
             Util.postJSON(url, encapsulatingObject);
