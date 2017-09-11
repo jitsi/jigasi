@@ -31,8 +31,8 @@ import java.util.*;
  * @author Nik Vaessen
  * @author Boris Grozev
  */
-class Participant
-        implements TranscriptionListener
+public class Participant
+    implements TranscriptionListener
 {
     /**
      * The logger of this class
@@ -230,7 +230,8 @@ class Participant
     public void notify(TranscriptionResult result)
     {
         result.setParticipant(this);
-        logger.debug(result);
+        if (!result.isInterim())
+        logger.info(result);
         transcriber.notify(result);
     }
 
@@ -313,5 +314,14 @@ class Participant
                         this::notify);
             }
         });
+    }
+
+    /**
+     * Returns the transcriber instance that created this participant.
+     * @return the transcriber instance that created this participant.
+     */
+    public Transcriber getTranscriber()
+    {
+        return transcriber;
     }
 }

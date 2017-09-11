@@ -49,6 +49,7 @@ import java.util.*;
  * 2. payload: which will be the "event" object described in point 2 above
  *
  * @author Nik Vaessen
+ * @author Damian Minkov
  */
 public class LocalJsonTranscriptHandler
     extends AbstractTranscriptPublisher<JSONObject>
@@ -188,11 +189,7 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject eventObject = new JSONObject();
-        SpeechEvent event = new SpeechEvent(Instant.now(), result);
-
-        addEventDescriptions(eventObject, event);
-        addAlternatives(eventObject, event);
+        JSONObject eventObject = createJSONObject(result);
 
         JSONObject encapsulatingObject = new JSONObject();
         createEncapsulatingObject(encapsulatingObject, eventObject);
@@ -213,6 +210,22 @@ public class LocalJsonTranscriptHandler
     {
         encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
         encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
+    }
+
+    /**
+     * Creates a json object representing the <tt>TranscriptionResult</>.
+     * @param result the object to use to produce json.
+     * @return json object representing the <tt>TranscriptionResult</>.
+     */
+    public static JSONObject createJSONObject(TranscriptionResult result)
+    {
+        JSONObject eventObject = new JSONObject();
+        SpeechEvent event = new SpeechEvent(Instant.now(), result);
+
+        addEventDescriptions(eventObject, event);
+        addAlternatives(eventObject, event);
+
+        return eventObject;
     }
 
     @Override
@@ -263,7 +276,8 @@ public class LocalJsonTranscriptHandler
      * @param e the event which holds the information to add to the JSON object
      */
     @SuppressWarnings("unchecked")
-    private void addEventDescriptions(JSONObject jsonObject, TranscriptEvent e)
+    private static void addEventDescriptions(
+        JSONObject jsonObject, TranscriptEvent e)
     {
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());
         jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toString());
@@ -286,7 +300,7 @@ public class LocalJsonTranscriptHandler
      * @param e the event which holds the information to add to the JSON object
      */
     @SuppressWarnings("unchecked")
-    private void addAlternatives(JSONObject jsonObject, SpeechEvent e)
+    private static void addAlternatives(JSONObject jsonObject, SpeechEvent e)
     {
         TranscriptionResult result = e.getResult();
         JSONArray alternativeJSONArray = new JSONArray();

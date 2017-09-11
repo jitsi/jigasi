@@ -18,6 +18,7 @@
 package org.jitsi.jigasi;
 
 import org.jitsi.jigasi.transcription.*;
+import org.jitsi.jigasi.transcription.action.*;
 import org.osgi.framework.*;
 
 /**
@@ -25,6 +26,7 @@ import org.osgi.framework.*;
  * call
  *
  * @author Nik Vaessen
+ * @author Damian Minkov
  */
 public class TranscriptionGateway
     extends AbstractGateway<TranscriptionGatewaySession>
@@ -36,6 +38,11 @@ public class TranscriptionGateway
     private TranscriptHandler handler = new TranscriptHandler();
 
     /**
+     * The actions service handler.
+     */
+    private ActionServicesHandler actionServicesHandler;
+
+    /**
      * Create a new TranscriptionGateway, which manages
      * TranscriptionGatewaySessions in conferences, such that the audio
      * in those conferences can be transcribed
@@ -45,12 +52,17 @@ public class TranscriptionGateway
     public TranscriptionGateway(BundleContext context)
     {
         super(context);
+
+        // init action handler
+        actionServicesHandler = ActionServicesHandler.init(context);
     }
 
     @Override
     public void stop()
     {
-        // nothing to do
+        // stop action handler
+        actionServicesHandler.stop();
+        actionServicesHandler = null;
     }
 
     @Override

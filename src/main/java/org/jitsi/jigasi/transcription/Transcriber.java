@@ -414,4 +414,13 @@ public class Transcriber
             listener.notify(result);
         }
     }
+
+    /**
+     * Returns the name of the room of the conference which will be transcribed.
+     * @return the room name.
+     */
+    public String getRoomName()
+    {
+        return roomName;
+    }
 }

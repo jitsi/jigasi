@@ -22,6 +22,7 @@ import com.google.auth.oauth2.*;
 import com.google.cloud.speech.spi.v1.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
+import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
 import javax.media.format.*;
@@ -40,6 +41,7 @@ import java.util.function.*;
  * for details
  *
  * @author Nik Vaessen
+ * @author Damian Minkov
  */
 public class GoogleCloudTranscriptionService
     implements TranscriptionService
@@ -177,6 +179,13 @@ public class GoogleCloudTranscriptionService
     private final static int STREAMING_SESSION_TIMEOUT_MS = 2000;
 
     /**
+     * List of <tt>SpeechContext</tt>s to be inserted in
+     * the <tt>RecognitionConfig</tt>. This is a list of phrases to be used as
+     * a dictionary to assist the speech recognition.
+     */
+    private static List<SpeechContext> speechContexts = null;
+
+    /**
      * Creates the RecognitionConfig the Google service uses based
      * on the TranscriptionRequest
      *
@@ -210,6 +219,8 @@ public class GoogleCloudTranscriptionService
         String languageTag = request.getLocale().toLanguageTag();
         validateLanguageTag(languageTag);
         builder.setLanguageCode(languageTag);
+
+        addSpeechContexts(builder);
 
         // set the requested alternatives
         builder.setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES);
@@ -336,6 +347,25 @@ public class GoogleCloudTranscriptionService
     public boolean supportsStreamRecognition()
     {
         return true;
+    }
+
+    /**
+     * Initialize speechContexts if needed, by getting all the phrases used
+     * by the action handlers to detect commands to handle.
+     * Inserts all speechContexts to the <tt>RecognitionConfig.Builder</tt>.
+     * @param builder the builder where to add speech contexts.
+     */
+    private static void addSpeechContexts(RecognitionConfig.Builder builder)
+    {
+        if (speechContexts == null)
+        {
+            speechContexts = new ArrayList<>();
+            ActionServicesHandler.getInstance().getPhrases()
+                .stream().map(ph -> speechContexts.add(
+                    SpeechContext.newBuilder().addPhrases(ph).build()));
+        }
+
+        speechContexts.stream().map(ctx -> builder.addSpeechContexts(ctx));
     }
 
     /**
@@ -824,6 +854,14 @@ public class GoogleCloudTranscriptionService
             for(TranscriptionListener listener : listeners)
             {
                 listener.notify(result);
+            }
+
+            // notify for a final transcription result, by providing it to all
+            // action handlers
+            if (!result.isInterim())
+            {
+                ActionServicesHandler.getInstance()
+                    .notifyActionServices(result);
             }
         }
     }
