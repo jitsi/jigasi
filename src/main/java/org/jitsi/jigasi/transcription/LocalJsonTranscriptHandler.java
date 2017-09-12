@@ -168,6 +168,11 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_PARTICIPANT_EMAIL = "email";
 
+    /**
+     * This fields stores the URL of the avatar of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_AVATAR_URL = "avatar_url";
+
     // JSON object to send to MUC
 
     /**
@@ -287,16 +292,25 @@ public class LocalJsonTranscriptHandler
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());
         jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toString());
 
-        JSONObject participant = new JSONObject();
-        participant.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
-        participant.put(JSON_KEY_PARTICIPANT_ID, e.getID());
+        JSONObject participantJson = new JSONObject();
+        participantJson.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
+        participantJson.put(JSON_KEY_PARTICIPANT_ID, e.getID());
 
         // adds email if it exists
-        Participant p = e.getParticipant();
-        if (p.getEmail() != null)
-            participant.put(JSON_KEY_PARTICIPANT_EMAIL, p.getEmail());
+        Participant participant = e.getParticipant();
+        String email = participant.getEmail();
+        if (email != null)
+        {
+            participantJson.put(JSON_KEY_PARTICIPANT_EMAIL, email);
+        }
 
-        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participant);
+        String avatarUrl = participant.getAvatarUrl();
+        if (avatarUrl != null)
+        {
+            participantJson.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
+        }
+
+        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participantJson);
     }
 
     /**
@@ -380,10 +394,17 @@ public class LocalJsonTranscriptHandler
                 pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
 
                 // adds email if it exists
-                if (participant.getEmail() != null)
-                    pJSON.put(
-                        JSON_KEY_PARTICIPANT_EMAIL,
-                        participant.getEmail());
+                String email = participant.getEmail();
+                if (email != null)
+                {
+                    pJSON.put(JSON_KEY_PARTICIPANT_EMAIL, email);
+                }
+
+                String avatarUrl = participant.getAvatarUrl();
+                if (avatarUrl != null)
+                {
+                    pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
+                }
 
                 participantArray.add(pJSON);
             }
