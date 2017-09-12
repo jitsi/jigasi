@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.transcription.*;
+import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
@@ -36,7 +37,7 @@ import java.util.function.*;
  */
 public class TranscriptionGatewaySession
     extends AbstractGatewaySession
-    implements TranscriptionListener
+    implements TranscriptionListener, TranscriptionEventListener
 {
     /**
      * The logger of this class
@@ -162,6 +163,8 @@ public class TranscriptionGatewaySession
                 transcriber.addTranscriptionEventListener(
                     (TranscriptionEventListener)pub);
         }
+
+        transcriber.addTranscriptionEventListener(this);
 
         // FIXME: 20/07/17 Do we want to start transcribing on joining room?
         transcriber.start();
@@ -548,6 +551,17 @@ public class TranscriptionGatewaySession
     public String getMucDisplayName()
     {
         return TranscriptionGatewaySession.DISPLAY_NAME;
+    }
+
+    @Override
+    public void notify(Transcriber transcriber, TranscriptEvent event) {
+        if (event.getEvent() == Transcript.TranscriptEventType.START
+                || event.getEvent() == Transcript.TranscriptEventType.END) {
+            TranscriptionStatusExtension extension = new TranscriptionStatusExtension();
+            extension.setStatus(transcriber.isTranscribing()
+                    ? TranscriptionStatusExtension.Status.ON : TranscriptionStatusExtension.Status.OFF);
+            jvbConference.sendPresenceExtension(extension);
+        }
     }
 
     /**
