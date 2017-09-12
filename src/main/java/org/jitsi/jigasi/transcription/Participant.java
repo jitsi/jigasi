@@ -152,9 +152,24 @@ public class Participant
     public String getEmail()
     {
         if (!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
             return null;
+        }
 
-        return ((ChatRoomMemberJabberImpl)chatMember).getEmail();
+        return ((ChatRoomMemberJabberImpl) chatMember).getEmail();
+    }
+
+    /**
+     * @return the URL of the avatar of the participant, if one is set.
+     */
+    public String getAvatarUrl()
+    {
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return ((ChatRoomMemberJabberImpl) chatMember).getAvatarUrl();
     }
 
     /**
