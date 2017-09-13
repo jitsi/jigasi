@@ -39,6 +39,7 @@ public class Transcript
         JOIN,
         LEAVE,
         RAISE_HAND,
+        WILL_END,
         END
     }
 
@@ -197,6 +198,23 @@ public class Transcript
         }
 
         return this.ended;
+    }
+
+    /**
+     * Notify the transcript that the conference will end.
+     * Will be ignored if this transcript has not been told the conference
+     * started or if it already ended.
+     * @return the newly created <tt>TranscriptEvent</tt> or null.
+     */
+    public TranscriptEvent willEnd()
+    {
+        if(started != null && ended == null)
+        {
+            return new TranscriptEvent(
+                Instant.now(), TranscriptEventType.WILL_END);
+        }
+
+        return null;
     }
 
     /**

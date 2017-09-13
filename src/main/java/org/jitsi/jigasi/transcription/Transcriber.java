@@ -289,6 +289,25 @@ public class Transcriber
     }
 
     /**
+     * Transcribing will stop, last chance to post something to the room.
+     */
+    public void willStop()
+    {
+        if (State.TRANSCRIBING.equals(this.state))
+        {
+            TranscriptEvent event = this.transcript.willEnd();
+            fireTranscribeEvent(event);
+            ActionServicesHandler.getInstance()
+                .notifyActionServices(this, event);
+        }
+        else
+        {
+            logger.warn("Trying to notify Transcriber for a while it is" +
+                "already stopped");
+        }
+    }
+
+    /**
      * Get whether the transcriber has been started
      *
      * @return true when the transcriber has been started false when not yet

@@ -36,11 +36,22 @@ public class TranscriptionStatusExtension
     public static final String ELEMENT_NAME = "transcription-status";
 
     /**
+     * The namespace of this packet extension.
+     */
+    public static final String NAMESPACE = "jabber:client";
+
+    /**
      * The name of XML attribute which holds the transcription status.
      */
     private static final String STATUS_ATTRIBUTE = "status";
 
-    public TranscriptionStatusExtension() { super(null, ELEMENT_NAME); }
+    /**
+     * Constructs new TranscriptionStatusExtension.
+     */
+    public TranscriptionStatusExtension()
+    {
+        super(NAMESPACE, ELEMENT_NAME);
+    }
 
     /**
      * Sets new value for the transcription status.

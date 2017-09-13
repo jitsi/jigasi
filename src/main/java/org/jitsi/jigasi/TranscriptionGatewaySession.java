@@ -37,7 +37,8 @@ import java.util.function.*;
  */
 public class TranscriptionGatewaySession
     extends AbstractGatewaySession
-    implements TranscriptionListener, TranscriptionEventListener
+    implements TranscriptionListener,
+               TranscriptionEventListener
 {
     /**
      * The logger of this class
@@ -212,6 +213,16 @@ public class TranscriptionGatewaySession
         }
 
         logger.debug("Conference ended");
+    }
+
+    @Override
+    void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
+        String reason)
+    {
+        if(!transcriber.finished())
+        {
+            transcriber.willStop();
+        }
     }
 
     @Override
@@ -554,12 +565,25 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    public void notify(Transcriber transcriber, TranscriptEvent event) {
+    public void notify(Transcriber transcriber, TranscriptEvent event)
+    {
         if (event.getEvent() == Transcript.TranscriptEventType.START
-                || event.getEvent() == Transcript.TranscriptEventType.END) {
-            TranscriptionStatusExtension extension = new TranscriptionStatusExtension();
-            extension.setStatus(transcriber.isTranscribing()
-                    ? TranscriptionStatusExtension.Status.ON : TranscriptionStatusExtension.Status.OFF);
+                || event.getEvent() == Transcript.TranscriptEventType.WILL_END)
+        {
+            // in will_end we will be still transcribing but we need
+            // to explicitly send off
+            TranscriptionStatusExtension.Status status
+                = event.getEvent() ==
+                    Transcript.TranscriptEventType.WILL_END ?
+                        TranscriptionStatusExtension.Status.OFF
+                        : transcriber.isTranscribing() ?
+                            TranscriptionStatusExtension.Status.ON
+                            : TranscriptionStatusExtension.Status.OFF;
+
+            TranscriptionStatusExtension extension
+                = new TranscriptionStatusExtension();
+            extension.setStatus(status);
+
             jvbConference.sendPresenceExtension(extension);
         }
     }
