@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.util.*;
 
 import javax.media.format.*;
@@ -31,8 +33,8 @@ import java.util.*;
  * @author Nik Vaessen
  * @author Boris Grozev
  */
-class Participant
-        implements TranscriptionListener
+public class Participant
+    implements TranscriptionListener
 {
     /**
      * The logger of this class
@@ -80,19 +82,14 @@ class Participant
     private Transcriber transcriber;
 
     /**
-     * The name of the participant
-     */
-    private String name;
-
-    /**
      * The id identifying audio belonging to this participant
      */
     private long ssrc;
 
     /**
-     * The ID used in the JID of a participant
+     * The chat room participant.
      */
-    private String id;
+    private ChatRoomMember chatMember;
 
     /**
      * The streaming session which will constantly receive audio
@@ -118,15 +115,13 @@ class Participant
     /**
      * Create a participant with a given name and audio stream
      *
-     * @param name the name of the participant
-     * @param id the id in the JID of this participant
+     * @param chatMember the chat room participant.
      * @param ssrc the ssrc of the audio of this participant
      */
-    Participant(Transcriber transcriber, String name, String id, long ssrc)
+    Participant(Transcriber transcriber, ChatRoomMember chatMember, long ssrc)
     {
         this.transcriber = transcriber;
-        this.name = name;
-        this.id = id;
+        this.chatMember = chatMember;
         this.ssrc = ssrc;
     }
 
@@ -137,15 +132,44 @@ class Participant
      */
     public String getName()
     {
+        String name = chatMember.getDisplayName();
         if (name != null)
         {
             return name;
         }
+        String id = chatMember.getContactAddress();
         if (id != null)
         {
             return id;
         }
         return UNKNOWN_NAME;
+    }
+
+    /**
+     * Returns participant email if any.
+     * @return participant email if any.
+     */
+    public String getEmail()
+    {
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return ((ChatRoomMemberJabberImpl) chatMember).getEmail();
+    }
+
+    /**
+     * @return the URL of the avatar of the participant, if one is set.
+     */
+    public String getAvatarUrl()
+    {
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return ((ChatRoomMemberJabberImpl) chatMember).getAvatarUrl();
     }
 
     /**
@@ -165,7 +189,7 @@ class Participant
      */
     public String getId()
     {
-        return this.id;
+        return chatMember.getContactAddress();
     }
 
     /**
@@ -230,7 +254,8 @@ class Participant
     public void notify(TranscriptionResult result)
     {
         result.setParticipant(this);
-        logger.debug(result);
+        if (logger.isDebugEnabled())
+            logger.debug(result);
         transcriber.notify(result);
     }
 
@@ -313,5 +338,14 @@ class Participant
                         this::notify);
             }
         });
+    }
+
+    /**
+     * Returns the transcriber instance that created this participant.
+     * @return the transcriber instance that created this participant.
+     */
+    public Transcriber getTranscriber()
+    {
+        return transcriber;
     }
 }

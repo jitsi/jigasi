@@ -466,6 +466,8 @@ public class JvbConference
             telephony = null;
         }
 
+        gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
+
         if(mucRoom != null)
         {
             leaveConferenceRoom();

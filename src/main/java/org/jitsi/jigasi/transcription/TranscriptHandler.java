@@ -55,6 +55,12 @@ public class TranscriptHandler
         = "org.jitsi.jigasi.transcription.SEND_TXT";
 
     /**
+     * Property name for sending result in json to remote service.
+     */
+    public final static String P_NAME_SEND_JSON_REMOTE
+        = "org.jitsi.jigasi.transcription.SEND_JSON_REMOTE_URLS";
+
+    /**
      * Whether to publish final transcripts by locally saving them in json
      * format
      */
@@ -117,6 +123,12 @@ public class TranscriptHandler
         {
             this.add((TranscriptionResultPublisher) txtHandler);
         }
+        String urls;
+        if ((urls = getSendJSONToRemote()) != null)
+        {
+            this.add((TranscriptionResultPublisher)
+                new RemotePublisherTranscriptionHandler(urls));
+        }
     }
 
     /**
@@ -152,6 +164,17 @@ public class TranscriptHandler
         }
 
         return promises;
+    }
+
+    /**
+     * Get a list of {@link TranscriptionResultPublisher}s which can handle a
+     * {@link Transcript}.
+     *
+     * @return a list of {@link TranscriptionResultPublisher}s
+     */
+    public List<TranscriptionResultPublisher> getTranscriptResultPublishers()
+    {
+        return resultPublishers;
     }
 
     /**
@@ -215,6 +238,17 @@ public class TranscriptHandler
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_SEND_TXT, SEND_TXT);
+    }
+
+    /**
+     * Get whether to send results in JSON to remote address.
+     *
+     * @return the URLs of the remote services, or null if not enabled.
+     */
+    private String getSendJSONToRemote()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_SEND_JSON_REMOTE);
     }
 
     /**

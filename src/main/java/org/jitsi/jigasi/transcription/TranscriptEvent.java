@@ -72,16 +72,17 @@ public class TranscriptEvent
      */
     TranscriptEvent(Instant timeStamp, Transcript.TranscriptEventType event)
     {
-        if(Transcript.TranscriptEventType.END.equals(
-            event) || Transcript.TranscriptEventType.START.equals(event))
+        if(Transcript.TranscriptEventType.END.equals(event)
+            || Transcript.TranscriptEventType.WILL_END.equals(event)
+            || Transcript.TranscriptEventType.START.equals(event))
         {
             this.timeStamp = timeStamp;
             this.event = event;
         }
         else
         {
-            throw new IllegalArgumentException("TranscriptEvent" + event +
-                "needs a participant");
+            throw new IllegalArgumentException("TranscriptEvent " + event +
+                " needs a participant");
         }
     }
 
@@ -152,4 +153,12 @@ public class TranscriptEvent
             this.timeStamp.equals(((TranscriptEvent) obj).timeStamp);
     }
 
+    /**
+     * Returns the participant for this event if any.
+     * @return the participant for this event if any.
+     */
+    public Participant getParticipant()
+    {
+        return participant;
+    }
 }

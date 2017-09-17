@@ -17,7 +17,9 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
 import javax.media.Buffer;
@@ -103,6 +105,13 @@ public class Transcriber
     private ArrayList<TranscriptionListener> listeners = new ArrayList<>();
 
     /**
+     * Every listener which will be notified when a new <tt>TranscriptEvent</tt>
+     * is created.
+     */
+    private ArrayList<TranscriptionEventListener> transcriptionEventListeners
+        = new ArrayList<>();
+
+    /**
      * The service which is used to send audio and receive the
      * transcription of said audio
      */
@@ -162,11 +171,10 @@ public class Transcriber
     /**
      * Add a participant to the list of participants being transcribed
      *
-     * @param name the name of the participant to be added
-     * @param id the id in the JID of the participant to be added
+     * @param chatMember the chat participant to be added
      * @param ssrc the ssrc of the participant to be added
      */
-    public void add(String name, String id, long ssrc)
+    public void add(ChatRoomMember chatMember, long ssrc)
     {
         Participant participant;
         if (this.participants.containsKey(ssrc))
@@ -175,35 +183,50 @@ public class Transcriber
         }
         else
         {
-            participant = new Participant(this, name, id, ssrc);
+            participant = new Participant(this, chatMember, ssrc);
             this.participants.put(ssrc, participant);
         }
 
         participant.joined();
-        transcript.notifyJoined(participant);
-        logger.debug("Added participant " + name + " with ssrc " + ssrc);
+        TranscriptEvent event = transcript.notifyJoined(participant);
+        if (event != null)
+        {
+            fireTranscribeEvent(event);
+        }
+
+        if (logger.isDebugEnabled())
+            logger.debug("Added participant " + chatMember.getDisplayName()
+                + " with ssrc " + ssrc);
     }
 
     /**
      * Remove a participant from the list of participants being transcribed
      *
-     * @param name the name of the participant to be removed
-     * @param id the id in the JID of the participant to be removed
+     * @param chatMember the chat participant to be removed
      * @param ssrc the ssrc of the participant to be removed
      */
-    public void remove(String name, String id, long ssrc)
+    public void remove(ChatRoomMember chatMember, long ssrc)
     {
         if (this.participants.containsKey(ssrc))
         {
             Participant participant =  participants.get(ssrc);
             participant.left();
-            transcript.notifyLeft(participant);
-            logger.debug("Removed participant " + name + " with ssrc " + ssrc);
+            TranscriptEvent event = transcript.notifyLeft(participant);
+            if (event != null)
+            {
+                fireTranscribeEvent(event);
+            }
+
+            if (logger.isDebugEnabled())
+                logger.debug(
+                    "Removed participant " + chatMember.getDisplayName()
+                        + " with ssrc " + ssrc);
+
             return;
         }
 
-        logger.warn("Asked to remove participant" + name + " with ssrc " +
-                        ssrc + " which did not exist");
+        logger.warn("Asked to remove participant" + chatMember.getDisplayName()
+            + " with ssrc " + ssrc + " which did not exist");
     }
 
     /**
@@ -213,7 +236,9 @@ public class Transcriber
     {
         if (State.NOT_STARTED.equals(this.state))
         {
-            logger.debug("Transcriber is now transcribing");
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now transcribing");
+
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
 
@@ -222,7 +247,12 @@ public class Transcriber
 
             participantsClone.addAll(this.participants.values());
 
-            this.transcript.started(roomName, participantsClone);
+            TranscriptEvent event
+                = this.transcript.started(roomName, participantsClone);
+            if (event != null)
+            {
+                fireTranscribeEvent(event);
+            }
         }
         else
         {
@@ -238,18 +268,42 @@ public class Transcriber
     {
         if (State.TRANSCRIBING.equals(this.state))
         {
-            logger.debug("Transcriber is now finishing up");
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now finishing up");
+
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
-            this.transcript.ended();
+
+            TranscriptEvent event = this.transcript.ended();
+            fireTranscribeEvent(event);
+            ActionServicesHandler.getInstance()
+                .notifyActionServices(this, event);
 
             checkIfFinishedUp();
-
         }
         else
         {
             logger.warn("Trying to stop Transcriber while it is" +
                             "already stopped");
+        }
+    }
+
+    /**
+     * Transcribing will stop, last chance to post something to the room.
+     */
+    public void willStop()
+    {
+        if (State.TRANSCRIBING.equals(this.state))
+        {
+            TranscriptEvent event = this.transcript.willEnd();
+            fireTranscribeEvent(event);
+            ActionServicesHandler.getInstance()
+                .notifyActionServices(this, event);
+        }
+        else
+        {
+            logger.warn("Trying to notify Transcriber for a while it is" +
+                "already stopped");
         }
     }
 
@@ -325,6 +379,30 @@ public class Transcriber
     }
 
     /**
+     * Add a TranscriptionEventListener which will be notified when
+     * the TranscriptionEvent is created.
+     *
+     * @param listener the listener which will be notified
+     */
+    public void addTranscriptionEventListener(
+        TranscriptionEventListener listener)
+    {
+        transcriptionEventListeners.add(listener);
+    }
+
+    /**
+     * Remove a TranscriptionListener such that it will no longer be
+     * notified of new results
+     *
+     * @param listener the listener to remove
+     */
+    public void removeTranscriptionEventListener(
+        TranscriptionEventListener listener)
+    {
+        transcriptionEventListeners.remove(listener);
+    }
+
+    /**
      * The transcriber can be used as a {@link ReceiveStreamBufferListener}
      * to listen for new audio packets coming in through a MediaDevice. It will
      * try to filter them based on the SSRC of the packet. If the SSRC does not
@@ -384,7 +462,10 @@ public class Transcriber
                     return;
                 }
             }
-            logger.debug("Transcriber is now finished");
+
+            if (logger.isDebugEnabled())
+                logger.debug("Transcriber is now finished");
+
             this.state = State.FINISHED;
             for (TranscriptionListener listener : listeners)
             {
@@ -412,6 +493,28 @@ public class Transcriber
         for (TranscriptionListener listener : listeners)
         {
             listener.notify(result);
+        }
+    }
+
+    /**
+     * Returns the name of the room of the conference which will be transcribed.
+     * @return the room name.
+     */
+    public String getRoomName()
+    {
+        return roomName;
+    }
+
+    /**
+     * Notifies all <tt>TranscriptionEventListener</tt>s for new
+     * <tt>TranscriptEvent</tt>.
+     * @param event the new event.
+     */
+    private void fireTranscribeEvent(TranscriptEvent event)
+    {
+        for (TranscriptionEventListener listener : transcriptionEventListeners)
+        {
+            listener.notify(this, event);
         }
     }
 }

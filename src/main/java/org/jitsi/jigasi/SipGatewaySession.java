@@ -440,6 +440,11 @@ public class SipGatewaySession
         }
     }
 
+    @Override
+    void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
+        String reason)
+    {}
+
     private void sendPresenceExtension(ExtensionElement extension)
     {
         if (jvbConference != null)

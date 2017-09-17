@@ -149,10 +149,21 @@ public abstract class AbstractGatewaySession
      * ended.
      *
      * @param jvbConference <tt>JvbConference</tt> instance.
+     * @param reasonCode the reason code, timeout or nothing if normal hangup
+     * @param reason the reason text, timeout or nothing if normal hangup
      */
-    // FIXME: 17/07/17 reasonCode and reason are undocumented before refactor
     abstract void onJvbConferenceStopped(JvbConference jvbConference,
                                          int reasonCode, String reason);
+
+    /**
+     * Method called by <tt>JvbConference</tt> to notify that JVB call will end.
+     *
+     * @param jvbConference <tt>JvbConference</tt> instance.
+     * @param reasonCode the reason code, timeout or nothing if normal hangup
+     * @param reason the reason text, timeout or nothing if normal hangup
+     */
+    abstract void onJvbConferenceWillStop(JvbConference jvbConference,
+        int reasonCode, String reason);
 
     /**
      * Cancels current session by leaving the muc room

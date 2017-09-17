@@ -49,6 +49,7 @@ import java.util.*;
  * 2. payload: which will be the "event" object described in point 2 above
  *
  * @author Nik Vaessen
+ * @author Damian Minkov
  */
 public class LocalJsonTranscriptHandler
     extends AbstractTranscriptPublisher<JSONObject>
@@ -162,6 +163,16 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_PARTICIPANT_ID = "id";
 
+    /**
+     * This fields stores the email of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_EMAIL = "email";
+
+    /**
+     * This fields stores the URL of the avatar of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_AVATAR_URL = "avatar_url";
+
     // JSON object to send to MUC
 
     /**
@@ -188,11 +199,7 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject eventObject = new JSONObject();
-        SpeechEvent event = new SpeechEvent(Instant.now(), result);
-
-        addEventDescriptions(eventObject, event);
-        addAlternatives(eventObject, event);
+        JSONObject eventObject = createJSONObject(result);
 
         JSONObject encapsulatingObject = new JSONObject();
         createEncapsulatingObject(encapsulatingObject, eventObject);
@@ -208,11 +215,27 @@ public class LocalJsonTranscriptHandler
      *                               payload
      */
     @SuppressWarnings("unchecked")
-    private void createEncapsulatingObject(JSONObject encapsulatingObject,
+    protected void createEncapsulatingObject(JSONObject encapsulatingObject,
                                            JSONObject transcriptResultObject)
     {
         encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
         encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
+    }
+
+    /**
+     * Creates a json object representing the <tt>TranscriptionResult</>.
+     * @param result the object to use to produce json.
+     * @return json object representing the <tt>TranscriptionResult</>.
+     */
+    public static JSONObject createJSONObject(TranscriptionResult result)
+    {
+        JSONObject eventObject = new JSONObject();
+        SpeechEvent event = new SpeechEvent(Instant.now(), result);
+
+        addEventDescriptions(eventObject, event);
+        addAlternatives(eventObject, event);
+
+        return eventObject;
     }
 
     @Override
@@ -263,16 +286,31 @@ public class LocalJsonTranscriptHandler
      * @param e the event which holds the information to add to the JSON object
      */
     @SuppressWarnings("unchecked")
-    private void addEventDescriptions(JSONObject jsonObject, TranscriptEvent e)
+    public static void addEventDescriptions(
+        JSONObject jsonObject, TranscriptEvent e)
     {
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());
         jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toString());
 
-        JSONObject participant = new JSONObject();
-        participant.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
-        participant.put(JSON_KEY_PARTICIPANT_ID, e.getID());
+        JSONObject participantJson = new JSONObject();
+        participantJson.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
+        participantJson.put(JSON_KEY_PARTICIPANT_ID, e.getID());
 
-        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participant);
+        // adds email if it exists
+        Participant participant = e.getParticipant();
+        String email = participant.getEmail();
+        if (email != null)
+        {
+            participantJson.put(JSON_KEY_PARTICIPANT_EMAIL, email);
+        }
+
+        String avatarUrl = participant.getAvatarUrl();
+        if (avatarUrl != null)
+        {
+            participantJson.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
+        }
+
+        jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participantJson);
     }
 
     /**
@@ -286,7 +324,7 @@ public class LocalJsonTranscriptHandler
      * @param e the event which holds the information to add to the JSON object
      */
     @SuppressWarnings("unchecked")
-    private void addAlternatives(JSONObject jsonObject, SpeechEvent e)
+    private static void addAlternatives(JSONObject jsonObject, SpeechEvent e)
     {
         TranscriptionResult result = e.getResult();
         JSONArray alternativeJSONArray = new JSONArray();
@@ -354,6 +392,19 @@ public class LocalJsonTranscriptHandler
 
                 pJSON.put(JSON_KEY_PARTICIPANT_NAME, participant.getName());
                 pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
+
+                // adds email if it exists
+                String email = participant.getEmail();
+                if (email != null)
+                {
+                    pJSON.put(JSON_KEY_PARTICIPANT_EMAIL, email);
+                }
+
+                String avatarUrl = participant.getAvatarUrl();
+                if (avatarUrl != null)
+                {
+                    pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
+                }
 
                 participantArray.add(pJSON);
             }
