@@ -31,7 +31,10 @@ LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
 DAEMON_OPTS=" --host=$JIGASI_HOST --domain=$JIGASI_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
 
-test -x $DAEMON || exit 0
+if [ ! -x $DAEMON ] ;then
+  echo "Daemon not executable: $DAEMON"
+  exit 1
+fi
 
 set -e
 
