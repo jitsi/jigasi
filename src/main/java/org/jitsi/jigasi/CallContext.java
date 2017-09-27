@@ -115,10 +115,16 @@ public class CallContext
     private String customCallResource = null;
 
     /**
+     * The source creating the context.
+     */
+    private final Object source;
+
+    /**
      * Constructs new CallContext saving the timestamp at which it was created.
      */
-    public CallContext()
+    public CallContext(Object source)
     {
+        this.source = source;
         this.timestamp = System.currentTimeMillis();
     }
 
@@ -355,5 +361,14 @@ public class CallContext
             // target room name
             boshURL = boshURL.replace("{subdomain}", subdomain);
         }
+    }
+
+    /**
+     * Returns the source that created this context.
+     * @return the source that created this context.
+     */
+    public Object getSource()
+    {
+        return source;
     }
 }
