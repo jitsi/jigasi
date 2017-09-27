@@ -313,7 +313,7 @@ public class CallControlComponent
         }
         else
         {
-            CallContext ctx = new CallContext();
+            CallContext ctx = new CallContext(this);
             ctx.setDomain(getDomain());
             ctx.setSubDomain(getSubdomain());
 
