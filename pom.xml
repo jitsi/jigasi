@@ -119,7 +119,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-20170724.205625-298</version>
+      <version>1.0-20170927.165735-317</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -159,6 +159,11 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-argdelegation</artifactId>
       <version>${jitsi-desktop.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-stats</artifactId>
+      <version>1.0-20170927.195033-2</version>
     </dependency>
     <dependency>
       <!--

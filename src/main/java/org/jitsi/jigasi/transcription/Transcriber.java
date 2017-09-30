@@ -419,6 +419,7 @@ public class Transcriber
     {
         if (!isTranscribing())
         {
+            logger.trace("Receiving audio while not transcribing");
             return;
         }
 
@@ -427,6 +428,7 @@ public class Transcriber
         Participant p = participants.get(ssrc);
         if (p != null)
         {
+            logger.trace("Gave audio to buffer");
             p.giveBuffer(buffer);
         }
         else

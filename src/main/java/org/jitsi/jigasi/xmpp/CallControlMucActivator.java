@@ -543,7 +543,7 @@ public class CallControlMucActivator
         {
             AccountID acc = pps.getAccountID();
 
-            final CallContext ctx = new CallContext();
+            final CallContext ctx = new CallContext(pps);
             ctx.setDomain(acc.getAccountPropertyString(
                 CallContext.DOMAIN_BASE_ACCOUNT_PROP));
             ctx.setBoshURL(acc.getAccountPropertyString(

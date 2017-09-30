@@ -145,10 +145,11 @@ public class SipGateway
 
                 // create a call context reusing the domain stored in
                 // sip account properties if any
-                CallContext ctx = new CallContext();
+                CallContext ctx = new CallContext(call.getProtocolProvider());
                 ctx.setDomain(sipProvider.getAccountID()
                     .getAccountPropertyString(
                         CallContext.DOMAIN_BASE_ACCOUNT_PROP));
+                call.setData(CallContext.class, ctx);
 
                 SipGatewaySession incomingSession
                     = new SipGatewaySession(

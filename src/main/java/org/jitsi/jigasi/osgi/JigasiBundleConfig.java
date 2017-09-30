@@ -25,6 +25,7 @@ import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.impl.osgi.framework.launch.*;
 import org.jitsi.meet.*;
+import org.jitsi.stats.media.*;
 
 import java.util.*;
 
@@ -201,6 +202,9 @@ public class JigasiBundleConfig
                 .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
             true_);
         defaults.put(SRTPCryptoContext.CHECK_REPLAY_PNAME, false_);
+
+        // java-stats(stats-java-sdk)
+        Utils.getCallStatsJavaSDKSystemPropertyDefaults(defaults);
 
         return defaults;
     }

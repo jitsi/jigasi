@@ -25,6 +25,7 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
@@ -99,6 +100,11 @@ public class JvbConference
      * the <tt>CallPeer</tt>.
      */
     private static final String INIT_STATUS_NAME = "Initializing Call";
+
+    /**
+     * The default bridge id to use.
+     */
+    public static final String DEFAULT_BRIDGE_ID = "jitsi";
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -227,6 +233,11 @@ public class JvbConference
      */
     private static final String FOCUSE_RESOURCE_PROP
         = "org.jitsi.jigasi.FOCUS_RESOURCE";
+
+    /**
+     * The stats handler that handles statistics on the jvb side.
+     */
+    private StatsHandler statsHandler = null;
 
     /**
      * Creates new instance of <tt>JvbConference</tt>
@@ -689,6 +700,8 @@ public class JvbConference
         }
 
         jvbCall.removeCallChangeListener(callChangeListener);
+        jvbCall.removeCallChangeListener(statsHandler);
+        statsHandler = null;
 
         jvbCall = null;
 
@@ -867,7 +880,6 @@ public class JvbConference
         @Override
         public void incomingCallReceived(CallEvent event)
         {
-
             CallPeer peer = event.getSourceCall().getCallPeers().next();
             String peerAddress;
             if (peer == null || peer.getAddress() == null)
@@ -912,6 +924,7 @@ public class JvbConference
             inviteTimeout.cancel();
 
             jvbCall = event.getSourceCall();
+            jvbCall.setData(CallContext.class, callContext);
 
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
@@ -939,6 +952,12 @@ public class JvbConference
             });
 
             jvbCall.addCallChangeListener(callChangeListener);
+
+            if (statsHandler == null)
+            {
+                statsHandler = new StatsHandler(DEFAULT_BRIDGE_ID);
+            }
+            jvbCall.addCallChangeListener(statsHandler);
 
             gatewaySession.onConferenceCallInvited(jvbCall);
 

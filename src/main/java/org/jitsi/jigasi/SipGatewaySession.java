@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -143,6 +144,16 @@ public class SipGatewaySession
      *        is created, because header is not parsed yet
      */
     private WaitForJvbRoomNameThread waitThread;
+
+    /**
+     * The stats handler that handles statistics on the sip side.
+     */
+    private StatsHandler statsHandler = null;
+
+    /**
+     * The default remote endpoint id to use for statistics.
+     */
+    public static final String DEFAULT_STATS_REMOTE_ID = "sip";
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -395,6 +406,7 @@ public class SipGatewaySession
             try
             {
                 this.call = tele.createCall(destination);
+                call.setData(CallContext.class,  super.callContext);
 
                 peerStateListener = new CallPeerListener(this.call);
 
@@ -406,6 +418,12 @@ public class SipGatewaySession
                     "Created outgoing call to " + destination + " " + call);
 
                 this.call.addCallChangeListener(callStateListener);
+                // lets add cs to outgoing call
+                if (statsHandler == null)
+                {
+                    statsHandler = new StatsHandler(DEFAULT_STATS_REMOTE_ID);
+                }
+                call.addCallChangeListener(statsHandler);
 
                 //FIXME: It might be already in progress or ended ?!
                 if (!CallState.CALL_INITIALIZATION.equals(call.getCallState()))
@@ -507,6 +525,13 @@ public class SipGatewaySession
     void initIncomingCall()
     {
         call.addCallChangeListener(callStateListener);
+
+        // lets add cs to incoming call
+        if (statsHandler == null)
+        {
+            statsHandler = new StatsHandler(DEFAULT_STATS_REMOTE_ID);
+        }
+        call.addCallChangeListener(statsHandler);
 
         peerStateListener = new CallPeerListener(call);
 
@@ -799,13 +824,11 @@ public class SipGatewaySession
                     }
 
                     if (getJvbRoomName() == null
-                            && !CallState.CALL_ENDED.equals(call.getCallState()))
+                           && !CallState.CALL_ENDED.equals(call.getCallState()))
                     {
                         String defaultRoom
-                                = JigasiBundleActivator
-                                .getConfigurationService()
-                                .getString(
-                                        SipGateway.P_NAME_DEFAULT_JVB_ROOM);
+                            = JigasiBundleActivator.getConfigurationService()
+                                .getString(SipGateway.P_NAME_DEFAULT_JVB_ROOM);
 
                         if (defaultRoom != null)
                         {

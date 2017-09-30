@@ -191,7 +191,7 @@ public class CallsHandlingTest
 
         outCallWatch.bind(sipTele);
 
-        CallContext ctx = new CallContext();
+        CallContext ctx = new CallContext(osgi.getSipProvider());
         ctx.setDestination(destination);
         ctx.setRoomName(roomName);
         ctx.setCustomCallResource(
