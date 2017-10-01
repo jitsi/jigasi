@@ -23,6 +23,11 @@
 
   <dependencies>
     <dependency>
+        <groupId>com.ibm.watson.developer_cloud</groupId>
+        <artifactId>java-sdk</artifactId>
+        <version>3.9.1</version>
+    </dependency>
+    <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>18.0</version>
