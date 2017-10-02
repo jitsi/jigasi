@@ -489,8 +489,13 @@ public class TranscriptionGatewaySession
      */
     private List<ConferenceMember> getCurrentConferenceMembers()
     {
-        return jvbCall == null ?
-                null : jvbCall.getCallPeers().next().getConferenceMembers();
+        if (jvbCall == null)
+        {
+            return null;
+        }
+        Iterator<? extends CallPeer> iter = jvbCall.getCallPeers();
+        return
+            iter.hasNext() ? iter.next().getConferenceMembers() : null;
     }
 
     /**
