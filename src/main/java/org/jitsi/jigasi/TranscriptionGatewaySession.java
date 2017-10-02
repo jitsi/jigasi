@@ -649,6 +649,7 @@ public class TranscriptionGatewaySession
         {
             this.chatMember = chatMember;
             this.matchConsumer = c;
+            setName(WaitForConferenceMemberThread.class.getSimpleName());
         }
 
         @Override
