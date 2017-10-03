@@ -163,7 +163,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
-      <version>1.0-20170927.195033-2</version>
+      <version>1.0-20171003.152041-3</version>
     </dependency>
     <dependency>
       <!--
