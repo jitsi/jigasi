@@ -90,7 +90,7 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     protected static String generateHardToGuessFileName()
     {
-        return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
+        return "transcript_" + Instant.now() + "_" + UUID.randomUUID();
     }
 
     /**
