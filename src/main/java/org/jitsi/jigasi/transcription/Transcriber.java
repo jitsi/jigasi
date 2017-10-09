@@ -24,6 +24,7 @@ import org.jitsi.util.*;
 
 import javax.media.Buffer;
 import javax.media.rtp.*;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -132,6 +133,8 @@ public class Transcriber
      */
     private String roomName;
 
+    FileOutputStream outputStream;
+
     /**
      * Create a transcription object which can be used to add and remove
      * participants of a conference to a list of audio streams which will
@@ -152,6 +155,20 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
         this.roomName = roomName;
+
+        try
+        {
+            String fname = "/tmp/jigasi-audio" + System.currentTimeMillis();
+            File f = new File(fname);
+            f.createNewFile();
+            outputStream= new FileOutputStream(f);
+            logger.warn("new Transcriber, saving audio in: " + fname);
+        }
+        catch (IOException ioe)
+        {
+            logger.warn("Failed to create file for audio output", ioe);
+        }
+
     }
 
 
@@ -268,6 +285,21 @@ public class Transcriber
     {
         if (State.TRANSCRIBING.equals(this.state))
         {
+            synchronized (outputStream)
+            {
+                try
+                {
+                    outputStream.close();
+                    for (WavFileWriter w : wavWriters.values())
+                    {
+                        w.fis.close();
+                    }
+                }
+                catch (IOException ioe)
+                {
+                    logger.warn("Failed to close file:", ioe);
+                }
+            }
             if (logger.isDebugEnabled())
                 logger.debug("Transcriber is now finishing up");
 
@@ -424,7 +456,11 @@ public class Transcriber
         }
 
         long ssrc = receiveStream.getSSRC() & 0xffffffffL;
+        bufferReceived(ssrc, buffer);
+    }
 
+    public void bufferReceived(long ssrc, Buffer buffer)
+    {
         Participant p = participants.get(ssrc);
         if (p != null)
         {
@@ -436,6 +472,115 @@ public class Transcriber
             logger.warn("Reading from SSRC " + ssrc + " while it is " +
                             "not known as a participant");
         }
+
+
+        synchronized (outputStream)
+        {
+            saveToWav(buffer, ssrc);
+
+            long ts = System.currentTimeMillis();
+            int length = buffer.getLength();
+            byte[] data = (byte[])buffer.getData();
+            int off = buffer.getOffset();
+
+            try
+            {
+                // 64bit ts
+                // 32bit SSRC
+                // 32bit length
+                // "length" bytes of data (1920?)
+                writeLong(outputStream, ts);
+                writeInt(outputStream,(int) ssrc);
+                writeInt(outputStream,length);
+                outputStream.write(data,off,length);
+                logger.warn("Wrote a record ts="+ts+"; ssrc="+ssrc+" length="+length);
+            }
+            catch (IOException ioe)
+            {
+                logger.warn("Failed to write audio output!", ioe);
+            }
+        }
+    }
+
+    private void saveToWav(Buffer buffer, long ssrc)
+    {
+        WavFileWriter writer = wavWriters.get(ssrc);
+        if (writer == null)
+        {
+            writer = new WavFileWriter(ssrc);
+            wavWriters.put(ssrc, writer);
+        }
+
+        writer.write(buffer);
+    }
+
+    private Map<Long, WavFileWriter> wavWriters = new HashMap<>();
+    private class WavFileWriter
+    {
+        FileOutputStream fis;
+        private WavFileWriter(long ssrc)
+        {
+            File f = new File("/tmp/jigasi-audio-ssrc-"+ssrc+".wav");
+            try
+            {
+                f.createNewFile();
+                fis = new FileOutputStream(f);
+
+                writeInt(fis, 0x52494646); //RIFF
+                writeInt(fis, 0); //chunk size. lets hope that works.
+                writeInt(fis, 0x57415645); //WAVE
+                writeInt(fis, 0x666d7420); //fmt
+                writeInt(fis, 0x1000_0000); //??
+                fis.write(1); fis.write(0); //audio format = PCM
+                fis.write(1); fis.write(0); //num channels = 1
+                writeInt(fis, 0x80bb_0000); //sample rate...bigendian...
+                writeInt(fis, 0x0077_0100 * 2); //byte rate
+                fis.write(2); fis.write(0); //bytes per sample
+                fis.write(16); fis.write(0); //bits per sample
+                writeInt(fis, 0x64617461); //"data"
+                writeInt(fis, 0); //length of data. lets hope this works
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+        }
+
+        private void write(Buffer buf)
+        {
+            try
+            {
+                fis.write((byte[]) buf.getData(), buf.getOffset(),
+                          buf.getLength());
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void writeInt(FileOutputStream s, int i)
+        throws IOException
+    {
+        s.write((i>>24)&0xff);
+        s.write((i>>16)&0xff);
+        s.write((i>>8)&0xff);
+        s.write((i)&0xff);
+    }
+    private void writeLong(FileOutputStream s, long i)
+        throws IOException
+    {
+        s.write((byte) (i>>56)&0xff);
+        s.write((byte) (i>>48)&0xff);
+        s.write((byte) (i>>40)&0xff);
+        s.write((byte) (i>>32)&0xff);
+        s.write((byte) (i>>24)&0xff);
+        s.write((byte) (i>>16)&0xff);
+        s.write((byte) (i>>8)&0xff);
+        s.write((byte) (i)&0xff);
     }
 
     /**
