@@ -200,20 +200,10 @@ public class GoogleCloudTranscriptionService
     {
         RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
 
-        // Set the sampling rate and encoding of the audio
-        AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(new Double(format.getSampleRate())
-            .intValue());
-        switch(format.getEncoding())
-        {
-            case "LINEAR":
-                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
-                break;
-            default:
-                throw new IllegalArgumentException("Given AudioFormat" +
-                    "has unexpected" +
-                    "encoding");
-        }
+        // When we replay a saved file we don't have a format. This should be all
+        // that is needed to handle it (and a similar patch for IBM).
+        builder.setSampleRateHertz(48000);
+        builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
 
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();

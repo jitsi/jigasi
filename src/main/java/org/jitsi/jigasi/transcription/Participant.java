@@ -233,10 +233,10 @@ public class Participant
      */
     void giveBuffer(javax.media.Buffer buffer)
     {
-        if (audioFormat == null)
-        {
-            audioFormat = (AudioFormat) buffer.getFormat();
-        }
+        //if (audioFormat == null)
+        //{
+        //    audioFormat = (AudioFormat) buffer.getFormat();
+        //}
 
         byte[] audio = (byte[]) buffer.getData();
 
@@ -314,7 +314,7 @@ public class Participant
         {
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
-                                           audioFormat,
+                                           null,
                                            ENGLISH_LOCALE);
 
             if (session != null && !session.ended())
