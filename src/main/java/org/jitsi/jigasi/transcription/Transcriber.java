@@ -19,6 +19,7 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.recording.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
@@ -134,6 +135,7 @@ public class Transcriber
     private String roomName;
 
     FileOutputStream outputStream;
+    RecorderImpl recorder;
 
     /**
      * Create a transcription object which can be used to add and remove
@@ -159,12 +161,16 @@ public class Transcriber
         try
         {
             String fname = "/tmp/jigasi-audio" + System.currentTimeMillis();
-            File f = new File(fname);
+
+            File f = new File(fname + ".jigasi");
             f.createNewFile();
             outputStream= new FileOutputStream(f);
-            logger.warn("new Transcriber, saving audio in: " + fname);
+
+            recorder = new RecorderImpl(mediaDevice);
+            recorder.start("wav", fname + ".wav");
+            logger.warn("new Transcriber, saving audio in: " + fname + ".{jigasi,wav}");
         }
-        catch (IOException ioe)
+        catch (Exception ioe)
         {
             logger.warn("Failed to create file for audio output", ioe);
         }
@@ -290,10 +296,7 @@ public class Transcriber
                 try
                 {
                     outputStream.close();
-                    for (WavFileWriter w : wavWriters.values())
-                    {
-                        w.fis.close();
-                    }
+                    recorder.stop();
                 }
                 catch (IOException ioe)
                 {
@@ -476,8 +479,6 @@ public class Transcriber
 
         synchronized (outputStream)
         {
-            saveToWav(buffer, ssrc);
-
             long ts = System.currentTimeMillis();
             int length = buffer.getLength();
             byte[] data = (byte[])buffer.getData();
@@ -493,72 +494,11 @@ public class Transcriber
                 writeInt(outputStream,(int) ssrc);
                 writeInt(outputStream,length);
                 outputStream.write(data,off,length);
-                logger.warn("Wrote a record ts="+ts+"; ssrc="+ssrc+" length="+length);
             }
             catch (IOException ioe)
             {
                 logger.warn("Failed to write audio output!", ioe);
             }
-        }
-    }
-
-    private void saveToWav(Buffer buffer, long ssrc)
-    {
-        WavFileWriter writer = wavWriters.get(ssrc);
-        if (writer == null)
-        {
-            writer = new WavFileWriter(ssrc);
-            wavWriters.put(ssrc, writer);
-        }
-
-        writer.write(buffer);
-    }
-
-    private Map<Long, WavFileWriter> wavWriters = new HashMap<>();
-    private class WavFileWriter
-    {
-        FileOutputStream fis;
-        private WavFileWriter(long ssrc)
-        {
-            File f = new File("/tmp/jigasi-audio-ssrc-"+ssrc+".wav");
-            try
-            {
-                f.createNewFile();
-                fis = new FileOutputStream(f);
-
-                writeInt(fis, 0x52494646); //RIFF
-                writeInt(fis, 0); //chunk size. lets hope that works.
-                writeInt(fis, 0x57415645); //WAVE
-                writeInt(fis, 0x666d7420); //fmt
-                writeInt(fis, 0x1000_0000); //??
-                fis.write(1); fis.write(0); //audio format = PCM
-                fis.write(1); fis.write(0); //num channels = 1
-                writeInt(fis, 0x80bb_0000); //sample rate...bigendian...
-                writeInt(fis, 0x0077_0100 * 2); //byte rate
-                fis.write(2); fis.write(0); //bytes per sample
-                fis.write(16); fis.write(0); //bits per sample
-                writeInt(fis, 0x64617461); //"data"
-                writeInt(fis, 0); //length of data. lets hope this works
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-
-        }
-
-        private void write(Buffer buf)
-        {
-            try
-            {
-                fis.write((byte[]) buf.getData(), buf.getOffset(),
-                          buf.getLength());
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-
         }
     }
 
