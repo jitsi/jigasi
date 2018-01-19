@@ -359,32 +359,6 @@
               <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
-          <execution>
-            <id>assembly-windows-x64-bin-archive</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptor>src/assembly/windows-x64-bin-archive.xml</descriptor>
-              <finalName>${project.artifactId}-windows-x64-${project.version}</finalName>
-              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
-            </configuration>
-          </execution>
-          <execution>
-            <id>assembly-windows-x86-bin-archive</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptor>src/assembly/windows-x86-bin-archive.xml</descriptor>
-              <finalName>${project.artifactId}-windows-x86-${project.version}</finalName>
-              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
       <plugin>
