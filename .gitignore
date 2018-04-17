@@ -3,3 +3,6 @@
 dist
 *.class
 *.jar
+
+.idea/*
+jigasi.iml
