@@ -20,7 +20,7 @@
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
     <smack.version>4.2.1</smack.version>
-    <jitsi-desktop.version>2.11-SNAPSHOT</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.dbdabb3</jitsi-desktop.version>
   </properties>
 
   <dependencies>
@@ -60,6 +60,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-android-osgi</artifactId>
+      <version>1.0-20180322.162617-2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
