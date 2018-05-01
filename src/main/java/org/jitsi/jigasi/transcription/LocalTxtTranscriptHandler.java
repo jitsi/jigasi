@@ -431,14 +431,15 @@ public class LocalTxtTranscriptHandler
         extends BasePromise
     {
         /**
-         * The filename wherein the Transcript will be published
-         */
-        private String fileName = generateHardToGuessFileName() + ".txt";
-
-        /**
          * Whether {@link this#publish(Transcript)} has already been called once
          */
         private boolean published = false;
+
+        /**
+         * Filename of the .txt file which will contain the transcript
+         */
+        private String fileName = generateHardToGuessTimeString("transcript",
+            ".txt");
 
         @Override
         public synchronized void publish(Transcript transcript)
@@ -447,16 +448,18 @@ public class LocalTxtTranscriptHandler
             {
                 published = true;
 
-                String t
-                    = transcript.getTranscript(LocalTxtTranscriptHandler.this);
-                saveTranscriptToFile(getFileName(), t);
+                String t =
+                    transcript.getTranscript(LocalTxtTranscriptHandler.this);
+
+                saveTranscripStringtToFile(getDirPath(), fileName, t);
             }
         }
 
         @Override
-        protected String getFileName()
+        public String getDescription()
         {
-            return this.fileName;
+            return String.format("Transcript will be saved in %s/%s/%s",
+                getBaseURL(), getDirPath(), fileName);
         }
     }
 }
