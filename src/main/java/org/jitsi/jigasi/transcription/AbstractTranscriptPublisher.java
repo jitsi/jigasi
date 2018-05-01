@@ -83,14 +83,24 @@ public abstract class AbstractTranscriptPublisher<T>
         = Logger.getLogger(AbstractTranscriptPublisher.class);
 
     /**
-     * Get a file name for a transcript, which includes the time and some ID
-     * to make it hard to guess
+     * Get a string which contains a time stamp and a random UUID, with an
+     * optional pre- and suffix attached.
      *
-     * @return the file name
+     * @return the generated string
      */
-    protected static String generateHardToGuessFileName()
+    protected static String generateHardToGuessTimeString(String prefix,
+                                                          String suffix)
     {
-        return "transcript_" + Instant.now() + "_" + UUID.randomUUID();
+        prefix = prefix == null || prefix.isEmpty() ?
+            "":
+            prefix + "_";
+
+        suffix = suffix == null || suffix.isEmpty()?
+            "":
+            suffix;
+
+        return String.format("%s%s_%s%s", prefix, Instant.now(),
+            UUID.randomUUID(), suffix);
     }
 
     /**
@@ -122,44 +132,78 @@ public abstract class AbstractTranscriptPublisher<T>
     }
 
     /**
-     * Save a transcript in a file
+     * Save a transcript given as a String to subdirectory of getLogDirPath()
+     * with the given directory name and the given file name
      *
+     * @param directoryName the name of the subdirectory directory
+     * @param fileName the name of the file
      * @param transcript the transcript to save
      */
-    protected void saveTranscriptToFile(String fileName, T transcript)
+    protected void saveTranscripStringtToFile(String directoryName,
+                                        String fileName,
+                                        String transcript)
     {
-        File logDir = Paths.get(getLogDirPath()).toFile();
+        Path rootDirPath = Paths.get(getLogDirPath());
+        Path subDirectoryPath = Paths.get(rootDirPath.toString(),
+            directoryName);
 
-        // Try to make the directory
-        if(!logDir.exists())
+        // Try to make the root directory
+        if(!createDirectoryIfNotExist(rootDirPath))
         {
-            if(!logDir.mkdir())
-            {
-                logger.warn("Was not able to safe a transcript because" +
-                    " unable to make a directory called " + logDir);
-                return;
-            }
-        }
-
-        // If there is a file with the directory name, we can't make the
-        // directory and thus we cannot save the transcript
-        if(logDir.exists() && !logDir.isDirectory())
-        {
-            logger.warn("Was not able to safe a transcript because" +
-                " there is a file called " + logDir);
             return;
         }
 
-        File t = new File(logDir, fileName);
+        // Now try to make the subdirectory directory
+        if(!createDirectoryIfNotExist(subDirectoryPath))
+        {
+            return;
+        }
+
+        // and finally we can save the transcript
+        File t = new File(subDirectoryPath.toString(), fileName);
         try(FileWriter writer = new FileWriter(t))
         {
-            writer.write(transcript.toString());
+            writer.write(transcript);
             logger.info("Wrote final transcript to " + t);
         }
         catch(IOException e)
         {
             logger.warn("Unable to write transcript to file " + t, e);
         }
+    }
+
+    /**
+     * Create a directory at a specific path if it's not created
+     *
+     * @param path the path as a string of the directory which should be
+     * created
+     * @return True when the directory was created or already exists, false
+     * otherwise
+     */
+    protected static boolean createDirectoryIfNotExist(Path path)
+    {
+        File dir = path.toFile();
+
+        // Try to make the directory
+        if(!dir.exists())
+        {
+            if(!dir.mkdir())
+            {
+                logger.warn("Was unable to make a directory called " + dir);
+                return false;
+            }
+        }
+
+        // If there is a file with the directory name, we can't make the
+        // directory and thus we cannot save the transcript
+        if(dir.exists() && !dir.isDirectory())
+        {
+            logger.warn("Was unable to make a directory because" +
+                " there is a file called " + dir);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -451,25 +495,28 @@ public abstract class AbstractTranscriptPublisher<T>
         implements Promise
     {
 
+        /**
+         * A unique directory name to store/publish the transcript into
+         */
+        private String dirName = generateHardToGuessTimeString("", "");
+
         @Override
         public boolean hasDescription()
         {
             return advertiseURL();
         }
 
-        @Override
-        public String getDescription()
-        {
-            return "Transcript will be available after the conference at " +
-                getBaseURL() + getFileName() + ".\n";
-        }
-
         /**
-         * Get the file name which will be used to store the {@link Transcript}
+         * Get the directory path wherein files can be stored, such as
+         * a representation of the {@link Transcript} which will need to be
+         * published
          *
          * @return the file name as a string
          */
-        protected abstract String getFileName();
+        protected String getDirPath()
+        {
+            return dirName;
+        }
     }
 
 }

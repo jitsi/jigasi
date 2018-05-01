@@ -23,8 +23,8 @@ import org.jitsi.jigasi.*;
 import java.util.*;
 
 /**
- * This class is used to publish TranscriptionResults and Transcript to the
- * what is desired by adding the necessary {@link TranscriptionResultPublisher}
+ * This class is used to publish TranscriptionResults and Transcript to whatever
+ * is desired by adding the necessary {@link TranscriptionResultPublisher}
  * and {@link TranscriptPublisher}s
  *
  * @author Nik Vaessen
