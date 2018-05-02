@@ -449,35 +449,25 @@ public class LocalJsonTranscriptHandler
     {
 
         /**
-         * Whether {@link this#publish(Transcript)} has already been called once
-         */
-        private boolean published = false;
-
-        /**
          * Filename of the .json file which will contain the transcript
          */
         private String fileName = generateHardToGuessTimeString("transcript",
             ".json");
 
         @Override
-        public synchronized void publish(Transcript transcript)
+        protected void innerPublish(Transcript transcript)
         {
-            if(!published)
-            {
-                published = true;
+            JSONObject t
+                = transcript.getTranscript(LocalJsonTranscriptHandler.this);
 
-                JSONObject t
-                    = transcript.getTranscript(LocalJsonTranscriptHandler.this);
-
-                saveTranscriptStringToFile(getDirPath(), fileName,
-                    t.toString());
-            }
+            saveTranscriptStringToFile(getDirPath(), fileName,
+                t.toString());
         }
 
         @Override
         public String getDescription()
         {
-            return String.format("Transcript will be saved in %s/%s/%s",
+            return String.format("Transcript will be saved in %s/%s/%s%n",
                 getBaseURL(), getDirPath(), fileName);
         }
 

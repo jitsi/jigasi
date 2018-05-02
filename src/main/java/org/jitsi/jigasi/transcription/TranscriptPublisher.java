@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.impl.neomedia.device.*;
+
 /**
  * This interface is used to save a transcript to a desired location
  *
@@ -61,5 +63,29 @@ public interface TranscriptPublisher
          * @param transcript the transcript to publish
          */
         void publish(Transcript transcript);
+
+        /**
+         * Whether this {@link TranscriptPublisher.Promise} wants to have a
+         * recording of the audio of the transcription. When this is the case,
+         * the promise should be given the
+         * {@link AudioMixerMediaDevice} by calling
+         * {@link TranscriptPublisher.Promise#
+         * giveMediaDevice(AudioMixerMediaDevice)}
+         *
+         * @return True when the AudioMixerMediaDevice needs to be given,
+         * False otherwise
+         */
+        boolean wantsAudioRecording();
+
+        /**
+         * Give the {@link AudioMixerMediaDevice}
+         * which is required to record the audio with a
+         * {@link org.jitsi.impl.neomedia.recording.RecorderImpl} object.
+         *
+         * @param device the AudioMixerMediaDevice which will be used to
+         * record the audio
+         */
+        void giveAudioMixerMediaDevice(AudioMixerMediaDevice device);
+
     }
 }
