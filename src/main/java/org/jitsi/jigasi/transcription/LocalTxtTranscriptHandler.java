@@ -451,7 +451,7 @@ public class LocalTxtTranscriptHandler
                 String t =
                     transcript.getTranscript(LocalTxtTranscriptHandler.this);
 
-                saveTranscripStringtToFile(getDirPath(), fileName, t);
+                saveTranscriptStringToFile(getDirPath(), fileName, t);
             }
         }
 

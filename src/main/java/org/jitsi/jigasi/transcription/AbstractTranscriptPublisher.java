@@ -139,7 +139,7 @@ public abstract class AbstractTranscriptPublisher<T>
      * @param fileName the name of the file
      * @param transcript the transcript to save
      */
-    protected void saveTranscripStringtToFile(String directoryName,
+    protected void saveTranscriptStringToFile(String directoryName,
                                         String fileName,
                                         String transcript)
     {
@@ -187,7 +187,7 @@ public abstract class AbstractTranscriptPublisher<T>
         // Try to make the directory
         if(!dir.exists())
         {
-            if(!dir.mkdir())
+            if(!dir.mkdirs())
             {
                 logger.warn("Was unable to make a directory called " + dir);
                 return false;
