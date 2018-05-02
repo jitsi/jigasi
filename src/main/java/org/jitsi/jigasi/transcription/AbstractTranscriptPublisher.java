@@ -18,7 +18,10 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.recording.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -59,6 +62,20 @@ public abstract class AbstractTranscriptPublisher<T>
         =  "org.jitsi.jigasi.transcription.ADVERTISE_URL";
 
     /**
+     * The property name for the boolean value whether the audio of a conference
+     * should be recorded alongside a transcription
+     */
+    public final static String P_NAME_RECORD_AUDIO
+        = "org.jitsi.jigasi.transcription.RECORD_AUDIO";
+
+    /**
+     * The property name for the format which should be used to record the audio
+     * in
+     */
+    public final static String P_NAME_RECORD_AUDIO_FORMAT
+        = "org.jitsi.jigasi.transcription.RECORD_AUDIO_FORMAT";
+
+    /**
      * The default for the url
      */
     public final static String TRANSCRIPT_BASE_URL_DEFAULT_VALUE
@@ -75,6 +92,16 @@ public abstract class AbstractTranscriptPublisher<T>
      * By default do not advertise the URL
      */
     public final static boolean ADVERTISE_URL_DEFAULT_VALUE = false;
+
+    /**
+     * By default do not record the audio
+     */
+    public final static boolean RECORD_AUDIO_DEFAULT_VALUE = false;
+
+    /**
+     * By default when recording audio the format to store it as is WAV
+     */
+    public final static String RECORD_AUDIO_FORMAT_DEFAULT_VALUE = "wav";
 
     /**
      * The logger of this class
@@ -243,6 +270,20 @@ public abstract class AbstractTranscriptPublisher<T>
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ADVERTISE_URL,
                 ADVERTISE_URL_DEFAULT_VALUE);
+    }
+
+    protected boolean recordAudio()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_RECORD_AUDIO,
+                RECORD_AUDIO_DEFAULT_VALUE);
+    }
+
+    protected String getRecordingAudioFormat()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_RECORD_AUDIO_FORMAT,
+                RECORD_AUDIO_FORMAT_DEFAULT_VALUE);
     }
 
     /**
@@ -494,11 +535,27 @@ public abstract class AbstractTranscriptPublisher<T>
     public abstract class BasePromise
         implements Promise
     {
+        /**
+         * Whether {@link this#publish(Transcript)} has already been called once
+         */
+        private boolean published = false;
 
         /**
          * A unique directory name to store/publish the transcript into
          */
         private String dirName = generateHardToGuessTimeString("", "");
+
+        /**
+         * The fileName which will be used to record to the audio file to.
+         * Stays null when {@link this#wantsAudioRecording()} returns False.
+         */
+        private String audioRecordingFileName;
+
+        /**
+         * The recorder which will be used to record the audio, if required.
+         * Stays null when {@link this#wantsAudioRecording()} returns False.
+         */
+        private RecorderImpl recorder;
 
         @Override
         public boolean hasDescription()
@@ -516,6 +573,84 @@ public abstract class AbstractTranscriptPublisher<T>
         protected String getDirPath()
         {
             return dirName;
+        }
+
+        @Override
+        public boolean wantsAudioRecording()
+        {
+            return recordAudio();
+        }
+
+        @Override
+        public void giveAudioMixerMediaDevice(AudioMixerMediaDevice device)
+        {
+            if(recordAudio())
+            {
+                // we need to make sure the directory exists already
+                // so the recorder can write to it
+                createDirectoryIfNotExist(Paths.get(getLogDirPath(), dirName));
+
+                String format = getRecordingAudioFormat();
+                this.audioRecordingFileName =
+                   generateHardToGuessTimeString("",
+                        String.format(".%s", format));
+
+                String audioFilePath = Paths.get(getLogDirPath(), dirName,
+                    audioRecordingFileName).toString();
+
+                this.recorder = new RecorderImpl(device);
+                try
+                {
+                    this.recorder.start(format, audioFilePath);
+                }
+                catch (MediaException | IOException e)
+                {
+                    logger.error("Could not start recording", e);
+                }
+            }
+            else
+            {
+                logger.warn("receiving AudioMixerMediaDevice while not " +
+                    "requesting to record audio");
+            }
+        }
+
+        @Override
+        public final synchronized void publish(Transcript transcript)
+        {
+            if (published)
+            {
+                return;
+            }
+            else
+            {
+                published = true;
+            }
+
+            if (this.recorder != null)
+            {
+                this.recorder.stop();
+            }
+
+            innerPublish(transcript);
+        }
+
+        /**
+         * Abstract method which needs to be implemented by children to publish
+         * the transcript and/or recording
+         *
+         * @param transcript the Transcript file which needs to be published
+         */
+        protected abstract void innerPublish(Transcript transcript);
+
+        /**
+         * Get the filename which was used to store the audio recording to
+         *
+         * @return the filename
+         */
+        public String getAudioRecordingFileName()
+        {
+            return audioRecordingFileName;
         }
     }
 
