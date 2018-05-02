@@ -469,7 +469,7 @@ public class LocalJsonTranscriptHandler
                 JSONObject t
                     = transcript.getTranscript(LocalJsonTranscriptHandler.this);
 
-                saveTranscripStringtToFile(getDirPath(), fileName,
+                saveTranscriptStringToFile(getDirPath(), fileName,
                     t.toString());
             }
         }
