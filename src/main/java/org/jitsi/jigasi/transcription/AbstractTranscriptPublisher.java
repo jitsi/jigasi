@@ -76,6 +76,32 @@ public abstract class AbstractTranscriptPublisher<T>
         = "org.jitsi.jigasi.transcription.RECORD_AUDIO_FORMAT";
 
     /**
+     * The property name for the boolean value whether scripts should be
+     * executed when
+     * {@link AbstractTranscriptPublisher.BasePromise#publish(Transcript)}
+     * has been called
+     */
+    public final static String P_NAME_EXECUTE_SCRIPTS
+        = "org.jitsi.jigasi.transcription.EXECUTE_SCRIPTS";
+
+    /**
+     * The property name for the string which acts a separator between the
+     * paths given in the string of paths
+     * {@link this#P_NAME_SCRIPTS_TO_EXECUTE_LIST}
+     */
+    public final static String P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR
+        = "org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST_SEPARATOR";
+
+    /**
+     * The property name for the list to the paths of the scripts
+     * which will need to be executed. The list is created by splitting the
+     * string by the SEPARATOR string given by the property
+     * {@link this#P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR}
+     */
+    public final static String P_NAME_SCRIPTS_TO_EXECUTE_LIST
+        = "org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST";
+
+    /**
      * The default for the url
      */
     public final static String TRANSCRIPT_BASE_URL_DEFAULT_VALUE
@@ -102,6 +128,23 @@ public abstract class AbstractTranscriptPublisher<T>
      * By default when recording audio the format to store it as is WAV
      */
     public final static String RECORD_AUDIO_FORMAT_DEFAULT_VALUE = "wav";
+
+    /**
+     * By default do not execute scripts
+     */
+    public final static boolean EXECUTE_SCRIPTS_DEFAULT_VALUE = false;
+
+    /**
+     * By default paths of scripts are separated by a ","
+     */
+    public final static String SCRIPTS_TO_EXECUTE_LIST_SEPARATOR_DEFAULT_VALUE
+        = ",";
+
+    /**
+     * By default execute the example script
+     */
+    public final static String SCRIPTS_TO_EXECUTE_LIST_DEFAULT_VALUE
+        = "script/example_handle_transcript_directory.sh";
 
     /**
      * The logger of this class
@@ -272,6 +315,12 @@ public abstract class AbstractTranscriptPublisher<T>
                 ADVERTISE_URL_DEFAULT_VALUE);
     }
 
+    /**
+     * Get whether an audio mix of each conference which is transcribed
+     * should be recorded
+     *
+     * @return true when the mix should be recorded, false otherwise
+     */
     protected boolean recordAudio()
     {
         return JigasiBundleActivator.getConfigurationService()
@@ -279,11 +328,57 @@ public abstract class AbstractTranscriptPublisher<T>
                 RECORD_AUDIO_DEFAULT_VALUE);
     }
 
+    /**
+     * Get in which format the audio mix should be recorded
+     *
+     * @return the audio format
+     */
     protected String getRecordingAudioFormat()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getString(P_NAME_RECORD_AUDIO_FORMAT,
                 RECORD_AUDIO_FORMAT_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether there any scripts need to be executed after a
+     * {@link Transcript} is published by a call to
+     * {@link BasePromise#publish(Transcript)}
+     *
+     * @return whether to execute one ore more scripts.
+     */
+    protected boolean executeScripts()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_EXECUTE_SCRIPTS,
+                EXECUTE_SCRIPTS_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get all the (relative) paths to the scripts to execute as a String.
+     *
+     * @return the list of all (relative) paths
+     */
+    protected List<String> getPathsToScriptsToExecute()
+    {
+        String paths = JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_SCRIPTS_TO_EXECUTE_LIST,
+                SCRIPTS_TO_EXECUTE_LIST_DEFAULT_VALUE);
+
+        return Arrays.asList(paths.split(
+            getPathsToScriptsToExecuteSeparator()));
+    }
+
+    /**
+     * Get which separator is used for a string of multiple paths
+     *
+     * @return the separator
+     */
+    protected String getPathsToScriptsToExecuteSeparator()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR,
+                SCRIPTS_TO_EXECUTE_LIST_SEPARATOR_DEFAULT_VALUE);
     }
 
     /**
@@ -633,6 +728,8 @@ public abstract class AbstractTranscriptPublisher<T>
             }
 
             innerPublish(transcript);
+
+            maybeExecuteBashScripts();
         }
 
         /**
@@ -651,6 +748,38 @@ public abstract class AbstractTranscriptPublisher<T>
         public String getAudioRecordingFileName()
         {
             return audioRecordingFileName;
+        }
+
+        /**
+         * Execute all given scripts by
+         * {@link this#getPathsToScriptsToExecute()} ()} when
+         * {@link this#executeScripts()} returns true
+         */
+        private void maybeExecuteBashScripts()
+        {
+            if (executeScripts())
+            {
+                Path dirPath = Paths.get(getLogDirPath(), dirName)
+                    .toAbsolutePath();
+
+                for(String path : getPathsToScriptsToExecute())
+                {
+                    Path scriptPath = Paths.get(path).toAbsolutePath();
+                    try
+                    {
+                        logger.info("executing " + scriptPath +
+                        " with arguments '" + dirPath + "'");
+
+                        Process p = new ProcessBuilder(scriptPath.toString(),
+                            dirPath.toString()).start();
+                    }
+                    catch (IOException e)
+                    {
+                        logger.error("Could not execute " + scriptPath, e);
+                    }
+                }
+            }
+
         }
     }
 
