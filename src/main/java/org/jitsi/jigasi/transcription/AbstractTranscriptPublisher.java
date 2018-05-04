@@ -18,10 +18,12 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.impl.neomedia.recording.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.device.*;
+import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -70,7 +72,7 @@ public abstract class AbstractTranscriptPublisher<T>
 
     /**
      * The property name for the format which should be used to record the audio
-     * in
+     * in. Only wav is currently supported.
      */
     public final static String P_NAME_RECORD_AUDIO_FORMAT
         = "org.jitsi.jigasi.transcription.RECORD_AUDIO_FORMAT";
@@ -321,7 +323,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return true when the mix should be recorded, false otherwise
      */
-    protected boolean recordAudio()
+    protected boolean shouldRecordAudio()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_RECORD_AUDIO,
@@ -347,7 +349,7 @@ public abstract class AbstractTranscriptPublisher<T>
      *
      * @return whether to execute one ore more scripts.
      */
-    protected boolean executeScripts()
+    protected boolean shouldExecuteScripts()
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_EXECUTE_SCRIPTS,
@@ -638,20 +640,23 @@ public abstract class AbstractTranscriptPublisher<T>
         /**
          * A unique directory name to store/publish the transcript into
          */
-        private String dirName = generateHardToGuessTimeString("", "");
+        private final String dirName = generateHardToGuessTimeString("", "");
 
         /**
-         * The fileName which will be used to record to the audio file to.
-         * Stays null when {@link this#wantsAudioRecording()} returns False.
+         * The file name which will be used to record the audio file to.
+         * Stays null when {@link this#shouldRecordAudio()} returns False.
          */
-        private String audioRecordingFileName;
+        private String audioFileName;
 
         /**
          * The recorder which will be used to record the audio, if required.
-         * Stays null when {@link this#wantsAudioRecording()} returns False.
+         * Stays null when {@link this#shouldRecordAudio()} returns False.
          */
-        private RecorderImpl recorder;
+        private Recorder recorder;
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean hasDescription()
         {
@@ -670,30 +675,28 @@ public abstract class AbstractTranscriptPublisher<T>
             return dirName;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
-        public boolean wantsAudioRecording()
+        public void maybeStartRecording(MediaDevice device)
         {
-            return recordAudio();
-        }
-
-        @Override
-        public void giveAudioMixerMediaDevice(AudioMixerMediaDevice device)
-        {
-            if(recordAudio())
+            if(shouldRecordAudio())
             {
                 // we need to make sure the directory exists already
                 // so the recorder can write to it
                 createDirectoryIfNotExist(Paths.get(getLogDirPath(), dirName));
 
                 String format = getRecordingAudioFormat();
-                this.audioRecordingFileName =
+                this.audioFileName =
                    generateHardToGuessTimeString("",
-                        String.format(".%s", format));
+                       String.format(".%s", format));
 
                 String audioFilePath = Paths.get(getLogDirPath(), dirName,
-                    audioRecordingFileName).toString();
+                    audioFileName).toString();
 
-                this.recorder = new RecorderImpl(device);
+                this.recorder
+                    = LibJitsi.getMediaService().createRecorder(device);
                 try
                 {
                     this.recorder.start(format, audioFilePath);
@@ -703,13 +706,11 @@ public abstract class AbstractTranscriptPublisher<T>
                     logger.error("Could not start recording", e);
                 }
             }
-            else
-            {
-                logger.warn("receiving AudioMixerMediaDevice while not " +
-                    "requesting to record audio");
-            }
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public final synchronized void publish(Transcript transcript)
         {
@@ -727,7 +728,7 @@ public abstract class AbstractTranscriptPublisher<T>
                 this.recorder.stop();
             }
 
-            innerPublish(transcript);
+            doPublish(transcript);
 
             maybeExecuteBashScripts();
         }
@@ -738,7 +739,7 @@ public abstract class AbstractTranscriptPublisher<T>
          *
          * @param transcript the Transcript file which needs to be published
          */
-        protected abstract void innerPublish(Transcript transcript);
+        protected abstract void doPublish(Transcript transcript);
 
         /**
          * Get the filename which was used to store the audio recording to
@@ -747,31 +748,31 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         public String getAudioRecordingFileName()
         {
-            return audioRecordingFileName;
+            return audioFileName;
         }
 
         /**
          * Execute all given scripts by
          * {@link this#getPathsToScriptsToExecute()} ()} when
-         * {@link this#executeScripts()} returns true
+         * {@link this#shouldExecuteScripts()} ()} returns true
          */
         private void maybeExecuteBashScripts()
         {
-            if (executeScripts())
+            if (shouldExecuteScripts())
             {
-                Path dirPath = Paths.get(getLogDirPath(), dirName)
-                    .toAbsolutePath();
+                Path absDirPath =
+                    Paths.get(getLogDirPath(), dirName).toAbsolutePath();
 
-                for(String path : getPathsToScriptsToExecute())
+                for(String scriptPath : getPathsToScriptsToExecute())
                 {
-                    Path scriptPath = Paths.get(path).toAbsolutePath();
+                    Path absScriptPath = Paths.get(scriptPath).toAbsolutePath();
                     try
                     {
                         logger.info("executing " + scriptPath +
-                        " with arguments '" + dirPath + "'");
+                        " with arguments '" + absDirPath + "'");
 
-                        Process p = new ProcessBuilder(scriptPath.toString(),
-                            dirPath.toString()).start();
+                        new ProcessBuilder(scriptPath.toString(),
+                            absDirPath.toString()).start();
                     }
                     catch (IOException e)
                     {
