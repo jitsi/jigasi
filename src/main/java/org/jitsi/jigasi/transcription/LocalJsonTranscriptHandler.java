@@ -451,11 +451,14 @@ public class LocalJsonTranscriptHandler
         /**
          * Filename of the .json file which will contain the transcript
          */
-        private String fileName = generateHardToGuessTimeString("transcript",
-            ".json");
+        private final String fileName
+            = generateHardToGuessTimeString("transcript", ".json");
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
-        protected void innerPublish(Transcript transcript)
+        protected void doPublish(Transcript transcript)
         {
             JSONObject t
                 = transcript.getTranscript(LocalJsonTranscriptHandler.this);
@@ -464,6 +467,9 @@ public class LocalJsonTranscriptHandler
                 t.toString());
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getDescription()
         {

@@ -434,11 +434,14 @@ public class LocalTxtTranscriptHandler
         /**
          * Filename of the .txt file which will contain the transcript
          */
-        private String fileName = generateHardToGuessTimeString("transcript",
-            ".txt");
+        private final String fileName
+            = generateHardToGuessTimeString("transcript", ".txt");
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
-        protected void innerPublish(Transcript transcript)
+        protected void doPublish(Transcript transcript)
         {
             String t =
                 transcript.getTranscript(LocalTxtTranscriptHandler.this);
@@ -446,6 +449,9 @@ public class LocalTxtTranscriptHandler
             saveTranscriptStringToFile(getDirPath(), fileName, t);
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getDescription()
         {

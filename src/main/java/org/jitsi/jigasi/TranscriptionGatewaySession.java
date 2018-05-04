@@ -185,10 +185,7 @@ public class TranscriptionGatewaySession
                 welcomeMessage.append(promise.getDescription());
             }
 
-            if(promise.wantsAudioRecording())
-            {
-                promise.giveAudioMixerMediaDevice(transcriber.getMediaDevice());
-            }
+            promise.maybeStartRecording(transcriber.getMediaDevice());
         }
 
         sendMessageToRoom(welcomeMessage.toString());
