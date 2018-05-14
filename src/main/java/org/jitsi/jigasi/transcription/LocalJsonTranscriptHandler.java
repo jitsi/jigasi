@@ -447,33 +447,35 @@ public class LocalJsonTranscriptHandler
     private class JSONPublishPromise
         extends BasePromise
     {
-        /**
-         * The filename wherein the Transcript will be published
-         */
-        private String fileName = generateHardToGuessFileName() + ".json";
 
         /**
-         * Whether {@link this#publish(Transcript)} has already been called once
+         * Filename of the .json file which will contain the transcript
          */
-        private boolean published = false;
+        private final String fileName
+            = generateHardToGuessTimeString("transcript", ".json");
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
-        public synchronized void publish(Transcript transcript)
+        protected void doPublish(Transcript transcript)
         {
-            if(!published)
-            {
-                published = true;
+            JSONObject t
+                = transcript.getTranscript(LocalJsonTranscriptHandler.this);
 
-                JSONObject t
-                    = transcript.getTranscript(LocalJsonTranscriptHandler.this);
-                saveTranscriptToFile(getFileName(), t);
-            }
+            saveTranscriptStringToFile(getDirPath(), fileName,
+                t.toString());
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
-        protected String getFileName()
+        public String getDescription()
         {
-            return this.fileName;
+            return String.format("Transcript will be saved in %s/%s/%s%n",
+                getBaseURL(), getDirPath(), fileName);
         }
+
     }
 }

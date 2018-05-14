@@ -17,6 +17,9 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.service.neomedia.device.*;
+
 /**
  * This interface is used to save a transcript to a desired location
  *
@@ -61,5 +64,18 @@ public interface TranscriptPublisher
          * @param transcript the transcript to publish
          */
         void publish(Transcript transcript);
+
+        /**
+         * Give the {@link MediaDevice}
+         * which is required to record the audio with a
+         * {@link org.jitsi.service.neomedia.recording.Recorder} object.
+         * If recording is desired, calling this method will start the
+         * recording, otherwise it will do nothing.
+         *
+         * @param device the MediaDevice which will be used to
+         * record the audio
+         */
+        void maybeStartRecording(MediaDevice device);
+
     }
 }

@@ -184,6 +184,8 @@ public class TranscriptionGatewaySession
             {
                 welcomeMessage.append(promise.getDescription());
             }
+
+            promise.maybeStartRecording(transcriber.getMediaDevice());
         }
 
         sendMessageToRoom(welcomeMessage.toString());
@@ -489,8 +491,13 @@ public class TranscriptionGatewaySession
      */
     private List<ConferenceMember> getCurrentConferenceMembers()
     {
-        return jvbCall == null ?
-                null : jvbCall.getCallPeers().next().getConferenceMembers();
+        if (jvbCall == null)
+        {
+            return null;
+        }
+        Iterator<? extends CallPeer> iter = jvbCall.getCallPeers();
+        return
+            iter.hasNext() ? iter.next().getConferenceMembers() : null;
     }
 
     /**
@@ -602,13 +609,13 @@ public class TranscriptionGatewaySession
         /**
          * The maximum amount of time this thread tries to wait for a match
          */
-        private final static int MAX_WAIT_TIME_IN_MS = 5000;
+        private final static int MAX_WAIT_TIME_IN_MS = 10000;
 
         /**
          * The amount of time this thread waits before trying to find a match
          * again
          */
-        private final static int ITERATION_WAIT_TIME_IN_MS = 500;
+        private final static int ITERATION_WAIT_TIME_IN_MS = 1000;
 
         /**
          * The ChatRooMember this thread is trying to match to a
@@ -644,6 +651,7 @@ public class TranscriptionGatewaySession
         {
             this.chatMember = chatMember;
             this.matchConsumer = c;
+            setName(WaitForConferenceMemberThread.class.getSimpleName());
         }
 
         @Override
@@ -665,8 +673,9 @@ public class TranscriptionGatewaySession
                 }
                 else
                 {
-                    logger.warn("WaitForConferenceMemberThread was" +
-                            "not able to find a match");
+                    logger.warn("WaitForConferenceMemberThread was " +
+                        String.format("not able to find a match for %s",
+                            chatMember));
                 }
             }
             catch (InterruptedException e)

@@ -18,7 +18,12 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.device.*;
+import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -59,6 +64,46 @@ public abstract class AbstractTranscriptPublisher<T>
         =  "org.jitsi.jigasi.transcription.ADVERTISE_URL";
 
     /**
+     * The property name for the boolean value whether the audio of a conference
+     * should be recorded alongside a transcription
+     */
+    public final static String P_NAME_RECORD_AUDIO
+        = "org.jitsi.jigasi.transcription.RECORD_AUDIO";
+
+    /**
+     * The property name for the format which should be used to record the audio
+     * in. Only wav is currently supported.
+     */
+    public final static String P_NAME_RECORD_AUDIO_FORMAT
+        = "org.jitsi.jigasi.transcription.RECORD_AUDIO_FORMAT";
+
+    /**
+     * The property name for the boolean value whether scripts should be
+     * executed when
+     * {@link AbstractTranscriptPublisher.BasePromise#publish(Transcript)}
+     * has been called
+     */
+    public final static String P_NAME_EXECUTE_SCRIPTS
+        = "org.jitsi.jigasi.transcription.EXECUTE_SCRIPTS";
+
+    /**
+     * The property name for the string which acts a separator between the
+     * paths given in the string of paths
+     * {@link this#P_NAME_SCRIPTS_TO_EXECUTE_LIST}
+     */
+    public final static String P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR
+        = "org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST_SEPARATOR";
+
+    /**
+     * The property name for the list to the paths of the scripts
+     * which will need to be executed. The list is created by splitting the
+     * string by the SEPARATOR string given by the property
+     * {@link this#P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR}
+     */
+    public final static String P_NAME_SCRIPTS_TO_EXECUTE_LIST
+        = "org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST";
+
+    /**
      * The default for the url
      */
     public final static String TRANSCRIPT_BASE_URL_DEFAULT_VALUE
@@ -77,20 +122,57 @@ public abstract class AbstractTranscriptPublisher<T>
     public final static boolean ADVERTISE_URL_DEFAULT_VALUE = false;
 
     /**
+     * By default do not record the audio
+     */
+    public final static boolean RECORD_AUDIO_DEFAULT_VALUE = false;
+
+    /**
+     * By default when recording audio the format to store it as is WAV
+     */
+    public final static String RECORD_AUDIO_FORMAT_DEFAULT_VALUE = "wav";
+
+    /**
+     * By default do not execute scripts
+     */
+    public final static boolean EXECUTE_SCRIPTS_DEFAULT_VALUE = false;
+
+    /**
+     * By default paths of scripts are separated by a ","
+     */
+    public final static String SCRIPTS_TO_EXECUTE_LIST_SEPARATOR_DEFAULT_VALUE
+        = ",";
+
+    /**
+     * By default execute the example script
+     */
+    public final static String SCRIPTS_TO_EXECUTE_LIST_DEFAULT_VALUE
+        = "script/example_handle_transcript_directory.sh";
+
+    /**
      * The logger of this class
      */
     private static final Logger logger
         = Logger.getLogger(AbstractTranscriptPublisher.class);
 
     /**
-     * Get a file name for a transcript, which includes the time and some ID
-     * to make it hard to guess
+     * Get a string which contains a time stamp and a random UUID, with an
+     * optional pre- and suffix attached.
      *
-     * @return the file name
+     * @return the generated string
      */
-    protected static String generateHardToGuessFileName()
+    protected static String generateHardToGuessTimeString(String prefix,
+                                                          String suffix)
     {
-        return "transcript_" + UUID.randomUUID() + "_" + Instant.now();
+        prefix = prefix == null || prefix.isEmpty() ?
+            "":
+            prefix + "_";
+
+        suffix = suffix == null || suffix.isEmpty()?
+            "":
+            suffix;
+
+        return String.format("%s%s_%s%s", prefix, Instant.now(),
+            UUID.randomUUID(), suffix);
     }
 
     /**
@@ -122,44 +204,78 @@ public abstract class AbstractTranscriptPublisher<T>
     }
 
     /**
-     * Save a transcript in a file
+     * Save a transcript given as a String to subdirectory of getLogDirPath()
+     * with the given directory name and the given file name
      *
+     * @param directoryName the name of the subdirectory directory
+     * @param fileName the name of the file
      * @param transcript the transcript to save
      */
-    protected void saveTranscriptToFile(String fileName, T transcript)
+    protected void saveTranscriptStringToFile(String directoryName,
+                                        String fileName,
+                                        String transcript)
     {
-        File logDir = Paths.get(getLogDirPath()).toFile();
+        Path rootDirPath = Paths.get(getLogDirPath());
+        Path subDirectoryPath = Paths.get(rootDirPath.toString(),
+            directoryName);
 
-        // Try to make the directory
-        if(!logDir.exists())
+        // Try to make the root directory
+        if(!createDirectoryIfNotExist(rootDirPath))
         {
-            if(!logDir.mkdir())
-            {
-                logger.warn("Was not able to safe a transcript because" +
-                    " unable to make a directory called " + logDir);
-                return;
-            }
-        }
-
-        // If there is a file with the directory name, we can't make the
-        // directory and thus we cannot save the transcript
-        if(logDir.exists() && !logDir.isDirectory())
-        {
-            logger.warn("Was not able to safe a transcript because" +
-                " there is a file called " + logDir);
             return;
         }
 
-        File t = new File(logDir, fileName);
+        // Now try to make the subdirectory directory
+        if(!createDirectoryIfNotExist(subDirectoryPath))
+        {
+            return;
+        }
+
+        // and finally we can save the transcript
+        File t = new File(subDirectoryPath.toString(), fileName);
         try(FileWriter writer = new FileWriter(t))
         {
-            writer.write(transcript.toString());
+            writer.write(transcript);
             logger.info("Wrote final transcript to " + t);
         }
         catch(IOException e)
         {
             logger.warn("Unable to write transcript to file " + t, e);
         }
+    }
+
+    /**
+     * Create a directory at a specific path if it's not created
+     *
+     * @param path the path as a string of the directory which should be
+     * created
+     * @return True when the directory was created or already exists, false
+     * otherwise
+     */
+    protected static boolean createDirectoryIfNotExist(Path path)
+    {
+        File dir = path.toFile();
+
+        // Try to make the directory
+        if(!dir.exists())
+        {
+            if(!dir.mkdirs())
+            {
+                logger.warn("Was unable to make a directory called " + dir);
+                return false;
+            }
+        }
+
+        // If there is a file with the directory name, we can't make the
+        // directory and thus we cannot save the transcript
+        if(dir.exists() && !dir.isDirectory())
+        {
+            logger.warn("Was unable to make a directory because" +
+                " there is a file called " + dir);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -199,6 +315,72 @@ public abstract class AbstractTranscriptPublisher<T>
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ADVERTISE_URL,
                 ADVERTISE_URL_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether an audio mix of each conference which is transcribed
+     * should be recorded
+     *
+     * @return true when the mix should be recorded, false otherwise
+     */
+    protected boolean shouldRecordAudio()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_RECORD_AUDIO,
+                RECORD_AUDIO_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get in which format the audio mix should be recorded
+     *
+     * @return the audio format
+     */
+    protected String getRecordingAudioFormat()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_RECORD_AUDIO_FORMAT,
+                RECORD_AUDIO_FORMAT_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether there any scripts need to be executed after a
+     * {@link Transcript} is published by a call to
+     * {@link BasePromise#publish(Transcript)}
+     *
+     * @return whether to execute one ore more scripts.
+     */
+    protected boolean shouldExecuteScripts()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_EXECUTE_SCRIPTS,
+                EXECUTE_SCRIPTS_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get all the (relative) paths to the scripts to execute as a String.
+     *
+     * @return the list of all (relative) paths
+     */
+    protected List<String> getPathsToScriptsToExecute()
+    {
+        String paths = JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_SCRIPTS_TO_EXECUTE_LIST,
+                SCRIPTS_TO_EXECUTE_LIST_DEFAULT_VALUE);
+
+        return Arrays.asList(paths.split(
+            getPathsToScriptsToExecuteSeparator()));
+    }
+
+    /**
+     * Get which separator is used for a string of multiple paths
+     *
+     * @return the separator
+     */
+    protected String getPathsToScriptsToExecuteSeparator()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_SCRIPTS_TO_EXECUTE_LIST_SEPARATOR,
+                SCRIPTS_TO_EXECUTE_LIST_SEPARATOR_DEFAULT_VALUE);
     }
 
     /**
@@ -450,26 +632,156 @@ public abstract class AbstractTranscriptPublisher<T>
     public abstract class BasePromise
         implements Promise
     {
+        /**
+         * Whether {@link this#publish(Transcript)} has already been called once
+         */
+        private boolean published = false;
 
+        /**
+         * A unique directory name to store/publish the transcript into
+         */
+        private final String dirName = generateHardToGuessTimeString("", "");
+
+        /**
+         * The file name which will be used to record the audio file to.
+         * Stays null when {@link this#shouldRecordAudio()} returns False.
+         */
+        private String audioFileName;
+
+        /**
+         * The recorder which will be used to record the audio, if required.
+         * Stays null when {@link this#shouldRecordAudio()} returns False.
+         */
+        private Recorder recorder;
+
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean hasDescription()
         {
             return advertiseURL();
         }
 
-        @Override
-        public String getDescription()
-        {
-            return "Transcript will be available after the conference at " +
-                getBaseURL() + getFileName() + ".\n";
-        }
-
         /**
-         * Get the file name which will be used to store the {@link Transcript}
+         * Get the directory path wherein files can be stored, such as
+         * a representation of the {@link Transcript} which will need to be
+         * published
          *
          * @return the file name as a string
          */
-        protected abstract String getFileName();
+        protected String getDirPath()
+        {
+            return dirName;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void maybeStartRecording(MediaDevice device)
+        {
+            if(shouldRecordAudio())
+            {
+                // we need to make sure the directory exists already
+                // so the recorder can write to it
+                createDirectoryIfNotExist(Paths.get(getLogDirPath(), dirName));
+
+                String format = getRecordingAudioFormat();
+                this.audioFileName =
+                   generateHardToGuessTimeString("",
+                       String.format(".%s", format));
+
+                String audioFilePath = Paths.get(getLogDirPath(), dirName,
+                    audioFileName).toString();
+
+                this.recorder
+                    = LibJitsi.getMediaService().createRecorder(device);
+                try
+                {
+                    this.recorder.start(format, audioFilePath);
+                }
+                catch (MediaException | IOException e)
+                {
+                    logger.error("Could not start recording", e);
+                }
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public final synchronized void publish(Transcript transcript)
+        {
+            if (published)
+            {
+                return;
+            }
+            else
+            {
+                published = true;
+            }
+
+            if (this.recorder != null)
+            {
+                this.recorder.stop();
+            }
+
+            doPublish(transcript);
+
+            maybeExecuteBashScripts();
+        }
+
+        /**
+         * Abstract method which needs to be implemented by children to publish
+         * the transcript and/or recording
+         *
+         * @param transcript the Transcript file which needs to be published
+         */
+        protected abstract void doPublish(Transcript transcript);
+
+        /**
+         * Get the filename which was used to store the audio recording to
+         *
+         * @return the filename
+         */
+        public String getAudioRecordingFileName()
+        {
+            return audioFileName;
+        }
+
+        /**
+         * Execute all given scripts by
+         * {@link this#getPathsToScriptsToExecute()} ()} when
+         * {@link this#shouldExecuteScripts()} ()} returns true
+         */
+        private void maybeExecuteBashScripts()
+        {
+            if (shouldExecuteScripts())
+            {
+                Path absDirPath =
+                    Paths.get(getLogDirPath(), dirName).toAbsolutePath();
+
+                for(String scriptPath : getPathsToScriptsToExecute())
+                {
+                    Path absScriptPath = Paths.get(scriptPath).toAbsolutePath();
+                    try
+                    {
+                        logger.info("executing " + scriptPath +
+                        " with arguments '" + absDirPath + "'");
+
+                        new ProcessBuilder(scriptPath.toString(),
+                            absDirPath.toString()).start();
+                    }
+                    catch (IOException e)
+                    {
+                        logger.error("Could not execute " + scriptPath, e);
+                    }
+                }
+            }
+
+        }
     }
 
 }

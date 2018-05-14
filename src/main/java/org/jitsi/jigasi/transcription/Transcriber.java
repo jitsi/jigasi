@@ -137,7 +137,7 @@ public class Transcriber
      * participants of a conference to a list of audio streams which will
      * be transcribed.
      *
-     * @param roomName the roomanem the transcription will take place in
+     * @param roomName the room name the transcription will take place in
      * @param service the transcription service which will be used to transcribe
      * the audio streams
      */
@@ -153,7 +153,6 @@ public class Transcriber
         addTranscriptionListener(this.transcript);
         this.roomName = roomName;
     }
-
 
     /**
      * Create a transcription object which can be used to add and remove
@@ -339,7 +338,7 @@ public class Transcriber
      * @return true when the transcriber is waiting for the last results to come
      * in, false otherwise
      */
-    public boolean finshingUp()
+    public boolean finishingUp()
     {
         return State.FINISHING_UP.equals(this.state);
     }
