@@ -34,6 +34,7 @@ import org.jivesoftware.smack.packet.*;
 import org.osgi.framework.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -495,7 +496,24 @@ public class CallControlMucActivator
          */
         private void setDialResponseAndRegisterHangUpHandler(
             RefIq response, final AbstractGatewaySession session)
+            throws Exception
         {
+            // we need the room from the session, if we haven't joined
+            // the room yet, let's wait for it for some time
+            WaitToJoinRoom waiter = new WaitToJoinRoom();
+            try
+            {
+                session.addListener(waiter);
+                if (!session.isInTheRoom())
+                {
+                    waiter.waitToJoinRoom();
+                }
+            }
+            finally
+            {
+                session.removeListener(waiter);
+            }
+
             ChatRoom room = session.getJvbChatRoom();
             response.setUri(
                 "xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
@@ -505,6 +523,50 @@ public class CallControlMucActivator
                     .getConnection();
             roomConnection.registerIQRequestHandler(
                 new HangUpIqHandler(room.getParentProvider()));
+        }
+    }
+
+    /**
+     * Listener which waits to join a room or timeouts.
+     */
+    private class WaitToJoinRoom
+        implements GatewaySessionListener
+    {
+        /**
+         * The countdown we wait.
+         */
+        private final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+        /**
+         * The timeout in seconds to wait for joining a room.
+         */
+        private static final int TIMEOUT_JOIN = 5;
+
+        @Override
+        public void onJvbRoomJoined(AbstractGatewaySession source)
+        {
+            countDownLatch.countDown();
+        }
+
+        /**
+         * Waits till the on JvbRoomJoined listener is fired or a timeout is
+         * reached.
+         * @throws Exception when timeout is reached.
+         */
+        public void waitToJoinRoom()
+            throws Exception
+        {
+            try
+            {
+                if (!countDownLatch.await(TIMEOUT_JOIN, TimeUnit.SECONDS))
+                {
+                    throw new Exception("Fail to join muc!");
+                }
+            }
+            catch (InterruptedException e)
+            {
+                logger.error(e);
+            }
         }
     }
 

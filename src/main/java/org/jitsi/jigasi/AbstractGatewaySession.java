@@ -131,6 +131,15 @@ public abstract class AbstractGatewaySession
         return jvbConference != null ? jvbConference.getJvbRoom() : null;
     }
 
+    /**
+     * Returns <tt>true</tt> if we are currently in JVB conference room.
+     * @return <tt>true</tt> if we are currently in JVB conference room.
+     */
+    public boolean isInTheRoom()
+    {
+        return jvbConference.isInTheRoom();
+    }
+
     // FIXME: 17/07/17 undocumented before refactor
     abstract void onConferenceCallInvited(Call incomingCall);
 
