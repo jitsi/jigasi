@@ -299,7 +299,7 @@ public class TranscriptionGatewaySession
 
         // if Address of ChatRoomMember and ID of ConferenceMember are equal,
         // they are the same person
-        String address = chatMember.getContactAddress();
+        String address = chatMember.getName();
         logger.trace("Trying to find matching ConferenceMember with" +
                 " id " + address);
 
@@ -470,7 +470,7 @@ public class TranscriptionGatewaySession
         logger.trace(chatRoomMembers.size() + " members in chatroom");
         for(ChatRoomMember chatMember : chatRoomMembers)
         {
-            String address = chatMember.getContactAddress();
+            String address = chatMember.getName();
             // the name of a ChatRoomMember is the same as the ContactAddress
             addressToInstanceMap.put(address, chatMember);
 
