@@ -53,6 +53,18 @@ public class TranscriptionGatewaySession
     public final static String DISPLAY_NAME = "Transcriber";
 
     /**
+     * The amount of time {@link this#addInitialMembers(int)} should wait
+     * before retrying by recurring
+     */
+    private final static int DURATION_WAIT_RETRYING_ADD_INIT_MEMBERS = 500;
+
+    /**
+     * The amounts of time {@link this#addInitialMembers(int)} should retry
+     * before giving up
+     */
+    private final static int NUMBER_OF_RETRIES_ADD_INIT_MEMBERS = 5;
+
+    /**
      * The TranscriptionService used by this session
      */
     private TranscriptionService service;
@@ -172,7 +184,7 @@ public class TranscriptionGatewaySession
 
         // for every member already in the room, now is the time to add them
         // to the transcriber
-        addInitialMembers();
+        addInitialMembers(NUMBER_OF_RETRIES_ADD_INIT_MEMBERS);
 
         StringBuilder welcomeMessage =
             new StringBuilder("Started transcription!\n");
@@ -362,13 +374,17 @@ public class TranscriptionGatewaySession
         throw new UnsupportedOperationException("TranscriptionGatewaySession " +
             "does " + "not support receiving DTMF tones");
     }
-
+    
     /**
      * Add every participant already in the room to the transcriber
      * and give the initial people in the room to the transcriber to create
      * the header of the transcript(s)
+     * 
+     * @param numberOfTries the number of tries the method should recur after
+     * waiting before giving up on a confMember list which is not (nearly)
+     * empty
      */
-    private void addInitialMembers()
+    private void addInitialMembers(int numberOfTries)
     {
         List<ConferenceMember> confMembers = getCurrentConferenceMembers();
         List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
@@ -377,6 +393,32 @@ public class TranscriptionGatewaySession
         {
             logger.warn("Cannot add initial members to transcription" );
             return;
+        }
+
+        // FIXME: 17/05/2018 This is a dirty fix for the problem where the
+        // session-initiate IQ only contains the JVB audio ssrc, while the SSRC
+        // of participants only follow in a session-add which does not cause a
+        // presence change event
+        if(confMembers.size() <= 1 && numberOfTries > 0)
+        {
+            try
+            {
+                Thread.sleep(DURATION_WAIT_RETRYING_ADD_INIT_MEMBERS);
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                addInitialMembers(numberOfTries - 1);
+            }
+            return;
+        }
+        else if(confMembers.size() <= 1)
+        {
+            logger.warn("Waiting for a ConferenceMember list which contains " +
+                "not only a JVB instance did not result into anything");
         }
 
         // We can get the name of ConferenceMember by comparing the unique ID
