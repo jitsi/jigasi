@@ -247,7 +247,7 @@ public abstract class AbstractGatewaySession
      */
     // FIXME: 17/07/17 original documentation is wrong. the listener does not
     // even contain such a method
-    void notifyMemberJoined(ChatRoomMember member)
+    void notifyChatRoomMemberJoined(ChatRoomMember member)
     {
         participantsCount++;
     }
@@ -262,7 +262,7 @@ public abstract class AbstractGatewaySession
      * @param member the member who left the JVB conference
      */
     // FIXME: 17/07/17 JvbConference does not yet call this method
-    void notifyMemberLeft(ChatRoomMember member)
+    void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
     }
 
@@ -301,5 +301,27 @@ public abstract class AbstractGatewaySession
     public AbstractGateway getGateway()
     {
         return gateway;
+    }
+
+    /**
+     * Notify this {@link AbstractGatewaySession} that a conference member has
+     * joined the conference
+     *
+     * @param conferenceMember the conference member who just joined
+     */
+    void notifyConferenceMemberJoined(ConferenceMember conferenceMember)
+    {
+        // we don't have anything to do here
+    }
+
+    /**
+     * Notify this {@link AbstractGatewaySession} that a conference member has
+     * left the conference
+     *
+     * @param conferenceMember the conference member who just left
+     */
+    void notifyConferenceMemberLeft(ConferenceMember conferenceMember)
+    {
+        // we don't have anything to do here
     }
 }

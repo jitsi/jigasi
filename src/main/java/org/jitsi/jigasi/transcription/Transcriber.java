@@ -81,9 +81,14 @@ public class Transcriber
 
     /**
      * Holds participants of the conference which need
-     * to be transcribed
+     * to be transcribed. The key is the resource part of the
+     * {@link ConferenceMember} retrieving by calling
+     * {@link ConferenceMember#getAddress()}
+     * which is equal to the name of a
+     * {@link ChatRoomMember} retrieved by calling
+     * {@link ChatRoomMember#getName()}
      */
-    private Map<Long, Participant> participants = new HashMap<>();
+    private Map<String, Participant> participants = new HashMap<>();
 
     /**
      * The object which will hold the actual transcription
@@ -170,45 +175,99 @@ public class Transcriber
     /**
      * Add a participant to the list of participants being transcribed
      *
-     * @param chatMember the chat participant to be added
-     * @param ssrc the ssrc of the participant to be added
+     * @param identifier the identifier of the participant
      */
-    public void add(ChatRoomMember chatMember, long ssrc)
+    public void participantJoined(String identifier)
     {
-        Participant participant;
-        if (this.participants.containsKey(ssrc))
+        if (this.participants.containsKey(identifier))
         {
-            participant = this.participants.get(ssrc);
+            Participant participant =  participants.get(identifier);
+            participant.joined();
+            TranscriptEvent event = transcript.notifyJoined(participant);
+            if (event != null)
+            {
+                fireTranscribeEvent(event);
+            }
+
+            if (logger.isDebugEnabled())
+                logger.debug(
+                    "Removed participant with identifier " + identifier);
+
+            return;
+        }
+
+        logger.warn("Participant with identifier " + identifier
+            +  " joined while it did not exist");
+    }
+
+    /**
+     * Potentially declare that a new participant exist by making
+     * its identifier known. If the identifier is already known this method
+     * does nothing.
+     *
+     * @param identifier the identifier of new participant
+     */
+    public void maybeAddParticipant(String identifier)
+    {
+        if (!this.participants.containsKey(identifier))
+        {
+            Participant p = new Participant(this, identifier);
+            this.participants.put(identifier, p);
+        }
+    }
+
+    /**
+     * Update the {@link Participant} with the given identifier by setting the
+     * {@link ChatRoomMember} belonging to the {@link Participant}
+     *
+     * @param identifier the identifier of the participant
+     * @param chatRoomMember the conferenceMember to set to the participant
+     */
+    public void updateParticipant(String identifier,
+                                  ChatRoomMember chatRoomMember)
+    {
+        if(this.participants.containsKey(identifier))
+        {
+            this.participants.get(identifier).setChatMember(chatRoomMember);
         }
         else
         {
-            participant = new Participant(this, chatMember, ssrc);
-            this.participants.put(ssrc, participant);
+            logger.warn("Asked to set chatroom member of participant with " +
+                "identifier " + identifier + "while it wasn't added before");
         }
+    }
 
-        participant.joined();
-        TranscriptEvent event = transcript.notifyJoined(participant);
-        if (event != null)
+    /**
+     * Update the {@link Participant} with the given identifier by setting the
+     * {@link ConferenceMember} belonging to the {@link Participant}
+     *
+     * @param identifier the identifier of the participant
+     * @param conferenceMember the conferenceMember to set to the participant
+     */
+    public void updateParticipant(String identifier,
+                                  ConferenceMember conferenceMember)
+    {
+        if(this.participants.containsKey(identifier))
         {
-            fireTranscribeEvent(event);
+            this.participants.get(identifier).setConfMember(conferenceMember);
         }
-
-        if (logger.isDebugEnabled())
-            logger.debug("Added participant " + chatMember.getDisplayName()
-                + " with ssrc " + ssrc);
+        else
+        {
+            logger.warn("Asked to set conference member of participant with " +
+                "identifier " + identifier + " while it wasn't added before");
+        }
     }
 
     /**
      * Remove a participant from the list of participants being transcribed
      *
-     * @param chatMember the chat participant to be removed
-     * @param ssrc the ssrc of the participant to be removed
+     * @param identifier the identifier of the participant
      */
-    public void remove(ChatRoomMember chatMember, long ssrc)
+    public void participantLeft(String identifier)
     {
-        if (this.participants.containsKey(ssrc))
+        if (this.participants.containsKey(identifier))
         {
-            Participant participant =  participants.get(ssrc);
+            Participant participant =  participants.get(identifier);
             participant.left();
             TranscriptEvent event = transcript.notifyLeft(participant);
             if (event != null)
@@ -218,14 +277,13 @@ public class Transcriber
 
             if (logger.isDebugEnabled())
                 logger.debug(
-                    "Removed participant " + chatMember.getDisplayName()
-                        + " with ssrc " + ssrc);
+                    "Removed participant with identifier " + identifier);
 
             return;
         }
 
-        logger.warn("Asked to remove participant" + chatMember.getDisplayName()
-            + " with ssrc " + ssrc + " which did not exist");
+        logger.warn("Participant with identifier " + identifier
+            +  " left while it did not exist");
     }
 
     /**
@@ -424,7 +482,7 @@ public class Transcriber
 
         long ssrc = receiveStream.getSSRC() & 0xffffffffL;
 
-        Participant p = participants.get(ssrc);
+        Participant p = findParticipant(ssrc);
         if (p != null)
         {
             logger.trace("Gave audio to buffer");
@@ -435,6 +493,26 @@ public class Transcriber
             logger.warn("Reading from SSRC " + ssrc + " while it is " +
                             "not known as a participant");
         }
+    }
+
+    /**
+     * Find the participant with the given audio ssrc, if present, in
+     * {@link this#participants}
+     *
+     * @param ssrc the ssrc to search for
+     * @return the participant with the given ssrc, or null if not present
+     */
+    private Participant findParticipant(long ssrc)
+    {
+        for(Participant p: this.participants.values())
+        {
+            if(p.getSSRC() == ssrc)
+            {
+                return p;
+            }
+        }
+
+        return null;
     }
 
     /**

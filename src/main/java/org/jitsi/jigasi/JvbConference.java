@@ -55,7 +55,8 @@ public class JvbConference
     implements RegistrationStateChangeListener,
                ServiceListener,
                ChatRoomMemberPresenceListener,
-               LocalUserChatRoomPresenceListener
+               LocalUserChatRoomPresenceListener,
+               CallPeerConferenceListener
 {
     /**
      * The logger.
@@ -792,14 +793,14 @@ public class JvbConference
             {
                 leaveTimeout.cancel();
 
-                gatewaySession.notifyMemberJoined(member);
+                gatewaySession.notifyChatRoomMemberJoined(member);
             }
 
             return;
         }
         else
         {
-            gatewaySession.notifyMemberLeft(member);
+            gatewaySession.notifyChatRoomMemberLeft(member);
             logger.info(
                     "Member left : " + member.getRole()
                             + " " + member.getContactAddress());
@@ -925,6 +926,26 @@ public class JvbConference
 
             jvbCall = event.getSourceCall();
             jvbCall.setData(CallContext.class, callContext);
+
+            if(jvbCall != null)
+            {
+                CallPeer peerToAdd = jvbCall.getCallPeers().next();
+                if (peerToAdd != null)
+                {
+                    peerToAdd.addCallPeerConferenceListener(JvbConference.this);
+                }
+                else
+                {
+                    logger.warn("Could not add JvbConference as " +
+                        "CallPeerConferenceListener because CallPeer is" +
+                        " null");
+                }
+            }
+            else
+            {
+                logger.warn("Could not add JvbConference as " +
+                    "CallPeerConferenceListener because jvbCall is" +
+                    " null");            }
 
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
@@ -1129,6 +1150,48 @@ public class JvbConference
         }
 
         return properties;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceFocusChanged(CallPeerConferenceEvent conferenceEvent)
+    {
+        //we don't care?
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberAdded(CallPeerConferenceEvent conferenceEvent)
+    {
+        ConferenceMember conferenceMember
+            = conferenceEvent.getConferenceMember();
+
+        this.gatewaySession.notifyConferenceMemberJoined(conferenceMember);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberErrorReceived(CallPeerConferenceEvent conferenceEvent)
+    {
+        //we don't care?
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberRemoved(CallPeerConferenceEvent conferenceEvent)
+    {
+        ConferenceMember conferenceMember
+            = conferenceEvent.getConferenceMember();
+
+        this.gatewaySession.notifyConferenceMemberLeft(conferenceMember);
     }
 
     /**
