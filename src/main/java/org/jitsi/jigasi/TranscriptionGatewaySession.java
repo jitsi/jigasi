@@ -237,7 +237,6 @@ public class TranscriptionGatewaySession
 
         String identifier = getParticipantIdentifier(chatMember);
 
-        this.transcriber.maybeAddParticipant(identifier);
         this.transcriber.updateParticipant(identifier, chatMember);
         this.transcriber.participantJoined(identifier);
     }
@@ -257,7 +256,6 @@ public class TranscriptionGatewaySession
         super.notifyConferenceMemberJoined(conferenceMember);
 
         String identifier = getParticipantIdentifier(conferenceMember);
-        this.transcriber.maybeAddParticipant(identifier);
         this.transcriber.updateParticipant(identifier, conferenceMember);
     }
 
@@ -324,20 +322,40 @@ public class TranscriptionGatewaySession
      */
     private void addInitialMembers()
     {
-        List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
         List<ConferenceMember> confMembers = getCurrentConferenceMembers();
-
-        if(chatRoomMembers == null || confMembers == null)
+        if(confMembers == null)
         {
-            logger.warn("Cannot add initial members to transcription" );
+            logger.warn("Cannot add initial ConferenceMembers to " +
+                "transcription");
+        }
+        else
+        {
+            for(ConferenceMember confMember : confMembers)
+            {
+                // We should not have the bridge as a participant
+                if("jvb".equals(confMember.getAddress()))
+                {
+                    continue;
+                }
+
+                String identifier = getParticipantIdentifier(confMember);
+
+                this.transcriber.updateParticipant(identifier, confMember);
+            }
+        }
+
+        List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
+        if(chatRoomMembers == null)
+        {
+            logger.warn("Cannot add initial ChatRoomMembers to transcription");
             return;
         }
 
-        for(ChatRoomMember chatRoomMember : chatRoomMembers)
+        for (ChatRoomMember chatRoomMember : chatRoomMembers)
         {
             ChatRoomMemberJabberImpl chatRoomMemberJabber;
 
-            if(chatRoomMember instanceof ChatRoomMemberJabberImpl)
+            if (chatRoomMember instanceof ChatRoomMemberJabberImpl)
             {
                 chatRoomMemberJabber
                     = (ChatRoomMemberJabberImpl) chatRoomMember;
@@ -353,7 +371,7 @@ public class TranscriptionGatewaySession
 
             // We should not have the focus to the list of transcribed
             // participants
-            if("focus".equals(identifier))
+            if ("focus".equals(identifier))
             {
                 continue;
             }
@@ -361,30 +379,14 @@ public class TranscriptionGatewaySession
             // If the address does not have a resource part, we can never
             // match it to a ConferenceMember and thus we should never
             // add it to the list of transcribed participants
-            if(chatRoomMemberJabber.getJabberID().getResourceOrNull() == null)
+            if (chatRoomMemberJabber.getJabberID().getResourceOrNull() == null)
             {
                 continue;
             }
 
-            this.transcriber.maybeAddParticipant(identifier);
             this.transcriber.updateParticipant(identifier, chatRoomMember);
             this.transcriber.participantJoined(identifier);
         }
-
-        for(ConferenceMember confMember : confMembers)
-        {
-            // We should not have the bridge as a participant
-            if("jvb".equals(confMember.getAddress()))
-            {
-                continue;
-            }
-
-            String identifier = getParticipantIdentifier(confMember);
-
-            this.transcriber.maybeAddParticipant(identifier);
-            this.transcriber.updateParticipant(identifier, confMember);
-        }
-
     }
 
     /**

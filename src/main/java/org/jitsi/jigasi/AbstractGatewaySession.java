@@ -261,9 +261,9 @@ public abstract class AbstractGatewaySession
      *
      * @param member the member who left the JVB conference
      */
-    // FIXME: 17/07/17 JvbConference does not yet call this method
     void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
+        participantsCount--;
     }
 
     /**

@@ -88,7 +88,7 @@ public class Transcriber
      * {@link ChatRoomMember} retrieved by calling
      * {@link ChatRoomMember#getName()}
      */
-    private Map<String, Participant> participants = new HashMap<>();
+    private final Map<String, Participant> participants = new HashMap<>();
 
     /**
      * The object which will hold the actual transcription
@@ -179,25 +179,29 @@ public class Transcriber
      */
     public void participantJoined(String identifier)
     {
-        if (this.participants.containsKey(identifier))
+        synchronized (this.participants)
         {
-            Participant participant =  participants.get(identifier);
-            participant.joined();
-            TranscriptEvent event = transcript.notifyJoined(participant);
-            if (event != null)
+            Participant participant = this.participants.get(identifier);
+            if (participant != null)
             {
-                fireTranscribeEvent(event);
+                participant.joined();
+
+                TranscriptEvent event = transcript.notifyJoined(participant);
+                if (event != null)
+                {
+                    fireTranscribeEvent(event);
+                }
+
+                if (logger.isDebugEnabled())
+                    logger.debug(
+                        "Added participant with identifier " + identifier);
+
+                return;
             }
 
-            if (logger.isDebugEnabled())
-                logger.debug(
-                    "Removed participant with identifier " + identifier);
-
-            return;
+            logger.warn("Participant with identifier " + identifier
+                +  " joined while it did not exist");
         }
-
-        logger.warn("Participant with identifier " + identifier
-            +  " joined while it did not exist");
     }
 
     /**
@@ -209,10 +213,10 @@ public class Transcriber
      */
     public void maybeAddParticipant(String identifier)
     {
-        if (!this.participants.containsKey(identifier))
+        synchronized (this.participants)
         {
-            Participant p = new Participant(this, identifier);
-            this.participants.put(identifier, p);
+            this.participants.computeIfAbsent(identifier,
+                key -> new Participant(this, identifier));
         }
     }
 
@@ -226,14 +230,19 @@ public class Transcriber
     public void updateParticipant(String identifier,
                                   ChatRoomMember chatRoomMember)
     {
-        if(this.participants.containsKey(identifier))
+        maybeAddParticipant(identifier);
+        synchronized (this.participants)
         {
-            this.participants.get(identifier).setChatMember(chatRoomMember);
-        }
-        else
-        {
-            logger.warn("Asked to set chatroom member of participant with " +
-                "identifier " + identifier + "while it wasn't added before");
+            Participant participant = this.participants.get(identifier);
+            if (participant != null)
+            {
+                participant.setChatMember(chatRoomMember);
+            }
+            else
+            {
+                logger.warn("Asked to set chatroom member of participant with "+
+                    "identifier "+ identifier+ "while it wasn't added before");
+            }
         }
     }
 
@@ -247,14 +256,14 @@ public class Transcriber
     public void updateParticipant(String identifier,
                                   ConferenceMember conferenceMember)
     {
-        if(this.participants.containsKey(identifier))
+        maybeAddParticipant(identifier);
+        synchronized (this.participants)
         {
-            this.participants.get(identifier).setConfMember(conferenceMember);
-        }
-        else
-        {
-            logger.warn("Asked to set conference member of participant with " +
-                "identifier " + identifier + " while it wasn't added before");
+            Participant participant = this.participants.get(identifier);
+            if (participant != null)
+            {
+                participant.setConfMember(conferenceMember);
+            }
         }
     }
 
@@ -265,25 +274,32 @@ public class Transcriber
      */
     public void participantLeft(String identifier)
     {
-        if (this.participants.containsKey(identifier))
+        synchronized (this.participants)
         {
-            Participant participant =  participants.get(identifier);
-            participant.left();
-            TranscriptEvent event = transcript.notifyLeft(participant);
-            if (event != null)
+            Participant participant = this.participants.get(identifier);
+
+            if (participant != null)
             {
-                fireTranscribeEvent(event);
+                participant.left();
+                TranscriptEvent event = transcript.notifyLeft(participant);
+                if (event != null)
+                {
+                    fireTranscribeEvent(event);
+                }
+
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        "Removed participant with identifier " + identifier);
+                }
+
+                return;
             }
 
-            if (logger.isDebugEnabled())
-                logger.debug(
-                    "Removed participant with identifier " + identifier);
-
-            return;
+            logger.warn("Participant with identifier " + identifier
+                +  " left while it did not exist");
         }
 
-        logger.warn("Participant with identifier " + identifier
-            +  " left while it did not exist");
     }
 
     /**
@@ -504,15 +520,18 @@ public class Transcriber
      */
     private Participant findParticipant(long ssrc)
     {
-        for(Participant p: this.participants.values())
+        synchronized (this.participants)
         {
-            if(p.getSSRC() == ssrc)
+            for (Participant p : this.participants.values())
             {
-                return p;
+                if (p.getSSRC() == ssrc)
+                {
+                    return p;
+                }
             }
-        }
 
-        return null;
+            return null;
+        }
     }
 
     /**
