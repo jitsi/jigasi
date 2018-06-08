@@ -263,7 +263,10 @@ public abstract class AbstractGatewaySession
      */
     void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
-        participantsCount--;
+        /*
+         * Note that we do NOT update {@link this#participantsCount} because
+         * it is the cumulative count of the participants over the whole session
+         */
     }
 
     /**
