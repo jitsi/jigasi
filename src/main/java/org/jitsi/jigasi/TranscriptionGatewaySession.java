@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -25,9 +26,11 @@ import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
 import java.util.*;
-import java.util.function.*;
 
 /**
  * A TranscriptionGatewaySession is able to join a JVB conference and
@@ -228,44 +231,40 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    void notifyMemberJoined(ChatRoomMember chatMember)
+    void notifyChatRoomMemberJoined(ChatRoomMember chatMember)
     {
-        super.notifyMemberJoined(chatMember);
+        super.notifyChatRoomMemberJoined(chatMember);
 
-        ConferenceMember confMember = findMatchingConferenceMember(chatMember);
+        String identifier = getParticipantIdentifier(chatMember);
 
-        if (confMember == null)
-        {
-            logger.debug("Starting WaitThread for joining ChatRoomMember "+
-                    chatMember.getDisplayName());
-            new WaitForConferenceMemberThread(chatMember,
-                    this::addParticipant).start();
-        }
-        else
-        {
-            addParticipant(chatMember, confMember);
-        }
+        this.transcriber.updateParticipant(identifier, chatMember);
+        this.transcriber.participantJoined(identifier);
     }
 
     @Override
-    void notifyMemberLeft(ChatRoomMember chatMember)
+    void notifyChatRoomMemberLeft(ChatRoomMember chatMember)
     {
-        super.notifyMemberLeft(chatMember);
+        super.notifyChatRoomMemberLeft(chatMember);
 
-        ConferenceMember confMember = findMatchingConferenceMember(chatMember);
+        String identifier = getParticipantIdentifier(chatMember);
+        this.transcriber.participantLeft(identifier);
+    }
 
-        if (confMember == null)
-        {
-            logger.debug("Starting WaitThread for leaving ChatRoomMember "+
-                    chatMember.getDisplayName());
+    @Override
+    void notifyConferenceMemberJoined(ConferenceMember conferenceMember)
+    {
+        super.notifyConferenceMemberJoined(conferenceMember);
 
-            new WaitForConferenceMemberThread(chatMember,
-                    this::removeParticipant).start();
-        }
-        else
-        {
-            removeParticipant(chatMember, confMember);
-        }
+        String identifier = getParticipantIdentifier(conferenceMember);
+        this.transcriber.updateParticipant(identifier, conferenceMember);
+    }
+
+    @Override
+    void notifyConferenceMemberLeft(ConferenceMember conferenceMember)
+    {
+        super.notifyConferenceMemberLeft(conferenceMember);
+
+        // we don't care about this event
     }
 
     @Override
@@ -274,53 +273,6 @@ public class TranscriptionGatewaySession
         return false;
     }
 
-    /**
-     * Find the ConferenceMember which has the same ID as the given
-     * ChatRoomMember, if any exists
-     *
-     * @param chatMember the ChatRoomMember whose match to find
-     * @return the matching ConferenceMember of the given ChatRoomMember or
-     * null if no match found
-     */
-    private ConferenceMember findMatchingConferenceMember(
-            ChatRoomMember chatMember)
-    {
-        List<ConferenceMember> confMembers = getCurrentConferenceMembers();
-
-        if(confMembers == null)
-        {
-            logger.warn("ConferenceMember list is null");
-            return null;
-        }
-        if(chatMember == null)
-        {
-            throw new IllegalArgumentException("ChatRoomMember is null");
-        }
-
-        // if Address of ChatRoomMember and ID of ConferenceMember are equal,
-        // they are the same person
-        String address = chatMember.getContactAddress();
-        logger.trace("Trying to find matching ConferenceMember with" +
-                " id " + address);
-
-        if(address == null)
-        {
-            logger.warn("address of ChatRoomMember is null");
-            return null;
-        }
-
-        for(ConferenceMember confMember : confMembers)
-        {
-            String id = getConferenceMemberID(confMember);
-            logger.trace("There is a ConferenceMember with id " + id);
-            if(address.equals(id))
-            {
-                return confMember;
-            }
-        }
-
-        return null;
-    }
 
     /**
      * This method will be called by the {@link Transcriber} every time a new
@@ -371,117 +323,70 @@ public class TranscriptionGatewaySession
     private void addInitialMembers()
     {
         List<ConferenceMember> confMembers = getCurrentConferenceMembers();
-        List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
-
-        if(confMembers == null || chatRoomMembers == null)
+        if(confMembers == null)
         {
-            logger.warn("Cannot add initial members to transcription" );
+            logger.warn("Cannot add initial ConferenceMembers to " +
+                "transcription");
+        }
+        else
+        {
+            for(ConferenceMember confMember : confMembers)
+            {
+                // We should not have the bridge as a participant
+                if("jvb".equals(confMember.getAddress()))
+                {
+                    continue;
+                }
+
+                String identifier = getParticipantIdentifier(confMember);
+
+                this.transcriber.updateParticipant(identifier, confMember);
+            }
+        }
+
+        List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
+        if(chatRoomMembers == null)
+        {
+            logger.warn("Cannot add initial ChatRoomMembers to transcription");
             return;
         }
 
-        // We can get the name of ConferenceMember by comparing the unique ID
-        // given to a ConferenceMember and ChatRooMember; The same
-        // person should have the same ID.
-        // The ID is called the "address" for ChatRoomMember and
-        // is part of the address for ConferenceMember
-
-        // So first get a map of every id to the ChatRoomMember instance
-        Map<String, ChatRoomMember> chatRoomMemberMap
-                = getChatRoomMemberMap(chatRoomMembers);
-
-        // and then for every non-jvb ConferenceMember, add to Transcriber
-        logger.debug(confMembers.size() + " conferenceMembers currently" +
-                " in room");
-        for(ConferenceMember confMember : confMembers)
+        for (ChatRoomMember chatRoomMember : chatRoomMembers)
         {
-            String address = confMember.getAddress();
-            if("jvb".equals(address))
-            {
-                logger.trace("There is a ConferenceMember with ID jvb");
-                continue; // as jvb won't be an interesting member to transcribe
-            }
+            ChatRoomMemberJabberImpl chatRoomMemberJabber;
 
-            String id = getConferenceMemberID(confMember);
-            ChatRoomMember chatRoomMember = chatRoomMemberMap.get(id);
-            if(chatRoomMember == null)
+            if (chatRoomMember instanceof ChatRoomMemberJabberImpl)
             {
-                logger.warn("Not able to find a ChatRoomMember for " +
-                        "ConferenceMember with ID " + id);
+                chatRoomMemberJabber
+                    = (ChatRoomMemberJabberImpl) chatRoomMember;
+            }
+            else
+            {
+                logger.warn("Could not cast a ChatRoomMember to " +
+                    "ChatRoomMemberJabberImpl");
                 continue;
             }
-            logger.trace("There is a ConferenceMember with ID " + id +
-                    "and a ChatRoomMember with address" + chatRoomMember.
-                    getContactAddress());
 
-            addParticipant(chatRoomMember, confMember);
+            String identifier = getParticipantIdentifier(chatRoomMemberJabber);
+
+            // We should not have the focus to the list of transcribed
+            // participants
+            if ("focus".equals(identifier))
+            {
+                continue;
+            }
+
+            // If the address does not have a resource part, we can never
+            // match it to a ConferenceMember and thus we should never
+            // add it to the list of transcribed participants
+            if (chatRoomMemberJabber.getJabberID().getResourceOrNull() == null)
+            {
+                continue;
+            }
+
+            this.transcriber.updateParticipant(identifier, chatRoomMember);
+            this.transcriber.participantJoined(identifier);
         }
-    }
-
-    /**
-     * Add a new participant to the transcriber
-     *
-     * @param chatMember the ChatRoomMember instance of the participant
-     * @param confMember the ConferenceMember instance of the participant
-     */
-    private void addParticipant(ChatRoomMember chatMember,
-                                ConferenceMember confMember)
-    {
-        long ssrc = getConferenceMemberAudioSSRC(confMember);
-        transcriber.add(chatMember, ssrc);
-    }
-
-    /**
-     * remove a participant from being transcribed
-     *
-     * @param chatMember the ChatRoomMember instance of the participant
-     * @param confMember the ConferenceMember instance of the participant
-     */
-    private void removeParticipant(ChatRoomMember chatMember,
-                                   ConferenceMember confMember)
-    {
-        long ssrc = getConferenceMemberAudioSSRC(confMember);
-        transcriber.remove(chatMember, ssrc);
-    }
-
-    /**
-     * Helper method for getting the SSRC of a conference member due to issues
-     * with unsigned longs
-     *
-     * @param confMember the conference member whose SSRC to get
-     * @return the ssrc which is casted to unsigned long
-     */
-    private long getConferenceMemberAudioSSRC(ConferenceMember confMember)
-    {
-        // bitwise AND to fix signed int casted to long
-        return confMember.getAudioSsrc() & 0xffffffffL;
-    }
-
-    /**
-     * Get a map which maps the address of a ChatRooMember to its instance
-     *
-     * @param chatRoomMembers the list of ChatRoomMembers to map
-     * @return the map where each member has its id mapped to its instance
-     */
-    private Map<String, ChatRoomMember> getChatRoomMemberMap(
-            List<ChatRoomMember> chatRoomMembers)
-    {
-        HashMap<String, ChatRoomMember> addressToInstanceMap = new HashMap<>();
-
-        logger.trace(chatRoomMembers.size() + " members in chatroom");
-        for(ChatRoomMember chatMember : chatRoomMembers)
-        {
-            String address = chatMember.getContactAddress();
-            // the name of a ChatRoomMember is the same as the ContactAddress
-            addressToInstanceMap.put(address, chatMember);
-
-            logger.trace(String.format(
-                    "mapped ChatRoomMember key=%s, value=%s id=%s",
-                    address,
-                    chatMember.getDisplayName(),
-                    chatMember.getContactAddress()));
-        }
-
-        return addressToInstanceMap;
     }
 
     /**
@@ -518,17 +423,63 @@ public class TranscriptionGatewaySession
      * @return the ID of the conference member or null if address cannot be
      * parsed
      */
-    private String getConferenceMemberID(ConferenceMember member)
+    private String getConferenceMemberResourceID(ConferenceMember member)
     {
         // assume address is in the form
         // <room_name>@conference.<jitsi_meet_domain>/<some_unique_id>
-        String address = member.getAddress();
+        try
+        {
+            Jid jid = JidCreate.from(member.getAddress());
 
-        int idx = address.lastIndexOf("/");
-        return  idx > -1 && (idx + 1) < address.length() ?
-                address.substring(idx + 1) :
-                null;
+            if(jid.hasResource())
+            {
+                return jid.getResourceOrThrow().toString();
+            }
+        }
+        catch (XmppStringprepException e)
+        {
+            e.printStackTrace();
+        }
+
+        return null;
     }
+
+    /**
+     * Get the common identifier between a {@link ConferenceMember} and
+     * {@link ChatRoomMember} of the given {@link ChatRoomMember}
+     *
+     * @param chatRoomMember the ChatRoomMember to get the common identifier
+     * from
+     * @return the common identifier or null when ChatRoomMember is null
+     */
+    private String getParticipantIdentifier(ChatRoomMember chatRoomMember)
+    {
+        if(chatRoomMember == null)
+        {
+            return null;
+        }
+
+        return chatRoomMember.getName();
+    }
+
+    /**
+     * Get the common identifier between a {@link ConferenceMember} and
+     * {@link ChatRoomMember} of the given {@link ConferenceMember}
+     *
+     * @param conferenceMember the ConferenceMember to get the common identifier
+     * from
+     * @return the common identifier or null when ConferenceMember is null
+     */
+    private String getParticipantIdentifier(ConferenceMember conferenceMember)
+    {
+        if(conferenceMember == null)
+        {
+            return null;
+        }
+
+        return getConferenceMemberResourceID(conferenceMember);
+    }
+
 
     /**
      * Send a message to the muc room
@@ -592,106 +543,6 @@ public class TranscriptionGatewaySession
             extension.setStatus(status);
 
             jvbConference.sendPresenceExtension(extension);
-        }
-    }
-
-    /**
-     * This Thread is used in the
-     * {@link TranscriptionGatewaySession#notifyMemberJoined(ChatRoomMember)}
-     * and
-     * {@link TranscriptionGatewaySession#notifyMemberLeft(ChatRoomMember)}
-     * methods to wait for a matching ConferenceMember, which might be added to
-     * the CallPeer later than the ChatRoomMember gets added to the ChatRoom
-     */
-    private class WaitForConferenceMemberThread
-        extends Thread
-    {
-        /**
-         * The maximum amount of time this thread tries to wait for a match
-         */
-        private final static int MAX_WAIT_TIME_IN_MS = 10000;
-
-        /**
-         * The amount of time this thread waits before trying to find a match
-         * again
-         */
-        private final static int ITERATION_WAIT_TIME_IN_MS = 1000;
-
-        /**
-         * The ChatRooMember this thread is trying to match to a
-         * ConferenceMember
-         */
-        private ChatRoomMember chatMember;
-
-        /**
-         * The matching ConferenceMember, if found
-         */
-        private ConferenceMember confMember = null;
-
-        /**
-         * The time this thread started waiting
-         */
-        private long startTime;
-
-        /**
-         * The consumer to run when a match was found
-         */
-        private BiConsumer<ChatRoomMember, ConferenceMember> matchConsumer;
-
-        /**
-         * Create a new Thread which will try to match a ChatRoomMember
-         * to a ConferenceMember
-         *
-         * @param chatMember the ChatRoomMember to try to match
-         * @param c the consumer which will accept the match, if found
-         */
-        WaitForConferenceMemberThread(ChatRoomMember chatMember,
-                                      BiConsumer<ChatRoomMember,
-                                              ConferenceMember> c)
-        {
-            this.chatMember = chatMember;
-            this.matchConsumer = c;
-            setName(WaitForConferenceMemberThread.class.getSimpleName());
-        }
-
-        @Override
-        public void run()
-        {
-            startTime = System.currentTimeMillis();
-
-            try
-            {
-                while(confMember == null && hasTimeLeft())
-                {
-                    Thread.sleep(ITERATION_WAIT_TIME_IN_MS);
-                    confMember = findMatchingConferenceMember(chatMember);
-                }
-
-                if(confMember != null && matchConsumer != null)
-                {
-                    matchConsumer.accept(chatMember, confMember);
-                }
-                else
-                {
-                    logger.warn("WaitForConferenceMemberThread was " +
-                        String.format("not able to find a match for %s",
-                            chatMember));
-                }
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
-        }
-
-        /**
-         * Get whether this Thread is allowed to keep looking for a match
-         *
-         * @return true if allowed to keep looking, false otherwise
-         */
-        private boolean hasTimeLeft()
-        {
-            return System.currentTimeMillis() - startTime < MAX_WAIT_TIME_IN_MS;
         }
     }
 
