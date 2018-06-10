@@ -30,6 +30,13 @@ import org.jitsi.service.neomedia.format.*;
 
 import java.util.*;
 
+import javax.xml.transform.*;
+import javax.xml.transform.stream.*;
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.util.*;
+
 /**
  * Various utility methods.
  *
@@ -204,4 +211,75 @@ public class Util
             }
         }
     }
+
+    /**
+     * Get the md5 hash of a string
+     *
+     * received from:
+     * https://stackoverflow.com/questions/415953/how-can-i-generate-an-md5-hash
+     *
+     * @param toHash the string to generate the MD5 hash from
+     * @return the md5 hash of the given string
+     */
+    public static String stringToMD5hash(String toHash)
+    {
+        try
+        {
+            MessageDigest m = MessageDigest.getInstance("MD5");
+            m.reset();
+            m.update(toHash.getBytes());
+            byte[] digest = m.digest();
+            BigInteger bigInt = new BigInteger(1,digest);
+            String hashtext = bigInt.toString(16);
+
+            // Now we need to zero pad it if you actually want the full
+            // 32 chars.
+            if(hashtext.length() < 32)
+            {
+                int padLength = 32 - hashtext.length();
+                String pad = String.join("",
+                    Collections.nCopies(padLength, "0"));
+                hashtext = pad + hashtext;
+            }
+
+            return hashtext;
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     * Pretty print an XML string into human-readable format
+     * (by adding indentation)
+     *
+     * Retrieved from: https://stackoverflow.com/a/1264912
+     *
+     * @param input the XML to format, as String
+     * @param indent the indent to apply to the XML
+     * @return the formatted String
+     */
+    public static String prettyFormat(String input, int indent)
+    {
+        try
+        {
+            Source xmlInput = new StreamSource(new StringReader(input));
+            StringWriter stringWriter = new StringWriter();
+            StreamResult xmlOutput = new StreamResult(stringWriter);
+            TransformerFactory transformerFactory
+                = TransformerFactory.newInstance();
+            transformerFactory.setAttribute("indent-number", indent);
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.transform(xmlInput, xmlOutput);
+            return xmlOutput.getWriter().toString();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

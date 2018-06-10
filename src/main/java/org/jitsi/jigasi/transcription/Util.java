@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.util.*;
-import org.json.simple.*;
+import org.json.*;
 
 import java.io.*;
 import java.net.*;
@@ -53,7 +53,7 @@ public class Util
             conn.setRequestProperty("Content-Type", "application/json");
 
             OutputStream os = conn.getOutputStream();
-            os.write(json.toJSONString().getBytes());
+            os.write(json.toString().getBytes());
             os.flush();
 
             if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {

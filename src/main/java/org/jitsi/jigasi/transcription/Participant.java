@@ -19,6 +19,8 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.util.Util;
+import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.util.*;
 
 import javax.media.format.*;
@@ -80,6 +82,21 @@ public class Participant
      * The audio ssrc when it is not known yet
      */
     public static final long DEFAULT_UNKNOWN_AUDIO_SSRC = -1;
+
+    /**
+     * The standard URL to a gravatar avatar which still needs to be formatted
+     * with the ID. The ID can be received by hasing the email with md5
+     */
+    private final static String GRAVARAR_URL_FORMAT
+        = "https://www.gravatar.com/avatar/%s?d=wavatar&size=200";
+
+    /**
+     * The standard url to a meeple avatar by using a random ID. Default usage
+     * when email not known, but using `avatar-id` does not actually result
+     * int he same meeple
+     */
+    private final static String MEEPLE_URL_FORMAT
+        = "https://abotars.jitsi.net/meeple/%s";
 
     /**
      * The {@link Transcriber} which owns this {@link Participant}.
@@ -190,7 +207,88 @@ public class Participant
             return null;
         }
 
-        return ((ChatRoomMemberJabberImpl) chatMember).getAvatarUrl();
+        ChatRoomMemberJabberImpl memberJabber
+            = ((ChatRoomMemberJabberImpl) this.chatMember);
+
+        String url;
+        if((url = (String) memberJabber.getData(
+            ChatRoomMemberPresenceExtensionReader
+                .STRIDE_IDENTITY_AVATAR_URL)) != null)
+        {
+            return url;
+        }
+        else if((url = memberJabber.getAvatarUrl()) != null)
+        {
+            return url;
+        }
+
+        String email;
+        if((email = getEmail()) != null)
+        {
+            return String.format(GRAVARAR_URL_FORMAT,
+                Util.stringToMD5hash(email));
+        }
+
+        // Create a nice looking meeple avatar when avatar-url nor email is set
+        String avatarId;
+        if((avatarId
+            = (String) memberJabber.getData(
+            ChatRoomMemberPresenceExtensionReader.AVATAR_ID)) != null)
+        {
+            return String.format(MEEPLE_URL_FORMAT, avatarId);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the user-name in Stride if in Stride environment
+     *
+     * @return the user-name or null
+     */
+    public String getStrideUserName()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
+            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_USERNAME
+        );
+    }
+    /**
+     * Get the user id in Stride if in Stride environment
+     *
+     * @return the user id or null
+     */
+    public String getStrideUserId()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
+            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_USERID
+        );
+    }
+
+    /**
+     * Get the group id in Stride if in Stride environment
+     *
+     * @return the group id or null
+     */
+    public String getStrideGroupId()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
+            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_GROUPID
+        );
     }
 
     /**
