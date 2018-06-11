@@ -235,7 +235,8 @@ public class Participant
             = (String) memberJabber.getData(
             ChatRoomMemberPresenceExtensionReader.AVATAR_ID)) != null)
         {
-            return String.format(MEEPLE_URL_FORMAT, avatarId);
+            return String.format(MEEPLE_URL_FORMAT,
+                Util.stringToMD5hash(avatarId));
         }
 
         return null;
