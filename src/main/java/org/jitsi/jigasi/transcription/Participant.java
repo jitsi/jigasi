@@ -213,7 +213,7 @@ public class Participant
         String url;
         if((url = (String) memberJabber.getData(
             ChatRoomMemberPresenceExtensionReader
-                .STRIDE_IDENTITY_AVATAR_URL)) != null)
+                .IDENTITY_AVATAR_URL)) != null)
         {
             return url;
         }
@@ -242,11 +242,11 @@ public class Participant
     }
 
     /**
-     * Get the user-name in Stride if in Stride environment
+     * Get the user-name in the identity presence, if present
      *
      * @return the user-name or null
      */
-    public String getStrideUserName()
+    public String getIdentityUserName()
     {
         if(!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
@@ -254,15 +254,16 @@ public class Participant
         }
 
         return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_USERNAME
+            ChatRoomMemberPresenceExtensionReader.IDENTITY_USERNAME
         );
     }
+
     /**
-     * Get the user id in Stride if in Stride environment
+     * Get the user id in the identity presence, if present
      *
      * @return the user id or null
      */
-    public String getStrideUserId()
+    public String getIdentityUserId()
     {
         if(!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
@@ -270,16 +271,16 @@ public class Participant
         }
 
         return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_USERID
+            ChatRoomMemberPresenceExtensionReader.IDENTITY_USERID
         );
     }
 
     /**
-     * Get the group id in Stride if in Stride environment
+     * Get the group id in the identity presence, if present
      *
      * @return the group id or null
      */
-    public String getStrideGroupId()
+    public String getIdentityGroupId()
     {
         if(!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
@@ -287,7 +288,7 @@ public class Participant
         }
 
         return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.STRIDE_IDENTITY_GROUPID
+            ChatRoomMemberPresenceExtensionReader.IDENTITY_GROUPID
         );
     }
 

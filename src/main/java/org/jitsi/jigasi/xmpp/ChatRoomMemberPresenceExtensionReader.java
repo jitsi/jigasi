@@ -28,7 +28,7 @@ import org.jivesoftware.smack.packet.*;
  * This class is able to receive {@link Presence} objects and update data
  * belonging to a
  * {@link org.jitsi.jigasi.transcription.Participant} by checking for
- * {@link StrideIdentityPresenceExtension} and
+ * {@link IdentityPresenceExtension} and
  * {@link AvatarIdPresenceExtension}
  * in the presence and storing their values inside a
  * {@link ChatRoomMember}
@@ -45,35 +45,35 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the user-id in a
-     * {@link StrideIdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
-    public final static String STRIDE_IDENTITY_USERID
-        = "STRIDE_IDENTITY_USERID";
+    public final static String IDENTITY_USERID
+        = "IDENTITY_USERID";
 
     /**
      * The key used to save the username in a
-     * {@link StrideIdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
-    public final static String STRIDE_IDENTITY_USERNAME
-        = "STRIDE_IDENTITY_USERNAME";
+    public final static String IDENTITY_USERNAME
+        = "IDENTITY_USERNAME";
 
     /**
      * The key used to save the avatar-url in a
-     * {@link StrideIdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
-    public final static String STRIDE_IDENTITY_AVATAR_URL
-        = "STRIDE_IDENTITY_AVATAR_URL";
+    public final static String IDENTITY_AVATAR_URL
+        = "IDENTITY_AVATAR_URL";
 
     /**
      * The key used to save the group-id in a
-     * {@link StrideIdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
-    public final static String STRIDE_IDENTITY_GROUPID
-        = "STRIDE_IDENTITY_GROUPID";
+    public final static String IDENTITY_GROUPID
+        = "IDENTITY_GROUPID";
 
     /**
      * The key used to save the avatar-id in a
@@ -109,42 +109,37 @@ public class ChatRoomMemberPresenceExtensionReader
                 Util.prettyFormat(p.toXML().toString(), 4) );
         }
 
-        updateStrideIdentity(p, memberJabber);
+        updateIdentity(p, memberJabber);
         updateAvatarId(p, memberJabber);
     }
 
 
     /**
      * Receives a {@link Presence} and stores the data of a
-     * {@link StrideIdentityPresenceExtension} if it is present inside the
+     * {@link IdentityPresenceExtension} if it is present inside the
      * {@link ChatRoomMemberJabberImpl}
      *
      * @param p the presence to check for a
-     * {@link StrideIdentityPresenceExtension}
+     * {@link IdentityPresenceExtension}
      * @param member the member to store information into
      */
-    private static void updateStrideIdentity(Presence p,
-                                             ChatRoomMemberJabberImpl member)
+    private static void updateIdentity(Presence p,
+                                       ChatRoomMemberJabberImpl member)
     {
-        StrideIdentityPresenceExtension strideIdentity
-            = p.getExtension(StrideIdentityPresenceExtension.ELEMENT_NAME,
-            StrideIdentityPresenceExtension.NAME_SPACE);
+        IdentityPresenceExtension strideIdentity
+            = p.getExtension(IdentityPresenceExtension.ELEMENT_NAME,
+            IdentityPresenceExtension.NAME_SPACE);
 
         if(strideIdentity != null)
         {
-            System.out.println("Stride identity received :)");
-            member.setData(STRIDE_IDENTITY_USERID,
+            member.setData(IDENTITY_USERID,
                 strideIdentity.getUserId());
-            member.setData(STRIDE_IDENTITY_USERNAME,
+            member.setData(IDENTITY_USERNAME,
                 strideIdentity.getUserName());
-            member.setData(STRIDE_IDENTITY_AVATAR_URL,
+            member.setData(IDENTITY_AVATAR_URL,
                 strideIdentity.getUserAvatarUrl());
-            member.setData(STRIDE_IDENTITY_GROUPID,
+            member.setData(IDENTITY_GROUPID,
                 strideIdentity.getGroupId());
-        }
-        else
-        {
-            System.out.println("Stride identity is null :(");
         }
     }
 

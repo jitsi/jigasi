@@ -174,22 +174,22 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_PARTICIPANT_AVATAR_URL = "avatar_url";
 
     /**
-     * This fields stores the Stride username of a participant as a string
+     * This fields stores the identity username of a participant as a string
      */
-    public final static String JSON_KEY_PARTICIPANT_STRIDE_USERNAME
-        = "stride_name";
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_USERNAME
+        = "identity_name";
 
     /**
-     * This fields stores the Stride user id of a participant as a string
+     * This fields stores the identity user id of a participant as a string
      */
-    public final static String JSON_KEY_PARTICIPANT_STRIDE_USERID
-        = "stride_id";
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_USERID
+        = "identity_id";
 
     /**
-     * This fields stores the Stride group id of a participant as a string
+     * This fields stores the identity group id of a participant as a string
      */
-    public final static String JSON_KEY_PARTICIPANT_STRIDE_GROUPID
-        = "stride_group";
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_GROUPID
+        = "identity_group_id";
 
     // JSON object to send to MUC
 
@@ -381,23 +381,23 @@ public class LocalJsonTranscriptHandler
             pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
         }
 
-        // add stride information if it exists
-        String strideUsername = participant.getStrideUserName();
-        if (strideUsername != null)
+        // add identity information if it exists
+        String identityUsername = participant.getIdentityUserName();
+        if (identityUsername != null)
         {
-            pJSON.put(JSON_KEY_PARTICIPANT_STRIDE_USERNAME, strideUsername);
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_USERNAME, identityUsername);
         }
 
-        String strideUserId = participant.getStrideUserId();
-        if(strideUserId != null)
+        String identityUserId = participant.getIdentityUserId();
+        if(identityUserId != null)
         {
-            pJSON.put(JSON_KEY_PARTICIPANT_STRIDE_USERID, strideUserId);
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_USERID, identityUserId);
         }
 
-        String strideGroupId = participant.getStrideGroupId();
-        if(strideGroupId != null)
+        String identityGroupId = participant.getIdentityGroupId();
+        if(identityGroupId != null)
         {
-            pJSON.put(JSON_KEY_PARTICIPANT_STRIDE_GROUPID, strideGroupId);
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_GROUPID, identityGroupId);
         }
     }
 
