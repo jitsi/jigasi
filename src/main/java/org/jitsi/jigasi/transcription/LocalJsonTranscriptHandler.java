@@ -453,7 +453,9 @@ public class LocalJsonTranscriptHandler
         if(events != null && !events.isEmpty())
         {
             JSONArray eventArray = new JSONArray();
-            eventArray.put(events);
+
+            events.forEach(eventArray::put);
+
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_EVENTS, eventArray);
         }
     }
