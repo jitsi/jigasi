@@ -18,11 +18,15 @@
 package org.jitsi.jigasi.xmpp.rayo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
-import org.jitsi.jigasi.xmpp.*;
+import org.custommonkey.xmlunit.*;
+import org.jitsi.xmpp.util.*;
 import org.junit.*;
 import org.junit.runner.*;
 import org.junit.runners.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
+import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -56,29 +60,31 @@ public class RefIqProviderTest
             null, IQUtils.parse(getRefIqXML(null), provider));
     }
 
-    private String getRefIqXML(String uri)
+    private String getRefIqXML(String uri) throws XmppStringprepException
     {
-        return RayoIqProvider.RefIq.create(uri).toXML();
+        RayoIqProvider.RefIq iq = RayoIqProvider.RefIq.create(uri);
+        iq.setFrom(JidCreate.from("from@example.org"));
+        iq.setTo(JidCreate.from("to@example.org"));
+        return iq.toXML().toString();
     }
 
     @Test
-    public void testRefToString()
+    public void testRefToString() throws Exception
     {
         String uri = "from23dfsr";
 
         RayoIqProvider.RefIq refIq = RayoIqProvider.RefIq.create(uri);
 
-        String id = refIq.getPacketID();
+        String id = refIq.getStanzaId();
         String type = refIq.getType().toString();
 
-        assertEquals(
+        assertXMLEqual(new Diff(
             String.format(
                 "<iq id=\"%s\" type=\"%s\">" +
                     "<ref xmlns='urn:xmpp:rayo:1'" +
                     " uri='%s' />" +
                     "</iq>",
                 id, type, uri),
-            refIq.toXML()
-        );
+            refIq.toXML().toString()), true);
     }
 }

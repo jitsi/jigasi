@@ -17,15 +17,12 @@
  */
 package org.jitsi.jigasi;
 
-import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.service.configuration.*;
-import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -109,10 +106,6 @@ public class JigasiBundleActivator
                 sipGateway.setSipProvider(pps);
             }
         }
-
-        // FIXME: make sure that we're using interoperability layer
-        AbstractSmackInteroperabilityLayer.setImplementationClass(
-            SmackV3InteroperabilityLayer.class);
     }
 
     @Override
@@ -129,25 +122,24 @@ public class JigasiBundleActivator
     public void serviceChanged(ServiceEvent serviceEvent)
     {
         if (serviceEvent.getType() != ServiceEvent.REGISTERED)
+        {
             return;
+        }
 
-        ServiceReference ref = serviceEvent.getServiceReference();
-
+        ServiceReference<?> ref = serviceEvent.getServiceReference();
         Object service = osgiContext.getService(ref);
-
         if (!(service instanceof ProtocolProviderService))
+        {
             return;
-
-        // FIXME: not sure where to put this...
-        ProviderManager providerManager = ProviderManager.getInstance();
+        }
 
         // Register Jitsi Meet media presence extension.
-        MediaPresenceExtension.registerExtensions(providerManager);
+        MediaPresenceExtension.registerExtensions();
+
         // Register Rayo IQs
-        new RayoIqProvider().registerRayoIQs(providerManager);
+        new RayoIqProvider().registerRayoIQs();
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
-
         if (sipGateway.getSipProvider() == null &&
             ProtocolNames.SIP.equals(pps.getProtocolName()))
         {

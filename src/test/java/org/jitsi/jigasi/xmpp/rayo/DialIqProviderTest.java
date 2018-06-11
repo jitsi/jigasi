@@ -18,12 +18,16 @@
 package org.jitsi.jigasi.xmpp.rayo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
-import org.jitsi.jigasi.xmpp.*;
-import org.jivesoftware.smack.packet.IQ;
+import org.custommonkey.xmlunit.*;
+import org.jitsi.xmpp.util.*;
+import org.jivesoftware.smack.packet.*;
 import org.junit.Test;
 import org.junit.runner.*;
 import org.junit.runners.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
+import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -66,34 +70,38 @@ public class DialIqProviderTest
     }
 
     private String getDialIqXML(String to, String from)
+        throws XmppStringprepException
     {
-        return RayoIqProvider.DialIq.create(to, from).toXML();
+        RayoIqProvider.DialIq iq = RayoIqProvider.DialIq.create(to, from);
+        iq.setFrom(JidCreate.from("from@example.com"));
+        iq.setTo(JidCreate.from("to@example.org"));
+        return iq.toXML().toString();
     }
 
     @Test
-    public void testDialToString()
+    public void testDialToString() throws Exception
     {
         String src = "from23dfsr";
         String dst = "to123213";
 
         RayoIqProvider.DialIq dialIq = RayoIqProvider.DialIq.create(dst, src);
 
-        String id = dialIq.getPacketID();
+        String id = dialIq.getStanzaId();
         String type = dialIq.getType().toString();
 
-        assertEquals(
+        assertXMLEqual(new Diff(
             String.format(
                 "<iq id=\"%s\" type=\"%s\">" +
                     "<dial xmlns='urn:xmpp:rayo:1'" +
                     " from='%s' to='%s' />" +
                 "</iq>",
                 id, type, src, dst),
-            dialIq.toXML()
-        );
+            dialIq.toXML().toString()),
+        true);
 
         dialIq.setHeader("h1", "v1");
 
-        assertEquals(
+        assertXMLEqual(new Diff(
             String.format(
                 "<iq id=\"%s\" type=\"%s\">" +
                     "<dial xmlns='urn:xmpp:rayo:1' from='%s' to='%s' >" +
@@ -101,8 +109,8 @@ public class DialIqProviderTest
                     "</dial>" +
                     "</iq>",
                 id, type, src, dst),
-            dialIq.toXML()
-        );
+            dialIq.toXML().toString()),
+        true);
     }
 
     @Test
@@ -122,10 +130,10 @@ public class DialIqProviderTest
                     dialIqXml, new RayoIqProvider());
 
         // IQ
-        assertEquals("123", iq.getPacketID());
-        assertEquals(IQ.Type.SET, iq.getType());
-        assertEquals("fromJid", iq.getFrom());
-        assertEquals("toJid", iq.getTo());
+        assertEquals("123", iq.getStanzaId());
+        assertEquals(IQ.Type.set, iq.getType());
+        assertEquals("fromjid", iq.getFrom().toString());
+        assertEquals("tojid", iq.getTo().toString());
         // Dial
         assertEquals("source", iq.getSource());
         assertEquals("dest", iq.getDestination());

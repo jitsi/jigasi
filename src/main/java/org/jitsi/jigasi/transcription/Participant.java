@@ -77,19 +77,24 @@ public class Participant
     public static final String UNKNOWN_NAME = "Unknown";
 
     /**
+     * The audio ssrc when it is not known yet
+     */
+    public static final long DEFAULT_UNKNOWN_AUDIO_SSRC = -1;
+
+    /**
      * The {@link Transcriber} which owns this {@link Participant}.
      */
     private Transcriber transcriber;
 
     /**
-     * The id identifying audio belonging to this participant
-     */
-    private long ssrc;
-
-    /**
      * The chat room participant.
      */
     private ChatRoomMember chatMember;
+
+    /**
+     * The conference member which this {@link Participant} is representing
+     */
+    private ConferenceMember confMember;
 
     /**
      * The streaming session which will constantly receive audio
@@ -113,16 +118,20 @@ public class Participant
     private boolean isCompleted = false;
 
     /**
+     * The string which is used to identify this participant
+     */
+    private String identifier;
+
+    /**
      * Create a participant with a given name and audio stream
      *
-     * @param chatMember the chat room participant.
-     * @param ssrc the ssrc of the audio of this participant
+     * @param transcriber the transcriber which created this participant
+     * @param identifier the string which is used to identify this participant
      */
-    Participant(Transcriber transcriber, ChatRoomMember chatMember, long ssrc)
+    Participant(Transcriber transcriber, String identifier)
     {
         this.transcriber = transcriber;
-        this.chatMember = chatMember;
-        this.ssrc = ssrc;
+        this.identifier = identifier;
     }
 
     /**
@@ -132,6 +141,10 @@ public class Participant
      */
     public String getName()
     {
+        if(chatMember == null)
+        {
+            return UNKNOWN_NAME;
+        }
         String name = chatMember.getDisplayName();
         if (name != null)
         {
@@ -151,6 +164,10 @@ public class Participant
      */
     public String getEmail()
     {
+        if(chatMember == null)
+        {
+            return null;
+        }
         if (!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
             return null;
@@ -164,6 +181,10 @@ public class Participant
      */
     public String getAvatarUrl()
     {
+        if(chatMember == null)
+        {
+            return null;
+        }
         if (!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
             return null;
@@ -179,17 +200,61 @@ public class Participant
      */
     public long getSSRC()
     {
-        return ssrc;
+        if(confMember == null)
+        {
+            return DEFAULT_UNKNOWN_AUDIO_SSRC;
+        }
+        return getConferenceMemberAudioSSRC(confMember);
     }
 
     /**
-     * Get the id in the JID of this participant
+     * Set the {@link ConferenceMember} belonging to this participant
+     *
+     * @param confMember the conference member
+     */
+    public void setConfMember(ConferenceMember confMember)
+    {
+        this.confMember = confMember;
+    }
+
+    /**
+     * Get the {@link ConferenceMember} belonging to this participant
+     *
+     * @return the conference member
+     */
+    public ConferenceMember getConfMember()
+    {
+        return confMember;
+    }
+
+    /**
+     * Set the {@link ChatRoomMember} belonging to this participant
+     *
+     * @param chatMember the chatroom member
+     */
+    public void setChatMember(ChatRoomMember chatMember)
+    {
+        this.chatMember = chatMember;
+    }
+
+    /**
+     * Get the {@link ChatRoomMember} belonging to this participant
+     *
+     * @return the chatroom member
+     */
+    public ChatRoomMember getChatMember()
+    {
+        return chatMember;
+    }
+
+    /**
+     * Get the identifier in the JID of this participant
      *
      * @return the id
      */
     public String getId()
     {
-        return chatMember.getContactAddress();
+        return identifier;
     }
 
     /**
@@ -347,5 +412,19 @@ public class Participant
     public Transcriber getTranscriber()
     {
         return transcriber;
+    }
+
+    /**
+     * Helper method for getting the SSRC of a conference member due to issues
+     * with unsigned longs
+     *
+     * @param confMember the conference member whose SSRC to get
+     * @return the ssrc which is casted to unsigned long
+     */
+    private static long getConferenceMemberAudioSSRC(
+        ConferenceMember confMember)
+    {
+        // bitwise AND to fix signed int casted to long
+        return confMember.getAudioSsrc() & 0xffffffffL;
     }
 }

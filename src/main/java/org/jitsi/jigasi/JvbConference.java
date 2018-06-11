@@ -30,8 +30,13 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jivesoftware.smack.SmackException.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smackx.packet.*;
+import org.jivesoftware.smackx.nick.packet.*;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.jid.parts.*;
+import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -50,7 +55,8 @@ public class JvbConference
     implements RegistrationStateChangeListener,
                ServiceListener,
                ChatRoomMemberPresenceListener,
-               LocalUserChatRoomPresenceListener
+               LocalUserChatRoomPresenceListener,
+               CallPeerConferenceListener
 {
     /**
      * The logger.
@@ -293,9 +299,9 @@ public class JvbConference
     }
 
 
-    private String getResourceIdentifier()
+    private Localpart getResourceIdentifier()
     {
-        String resourceIdentifier = null;
+        Localpart resourceIdentifier = null;
         if (JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_USE_SIP_USER_AS_XMPP_RESOURCE, false))
         {
@@ -317,19 +323,28 @@ public class JvbConference
             // anything that is not in the this regex class A-Za-z0-9- with a
             // dash.
 
-            resourceIdentifier = gatewaySession.getMucDisplayName();
-            if (!StringUtils.isNullOrEmpty(resourceIdentifier))
+            String resourceIdentBuilder = gatewaySession.getMucDisplayName();
+            if (!StringUtils.isNullOrEmpty(resourceIdentBuilder))
             {
-                int idx = resourceIdentifier.indexOf('@');
+                int idx = resourceIdentBuilder.indexOf('@');
                 if (idx != -1)
                 {
                     // keep only the user part of the SIP URI.
-                    resourceIdentifier = resourceIdentifier.substring(0, idx);
+                    resourceIdentBuilder = resourceIdentBuilder.substring(0, idx);
                 }
 
                 // clean it up for resource usage.
-                resourceIdentifier
-                    = resourceIdentifier.replace("[^A-Za-z0-9]", "-");
+                try
+                {
+                    resourceIdentifier
+                        = Localpart.from(
+                            resourceIdentBuilder.replace("[^A-Za-z0-9]", "-"));
+                }
+                catch (XmppStringprepException e)
+                {
+                    logger.error("The SIP URI is invalid to use an XMPP"
+                        + " resource, identifier will be a random string", e);
+                }
             }
             else
             {
@@ -338,14 +353,13 @@ public class JvbConference
             }
         }
 
-        if (StringUtils.isNullOrEmpty(resourceIdentifier))
+        if (resourceIdentifier == null)
         {
-            resourceIdentifier = Util.extractCallIdFromResource(
-                callContext.getCallResource());
+            resourceIdentifier =
+                callContext.getCallResource().getLocalpartOrNull();
         }
 
         return resourceIdentifier;
-
     }
 
     /**
@@ -392,7 +406,7 @@ public class JvbConference
             return;
         }
 
-        String resourceIdentifier = getResourceIdentifier();
+        Localpart resourceIdentifier = getResourceIdentifier();
 
         this.xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
@@ -403,7 +417,7 @@ public class JvbConference
             = xmppProviderFactory.createAccount(
                     createAccountPropertiesForCallId(
                             callContext,
-                            resourceIdentifier));
+                            resourceIdentifier.toString()));
 
         xmppProviderFactory.loadAccount(xmppAccount);
 
@@ -509,7 +523,7 @@ public class JvbConference
         if(this.xmppProvider != null)
             throw new IllegalStateException("unexpected");
 
-        String callResource = callContext.getCallResource();
+        Jid callResource = callContext.getCallResource();
 
         if (!xmppProvider.getAccountID().getAccountUniqueID()
                 .equals(xmppAccount.getAccountUniqueID()))
@@ -610,18 +624,19 @@ public class JvbConference
                 // we do an invite and do not wait for response, as we will
                 // start ringing and will be invited when another participant
                 // joins
-                inviteFocus(mucRoom.getIdentifier());
+                inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
             }
 
-            String resourceIdentifier = getResourceIdentifier();
+            Localpart resourceIdentifier = getResourceIdentifier();
 
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
-                mucRoom.joinAs(resourceIdentifier);
+                mucRoom.joinAs(resourceIdentifier.toString());
             }
             else
             {
-                mucRoom.joinAs(resourceIdentifier, roomPassword.getBytes());
+                mucRoom.joinAs(resourceIdentifier.toString(),
+                    roomPassword.getBytes());
             }
 
             this.mucRoom = mucRoom;
@@ -745,7 +760,7 @@ public class JvbConference
         if (serviceEvent.getType() != ServiceEvent.REGISTERED)
             return;
 
-        ServiceReference ref = serviceEvent.getServiceReference();
+        ServiceReference<?> ref = serviceEvent.getServiceReference();
 
         Object service = JigasiBundleActivator.osgiContext.getService(ref);
 
@@ -778,14 +793,14 @@ public class JvbConference
             {
                 leaveTimeout.cancel();
 
-                gatewaySession.notifyMemberJoined(member);
+                gatewaySession.notifyChatRoomMemberJoined(member);
             }
 
             return;
         }
         else
         {
-            gatewaySession.notifyMemberLeft(member);
+            gatewaySession.notifyChatRoomMemberLeft(member);
             logger.info(
                     "Member left : " + member.getRole()
                             + " " + member.getContactAddress());
@@ -836,7 +851,7 @@ public class JvbConference
      * Sends given <tt>extension</tt> in MUC presence update packet.
      * @param extension the packet extension to be included in MUC presence.
      */
-    void sendPresenceExtension(PacketExtension extension)
+    void sendPresenceExtension(ExtensionElement extension)
     {
         if (mucRoom != null)
         {
@@ -911,6 +926,26 @@ public class JvbConference
 
             jvbCall = event.getSourceCall();
             jvbCall.setData(CallContext.class, callContext);
+
+            if(jvbCall != null)
+            {
+                CallPeer peerToAdd = jvbCall.getCallPeers().next();
+                if (peerToAdd != null)
+                {
+                    peerToAdd.addCallPeerConferenceListener(JvbConference.this);
+                }
+                else
+                {
+                    logger.warn("Could not add JvbConference as " +
+                        "CallPeerConferenceListener because CallPeer is" +
+                        " null");
+                }
+            }
+            else
+            {
+                logger.warn("Could not add JvbConference as " +
+                    "CallPeerConferenceListener because jvbCall is" +
+                    " null");            }
 
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
@@ -1118,11 +1153,53 @@ public class JvbConference
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceFocusChanged(CallPeerConferenceEvent conferenceEvent)
+    {
+        //we don't care?
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberAdded(CallPeerConferenceEvent conferenceEvent)
+    {
+        ConferenceMember conferenceMember
+            = conferenceEvent.getConferenceMember();
+
+        this.gatewaySession.notifyConferenceMemberJoined(conferenceMember);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberErrorReceived(CallPeerConferenceEvent conferenceEvent)
+    {
+        //we don't care?
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void conferenceMemberRemoved(CallPeerConferenceEvent conferenceEvent)
+    {
+        ConferenceMember conferenceMember
+            = conferenceEvent.getConferenceMember();
+
+        this.gatewaySession.notifyConferenceMemberLeft(conferenceMember);
+    }
+
+    /**
      * Sends invite to jicofo to join a room.
      *
      * @param roomIdentifier the room to join
      */
-    private void inviteFocus(final String roomIdentifier)
+    private void inviteFocus(final EntityBareJid roomIdentifier)
     {
         if (callContext == null || callContext.getDomain() == null)
         {
@@ -1140,13 +1217,33 @@ public class JvbConference
         focusInviteIQ.addProperty("startBitrate", "800");
         focusInviteIQ.addProperty("openSctp", "true");
 
-        focusInviteIQ.setTo(focusResourceAddr + "." + callContext.getDomain());
-        focusInviteIQ.setType(IQ.Type.SET);
+        try
+        {
+            focusInviteIQ.setType(IQ.Type.set);
+            focusInviteIQ.setTo(JidCreate.domainBareFrom(
+                focusResourceAddr + "." + callContext.getDomain()));
+        }
+        catch (XmppStringprepException e)
+        {
+            logger.error(
+                "Could not create destination address for focus invite", e);
+            return;
+        }
 
         // this check just skips an exception when running tests
         if (xmppProvider instanceof ProtocolProviderServiceJabberImpl)
-            ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                .getConnection().sendPacket(focusInviteIQ);
+        {
+            try
+            {
+                ((ProtocolProviderServiceJabberImpl) xmppProvider)
+                    .getConnection().sendStanza(focusInviteIQ);
+            }
+            catch (NotConnectedException | InterruptedException e)
+            {
+                logger.error(
+                    "Could not invite the focus to the conference", e);
+            }
+        }
     }
 
     /**

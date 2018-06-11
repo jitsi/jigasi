@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.configuration.*;
 import net.java.sip.communicator.service.protocol.*;
 
 import org.jitsi.cmd.*;
@@ -220,6 +221,10 @@ public class Main
             // or something similar
             System.setProperty(PNAME_SC_CACHE_DIR_LOCATION, logdir);
         }
+
+        // make sure we use the properties files for configuration
+        System.setProperty(ConfigurationActivator.PNAME_USE_PROPFILE_CONFIG,
+            "true");
 
         ComponentMain main = new ComponentMain();
 

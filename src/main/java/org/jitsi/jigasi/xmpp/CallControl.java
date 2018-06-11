@@ -22,7 +22,9 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smack.util.*;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
 /**
  *  Implementation of call control that is capable of utilizing Rayo
@@ -76,7 +78,7 @@ public class CallControl
      * The only JID that will be allowed to create outgoing SIP calls. If not
      * set then anybody is allowed to do so.
      */
-    private String allowedJid;
+    private Jid allowedJid;
 
     /**
      * Constructs new call control instance with a SipGateway
@@ -137,7 +139,18 @@ public class CallControl
                 "Always trust in remote TLS certificates mode is enabled");
         }
 
-        this.allowedJid = config.getString(ALLOWED_JID_P_NAME, null);
+        String allowedJidString = config.getString(ALLOWED_JID_P_NAME, null);
+        if (allowedJidString != null)
+        {
+            try
+            {
+                this.allowedJid = JidCreate.from(allowedJidString);
+            }
+            catch (XmppStringprepException e)
+            {
+                logger.error("Invalid call control JID", e);
+            }
+        }
 
         if (allowedJid != null)
         {
@@ -146,99 +159,91 @@ public class CallControl
     }
 
     /**
-     * Handles an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza of type
-     * <tt>set</tt> which represents a request.
+     * Handles an {@link IQ} stanza of type {@link IQ.Type#set} which
+     * represents a request.
      *
-     * @param iq the <tt>org.jivesoftware.smack.packet.IQ</tt> stanza of type
-     * <tt>set</tt> which represents the request to handle
-     * @param ctx the call context to process
-     * @return an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza which
-     * represents the response to the specified request or <tt>null</tt> to
-     * reply with <tt>feature-not-implemented</tt>
-     * @throws Exception to reply with <tt>internal-server-error</tt> to the
-     * specified request
+     * @param iq the {@link IQ} of type {@link IQ.Type#set} which represents
+     * the request to handle
+     * @return a {@link RefIq} which represents the response to the request.
      */
-    public IQ handleIQ(IQ iq, CallContext ctx)
-        throws Exception
+    public RefIq handleDialIq(DialIq iq, CallContext ctx,
+        AbstractGatewaySession[] createdSession)
+        throws CallControlAuthorizationException
     {
-        try
+        checkAuthorized(iq);
+
+        String from = iq.getSource();
+        String to = iq.getDestination();
+
+        ctx.setDestination(to);
+
+        String roomName = iq.getHeader(ROOM_NAME_HEADER);
+        ctx.setRoomName(roomName);
+
+        String roomPassword = iq.getHeader(ROOM_PASSWORD_HEADER);
+        ctx.setRoomPassword(roomPassword);
+        if (roomName == null)
+            throw new RuntimeException("No JvbRoomName header found");
+
+        logger.info(
+            "Got dial request " + from + " -> " + to + " room: " + roomName);
+
+        AbstractGatewaySession session;
+        if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
         {
-            String fromBareJid = StringUtils.parseBareAddress(iq.getFrom());
-            if (allowedJid != null && !allowedJid.equals(fromBareJid))
-            {
-                return IQ.createErrorResponse(
-                    iq,
-                    new XMPPError(XMPPError.Condition.not_allowed));
-            }
-            else if (allowedJid == null)
-            {
-                logger.warn("Requests are not secured by JID filter!");
-            }
-
-            if (iq instanceof DialIq)
-            {
-                DialIq dialIq = (DialIq) iq;
-
-                String from = dialIq.getSource();
-                String to = dialIq.getDestination();
-
-                ctx.setDestination(to);
-
-                String roomName = dialIq.getHeader(ROOM_NAME_HEADER);
-                ctx.setRoomName(roomName);
-
-                String roomPassword = dialIq.getHeader(ROOM_PASSWORD_HEADER);
-                ctx.setRoomPassword(roomPassword);
-                if (roomName == null)
-                    throw new RuntimeException("No JvbRoomName header found");
-
-                logger.info(
-                    "Got dial request " + from + " -> " + to
-                        + " room: " + roomName);
-
-                String callResource = ctx.getCallResource();
-
-                if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
-                {
-                    transcriptionGateway.createOutgoingCall(ctx);
-                }
-                else
-                {
-                    sipGateway.createOutgoingCall(ctx);
-                }
-
-                callResource = "xmpp:" + callResource;
-
-                return RefIq.createResult(iq, callResource);
-            }
-            else if (iq instanceof HangUp)
-            {
-                // FIXME: 23/07/17 Transcription sessions should also be able
-                // to be hangup ?
-
-                HangUp hangUp = (HangUp) iq;
-
-                String callResource = hangUp.getTo();
-
-                SipGatewaySession session = sipGateway.getSession(callResource);
-
-                if (session == null)
-                    throw new RuntimeException(
-                        "No sipGateway for call: " + callResource);
-
-                session.hangUp();
-
-                return IQ.createResultIQ(iq);
-            }
-            else
-            {
-                return null;
-            }
+            session = transcriptionGateway.createOutgoingCall(ctx);
         }
-        catch (Exception e)
+        else
         {
-            logger.error(e, e);
-            throw e;
+            session = sipGateway.createOutgoingCall(ctx);
+        }
+
+        if (createdSession != null && createdSession.length == 1)
+        {
+            createdSession[0] = session;
+        }
+
+        return RefIq.createResult(iq, "xmpp:" + ctx.getCallResource());
+    }
+
+    /**
+     * Handles an {@link IQ} stanza of type {@link IQ.Type#set} which
+     * represents a request.
+     *
+     * @param iq the {@link IQ} of type {@link IQ.Type#set} which represents
+     * the request to handle
+     * @return an {@link IQ} stanza which represents the response to the
+     * specified request.
+     */
+    public IQ handleHangUp(HangUp iq)
+        throws CallControlAuthorizationException
+    {
+        checkAuthorized(iq);
+
+        // FIXME: 23/07/17 Transcription sessions should also be able
+        // to be hangup ?
+
+        Jid callResource = iq.getTo();
+        SipGatewaySession session = sipGateway.getSession(callResource);
+        if (session == null)
+            throw new RuntimeException(
+                "No sipGateway for call: " + callResource);
+
+        session.hangUp();
+        return IQ.createResultIQ(iq);
+    }
+
+    private void checkAuthorized(IQ iq)
+        throws CallControlAuthorizationException
+    {
+        Jid fromBareJid = iq.getFrom().asBareJid();
+        if (allowedJid != null && !allowedJid.equals(fromBareJid))
+        {
+            throw new CallControlAuthorizationException(iq);
+        }
+        else if (allowedJid == null)
+        {
+            logger.warn("Requests are not secured by JID filter!");
         }
     }
 
@@ -295,7 +300,7 @@ public class CallControl
      * @return {@link AbstractGatewaySession} for given <tt>callResource</tt> if
      * there is one currently active or <tt>null</tt> otherwise.
      */
-    public AbstractGatewaySession getSession(String callResource)
+    public AbstractGatewaySession getSession(Jid callResource)
     {
         AbstractGatewaySession result
             = this.sipGateway.getSession(callResource);

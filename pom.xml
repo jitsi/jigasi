@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>jigasi</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>jigasi</name>
@@ -19,6 +19,8 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
+    <smack.version>4.2.1</smack.version>
+    <jitsi-desktop.version>2.13.dbdabb3</jitsi-desktop.version>
   </properties>
 
   <dependencies>
@@ -42,13 +44,8 @@
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
-      <artifactId>smack</artifactId>
-      <version>3.2.2-jitsi-3-20170721.194509-1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.igniterealtime.smack</groupId>
-      <artifactId>smackx</artifactId>
-      <version>3.2.2-jitsi-3-20170721.194511-1</version>
+      <artifactId>smack-extensions</artifactId>
+      <version>${smack.version}</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.whack</groupId>
@@ -58,60 +55,67 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
-      <version>1.0-20170908.194542-40</version>
+      <version>1.1-20180601.211527-4</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-android-osgi</artifactId>
+      <version>1.0-20180322.162617-2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-configuration</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-contactlist</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-fileaccess</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-muc</artifactId>
-      <version>2.9-20160516.065848-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-neomedia</artifactId>
-      <version>2.9-20160516.070005-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol</artifactId>
-      <version>2.11-20170724.170155-4</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-jabber</artifactId>
-      <version>2.11-20170912.200837-16</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-media</artifactId>
-      <version>2.11-20170523.194521-3</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-resourcemanager</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-ui-service</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-util</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -145,16 +149,17 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-sip</artifactId>
-      <version>2.11-20170426.193649-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-packetlogging</artifactId>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-argdelegation</artifactId>
-      <version>2.9-20160511.141853-1</version>
+      <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -205,41 +210,43 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-hid</artifactId>
-      <version>2.9-20160513.134540-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-certificate</artifactId>
-      <version>2.9-20160516.070021-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-credentialsstorage</artifactId>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-dns</artifactId>
-      <version>2.9-20160516.070031-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-desktoputil</artifactId>
-      <version>2.9-20160516.070045-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-dnsservice</artifactId>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-globaldisplaydetails</artifactId>
-      <version>2.9-20160516.070050-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -250,31 +257,31 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-notification-service</artifactId>
-      <version>2.9-20160516.070101-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-reconnect</artifactId>
-      <version>2.9-20160516.070112-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-sysactivity</artifactId>
-      <version>2.9-20160516.070159-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-systray-service</artifactId>
-      <version>2.9-20160516.070206-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-version</artifactId>
-      <version>2.9-20160511.122033-1</version>
+      <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -302,6 +309,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-videobridge</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>xmlunit</groupId>
+      <artifactId>xmlunit</artifactId>
+      <version>1.6</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

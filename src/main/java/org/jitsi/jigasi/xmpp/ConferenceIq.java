@@ -19,6 +19,7 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.*;
 import org.jivesoftware.smack.packet.*;
+import org.jxmpp.jid.*;
 
 import java.util.*;
 
@@ -53,14 +54,15 @@ public class ConferenceIq
     /**
      * MUC room name hosting Jitsi Meet conference.
      */
-    private String room;
+    private EntityBareJid room;
 
     /**
      * Create conference IQ.
      * @param room the room name.
      */
-    public ConferenceIq(String room)
+    public ConferenceIq(EntityBareJid room)
     {
+        super(ELEMENT_NAME, NAMESPACE);
         this.room = room;
     }
 
@@ -68,36 +70,13 @@ public class ConferenceIq
      * {@inheritDoc}
      */
     @Override
-    public String getChildElementXML()
+    protected IQChildElementXmlStringBuilder getIQChildElementBuilder(
+        IQChildElementXmlStringBuilder xml)
     {
-        StringBuilder xml = new StringBuilder();
-
-        xml.append("<").append(ELEMENT_NAME);
-        xml.append(" xmlns='").append(NAMESPACE).append("' ");
-
-        xml.append(MACHINE_UID_ATTR_NAME).append("='")
-            .append(UUID.randomUUID().toString()).append("' ");
-        xml.append(ROOM_ATTR_NAME).append("='")
-            .append(room).append("' ");
-
-        if (getExtensions().size() == 0)
-        {
-            xml.append("/>");
-        }
-        else
-        {
-            xml.append(">");
-
-            Collection<PacketExtension> children = getExtensions();
-            for (PacketExtension ext : children)
-            {
-                xml.append(ext.toXML());
-            }
-
-            xml.append("</").append(ELEMENT_NAME).append(">");
-        }
-        return xml.toString();
-
+        xml.attribute(MACHINE_UID_ATTR_NAME, UUID.randomUUID().toString())
+            .attribute(ROOM_ATTR_NAME, room);
+        xml.setEmptyElement();
+        return xml;
     }
 
     /**
@@ -135,7 +114,7 @@ public class ConferenceIq
          */
         public Property()
         {
-            super(null, ELEMENT_NAME);
+            super(NAMESPACE, ELEMENT_NAME);
         }
 
         /**

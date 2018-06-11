@@ -23,11 +23,15 @@ import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.xmpp.util.*;
 import org.jivesoftware.smack.packet.*;
 import org.junit.*;
 import org.junit.Test;
 import org.junit.runner.*;
 import org.junit.runners.*;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
 import java.lang.*;
@@ -68,7 +72,8 @@ public class CallsHandlingTest
 
         // give some time to osgi
         Object o = new Object();
-        synchronized (o) {
+        synchronized (o)
+        {
             o.wait(1500);
         }
     }
@@ -98,7 +103,7 @@ public class CallsHandlingTest
             = ServiceUtils.getServiceReferences(
                 ctx, ProtocolProviderService.class);
 
-        for (ServiceReference ref : refs)
+        for (ServiceReference<?> ref : refs)
         {
             ProtocolProviderService protoService
                 = (ProtocolProviderService) ctx.getService(ref);
@@ -166,7 +171,7 @@ public class CallsHandlingTest
     //@Test //is called from test multiple time
     public void testOutgoingSipCall()
         throws InterruptedException, OperationFailedException,
-               OperationNotSupportedException
+               OperationNotSupportedException, XmppStringprepException
     {
         String destination = "sip-destination";
 
@@ -190,7 +195,7 @@ public class CallsHandlingTest
         ctx.setDestination(destination);
         ctx.setRoomName(roomName);
         ctx.setCustomCallResource(
-            "callResourceUri" + roomName + "@conference.net");
+            JidCreate.from("callResourceUri" + roomName + "@conference.net"));
 
         SipGatewaySession session = sipGw.createOutgoingCall(ctx);
         assertNotNull(session);
@@ -285,7 +290,7 @@ public class CallsHandlingTest
     {
         String subdomain = "call";
         String serverName = "conference.net";
-        String jigasiJid = subdomain + "." + serverName;
+        Jid jigasiJid = JidCreate.from(subdomain + "." + serverName);
 
         CallControlComponent component
             = new CallControlComponent(
@@ -295,8 +300,8 @@ public class CallsHandlingTest
 
         assertEquals(serverName, component.getDomain());
 
-        String from = "from";
-        String to = "sipAddress";
+        Jid from = JidCreate.from("from@example.org");
+        Jid to = JidCreate.from("sipAddress@example.com");
 
         focus.setup();
 
@@ -304,7 +309,7 @@ public class CallsHandlingTest
         outCallWatch.bind(sipProvider.getTelephony());
 
         RayoIqProvider.DialIq dialIq
-            = RayoIqProvider.DialIq.create(to, from);
+            = RayoIqProvider.DialIq.create(to.toString(), from.toString());
 
         dialIq.setFrom(from);
         dialIq.setTo(jigasiJid);
@@ -338,7 +343,7 @@ public class CallsHandlingTest
 
         callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
 
-        String callResource = callUri.substring(5);
+        Jid callResource = JidCreate.from(callUri.substring(5)); //remove xmpp:
         SipGatewaySession session = osgi.getSipGateway().getSession(callResource);
         Call xmppCall = session.getJvbCall();
 
@@ -350,7 +355,7 @@ public class CallsHandlingTest
         // Now tear down
         RayoIqProvider.HangUp hangUp
             = RayoIqProvider.HangUp.create(
-                    from, callUri.substring(5));
+                    from, callResource);
 
         // FIXME: validate result
         component.handleIQ(IQUtils.convert(hangUp));
