@@ -138,15 +138,23 @@ public class Transcriber
     private String roomName;
 
     /**
+     * The url of the conference which will be transcribed
+     */
+    private String roomUrl;
+
+    /**
      * Create a transcription object which can be used to add and remove
      * participants of a conference to a list of audio streams which will
      * be transcribed.
      *
      * @param roomName the room name the transcription will take place in
+     * @param roomUrl the url of the conference being transcribed
      * @param service the transcription service which will be used to transcribe
      * the audio streams
      */
-    public Transcriber(String roomName, TranscriptionService service)
+    public Transcriber(String roomName,
+                       String roomUrl,
+                       TranscriptionService service)
     {
         if (!service.supportsStreamRecognition())
         {
@@ -156,7 +164,9 @@ public class Transcriber
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
+
         this.roomName = roomName;
+        this.roomUrl = roomUrl;
     }
 
     /**
@@ -169,7 +179,7 @@ public class Transcriber
      */
     public Transcriber(TranscriptionService service)
     {
-        this(null, service);
+        this(null, null, service);
     }
 
     /**
@@ -314,7 +324,7 @@ public class Transcriber
             }
 
             TranscriptEvent event
-                = this.transcript.started(roomName, participantsClone);
+                = this.transcript.started(roomName, roomUrl, participantsClone);
             if (event != null)
             {
                 fireTranscribeEvent(event);

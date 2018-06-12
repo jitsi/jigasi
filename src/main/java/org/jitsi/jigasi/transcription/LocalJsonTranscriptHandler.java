@@ -64,6 +64,12 @@ public class LocalJsonTranscriptHandler
         = "room_name";
 
     /**
+     * This fields stores the room url of the conference as a string
+     */
+    public final static String JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL
+        = "room_url";
+
+    /**
      * This field stores all the events as an JSON array
      */
     public final static String JSON_KEY_FINAL_TRANSCRIPT_EVENTS = "events";
@@ -416,6 +422,7 @@ public class LocalJsonTranscriptHandler
     @SuppressWarnings("unchecked")
     private void addTranscriptDescription(JSONObject jsonObject,
                                           String roomName,
+                                          String roomUrl,
                                           Collection<Participant> participants,
                                           Instant start,
                                           Instant end,
@@ -424,6 +431,10 @@ public class LocalJsonTranscriptHandler
         if(roomName != null && !roomName.isEmpty())
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME, roomName);
+        }
+        if(roomUrl != null && !roomUrl.isEmpty())
+        {
+            jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL, roomUrl);
         }
         if(start != null)
         {
@@ -475,6 +486,7 @@ public class LocalJsonTranscriptHandler
             addTranscriptDescription(
                 transcript,
                 super.roomName,
+                super.roomUrl,
                 super.initialMembers,
                 super.startInstant,
                 super.endInstant,

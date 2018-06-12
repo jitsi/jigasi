@@ -902,6 +902,17 @@ public class JvbConference
         return callContext.getRoomName();
     }
 
+    /**
+     * Returns the URL of the meeting
+     *
+     * @return the URL of the meeting
+     */
+    public String getMeetingUrl()
+    {
+
+        return callContext.getMeetingUrl();
+    }
+
     private class JvbCallListener
         implements CallListener
     {

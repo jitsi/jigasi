@@ -116,7 +116,10 @@ public class TranscriptionGatewaySession
     void onConferenceCallInvited(Call incomingCall)
     {
         // We got invited to a room, ready up the transcriber!
-        transcriber = new Transcriber(getJvbRoomName(), service);
+        transcriber = new Transcriber(getJvbRoomName(),
+            getMeetingUrl(),
+            service);
+
         transcriber.addTranscriptionListener(this);
         logger.debug("Invited for conference");
     }
