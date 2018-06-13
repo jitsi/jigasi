@@ -624,6 +624,36 @@ public class Transcriber
     }
 
     /**
+     * Set the roomName of the conference being transcribed
+     *
+     * @param roomName the roomName
+     */
+    public void setRoomName(String roomName)
+    {
+        this.roomName = roomName;
+    }
+
+    /**
+     * Get the room URL of the conference being transcribed
+     *
+     * @return the room URL
+     */
+    public String getRoomUrl()
+    {
+        return this.roomName;
+    }
+
+    /**
+     * Set the roomUrl of the conference being transcribed
+     *
+     * @param roomUrl the room URL
+     */
+    public void setRoomUrl(String roomUrl)
+    {
+        this.roomUrl = roomUrl;
+    }
+
+    /**
      * Notifies all <tt>TranscriptionEventListener</tt>s for new
      * <tt>TranscriptEvent</tt>.
      * @param event the new event.

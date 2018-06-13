@@ -28,8 +28,8 @@ import org.jivesoftware.smack.packet.*;
  * This class is able to receive {@link Presence} objects and update data
  * belonging to a
  * {@link org.jitsi.jigasi.transcription.Participant} by checking for
- * {@link IdentityPresenceExtension} and
- * {@link AvatarIdPresenceExtension}
+ * {@link IdentityPacketExtension} and
+ * {@link AvatarIdPacketExtension}
  * in the presence and storing their values inside a
  * {@link ChatRoomMember}
  *
@@ -45,7 +45,7 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the user-id in a
-     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPacketExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
     public final static String IDENTITY_USERID
@@ -53,7 +53,7 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the username in a
-     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPacketExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
     public final static String IDENTITY_USERNAME
@@ -61,7 +61,7 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the avatar-url in a
-     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPacketExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
     public final static String IDENTITY_AVATAR_URL
@@ -69,7 +69,7 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the group-id in a
-     * {@link IdentityPresenceExtension} in the {@link ChatRoomMember},
+     * {@link IdentityPacketExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
     public final static String IDENTITY_GROUPID
@@ -77,7 +77,7 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * The key used to save the avatar-id in a
-     * {@link AvatarIdPresenceExtension} in the {@link ChatRoomMember},
+     * {@link AvatarIdPacketExtension} in the {@link ChatRoomMember},
      * which acts as a {@link net.java.sip.communicator.util.DataObject}
      */
     public final static String AVATAR_ID = "AVATAR_ID";
@@ -116,19 +116,19 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * Receives a {@link Presence} and stores the data of a
-     * {@link IdentityPresenceExtension} if it is present inside the
+     * {@link IdentityPacketExtension} if it is present inside the
      * {@link ChatRoomMemberJabberImpl}
      *
      * @param p the presence to check for a
-     * {@link IdentityPresenceExtension}
+     * {@link IdentityPacketExtension}
      * @param member the member to store information into
      */
     private static void updateIdentity(Presence p,
                                        ChatRoomMemberJabberImpl member)
     {
-        IdentityPresenceExtension strideIdentity
-            = p.getExtension(IdentityPresenceExtension.ELEMENT_NAME,
-            IdentityPresenceExtension.NAME_SPACE);
+        IdentityPacketExtension strideIdentity
+            = p.getExtension(IdentityPacketExtension.ELEMENT_NAME,
+            IdentityPacketExtension.NAME_SPACE);
 
         if(strideIdentity != null)
         {
@@ -145,18 +145,18 @@ public class ChatRoomMemberPresenceExtensionReader
 
     /**
      * Receives a {@link Presence} and stores the data of a
-     * {@link AvatarIdPresenceExtension} if it is present inside the
+     * {@link AvatarIdPacketExtension} if it is present inside the
      * {@link ChatRoomMemberJabberImpl}
      *
-     * @param p the presence to check for a {@link AvatarIdPresenceExtension}
+     * @param p the presence to check for a {@link AvatarIdPacketExtension}
      * @param member the member to store information into
      */
     private static void updateAvatarId(Presence p,
                                        ChatRoomMemberJabberImpl member)
     {
-        AvatarIdPresenceExtension avatarId
-            = p.getExtension(AvatarIdPresenceExtension.ELEMENT_NAME,
-            AvatarIdPresenceExtension.NAME_SPACE);
+        AvatarIdPacketExtension avatarId
+            = p.getExtension(AvatarIdPacketExtension.ELEMENT_NAME,
+            AvatarIdPacketExtension.NAME_SPACE);
 
         if(avatarId != null)
         {
