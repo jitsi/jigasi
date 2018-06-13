@@ -19,7 +19,7 @@
   <fileSets>
     <fileSet>
       <directory>${project.build.directory}</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>${file.separator}</outputDirectory>
       <includes>
         <include>*.jar</include>
       </includes>
@@ -38,11 +38,19 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>${project.basedir}/resources/install/macosx</directory>
-      <outputDirectory>/</outputDirectory>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>${file.separator}</outputDirectory>
       <fileMode>755</fileMode>
       <includes>
         <include>jigasi.sh</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/script</directory>
+      <outputDirectory>${file.separator}</outputDirectory>
+      <fileMode>755</fileMode>
+      <includes>
+        <include>graceful_shutdown.sh</include>
       </includes>
     </fileSet>
   </fileSets>

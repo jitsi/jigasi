@@ -19,22 +19,30 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 
  ```
  cd jigasi
- ant make
+ mvn install -Dassembly.skipAssembly=false
  ```
- 
-3. Configure external component in your XMPP server. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua and append following lines to your config (assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
+
+3. Extract - choose either `jigasi-linux-x64-{version}.zip`, `jigasi-linux-x86-{version}.zip` or `jigasi-macosx-{version}.zip` based on the system.
+
+ ```
+ cd target/
+ unzip jigasi-{os-version}-{version}.zip
+ ```
+
+4. Configure external component in your XMPP server. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua and append following lines to your config (assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
 
  ```
  Component "callcontrol.meet.jit.si"
      component_secret = "topsecret"
  ```
-4. Setup SIP account
+5. Setup SIP account
 
  Go to jigasi/jigasi-home and edit sip-communicator.properties file. Replace ```<<JIGASI_SIPUSER>>``` tag with SIP username for example: "user1232@sipserver.net". Then put Base64 encoded password in place of ```<<JIGASI_SIPPWD>>```.
 
 5. Start Jigasi
  
  ```
+ cd jigasi/target/jigasi-{os-version}-{version}/
  ./jigasi.sh --domain=meet.jit.si --subdomain=callcontrol --secret=topsecret
  ```
 After Jigasi is started it will register as XMPP component under the 'callcontrol' subdomain. In Jitsi Meet application -> config.js -> hosts.call_control must be set to 'callcontrol.meet.jit.si'. This will enable SIP calls in Jitsi Meet.
