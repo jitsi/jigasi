@@ -812,7 +812,7 @@ public class JvbConference
                         && focusResourceAddr.equals(
                             presence.getFrom().getResourceOrEmpty().toString()))
                     {
-                        gatewaySession.notifyForRecordingStatusChange(
+                        gatewaySession.notifyRecordingStatusChanged(
                             rs.getRecordingMode(), rs.getStatus());
                     }
                 }

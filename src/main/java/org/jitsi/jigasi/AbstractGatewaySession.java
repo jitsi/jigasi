@@ -245,7 +245,7 @@ public abstract class AbstractGatewaySession
      * @param mode the recording mode.
      * @param status the recording status.
      */
-    void notifyForRecordingStatusChange(
+    void notifyRecordingStatusChanged(
         JibriIq.RecordingMode mode, JibriIq.Status status)
     {}
 

@@ -680,7 +680,7 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
-    public void notifyForRecordingStatusChange(
+    public void notifyRecordingStatusChanged(
         JibriIq.RecordingMode mode, JibriIq.Status status)
     {
         // not a recording, ignore
@@ -846,7 +846,7 @@ public class SipGatewaySession
             {
                 if (currentRecordingStatus.equals(JibriIq.Status.ON))
                 {
-                    Util.injectSoundFile(call, "sounds/RecordingOn.opus");
+                    Util.injectSoundFile(call, REC_ON_SOUND);
                 }
             }
         }

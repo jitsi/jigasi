@@ -22,9 +22,13 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
+import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
+
+import java.util.*;
 
 /**
  * Various utility methods.
@@ -85,10 +89,10 @@ public class Util
     }
 
     /**
-     * Injects as sound file in a call's <tt>MediaStream</tt> using injectPacket
+     * Injects sound file in a call's <tt>MediaStream</tt> using injectPacket
      * method and constructing RTP packets for it.
      * Supports opus only (when using translator mode calls from the jitsi-meet
-     * side all of the are using opus and are just translated to the sip side).
+     * side are using opus and are just translated to the sip side).
      *
      * The file will be played if possible, if there is call passed and that
      * call has call peers of type MediaAwareCallPeer with media handler that
@@ -98,25 +102,6 @@ public class Util
      * @param fileName the file name to play.
      */
     public static void injectSoundFile(Call call, String fileName)
-    {
-        try
-        {
-            injectSoundFileInternal(call, fileName);
-        }
-        catch (Throwable t)
-        {
-            Logger.getLogger(Util.class).error("Error playing:" + fileName, t);
-        }
-    }
-
-    /**
-     * The internal implementation of injectSoundFile.
-     * @param call the call (sip one) to inject the sound as rtp.
-     * @param fileName the file name to play.
-     * @throws Throwable cannot read source sound file or cannot transmit it.
-     */
-    private static void injectSoundFileInternal(Call call, String fileName)
-        throws Throwable
     {
         MediaStream stream = null;
 
@@ -137,34 +122,73 @@ public class Util
         }
 
         // if there is no stream or the calling account is not using translator
+        // or the current call is not using opus
         if (stream == null
             || !call.getProtocolProvider()
-                    .getAccountID().getAccountPropertyBoolean(
-                        ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
-                        false))
+            .getAccountID().getAccountPropertyBoolean(
+                ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                false)
+            || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1)
         {
             return;
         }
 
+        final MediaStream streamToPass = stream;
+        new Thread(() -> {
+            try
+            {
+                injectSoundFileInStream(streamToPass, fileName);
+            }
+            catch (Throwable t)
+            {
+                Logger.getLogger(Util.class)
+                    .error("Error playing:" + fileName, t);
+            }
+        }).start();
+    }
+
+    /**
+     * The internal implementation where we read the file and inject it in
+     * the stream.
+     * @param stream the stream where we inject the sound as rtp.
+     * @param fileName the file name to play.
+     * @throws Throwable cannot read source sound file or cannot transmit it.
+     */
+    private static void injectSoundFileInStream(
+        MediaStream stream, String fileName)
+            throws Throwable
+    {
         OpusFile of = new OpusFile(new OggPacketReader(
             Util.class.getClassLoader().getResourceAsStream(fileName)));
 
         OpusAudioData opusAudioData;
-        int seq = 0;
-        // Random timestamp and ssrc
-        long ts = System.currentTimeMillis()/1000;
-        long ssrc = System.currentTimeMillis()/10000;
+        // Random timestamp, ssrc and seq
+        int seq = new Random().nextInt(0xFFFF);
+        long ts = new Random().nextInt(0xFFFF);
+        long ssrc = new Random().nextInt(0xFFFF);
         byte pt = stream.getDynamicRTPPayloadType(Constants.OPUS);
 
         while ((opusAudioData = of.getNextAudioPacket()) != null)
         {
+            // seq may rollover
+            if (seq > AbstractCodec2.SEQUENCE_MAX)
+            {
+                seq = 0;
+            }
+
             int nSamples = opusAudioData.getNumberOfSamples();
             ts += nSamples;
+            // timestamp may rollover
+            if (ts > TimestampUtils.MAX_TIMESTAMP_VALUE)
+            {
+                ts = ts - TimestampUtils.MAX_TIMESTAMP_VALUE;
+            }
+
             byte[] data = opusAudioData.getData();
             RawPacket rtp = RawPacket.makeRTP(
                 ssrc, // ssrc
                 pt,// payload
-                ++seq, /// seq
+                seq++, /// seq
                 ts, // ts
                 data.length + RawPacket.FIXED_HEADER_SIZE// len
             );
