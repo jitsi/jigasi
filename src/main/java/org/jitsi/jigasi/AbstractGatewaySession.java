@@ -17,13 +17,10 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.Logger;
-import org.jitsi.jigasi.util.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import net.java.sip.communicator.util.*;
 
 import java.util.*;
 
@@ -140,7 +137,12 @@ public abstract class AbstractGatewaySession
         return jvbConference.isInTheRoom();
     }
 
-    // FIXME: 17/07/17 undocumented before refactor
+    /**
+     * Method called by <tt>JvbConference</tt> to notify that JVB conference
+     * call has been received and is about to be answered.
+     *
+     * @param incomingCall JVB call instance.
+     */
     abstract void onConferenceCallInvited(Call incomingCall);
 
     /**
@@ -235,6 +237,17 @@ public abstract class AbstractGatewaySession
             listener.onJvbRoomJoined(this);
         }
     }
+
+    /**
+     *  Method called by {@link JvbConference} to notify session that it has
+     *  detected a recording status change.
+     *
+     * @param mode the recording mode.
+     * @param status the recording status.
+     */
+    void notifyForRecordingStatusChange(
+        JibriIq.RecordingMode mode, JibriIq.Status status)
+    {}
 
     /**
      * Method called by {@link JvbConference} to notify session that a member

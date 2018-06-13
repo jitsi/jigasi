@@ -17,12 +17,15 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.service.configuration.*;
+import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -138,6 +141,13 @@ public class JigasiBundleActivator
 
         // Register Rayo IQs
         new RayoIqProvider().registerRayoIQs();
+
+        // recording status, to detect recording start/stop
+        ProviderManager.addExtensionProvider(
+            RecordingStatus.ELEMENT_NAME,
+            RecordingStatus.NAMESPACE,
+            new DefaultPacketExtensionProvider<>(RecordingStatus.class)
+        );
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
         if (sipGateway.getSipProvider() == null &&

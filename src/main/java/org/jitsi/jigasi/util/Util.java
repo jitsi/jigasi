@@ -19,7 +19,11 @@ package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
+import net.java.sip.communicator.util.*;
+import org.gagravarr.ogg.*;
+import org.gagravarr.opus.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 
 /**
@@ -78,5 +82,102 @@ public class Util
     public static String extractCallIdFromResource(String callResource)
     {
         return callResource.substring(0, callResource.indexOf("@"));
+    }
+
+    /**
+     * Injects as sound file in a call's <tt>MediaStream</tt> using injectPacket
+     * method and constructing RTP packets for it.
+     * Supports opus only (when using translator mode calls from the jitsi-meet
+     * side all of the are using opus and are just translated to the sip side).
+     *
+     * The file will be played if possible, if there is call passed and that
+     * call has call peers of type MediaAwareCallPeer with media handler that
+     * has MediaStream for Audio.
+     *
+     * @param call the call (sip one) to inject the sound as rtp.
+     * @param fileName the file name to play.
+     */
+    public static void injectSoundFile(Call call, String fileName)
+    {
+        try
+        {
+            injectSoundFileInternal(call, fileName);
+        }
+        catch (Throwable t)
+        {
+            Logger.getLogger(Util.class).error("Error playing:" + fileName, t);
+        }
+    }
+
+    /**
+     * The internal implementation of injectSoundFile.
+     * @param call the call (sip one) to inject the sound as rtp.
+     * @param fileName the file name to play.
+     * @throws Throwable cannot read source sound file or cannot transmit it.
+     */
+    private static void injectSoundFileInternal(Call call, String fileName)
+        throws Throwable
+    {
+        MediaStream stream = null;
+
+        CallPeer peer;
+        if (call != null
+            && call.getCallPeers() != null
+            && (peer = call.getCallPeers().next()) != null
+            && peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler
+                = peerMedia.getMediaHandler();
+            if (mediaHandler != null)
+            {
+                stream = mediaHandler.getStream(MediaType.AUDIO);
+            }
+        }
+
+        // if there is no stream or the calling account is not using translator
+        if (stream == null
+            || !call.getProtocolProvider()
+                    .getAccountID().getAccountPropertyBoolean(
+                        ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                        false))
+        {
+            return;
+        }
+
+        OpusFile of = new OpusFile(new OggPacketReader(
+            Util.class.getClassLoader().getResourceAsStream(fileName)));
+
+        OpusAudioData opusAudioData;
+        int seq = 0;
+        // Random timestamp and ssrc
+        long ts = System.currentTimeMillis()/1000;
+        long ssrc = System.currentTimeMillis()/10000;
+        byte pt = stream.getDynamicRTPPayloadType(Constants.OPUS);
+
+        while ((opusAudioData = of.getNextAudioPacket()) != null)
+        {
+            int nSamples = opusAudioData.getNumberOfSamples();
+            ts += nSamples;
+            byte[] data = opusAudioData.getData();
+            RawPacket rtp = RawPacket.makeRTP(
+                ssrc, // ssrc
+                pt,// payload
+                ++seq, /// seq
+                ts, // ts
+                data.length + RawPacket.FIXED_HEADER_SIZE// len
+            );
+
+            System.arraycopy(
+                data, 0, rtp.getBuffer(), rtp.getPayloadOffset(), data.length);
+
+            stream.injectPacket(rtp, true, null);
+            synchronized (of)
+            {
+                // we wait the time which this packets carries as time of sound
+                of.wait(nSamples/48);
+            }
+        }
     }
 }
