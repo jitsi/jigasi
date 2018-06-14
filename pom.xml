@@ -53,9 +53,8 @@
     </dependency>
     <dependency>
       <groupId>org.gagravarr</groupId>
-      <artifactId>vorbis-java</artifactId>
+      <artifactId>vorbis-java-core</artifactId>
       <version>0.8</version>
-      <type>pom</type>
     </dependency>
 
     <!-- org.jitsi -->
