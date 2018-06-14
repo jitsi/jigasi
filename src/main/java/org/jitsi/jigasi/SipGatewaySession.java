@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -154,6 +155,21 @@ public class SipGatewaySession
      * The default remote endpoint id to use for statistics.
      */
     public static final String DEFAULT_STATS_REMOTE_ID = "sip";
+
+    /**
+     * The current recording status in the conference.
+     */
+    private JibriIq.Status currentRecordingStatus = JibriIq.Status.OFF;
+
+    /**
+     * The sound file to use when recording is ON.
+     */
+    private static final String REC_ON_SOUND = "sounds/RecordingOn.opus";
+
+    /**
+     * The sound file to use when recording is OFF.
+     */
+    private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -660,6 +676,38 @@ public class SipGatewaySession
         return mucDisplayName;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyRecordingStatusChanged(
+        JibriIq.RecordingMode mode, JibriIq.Status status)
+    {
+        // not a recording, ignore
+        if (!mode.equals(JibriIq.RecordingMode.FILE))
+        {
+            return;
+        }
+
+        // not a change, ignore
+        if (currentRecordingStatus.equals(status))
+        {
+            return;
+        }
+
+        if (JibriIq.Status.ON.equals(status))
+        {
+            // if call is still not established this will be ignored in
+            // injectSoundFile and nothing will be played
+            Util.injectSoundFile(this.call, REC_ON_SOUND);
+        }
+        else if (JibriIq.Status.OFF.equals(status))
+        {
+            Util.injectSoundFile(this.call, REC_OFF_SOUND);
+        }
+        currentRecordingStatus = status;
+    }
+
     class SipCallStateListener
         implements CallChangeListener
     {
@@ -791,6 +839,15 @@ public class SipGatewaySession
                                 evt.getSourceCallPeer().getCall());
                     }
                 }).start();
+            }
+
+            // when someone connects and recording is on, play notification
+            if (CallPeerState.CONNECTED.equals(callPeerState))
+            {
+                if (currentRecordingStatus.equals(JibriIq.Status.ON))
+                {
+                    Util.injectSoundFile(call, REC_ON_SOUND);
+                }
             }
         }
 

@@ -154,11 +154,14 @@
         <jar
             compress="true"
             destfile="jigasi.jar">
-        <fileset casesensitive="no" dir="${output}">
-            <include name="**/*.class" />
-            <include name="**/*.properties" />
-            <exclude name="${output}/jigasi.jar" />
-        </fileset>
+            <fileset casesensitive="no" dir="${output}">
+                <include name="**/*.class" />
+                <include name="**/*.properties" />
+                <exclude name="${output}/jigasi.jar" />
+            </fileset>
+            <fileset dir="src/main/resources">
+                <include name="**/*.opus"/>
+            </fileset>
         </jar>
     </target>
 

@@ -18,6 +18,7 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
@@ -794,6 +795,27 @@ public class JvbConference
                 leaveTimeout.cancel();
 
                 gatewaySession.notifyChatRoomMemberJoined(member);
+            }
+            else if(ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
+                    .equals(eventType))
+            {
+                if (member instanceof ChatRoomMemberJabberImpl)
+                {
+                    Presence presence
+                        = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+
+                    RecordingStatus rs = presence.getExtension(
+                        RecordingStatus.ELEMENT_NAME,
+                        RecordingStatus.NAMESPACE);
+
+                    if (rs != null
+                        && focusResourceAddr.equals(
+                            presence.getFrom().getResourceOrEmpty().toString()))
+                    {
+                        gatewaySession.notifyRecordingStatusChanged(
+                            rs.getRecordingMode(), rs.getStatus());
+                    }
+                }
             }
 
             return;
