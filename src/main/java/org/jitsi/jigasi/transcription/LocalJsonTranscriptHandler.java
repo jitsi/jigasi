@@ -178,7 +178,7 @@ public class LocalJsonTranscriptHandler
     /**
      * This fields stores the topic of the muc message as a string
      */
-    public final static String JSON_KEY_TOPIC = "jitsi-meet-muc-msg-topic";
+    public final static String JSON_KEY_TOPIC = "type";
 
     /**
      * This field stores the value of the topic of the muc message as a string
@@ -204,7 +204,7 @@ public class LocalJsonTranscriptHandler
         JSONObject encapsulatingObject = new JSONObject();
         createEncapsulatingObject(encapsulatingObject, eventObject);
 
-        super.sendMessage(room, encapsulatingObject);
+        super.sendJsonMessage(room, eventObject);
     }
 
     /**
