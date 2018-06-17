@@ -17,9 +17,8 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import com.google.api.gax.grpc.*;
+import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
-import com.google.cloud.speech.spi.v1.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
 import org.jitsi.jigasi.transcription.action.*;
@@ -539,7 +538,7 @@ public class GoogleCloudTranscriptionService
 
             // StreamingCallable manages sending the audio and receiving
             // the results
-            StreamingCallable<StreamingRecognizeRequest,
+            BidiStreamingCallable<StreamingRecognizeRequest,
                 StreamingRecognizeResponse> callable = client
                 .streamingRecognizeCallable();
 
