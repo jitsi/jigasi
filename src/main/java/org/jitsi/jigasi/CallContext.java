@@ -397,9 +397,9 @@ public class CallContext
             return null;
         }
 
-        url = url.substring(0, url.indexOf("http-bind?"));
+        url = url.substring(0, url.indexOf("/http-bind"));
         room = room.substring(0, room.indexOf("@"));
 
-        return url + room;
+        return url + "/" + room;
     }
 }
