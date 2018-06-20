@@ -195,8 +195,8 @@ public abstract class AbstractTranscriptPublisher<T>
         try
         {
             chatRoom.sendMessage(chatRoomMessage);
-            if (logger.isDebugEnabled())
-                logger.debug("Sending message: \"" + messageString + "\"");
+            if (logger.isTraceEnabled())
+                logger.trace("Sending message: \"" + messageString + "\"");
         }
         catch (OperationFailedException e)
         {
@@ -226,9 +226,8 @@ public abstract class AbstractTranscriptPublisher<T>
             if(chatRoom instanceof ChatRoomJabberImpl)
                 ((ChatRoomJabberImpl)chatRoom).sendJsonMessage(chatRoomMessage,
                         messageString);
-
-            if (logger.isDebugEnabled())
-                logger.debug("Sending json message: \"" + messageString + "\"");
+            if (logger.isTraceEnabled())
+                logger.trace("Sending json message: \"" + messageString + "\"");
         }
         catch (OperationFailedException e)
         {

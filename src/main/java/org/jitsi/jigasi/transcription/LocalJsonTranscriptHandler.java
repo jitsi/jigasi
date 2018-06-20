@@ -200,9 +200,7 @@ public class LocalJsonTranscriptHandler
     public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject eventObject = createJSONObject(result);
-
-        JSONObject encapsulatingObject = new JSONObject();
-        createEncapsulatingObject(encapsulatingObject, eventObject);
+        eventObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
 
         super.sendJsonMessage(room, eventObject);
     }
