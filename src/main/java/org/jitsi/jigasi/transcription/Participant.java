@@ -18,8 +18,11 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.util.Util;
 import org.jitsi.util.*;
+import org.jivesoftware.smack.packet.*;
 
 import javax.media.format.*;
 import java.nio.*;
@@ -80,6 +83,21 @@ public class Participant
      * The audio ssrc when it is not known yet
      */
     public static final long DEFAULT_UNKNOWN_AUDIO_SSRC = -1;
+
+    /**
+     * The standard URL to a gravatar avatar which still needs to be formatted
+     * with the ID. The ID can be received by hasing the email with md5
+     */
+    private final static String GRAVARAR_URL_FORMAT
+        = "https://www.gravatar.com/avatar/%s?d=wavatar&size=200";
+
+    /**
+     * The standard url to a meeple avatar by using a random ID. Default usage
+     * when email not known, but using `avatar-id` does not actually result
+     * int he same meeple
+     */
+    private final static String MEEPLE_URL_FORMAT
+        = "https://abotars.jitsi.net/meeple/%s";
 
     /**
      * The {@link Transcriber} which owns this {@link Participant}.
@@ -181,7 +199,7 @@ public class Participant
      */
     public String getAvatarUrl()
     {
-        if(chatMember == null)
+        if (chatMember == null)
         {
             return null;
         }
@@ -190,7 +208,132 @@ public class Participant
             return null;
         }
 
-        return ((ChatRoomMemberJabberImpl) chatMember).getAvatarUrl();
+        ChatRoomMemberJabberImpl memberJabber
+            = ((ChatRoomMemberJabberImpl) this.chatMember);
+
+        IdentityPacketExtension ipe = getIdentityExtensionOrNull(
+            memberJabber.getLastPresence());
+
+        String url;
+        if (ipe != null && (url = ipe.getUserAvatarUrl()) != null)
+        {
+            return url;
+        }
+        else if ((url = memberJabber.getAvatarUrl()) != null)
+        {
+            return url;
+        }
+
+        String email;
+        if ((email = getEmail()) != null)
+        {
+            return String.format(GRAVARAR_URL_FORMAT,
+                Util.stringToMD5hash(email));
+        }
+
+        // Create a nice looking meeple avatar when avatar-url nor email is set
+        AvatarIdPacketExtension avatarIdExtension = getAvatarIdExtensionOrNull(
+            memberJabber.getLastPresence());
+        String avatarId;
+        if (ipe != null && (avatarId = avatarIdExtension.getAvatarId()) != null)
+        {
+            return String.format(MEEPLE_URL_FORMAT,
+                Util.stringToMD5hash(avatarId));
+        }
+        else
+        {
+            return String.format(MEEPLE_URL_FORMAT,
+                Util.stringToMD5hash(identifier));
+        }
+    }
+
+    /**
+     * Get the user-name in the identity presence, if present
+     *
+     * @return the user-name or null
+     */
+    public String getIdentityUserName()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getUserName():
+            null;
+    }
+
+    /**
+     * Get the user id in the identity presence, if present
+     *
+     * @return the user id or null
+     */
+    public String getIdentityUserId()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getUserId():
+            null;
+    }
+
+    /**
+     * Get the group id in the identity presence, if present
+     *
+     * @return the group id or null
+     */
+    public String getIdentityGroupId()
+    {
+        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        {
+            return null;
+        }
+
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getGroupId():
+            null;
+    }
+
+    /**
+     * Get the {@link IdentityPacketExtension} inside a {@link Presence},
+     * or null when it's not inside
+     *
+     * @param p the presence
+     * @return the {@link IdentityPacketExtension} or null
+     */
+    private IdentityPacketExtension getIdentityExtensionOrNull(Presence p)
+    {
+        return p.getExtension(IdentityPacketExtension.ELEMENT_NAME,
+            IdentityPacketExtension.NAME_SPACE);
+    }
+
+    /**
+     * Get the {@link AvatarIdPacketExtension} inside a {@link Presence} or null
+     * when it's not inside
+     *
+     * @param p the presence
+     * @return the {@link AvatarIdPacketExtension} or null
+     */
+    private AvatarIdPacketExtension getAvatarIdExtensionOrNull(Presence p)
+    {
+        return p.getExtension(AvatarIdPacketExtension.ELEMENT_NAME,
+            AvatarIdPacketExtension.NAME_SPACE);
     }
 
     /**

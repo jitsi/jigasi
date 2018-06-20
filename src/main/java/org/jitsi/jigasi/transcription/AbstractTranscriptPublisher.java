@@ -443,6 +443,11 @@ public abstract class AbstractTranscriptPublisher<T>
         protected String roomName;
 
         /**
+         * A string of the room url
+         */
+        protected String roomUrl;
+
+        /**
          * A list of initial participant names
          */
         protected List<Participant> initialMembers = new LinkedList<>();
@@ -482,6 +487,21 @@ public abstract class AbstractTranscriptPublisher<T>
             if(roomName != null)
             {
                 this.roomName = roomName;
+            }
+            return this;
+        }
+
+        /**
+         * Format a transcript which includes a room url
+         *
+         * @param url the url of the room
+         * @return this formatter
+         */
+        BaseFormatter tookPlaceAtUrl(String url)
+        {
+            if(url != null)
+            {
+                this.roomUrl = url;
             }
             return this;
         }

@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.json.simple.*;
+import org.json.*;
 
 import java.util.*;
 

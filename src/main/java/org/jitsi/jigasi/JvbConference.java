@@ -816,6 +816,8 @@ public class JvbConference
                             rs.getRecordingMode(), rs.getStatus());
                     }
                 }
+
+
             }
 
             return;
@@ -895,6 +897,17 @@ public class JvbConference
     public String getRoomName()
     {
         return callContext.getRoomName();
+    }
+
+    /**
+     * Returns the URL of the meeting
+     *
+     * @return the URL of the meeting
+     */
+    public String getMeetingUrl()
+    {
+
+        return callContext.getMeetingUrl();
     }
 
     private class JvbCallListener

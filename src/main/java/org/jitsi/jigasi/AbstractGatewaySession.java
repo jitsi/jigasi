@@ -120,6 +120,16 @@ public abstract class AbstractGatewaySession
     }
 
     /**
+     * Returns the url of the conference or null if we're not in a meeting
+     *
+     * @return the url or null
+     */
+    public String getMeetingUrl()
+    {
+        return jvbConference != null ? jvbConference.getMeetingUrl() : null;
+    }
+
+    /**
      * Returns <tt>ChatRoom</tt> that hosts JVB conference of this session
      * if we're already/still in this room or <tt>null</tt> otherwise.
      */

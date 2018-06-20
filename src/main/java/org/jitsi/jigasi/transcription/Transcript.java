@@ -85,6 +85,11 @@ public class Transcript
     private String roomName;
 
     /**
+     * The url of the conference this transcript belongs to
+     */
+    private String roomUrl;
+
+    /**
      * Create a Transcript object which can store events related to a conference
      * which can then be formatted into an actual transcript by a
      * {@link TranscriptHandler}
@@ -93,11 +98,13 @@ public class Transcript
      * Other events, such as people joining and leaving, can be stored using
      * their instance methods
      *
-     * @param roomName the name of the room of the conference if this transcript
+     * @param roomName the name of the room of the conference
+     * @param roomUrl the url of the room of the conference
      */
-    Transcript(String roomName)
+    Transcript(String roomName, String roomUrl)
     {
         this.roomName = roomName;
+        this.roomUrl = roomUrl;
     }
 
     /**
@@ -112,6 +119,7 @@ public class Transcript
     Transcript()
     {
         this.roomName = "";
+        this.roomUrl = "";
     }
 
     /**
@@ -164,15 +172,18 @@ public class Transcript
      * Will be ignored if already told the conference started
      *
      * @param roomName the roomName of the conference
+     * @param roomUrl the url of the conference
      * @param initialParticipants the  participants currently in the room
      * @return the newly created <tt>TranscriptEvent</tt> or null.
      */
     protected TranscriptEvent started(String roomName,
-                           List<Participant> initialParticipants)
+                                      String roomUrl,
+                                      List<Participant> initialParticipants)
     {
         if(started == null)
         {
             this.roomName = roomName;
+            this.roomUrl = roomUrl;
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
             this.initialParticipantNames.addAll(initialParticipants);
@@ -302,6 +313,7 @@ public class Transcript
             .startedOn(started)
             .initialParticipants(initialParticipantNames)
             .tookPlaceInRoom(roomName)
+            .tookPlaceAtUrl(roomUrl)
             .speechEvents(speechEvents)
             .raiseHandEvents(raisedHandEvents)
             .joinEvents(joinedEvents)
