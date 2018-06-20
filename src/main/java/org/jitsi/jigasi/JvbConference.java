@@ -815,9 +815,6 @@ public class JvbConference
                         gatewaySession.notifyRecordingStatusChanged(
                             rs.getRecordingMode(), rs.getStatus());
                     }
-
-                    ChatRoomMemberPresenceExtensionReader
-                        .readLastPresenceAndUpdate(member);
                 }
 
 

@@ -18,10 +18,11 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.util.Util;
-import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.util.*;
+import org.jivesoftware.smack.packet.*;
 
 import javax.media.format.*;
 import java.nio.*;
@@ -198,7 +199,7 @@ public class Participant
      */
     public String getAvatarUrl()
     {
-        if(chatMember == null)
+        if (chatMember == null)
         {
             return null;
         }
@@ -210,36 +211,40 @@ public class Participant
         ChatRoomMemberJabberImpl memberJabber
             = ((ChatRoomMemberJabberImpl) this.chatMember);
 
+        IdentityPacketExtension ipe = getIdentityExtensionOrNull(
+            memberJabber.getLastPresence());
+
         String url;
-        if((url = (String) memberJabber.getData(
-            ChatRoomMemberPresenceExtensionReader
-                .IDENTITY_AVATAR_URL)) != null)
+        if (ipe != null && (url = ipe.getUserAvatarUrl()) != null)
         {
             return url;
         }
-        else if((url = memberJabber.getAvatarUrl()) != null)
+        else if ((url = memberJabber.getAvatarUrl()) != null)
         {
             return url;
         }
 
         String email;
-        if((email = getEmail()) != null)
+        if ((email = getEmail()) != null)
         {
             return String.format(GRAVARAR_URL_FORMAT,
                 Util.stringToMD5hash(email));
         }
 
         // Create a nice looking meeple avatar when avatar-url nor email is set
+        AvatarIdPacketExtension avatarIdExtension = getAvatarIdExtensionOrNull(
+            memberJabber.getLastPresence());
         String avatarId;
-        if((avatarId
-            = (String) memberJabber.getData(
-            ChatRoomMemberPresenceExtensionReader.AVATAR_ID)) != null)
+        if (ipe != null && (avatarId = avatarIdExtension.getAvatarId()) != null)
         {
             return String.format(MEEPLE_URL_FORMAT,
                 Util.stringToMD5hash(avatarId));
         }
-
-        return null;
+        else
+        {
+            return String.format(MEEPLE_URL_FORMAT,
+                Util.stringToMD5hash(identifier));
+        }
     }
 
     /**
@@ -254,9 +259,13 @@ public class Participant
             return null;
         }
 
-        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.IDENTITY_USERNAME
-        );
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getUserName():
+            null;
     }
 
     /**
@@ -271,9 +280,13 @@ public class Participant
             return null;
         }
 
-        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.IDENTITY_USERID
-        );
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getUserId():
+            null;
     }
 
     /**
@@ -288,9 +301,39 @@ public class Participant
             return null;
         }
 
-        return (String) ((ChatRoomMemberJabberImpl) chatMember).getData(
-            ChatRoomMemberPresenceExtensionReader.IDENTITY_GROUPID
-        );
+        IdentityPacketExtension ipe
+            = getIdentityExtensionOrNull(
+                ((ChatRoomMemberJabberImpl) chatMember).getLastPresence());
+
+        return ipe != null ?
+            ipe.getGroupId():
+            null;
+    }
+
+    /**
+     * Get the {@link IdentityPacketExtension} inside a {@link Presence},
+     * or null when it's not inside
+     *
+     * @param p the presence
+     * @return the {@link IdentityPacketExtension} or null
+     */
+    private IdentityPacketExtension getIdentityExtensionOrNull(Presence p)
+    {
+        return p.getExtension(IdentityPacketExtension.ELEMENT_NAME,
+            IdentityPacketExtension.NAME_SPACE);
+    }
+
+    /**
+     * Get the {@link AvatarIdPacketExtension} inside a {@link Presence} or null
+     * when it's not inside
+     *
+     * @param p the presence
+     * @return the {@link AvatarIdPacketExtension} or null
+     */
+    private AvatarIdPacketExtension getAvatarIdExtensionOrNull(Presence p)
+    {
+        return p.getExtension(AvatarIdPacketExtension.ELEMENT_NAME,
+            AvatarIdPacketExtension.NAME_SPACE);
     }
 
     /**
