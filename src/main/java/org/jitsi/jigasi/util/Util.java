@@ -262,7 +262,7 @@ public class Util
      * @param indent the indent to apply to the XML
      * @return the formatted String
      */
-    public static String prettyFormat(String input, int indent)
+    public static String prettyFormatXMLString(String input, int indent)
     {
         try
         {
