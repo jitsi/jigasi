@@ -235,7 +235,8 @@ public class Participant
         AvatarIdPacketExtension avatarIdExtension = getAvatarIdExtensionOrNull(
             memberJabber.getLastPresence());
         String avatarId;
-        if (ipe != null && (avatarId = avatarIdExtension.getAvatarId()) != null)
+        if (avatarIdExtension != null &&
+            (avatarId = avatarIdExtension.getAvatarId()) != null)
         {
             return String.format(MEEPLE_URL_FORMAT,
                 Util.stringToMD5hash(avatarId));
