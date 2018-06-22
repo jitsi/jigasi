@@ -212,20 +212,17 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     protected void sendJsonMessage(ChatRoom chatRoom, T jsonMessage)
     {
-        if (chatRoom == null)
+        if (chatRoom == null || !(chatRoom instanceof ChatRoomJabberImpl))
         {
-            logger.error("Cannot sent message as chatRoom is null");
+            logger.error("Cannot sent message as chatRoom is null " +
+                "or is not an instance of ChatRoomJabberImpl");
             return;
         }
 
         String messageString = jsonMessage.toString();
-        //Creates a Message without a body.
-        Message chatRoomMessage = chatRoom.createMessage(null);
         try
         {
-            if(chatRoom instanceof ChatRoomJabberImpl)
-                ((ChatRoomJabberImpl)chatRoom).sendJsonMessage(chatRoomMessage,
-                        messageString);
+            ((ChatRoomJabberImpl)chatRoom).sendJsonMessage(messageString);
             if (logger.isTraceEnabled())
                 logger.trace("Sending json message: \"" + messageString + "\"");
         }
