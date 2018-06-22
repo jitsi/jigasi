@@ -202,7 +202,7 @@ public class LocalJsonTranscriptHandler
     /**
      * This fields stores the topic of the muc message as a string
      */
-    public final static String JSON_KEY_TOPIC = "type";
+    public final static String JSON_KEY_TYPE = "type";
 
     /**
      * This field stores the value of the topic of the muc message as a string
@@ -224,6 +224,7 @@ public class LocalJsonTranscriptHandler
     public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject eventObject = createJSONObject(result);
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TOPIC);
 
         JSONObject encapsulatingObject = new JSONObject();
         createEncapsulatingObject(encapsulatingObject, eventObject);
@@ -242,7 +243,7 @@ public class LocalJsonTranscriptHandler
     protected void createEncapsulatingObject(JSONObject encapsulatingObject,
                                            JSONObject transcriptResultObject)
     {
-        encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
+        encapsulatingObject.put(JSON_KEY_TYPE, JSON_VALUE_TOPIC);
         encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
     }
 
