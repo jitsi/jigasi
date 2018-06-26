@@ -176,14 +176,14 @@ public class LocalJsonTranscriptHandler
     // JSON object to send to MUC
 
     /**
-     * This fields stores the topic of the muc message as a string
+     * This fields stores the type of the muc message as a string
      */
     public final static String JSON_KEY_TYPE = "type";
 
     /**
-     * This field stores the value of the topic of the muc message as a string
+     * This field stores the value of the type of the muc message as a string
      */
-    public final static String JSON_VALUE_TOPIC = "transcription-result";
+    public final static String JSON_VALUE_TYPE = "transcription-result";
 
     /**
      * This field stores the payload object which will be send as a muc message
@@ -200,24 +200,8 @@ public class LocalJsonTranscriptHandler
     public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject eventObject = createJSONObject(result);
-        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TOPIC);
 
         super.sendJsonMessage(room, eventObject);
-    }
-
-    /**
-     * Create the JSON object will be send to the {@link ChatRoom}
-     *
-     * @param encapsulatingObject the json object which will be send
-     * @param transcriptResultObject the json object which will be added as
-     *                               payload
-     */
-    @SuppressWarnings("unchecked")
-    protected void createEncapsulatingObject(JSONObject encapsulatingObject,
-                                           JSONObject transcriptResultObject)
-    {
-        encapsulatingObject.put(JSON_KEY_TYPE, JSON_VALUE_TOPIC);
-        encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
     }
 
     /**
@@ -225,6 +209,7 @@ public class LocalJsonTranscriptHandler
      * @param result the object to use to produce json.
      * @return json object representing the <tt>TranscriptionResult</>.
      */
+    @SuppressWarnings("unchecked")
     public static JSONObject createJSONObject(TranscriptionResult result)
     {
         JSONObject eventObject = new JSONObject();
@@ -232,6 +217,8 @@ public class LocalJsonTranscriptHandler
 
         addEventDescriptions(eventObject, event);
         addAlternatives(eventObject, event);
+
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE);
 
         return eventObject;
     }
