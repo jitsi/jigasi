@@ -272,6 +272,15 @@ public class TranscriptionGatewaySession
         // we don't care about this event
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean maybeUseAuthenticatedLogin()
+    {
+        return true;
+    }
+
     @Override
     public boolean isTranslatorSupported()
     {

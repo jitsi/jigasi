@@ -321,6 +321,18 @@ public abstract class AbstractGatewaySession
     public abstract boolean isTranslatorSupported();
 
     /**
+     * Whether the gateway should attempt to use an authenticated xmmp account
+     * to join the conference. If the properties for authenticated login are
+     * set, and this method returns true, authenticated login will happen.
+     * If the properties are not set, authenticated login will fail regardless.
+     * If this method returns false, authenticated login will not happen
+     * regardless of whether the properties are set.
+     *
+     * @return whether to attempt authenticated login
+     */
+    public abstract boolean maybeUseAuthenticatedLogin();
+
+    /**
      * Returns the gateway used for this session.
      * @return the gateway used for this session.
      */

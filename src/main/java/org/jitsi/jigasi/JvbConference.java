@@ -1094,67 +1094,73 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL_STATUS
             + ".DTLS-SRTP", "true");
 
-        String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
-        List<String> overriddenProps =
-            JigasiBundleActivator.getConfigurationService()
-                .getPropertyNamesByPrefix(overridePrefix, false);
-        for(String overridenProp : overriddenProps)
+
+        if(gatewaySession.maybeUseAuthenticatedLogin())
         {
-            String key = overridenProp.replace(overridePrefix + ".", "");
-            String value = JigasiBundleActivator.getConfigurationService()
-                .getString(overridenProp);
+            String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
+            List<String> overriddenProps =
+                JigasiBundleActivator.getConfigurationService()
+                    .getPropertyNamesByPrefix(overridePrefix, false);
+            for (String overridenProp : overriddenProps)
+            {
+                String key = overridenProp.replace(overridePrefix + ".", "");
+                String value = JigasiBundleActivator.getConfigurationService()
+                    .getString(overridenProp);
 
-            // The key for the password field can't end in PASSWORD, otherwise
-            // it is encrypted by our configuration service implementation.
-            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp))
-            {
-                // The password is fully managed (i.e. stored/retrieved) by the
-                // configuration service and credentials storage service. See
-                // the
-                //
-                //     ProtocolProviderFactory#loadPassword()
-                //
-                // method. The problem with dynamic XMPP accounts is that they
-                // *don't* exist in the configuration, unless we explicitly
-                // store them using the
-                //
-                //     ProtocolProviderFactory#storeAccount()
-                //
-                // method. Simply loading an account using the
-                //
-                //     ProtocolProviderFactory#loadAccount()
-                //
-                // method can't (and doesn't) work, at least not without
-                // changing the implementation of the loadAccount method..
-                //
-                // To avoid to have to store the dynamic accounts in the
-                // configuration and, consequently, to have to manage them, to
-                // have remove them later, etc. (also NOTE that storing an
-                // account WRITES the configuration file), we read the password
-                // from a custom key (and *not* from the standard password key,
-                // otherwise it gets encrypted by the configuration service, see
-                // the comment above) and then we feed it (the password) to the
-                // new ServerSecurityAuthority that we create when we register
-                // the account. The
-                //
-                //     ServerSecurityAuthority#obtainCredentials
-                //
-                // method is called when there no password for a specific
-                // account and there we can alter the connection credentials.
+                // The key for the password field can't end in PASSWORD,
+                // otherwise it is encrypted by our configuration service
+                // implementation.
+                if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp))
+                {
+                    // The password is fully managed (i.e. stored/retrieved)
+                    // by the configuration service and credentials storage
+                    // service. See the
+                    //
+                    //     ProtocolProviderFactory#loadPassword()
+                    //
+                    // method. The problem with dynamic XMPP accounts is that
+                    // they *don't* exist in the configuration, unless we
+                    // explicitly store them using the
+                    //
+                    //     ProtocolProviderFactory#storeAccount()
+                    //
+                    // method. Simply loading an account using the
+                    //
+                    //     ProtocolProviderFactory#loadAccount()
+                    //
+                    // method can't (and doesn't) work, at least not without
+                    // changing the implementation of the loadAccount method..
+                    //
+                    // To avoid to have to store the dynamic accounts in the
+                    // configuration and, consequently, to have to manage them,
+                    // to have remove them later, etc. (also NOTE that storing
+                    // an account WRITES the configuration file), we read
+                    // the password from a custom key (and *not* from the
+                    // standard password key, otherwise it gets encrypted by the
+                    // configuration service, see the comment above) and then we
+                    // feed it (the password) to the new ServerSecurityAuthority
+                    // that we create when we register the account. The
+                    //
+                    //     ServerSecurityAuthority#obtainCredentials
+                    //
+                    // method is called when there no password for a specific
+                    // account and there we can alter the connection
+                    // credentials.
 
-                this.xmppPassword = value;
-            }
-            else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
-                        .equals(overridenProp))
-            {
-                // do not override boshURL with the global setting if
-                // we already have a value
-                if (StringUtils.isNullOrEmpty(ctx.getBoshURL()))
-                    ctx.setBoshURL(value);
-            }
-            else
-            {
-                properties.put(key, value);
+                    this.xmppPassword = value;
+                }
+                else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
+                    .equals(overridenProp))
+                {
+                    // do not override boshURL with the global setting if
+                    // we already have a value
+                    if (StringUtils.isNullOrEmpty(ctx.getBoshURL()))
+                        ctx.setBoshURL(value);
+                }
+                else
+                {
+                    properties.put(key, value);
+                }
             }
         }
 
