@@ -321,6 +321,14 @@ public abstract class AbstractGatewaySession
     public abstract boolean isTranslatorSupported();
 
     /**
+     * Get the default status of our participant before we get any state from
+     * the <tt>CallPeer</tt>.
+     *
+     * @return the default status, or null when none desired
+     */
+    public abstract String getDefaultInitStatus();
+
+    /**
      * Returns the gateway used for this session.
      * @return the gateway used for this session.
      */
