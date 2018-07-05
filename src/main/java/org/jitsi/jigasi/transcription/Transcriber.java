@@ -45,14 +45,14 @@ public class Transcriber
     private final static Logger logger = Logger.getLogger(Transcriber.class);
 
     /**
-     * Datadog ascept for starting transcribing
+     * Datadog aspect for starting transcribing
      */
     private final static String DD_ASPECT_START = "start_transcriber";
 
     /**
-     * Datadog ascept for ending transcribing
+     * Datadog aspect for ending transcribing
      */
-    private final static String DD_ASCEPT_STOP = "stop_transcriber";
+    private final static String DD_ASPECT_STOP = "stop_transcriber";
 
     /**
      * The states the transcriber can be in. The Transcriber
@@ -372,10 +372,10 @@ public class Transcriber
             StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
             if(dClient != null)
             {
-                dClient.increment(DD_ASCEPT_STOP);
+                dClient.increment(DD_ASPECT_STOP);
                 if(logger.isDebugEnabled())
                 {
-                    logger.debug("thrown stat: " + DD_ASCEPT_STOP);
+                    logger.debug("thrown stat: " + DD_ASPECT_STOP);
                 }
             }
 
