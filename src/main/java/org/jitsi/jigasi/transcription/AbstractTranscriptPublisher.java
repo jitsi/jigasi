@@ -19,7 +19,6 @@ package org.jitsi.jigasi.transcription;
 
 import com.timgroup.statsd.*;
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -156,14 +155,14 @@ public abstract class AbstractTranscriptPublisher<T>
         = Logger.getLogger(AbstractTranscriptPublisher.class);
 
     /**
-     * Ascept for successful upload of transcript
+     * Aspect for successful upload of transcript
      */
-    private static final String DD_ASCEPT_SUCCESS = "upload_success";
+    private static final String DD_ASPECT_SUCCESS = "upload_success";
 
     /**
-     * Ascept for failed upload of transcript
+     * Aspect for failed upload of transcript
      */
-    private static final String DD_ASCEPT_FAIL = "upload_fail";
+    private static final String DD_ASPECT_FAIL = "upload_fail";
 
     /**
      * Get a string which contains a time stamp and a random UUID, with an
@@ -823,21 +822,21 @@ public abstract class AbstractTranscriptPublisher<T>
 
                             if (returnValue == 0)
                             {
-                                dClient.increment(DD_ASCEPT_SUCCESS);
+                                dClient.increment(DD_ASPECT_SUCCESS);
                                 if(logger.isDebugEnabled())
                                 {
                                     logger.debug("thrown stat: " +
-                                        DD_ASCEPT_SUCCESS
+                                        DD_ASPECT_SUCCESS
                                     );
                                 }
                             }
                             else
                             {
-                                dClient.increment(DD_ASCEPT_FAIL);
+                                dClient.increment(DD_ASPECT_FAIL);
                                 if(logger.isDebugEnabled())
                                 {
                                     logger.debug("thrown stat: " +
-                                        DD_ASCEPT_FAIL
+                                        DD_ASPECT_FAIL
                                     );
                                 }
                             }
