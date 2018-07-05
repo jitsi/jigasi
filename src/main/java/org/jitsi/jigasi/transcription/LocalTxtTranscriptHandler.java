@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.util.*;
 
 import java.time.*;
@@ -54,6 +55,18 @@ public class LocalTxtTranscriptHandler
      * The new line character
      */
     private static final String NEW_LINE = System.lineSeparator();
+
+    /**
+     * Property name for getting a target language for translation.
+     */
+    public final static String P_NAME_TARGET_LANGUAGE
+            = "org.jitsi.jigasi.transcription.TARGET_LANGUAGE";
+
+    /**
+     * Whether to translate text before sending results and the target language.
+     */
+    public final static String TARGET_LANGUAGE
+            = "";
 
     /**
      * Get the delimiter of the header and footer with a width spanning maximum
@@ -172,6 +185,8 @@ public class LocalTxtTranscriptHandler
         .ofLocalizedDateTime(FormatStyle.MEDIUM)
         .withZone(ZoneOffset.UTC);
 
+    private final TranslationService translationService
+            = new GoogleCloudTranslationService();
 
     /**
      * Publish final results to the chatroom in plain text. Interim results
@@ -190,7 +205,11 @@ public class LocalTxtTranscriptHandler
         String name = result.getName();
         String transcription = result.getAlternatives().iterator()
             .next().getTranscription();
-
+        if(!getTargetLanguage().isEmpty())
+        {
+            transcription
+                    = translationService.translate(transcription, "en","hi");
+        }
         String toSend = name + ": " + transcription;
         super.sendMessage(chatRoom, toSend);
     }
@@ -458,5 +477,16 @@ public class LocalTxtTranscriptHandler
             return String.format("Transcript will be saved in %s/%s/%s%n",
                 getBaseURL(), getDirPath(), fileName);
         }
+    }
+
+    /**
+     * Get the target language for translation
+     *
+     * @return "" if disabled, otherwise the target language code.
+     */
+    private String getTargetLanguage()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+                .getString(P_NAME_TARGET_LANGUAGE, TARGET_LANGUAGE);
     }
 }
