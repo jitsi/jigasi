@@ -195,6 +195,20 @@ public class LocalTxtTranscriptHandler
         super.sendMessage(chatRoom, toSend);
     }
 
+    /**
+     * Publish translated final results to the chatroom.
+     *
+     * {@inheritDoc}
+     */
+    @Override
+    public void publish(ChatRoom chatRoom, TranslationResult result) {
+        String name = result.getName();
+        String translation = result.getTranslatedText();
+
+        String toSend = name + ": " + translation;
+        super.sendMessage(chatRoom, toSend);
+    }
+
     @Override
     public Promise getPublishPromise()
     {

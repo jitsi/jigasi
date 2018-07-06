@@ -204,6 +204,11 @@ public class LocalJsonTranscriptHandler
         super.sendJsonMessage(room, eventObject);
     }
 
+    @Override
+    public void publish(ChatRoom chatRoom, TranslationResult result) {
+        //TODO: Send a JSON of different type to ChatRoom.
+    }
+
     /**
      * Creates a json object representing the <tt>TranscriptionResult</>.
      * @param result the object to use to produce json.

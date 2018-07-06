@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2017 Atlassian Pty Ltd
+ * Copyright @ 2018 Atlassian Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +17,21 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import net.java.sip.communicator.service.protocol.*;
-
 /**
- * This interface is used to send a message to the chatRoom of a jitsi-meet
- * conference
+ * This interface allows for translation text from the source language to the
+ * target language.
  *
- * @author Nik Vaessen
+ * @author Praveen Kumar Gupta
  */
-public interface TranscriptionResultPublisher
-{
-    /**
-     * Publish the given TranscriptionResult to the given ChatRoom
-     *
-     * @param chatRoom the chat room
-     * @param result the result
-     */
-    void publish(ChatRoom chatRoom, TranscriptionResult result);
+public interface TranslationService {
 
     /**
-     * Publish the given TranslationResult to the given ChatRoom
+     * Translates the given text from the source language to target language.
      *
-     * @param chatRoom the chat room
-     * @param result the result
+     * @param sourceText the text to be translated.
+     * @param sourceLang the language of the text to be translated.
+     * @param targetLang the target language for translating the text.
+     * @return the translated string of the text.
      */
-    void publish(ChatRoom chatRoom, TranslationResult result);
+    String translate(String sourceText, String sourceLang, String targetLang);
 }
