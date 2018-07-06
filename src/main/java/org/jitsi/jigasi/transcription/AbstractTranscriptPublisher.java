@@ -17,8 +17,8 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import com.timgroup.statsd.*;
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -153,6 +153,16 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     private static final Logger logger
         = Logger.getLogger(AbstractTranscriptPublisher.class);
+
+    /**
+     * Aspect for successful upload of transcript
+     */
+    private static final String DD_ASPECT_SUCCESS = "upload_success";
+
+    /**
+     * Aspect for failed upload of transcript
+     */
+    private static final String DD_ASPECT_FAIL = "upload_fail";
 
     /**
      * Get a string which contains a time stamp and a random UUID, with an
@@ -791,8 +801,46 @@ public abstract class AbstractTranscriptPublisher<T>
                         logger.info("executing " + scriptPath +
                         " with arguments '" + absDirPath + "'");
 
-                        new ProcessBuilder(scriptPath.toString(),
+                        Process p = new ProcessBuilder(scriptPath.toString(),
                             absDirPath.toString()).start();
+
+                        StatsDClient dClient
+                            = JigasiBundleActivator.getDataDogClient();
+                        if(dClient != null)
+                        {
+                            int returnValue;
+
+                            try
+                            {
+                                returnValue = p.waitFor();
+                            }
+                            catch (InterruptedException e)
+                            {
+                                e.printStackTrace();
+                                returnValue = -1;
+                            }
+
+                            if (returnValue == 0)
+                            {
+                                dClient.increment(DD_ASPECT_SUCCESS);
+                                if(logger.isDebugEnabled())
+                                {
+                                    logger.debug("thrown stat: " +
+                                        DD_ASPECT_SUCCESS
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                dClient.increment(DD_ASPECT_FAIL);
+                                if(logger.isDebugEnabled())
+                                {
+                                    logger.debug("thrown stat: " +
+                                        DD_ASPECT_FAIL
+                                    );
+                                }
+                            }
+                        }
                     }
                     catch (IOException e)
                     {

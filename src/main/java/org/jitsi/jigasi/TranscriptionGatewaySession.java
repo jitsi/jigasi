@@ -278,6 +278,14 @@ public class TranscriptionGatewaySession
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDefaultInitStatus()
+    {
+        return null;
+    }
 
     /**
      * This method will be called by the {@link Transcriber} every time a new

@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
@@ -123,6 +124,16 @@ public class JigasiBundleActivator
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_SIP, ENABLE_SIP_DEFAULT_VALUE);
+    }
+
+    /**
+     * Returns a {@link StatsDClient} instance to push statistics to datadog
+     *
+     * @return the {@link StatsDClient}
+     */
+    public static StatsDClient getDataDogClient()
+    {
+        return ServiceUtils.getService(osgiContext, StatsDClient.class);
     }
 
     @Override
