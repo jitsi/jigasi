@@ -222,6 +222,8 @@ public class TranscriptionGatewaySession
             }
         }
 
+        this.gateway.notifyCallEnded(this.callContext);
+
         logger.debug("Conference ended");
     }
 

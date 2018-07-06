@@ -322,10 +322,14 @@ public class CallControlMucActivator
     public void onSessionAdded(AbstractGatewaySession session)
     {
         session.addListener(this);
-        // we are not updating anything here (stats), cause session was just
-        // created and we haven't joined the jvb room so there is no change
-        // in participant count and the conference is actually not started yet
-        // till we join
+
+        // We have to check if we can update anything here (stats),
+        // cause session was just created and  might not have joined the jvb
+        // room, which means there is no change in participant count yet
+        if(session.isInTheRoom())
+        {
+            updatePresenceStatusForXmppProviders();
+        }
     }
 
     @Override
@@ -347,15 +351,6 @@ public class CallControlMucActivator
      */
     private void updatePresenceStatusForXmppProviders()
     {
-        SipGateway gateway = ServiceUtils.getService(
-            osgiContext, SipGateway.class);
-
-        int participants = 0;
-        for(SipGatewaySession ses : gateway.getActiveSessions())
-        {
-            participants += ses.getJvbChatRoom().getMembersCount();
-        }
-
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
                 osgiContext,
@@ -363,8 +358,7 @@ public class CallControlMucActivator
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {
-            updatePresenceStatusForXmppProvider(
-                gateway, osgiContext.getService(ref), participants);
+            updatePresenceStatusForXmppProvider(osgiContext.getService(ref));
         }
     }
 
@@ -373,14 +367,14 @@ public class CallControlMucActivator
      * load information for the <tt>ProtocolProviderService</tt> in its
      * brewery room.
      *
-     * @param gateway the <tt>SipGateway</tt> instance we serve.
      * @param pps the protocol provider service
      * @param participantsCount the participant count.
+     * @param activeSessions the active session count
      */
     private void updatePresenceStatusForXmppProvider(
-        SipGateway gateway,
         ProtocolProviderService pps,
-        int participantsCount)
+        int participantsCount,
+        int activeSessions)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
             && pps.getAccountID() instanceof JabberAccountID
@@ -404,7 +398,7 @@ public class CallControlMucActivator
 
                 ColibriStatsExtension stats = new ColibriStatsExtension();
                 stats.addStat(new ColibriStatsExtension.Stat("conferences",
-                    gateway.getActiveSessions().size()));
+                    activeSessions));
                 stats.addStat(new ColibriStatsExtension.Stat("participants",
                     participantsCount));
 
@@ -428,16 +422,39 @@ public class CallControlMucActivator
     private void updatePresenceStatusForXmppProvider(
         ProtocolProviderService pps)
     {
-        SipGateway gateway = ServiceUtils.getService(
+        SipGateway sipGateway= ServiceUtils.getService(
             osgiContext, SipGateway.class);
+        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
+            osgiContext, TranscriptionGateway.class);
 
-        int participants = 0;
-        for(SipGatewaySession ses : gateway.getActiveSessions())
+        List<AbstractGatewaySession> sessions = new ArrayList<>();
+        if(sipGateway != null)
         {
-            participants += ses.getJvbChatRoom().getMembersCount();
+           sessions.addAll(sipGateway.getActiveSessions());
+        }
+        if(transcriptionGateway != null)
+        {
+            sessions.addAll(transcriptionGateway.getActiveSessions());
         }
 
-        updatePresenceStatusForXmppProvider(gateway, pps, participants);
+        int sesCount = 0;
+        int participantCount = 0;
+
+        for(AbstractGatewaySession ses : sessions)
+        {
+            ChatRoom room = ses.getJvbChatRoom();
+            if(room != null)
+            {
+                participantCount += ses.getJvbChatRoom().getMembersCount();
+                sesCount++;
+            }
+            else
+            {
+                logger.warn("non-active session in active session list");
+            }
+        }
+
+        updatePresenceStatusForXmppProvider(pps, participantCount, sesCount);
     }
 
     /**
@@ -465,7 +482,11 @@ public class CallControlMucActivator
             {
                 AbstractGatewaySession[] session = { null };
                 RefIq resultIQ = callControl.handleDialIq(packet, ctx, session);
-                setDialResponseAndRegisterHangUpHandler(resultIQ, session[0]);
+
+                if(session[0] != null)
+                    setDialResponseAndRegisterHangUpHandler(resultIQ,
+                        session[0]);
+
                 return resultIQ;
             }
             catch (CallControlAuthorizationException ccae)

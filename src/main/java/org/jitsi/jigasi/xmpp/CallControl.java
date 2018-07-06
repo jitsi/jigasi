@@ -188,13 +188,29 @@ public class CallControl
         logger.info(
             "Got dial request " + from + " -> " + to + " room: " + roomName);
 
-        AbstractGatewaySession session;
+        AbstractGatewaySession session = null;
         if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
         {
+            if(transcriptionGateway == null)
+            {
+                logger.error("Cannot accept dial request " + to + " because" +
+                    " the TranscriptionGateway is disabled");
+                return RefIq.createResult(iq,
+                    XMPPError.Condition.not_acceptable.toString());
+            }
+
             session = transcriptionGateway.createOutgoingCall(ctx);
         }
         else
         {
+            if(sipGateway == null)
+            {
+                logger.error("Cannot accept dial request " + to + " because" +
+                    " the SipGateway is disabled");
+                return RefIq.createResult(iq,
+                    XMPPError.Condition.not_acceptable.toString());
+            }
+
             session = sipGateway.createOutgoingCall(ctx);
         }
 
