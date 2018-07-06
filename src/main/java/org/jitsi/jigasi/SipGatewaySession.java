@@ -618,15 +618,6 @@ public class SipGatewaySession
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean maybeUseAuthenticatedLogin()
-    {
-        return false;
-    }
-
     @Override
     public boolean isTranslatorSupported()
     {
