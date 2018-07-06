@@ -144,7 +144,7 @@ public abstract class AbstractGatewaySession
      */
     public boolean isInTheRoom()
     {
-        return jvbConference.isInTheRoom();
+        return jvbConference != null && jvbConference.isInTheRoom();
     }
 
     /**

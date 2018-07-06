@@ -322,10 +322,14 @@ public class CallControlMucActivator
     public void onSessionAdded(AbstractGatewaySession session)
     {
         session.addListener(this);
-        // we are not updating anything here (stats), cause session was just
-        // created and we haven't joined the jvb room so there is no change
-        // in participant count and the conference is actually not started yet
-        // till we join
+
+        // We have to check if we can update anything here (stats),
+        // cause session was just created and  might not have joined the jvb
+        // room, which means there is no change in participant count yet
+        if(session.isInTheRoom())
+        {
+            updatePresenceStatusForXmppProviders();
+        }
     }
 
     @Override
