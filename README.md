@@ -80,9 +80,9 @@ Configuring SIP and Transcription
 
 It is possible to either enable or disable the functionality of SIP and 
 transcription. By default, the properties 
-`org.jitsi.jigasi.enableTranscription=false` 
+`org.jitsi.jigasi.ENABLE_TRANSCRIPTION=false` 
 and 
-`org.jitsi.jigasi.enableSip=true` 
+`org.jitsi.jigasi.ENABLE_SIP=true` 
 in
 `jigasi-home/sip-communicator.properties` 
 enable SIP and disable transcription. To change this, simple set the desired

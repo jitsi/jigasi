@@ -59,14 +59,14 @@ public class JigasiBundleActivator
      * enabled.
      */
     public final static String P_NAME_ENABLE_TRANSCRIPTION
-        = "org.jitsi.jigasi.enableTranscription";
+        = "org.jitsi.jigasi.ENABLE_TRANSCRIPTION";
 
     /**
      * The property name for the boolean value whether SIP calls should be
      * enabled.
      */
     public final static String P_NAME_ENABLE_SIP
-        = "org.jitsi.jigasi.enableSip";
+        = "org.jitsi.jigasi.ENABLE_SIP";
 
     /**
      * The default value for enabling transcription

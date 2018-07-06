@@ -347,34 +347,6 @@ public class CallControlMucActivator
      */
     private void updatePresenceStatusForXmppProviders()
     {
-        SipGateway sipGateway= ServiceUtils.getService(
-            osgiContext, SipGateway.class);
-        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
-            osgiContext, TranscriptionGateway.class);
-
-        int participants = 0;
-        int sessions  = 0;
-
-        if(sipGateway != null)
-        {
-            for(SipGatewaySession ses : sipGateway.getActiveSessions())
-            {
-                participants += ses.getJvbChatRoom().getMembersCount();
-                sessions++;
-            }
-        }
-
-        if(transcriptionGateway != null)
-        {
-            for(TranscriptionGatewaySession ses :
-                transcriptionGateway.getActiveSessions())
-            {
-                participants += ses.getJvbChatRoom().getMembersCount();
-                sessions++;
-            }
-        }
-
-
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
                 osgiContext,
@@ -382,8 +354,7 @@ public class CallControlMucActivator
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {
-            updatePresenceStatusForXmppProvider(
-                osgiContext.getService(ref), participants, sessions);
+            updatePresenceStatusForXmppProvider(osgiContext.getService(ref));
         }
     }
 
@@ -452,29 +423,34 @@ public class CallControlMucActivator
         TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
             osgiContext, TranscriptionGateway.class);
 
-        int participants = 0;
-        int sessions  = 0;
-
+        List<AbstractGatewaySession> sessions = new ArrayList<>();
         if(sipGateway != null)
         {
-            for(SipGatewaySession ses : sipGateway.getActiveSessions())
-            {
-                participants += ses.getJvbChatRoom().getMembersCount();
-                sessions++;
-            }
+           sessions.addAll(sipGateway.getActiveSessions());
         }
-
         if(transcriptionGateway != null)
         {
-            for(TranscriptionGatewaySession ses :
-                transcriptionGateway.getActiveSessions())
+            sessions.addAll(transcriptionGateway.getActiveSessions());
+        }
+
+        int sesCount = 0;
+        int participantCount = 0;
+
+        for(AbstractGatewaySession ses : sessions)
+        {
+            ChatRoom room = ses.getJvbChatRoom();
+            if(room != null)
             {
-                participants += ses.getJvbChatRoom().getMembersCount();
-                sessions++;
+                participantCount += ses.getJvbChatRoom().getMembersCount();
+                sesCount++;
+            }
+            else
+            {
+                logger.warn("non-active session in active session list");
             }
         }
 
-        updatePresenceStatusForXmppProvider(pps, participants, sessions);
+        updatePresenceStatusForXmppProvider(pps, participantCount, sesCount);
     }
 
     /**
