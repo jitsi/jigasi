@@ -105,6 +105,25 @@ public class SipGateway
         return sipProvider;
     }
 
+    /**
+     * Get an account property of the {@link ProtocolProviderService}
+     *
+     * @param propertyName the name of property to get
+     * @return the property value. null when not set or when prover not
+     * initialized
+     */
+    public String getSipAccountProperty(String propertyName)
+    {
+        if(sipProvider == null)
+        {
+            return null;
+        }
+
+        return this.sipProvider.getAccountID()
+            .getAccountPropertyString(propertyName);
+    }
+
+
     private void initProvider(ProtocolProviderService pps)
     {
         pps.addRegistrationStateChangeListener(this);

@@ -1094,6 +1094,18 @@ public class JvbConference
         properties.put(ProtocolProviderFactory.ENCRYPTION_PROTOCOL_STATUS
             + ".DTLS-SRTP", "true");
 
+        AbstractGateway gw = gatewaySession.getGateway();
+        if(gw instanceof SipGateway)
+        {
+            String preventAuthLogin
+                = ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN");
+
+            if (Boolean.valueOf(preventAuthLogin))
+            {
+                return properties;
+            }
+        }
+
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
