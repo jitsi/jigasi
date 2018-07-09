@@ -35,6 +35,7 @@ import org.osgi.framework.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -290,7 +291,7 @@ public class CallControlMucActivator
 
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
-            updatePresenceStatusForXmppProvider(pps);
+            updatePresenceStatusForXmppProviders(Collections.singletonList(pps));
 
             // getting direct access to the xmpp connection in order to add
             // a listener for incoming iqs
@@ -344,10 +345,8 @@ public class CallControlMucActivator
     {}
 
     /**
-     * Gets the list of active sessions and update their presence in their
-     * control room.
-     * Counts number of active sessions as conference count, and number of
-     * all participants in all jvb rooms as global participant count.
+     * Updates the presence in each {@link ProtocolProviderService} registered
+     * with OSGi with the current number of conferences and participants.
      */
     private void updatePresenceStatusForXmppProviders()
     {
@@ -356,25 +355,29 @@ public class CallControlMucActivator
                 osgiContext,
                 ProtocolProviderService.class);
 
-        for (ServiceReference<ProtocolProviderService> ref : refs)
-        {
-            updatePresenceStatusForXmppProvider(osgiContext.getService(ref));
-        }
+        List<ProtocolProviderService> ppss
+            = refs.stream()
+                .map(ref -> osgiContext.getService(ref))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        updatePresenceStatusForXmppProviders(ppss);
     }
 
     /**
-     * Sends <tt>ColibriStatsExtension</tt> as part of presence with
-     * load information for the <tt>ProtocolProviderService</tt> in its
-     * brewery room.
+     * Updates the presence in the given {@link ProtocolProviderService} with
+     * the current number of conferences and participants.
+     *
+     * Adds a {@link ColibriStatsExtension} to our presence in the brewery room.
      *
      * @param pps the protocol provider service
-     * @param participantsCount the participant count.
-     * @param activeSessions the active session count
+     * @param participants the participant count.
+     * @param conferences the active session/conference count.
      */
     private void updatePresenceStatusForXmppProvider(
         ProtocolProviderService pps,
-        int participantsCount,
-        int activeSessions)
+        int participants,
+        int conferences)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
             && pps.getAccountID() instanceof JabberAccountID
@@ -394,13 +397,15 @@ public class CallControlMucActivator
                 ChatRoom mucRoom = muc.findRoom(roomName);
 
                 if (mucRoom == null)
+                {
                     return;
+                }
 
                 ColibriStatsExtension stats = new ColibriStatsExtension();
                 stats.addStat(new ColibriStatsExtension.Stat("conferences",
-                    activeSessions));
+                    conferences));
                 stats.addStat(new ColibriStatsExtension.Stat("participants",
-                    participantsCount));
+                    participants));
 
                 pps.getOperationSet(OperationSetJitsiMeetTools.class)
                     .sendPresenceExtension(mucRoom, stats);
@@ -413,14 +418,13 @@ public class CallControlMucActivator
     }
 
     /**
-     * Counts number of active sessions as conference count, and number of
-     * all participants in all jvb rooms as global participant count.
-     * And updates the presence of the <tt>ProtocolProviderService</tt> that
-     * is specified.
-     * @param pps the protocol provider to update.
+     * Updates the presence in each of the given {@link ProtocolProviderService}s
+     * with the current number of conferences and participants.
+     *
+     * @param ppss the list of protocol providers to update.
      */
-    private void updatePresenceStatusForXmppProvider(
-        ProtocolProviderService pps)
+    private void updatePresenceStatusForXmppProviders(
+        List<ProtocolProviderService> ppss)
     {
         SipGateway sipGateway= ServiceUtils.getService(
             osgiContext, SipGateway.class);
@@ -454,7 +458,12 @@ public class CallControlMucActivator
             }
         }
 
-        updatePresenceStatusForXmppProvider(pps, participantCount, sesCount);
+        final int finalSesCount = sesCount;
+        final int finalParticipantCount = participantCount;
+        ppss.forEach(
+            pps ->
+                updatePresenceStatusForXmppProvider(
+                    pps, finalParticipantCount, finalSesCount));
     }
 
     /**
