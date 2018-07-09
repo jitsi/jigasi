@@ -196,17 +196,14 @@ public class LocalTxtTranscriptHandler
     }
 
     /**
-     * Publish translated final results to the chatroom.
+     * Translated Speech-to-text results can be published to the Chatroom
+     * as plain-text here.
      *
      * {@inheritDoc}
      */
     @Override
-    public void publish(ChatRoom chatRoom, TranslationResult result) {
-        String name = result.getName();
-        String translation = result.getTranslatedText();
-
-        String toSend = name + ": " + translation;
-        super.sendMessage(chatRoom, toSend);
+    public void publish(ChatRoom chatRoom, TranslationResult result)
+    {
     }
 
     @Override

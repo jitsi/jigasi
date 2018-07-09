@@ -295,7 +295,8 @@ public class TranscriptionGatewaySession
      * @param result the translation result which has come in
      */
     @Override
-    public void notify(TranslationResult result) {
+    public void notify(TranslationResult result)
+    {
         sendTranslationResultToRoom(result);
     }
 

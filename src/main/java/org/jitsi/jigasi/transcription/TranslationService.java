@@ -23,7 +23,8 @@ package org.jitsi.jigasi.transcription;
  *
  * @author Praveen Kumar Gupta
  */
-public interface TranslationService {
+public interface TranslationService
+{
 
     /**
      * Translates the given text from the source language to target language.

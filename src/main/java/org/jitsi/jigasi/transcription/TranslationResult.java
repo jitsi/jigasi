@@ -17,32 +17,19 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import java.util.*;
-
 /**
  * A TranslationResult created after translating a {@link TranscriptionResult}
  * using a {@link TranslationService}.
  *
  * @author Praveen Kumar Gupta
  */
-public class TranslationResult {
+public class TranslationResult
+{
 
     /**
-     * The language tag, of this result's text.
+     * The language tag of this result's text.
      */
     private String language;
-
-    /**
-     * A {@link UUID} to identify this result. It is expected to have the
-     * same UUID as that of the original {@link TranscriptionResult}.
-     */
-    private UUID messageID;
-
-    /**
-     * The {@link Participant} whose audio's translation is represented
-     * by this {@link TranslationResult}.
-     */
-    private Participant participant;
 
     /**
      * The translated final transcript message in the given language.
@@ -50,21 +37,26 @@ public class TranslationResult {
     private String text;
 
     /**
+     * {@link TranscriptionResult} whose translation in a particular language
+     * is represented by this {@link TranslationResult} object.
+     */
+    private TranscriptionResult transcriptionResult;
+
+    /**
      * Initializes a {@link TranslationResult} object with the participant,
      * messageID and translated text, language.
      *
-     * @param result
-     * @param language
-     * @param translation
+     * @param result the {@link TranscriptionResult} for this translation.
+     * @param lang the target language for translation.
+     * @param translation the translated text in the target language.
      */
     public TranslationResult(TranscriptionResult result,
-                             String language,
+                             String lang,
                              String translation)
     {
-        this.participant = result.getParticipant();
-        this.messageID = result.getMessageID();
-        this.language = language;
-        this.text = translation;
+        transcriptionResult = result;
+        language = lang;
+        text = translation;
     }
 
     /**
@@ -78,38 +70,6 @@ public class TranslationResult {
     }
 
     /**
-     * Get the {@link UUID}(messageID) of this message.
-     *
-     * @return the UUID
-     */
-    public UUID getMessageID()
-    {
-        return messageID;
-    }
-
-    /**
-     * Get the name of the participant saying the audio
-     *
-     * @return the name
-     */
-    public String getName()
-    {
-        return participant == null
-                ? Participant.UNKNOWN_NAME
-                : participant.getName();
-    }
-
-    /**
-     * Get this {@link TranslationResult}'s {@link Participant}.
-     *
-     * @return the {@link Participant}.
-     */
-    public Participant getParticipant()
-    {
-        return participant;
-    }
-
-    /**
      * Get the translated text.
      *
      * @return the translated text.
@@ -117,5 +77,16 @@ public class TranslationResult {
     public String getTranslatedText()
     {
         return text;
+    }
+
+    /**
+     * Get the {@link TranscriptionResult} whose translation is represented
+     * by this object.
+     *
+     * @return transcriptionResult
+     */
+    public TranscriptionResult getTranscriptionResult()
+    {
+        return transcriptionResult;
     }
 }

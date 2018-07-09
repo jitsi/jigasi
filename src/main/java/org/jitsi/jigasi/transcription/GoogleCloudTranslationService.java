@@ -32,20 +32,20 @@ import com.google.cloud.translate.Translate.*;
  * @author Praveen Kumar Gupta
  */
 public class GoogleCloudTranslationService
-        implements TranslationService
+    implements TranslationService
 {
 
     /**
     * The translation model to be used for translation.
     * Possible values are {@code base} and {@code nmt}
     */
-    private final TranslateOption model = TranslateOption.model("nmt");
+    private static final TranslateOption model = TranslateOption.model("nmt");
 
     /**
     * Translation service object for accessing the cloud translate API.
     */
     private static final Translate translator
-            = TranslateOptions.getDefaultInstance().getService();
+        = TranslateOptions.getDefaultInstance().getService();
 
     /**
      * {@inheritDoc}

@@ -34,16 +34,16 @@ public class TranslationManager
      * Property name for getting a target language for translation.
      */
     public final static String P_NAME_DEFAULT_TARGET_LANGUAGE
-            = "org.jitsi.jigasi.transcription.DEFAULT_TARGET_LANGUAGE";
+        = "org.jitsi.jigasi.transcription.DEFAULT_TARGET_LANGUAGE";
 
     /**
-     * Whether to translate text before sending results and the target language.
+     * Whether to translate text before sending results in the target language.
      */
     public final static String DEFAULT_TARGET_LANGUAGE
-            = "";
+        = "";
 
     /**
-     *
+     * List of target languages for translating the transcriptions.
      */
     private ArrayList<String> languages  = new ArrayList<>();
 
@@ -61,11 +61,11 @@ public class TranslationManager
      * Initializes the translationManager with a TranslationService
      * and adds the default target language to the list.
      *
-     * @param translationService to be used by the TranslationManger
+     * @param service to be used by the TranslationManger
      */
-    public TranslationManager(TranslationService translationService)
+    public TranslationManager(TranslationService service)
     {
-        this.translationService = translationService;
+        translationService = service;
         String defaultTargetLanguage = getTargetLanguage();
 
         if(!defaultTargetLanguage.isEmpty())
@@ -82,7 +82,7 @@ public class TranslationManager
      */
     public void addListener(TranslationResultListener listener)
     {
-        this.listeners.add(listener);
+        listeners.add(listener);
     }
 
     /**
@@ -93,7 +93,7 @@ public class TranslationManager
      */
     public void addTargetLanguage(String language)
     {
-        this.languages.add(language);
+        languages.add(language);
     }
 
     /**
@@ -103,7 +103,8 @@ public class TranslationManager
      * @param result the TranscriptionResult notified to the TranslationManager
      * @return list of TranslationResults
      */
-    public ArrayList<TranslationResult> getTranslations(TranscriptionResult result)
+    public ArrayList<TranslationResult> getTranslations(
+        TranscriptionResult result)
     {
         ArrayList<TranslationResult> translatedResults
             = new ArrayList<>();
@@ -135,7 +136,7 @@ public class TranslationManager
         if(!result.isInterim())
         {
             ArrayList<TranslationResult> translations
-                = this.getTranslations(result);
+                = getTranslations(result);
             for (TranslationResultListener listener : listeners)
             {
                 for (TranslationResult translation : translations)
@@ -145,8 +146,9 @@ public class TranslationManager
     }
 
     @Override
-    public void completed() {
-
+    public void completed()
+    {
+        languages.clear();
     }
 
     /**
@@ -157,6 +159,6 @@ public class TranslationManager
     private String getTargetLanguage()
     {
         return JigasiBundleActivator.getConfigurationService()
-                .getString(P_NAME_DEFAULT_TARGET_LANGUAGE, DEFAULT_TARGET_LANGUAGE);
+            .getString(P_NAME_DEFAULT_TARGET_LANGUAGE, DEFAULT_TARGET_LANGUAGE);
     }
 }
