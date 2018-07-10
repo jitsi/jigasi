@@ -222,10 +222,15 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     protected void sendJsonMessage(ChatRoom chatRoom, T jsonMessage)
     {
-        if (chatRoom == null || !(chatRoom instanceof ChatRoomJabberImpl))
+        if (chatRoom == null)
         {
-            logger.error("Cannot sent message as chatRoom is null " +
-                "or is not an instance of ChatRoomJabberImpl");
+            logger.error("Cannot sent message as chatRoom is null");
+            return;
+        }
+        if (!(chatRoom instanceof ChatRoomJabberImpl))
+        {
+            logger.error("Cannot sent message as chatRoom is not an" +
+                "instance of ChatRoomJabberImpl");
             return;
         }
 
