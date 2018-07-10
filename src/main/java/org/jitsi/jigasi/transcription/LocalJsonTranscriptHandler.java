@@ -209,11 +209,6 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_VALUE_TYPE = "transcription-result";
 
-    /**
-     * This field stores the payload object which will be send as a muc message
-     */
-    public final static String JSON_KEY_PAYLOAD = "payload";
-
     @Override
     public JSONFormatter getFormatter()
     {
@@ -224,9 +219,6 @@ public class LocalJsonTranscriptHandler
     public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject eventObject = createJSONObject(result);
-
-        JSONObject encapsulatingObject = new JSONObject();
-        createEncapsulatingObject(encapsulatingObject, eventObject);
 
         super.sendJsonMessage(room, eventObject);
     }
