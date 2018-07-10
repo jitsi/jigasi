@@ -200,19 +200,14 @@ public class LocalJsonTranscriptHandler
     // JSON object to send to MUC
 
     /**
-     * This fields stores the topic of the muc message as a string
+     * This fields stores the type of the muc message as a string
      */
-    public final static String JSON_KEY_TOPIC = "jitsi-meet-muc-msg-topic";
+    public final static String JSON_KEY_TYPE = "type";
 
     /**
-     * This field stores the value of the topic of the muc message as a string
+     * This field stores the value of the type of the muc message as a string
      */
-    public final static String JSON_VALUE_TOPIC = "transcription-result";
-
-    /**
-     * This field stores the payload object which will be send as a muc message
-     */
-    public final static String JSON_KEY_PAYLOAD = "payload";
+    public final static String JSON_VALUE_TYPE = "transcription-result";
 
     @Override
     public JSONFormatter getFormatter()
@@ -225,25 +220,7 @@ public class LocalJsonTranscriptHandler
     {
         JSONObject eventObject = createJSONObject(result);
 
-        JSONObject encapsulatingObject = new JSONObject();
-        createEncapsulatingObject(encapsulatingObject, eventObject);
-
-        super.sendMessage(room, encapsulatingObject);
-    }
-
-    /**
-     * Create the JSON object will be send to the {@link ChatRoom}
-     *
-     * @param encapsulatingObject the json object which will be send
-     * @param transcriptResultObject the json object which will be added as
-     *                               payload
-     */
-    @SuppressWarnings("unchecked")
-    protected void createEncapsulatingObject(JSONObject encapsulatingObject,
-                                           JSONObject transcriptResultObject)
-    {
-        encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
-        encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
+        super.sendJsonMessage(room, eventObject);
     }
 
     /**
@@ -251,6 +228,7 @@ public class LocalJsonTranscriptHandler
      * @param result the object to use to produce json.
      * @return json object representing the <tt>TranscriptionResult</>.
      */
+    @SuppressWarnings("unchecked")
     public static JSONObject createJSONObject(TranscriptionResult result)
     {
         JSONObject eventObject = new JSONObject();
@@ -258,6 +236,8 @@ public class LocalJsonTranscriptHandler
 
         addEventDescriptions(eventObject, event);
         addAlternatives(eventObject, event);
+
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE);
 
         return eventObject;
     }

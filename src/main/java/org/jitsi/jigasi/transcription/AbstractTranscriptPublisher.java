@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import com.timgroup.statsd.*;
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
@@ -213,6 +214,38 @@ public abstract class AbstractTranscriptPublisher<T>
         }
     }
 
+    /**
+     * Send a json-message to the muc room
+     *
+     * @param chatRoom the chatroom to send the message to
+     * @param jsonMessage the json message to send
+     */
+    protected void sendJsonMessage(ChatRoom chatRoom, T jsonMessage)
+    {
+        if (chatRoom == null)
+        {
+            logger.error("Cannot sent message as chatRoom is null");
+            return;
+        }
+        if (!(chatRoom instanceof ChatRoomJabberImpl))
+        {
+            logger.error("Cannot sent message as chatRoom is not an" +
+                "instance of ChatRoomJabberImpl");
+            return;
+        }
+
+        String messageString = jsonMessage.toString();
+        try
+        {
+            ((ChatRoomJabberImpl)chatRoom).sendJsonMessage(messageString);
+            if (logger.isTraceEnabled())
+                logger.trace("Sending json message: \"" + messageString + "\"");
+        }
+        catch (OperationFailedException e)
+        {
+            logger.warn("Failed to send json message " + messageString, e);
+        }
+    }
     /**
      * Save a transcript given as a String to subdirectory of getLogDirPath()
      * with the given directory name and the given file name
