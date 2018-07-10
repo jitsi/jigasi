@@ -120,6 +120,16 @@ public abstract class AbstractGatewaySession
     }
 
     /**
+     * Returns the url of the conference or null if we're not in a meeting
+     *
+     * @return the url or null
+     */
+    public String getMeetingUrl()
+    {
+        return jvbConference != null ? jvbConference.getMeetingUrl() : null;
+    }
+
+    /**
      * Returns <tt>ChatRoom</tt> that hosts JVB conference of this session
      * if we're already/still in this room or <tt>null</tt> otherwise.
      */
@@ -134,7 +144,7 @@ public abstract class AbstractGatewaySession
      */
     public boolean isInTheRoom()
     {
-        return jvbConference.isInTheRoom();
+        return jvbConference != null && jvbConference.isInTheRoom();
     }
 
     /**
@@ -309,6 +319,14 @@ public abstract class AbstractGatewaySession
      * otherwise
      */
     public abstract boolean isTranslatorSupported();
+
+    /**
+     * Get the default status of our participant before we get any state from
+     * the <tt>CallPeer</tt>.
+     *
+     * @return the default status, or null when none desired
+     */
+    public abstract String getDefaultInitStatus();
 
     /**
      * Returns the gateway used for this session.

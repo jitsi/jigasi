@@ -98,6 +98,12 @@ public class SipGatewaySession
         = "JITSI_MEET_DOMAIN_BASE_HEADER_NAME";
 
     /**
+     * Default status of our participant before we get any state from
+     * the <tt>CallPeer</tt>.
+     */
+    private static final String INIT_STATUS_NAME = "Initializing Call";
+
+    /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
      */
     private final OperationSetJitsiMeetTools jitsiMeetTools;
@@ -622,6 +628,15 @@ public class SipGatewaySession
     public boolean isTranslatorSupported()
     {
         return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDefaultInitStatus()
+    {
+        return INIT_STATUS_NAME;
     }
 
     /**

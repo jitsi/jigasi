@@ -381,4 +381,25 @@ public class CallContext
     {
         return source;
     }
+
+    /**
+     * Return the meeting url of this context
+     *
+     * @return the meeting url
+     */
+    public String getMeetingUrl()
+    {
+        String url = getBoshURL();
+        String room = getRoomName();
+
+        if(url == null || room == null)
+        {
+            return null;
+        }
+
+        url = url.substring(0, url.indexOf("/http-bind"));
+        room = room.substring(0, room.indexOf("@"));
+
+        return url + "/" + room;
+    }
 }

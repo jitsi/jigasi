@@ -98,12 +98,6 @@ public class JvbConference
         = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
 
     /**
-     * Default status of our participant before we get any state from
-     * the <tt>CallPeer</tt>.
-     */
-    private static final String INIT_STATUS_NAME = "Initializing Call";
-
-    /**
      * The default bridge id to use.
      */
     public static final String DEFAULT_BRIDGE_ID = "jitsi";
@@ -661,7 +655,10 @@ public class JvbConference
               //  gatewaySession.createPresenceExtension(
                 //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
 
-            setPresenceStatus(INIT_STATUS_NAME);
+            if(gatewaySession.getDefaultInitStatus() != null)
+            {
+                setPresenceStatus(gatewaySession.getDefaultInitStatus());
+            }
 
             gatewaySession.notifyJvbRoomJoined();
 
@@ -816,6 +813,8 @@ public class JvbConference
                             rs.getRecordingMode(), rs.getStatus());
                     }
                 }
+
+
             }
 
             return;
@@ -895,6 +894,17 @@ public class JvbConference
     public String getRoomName()
     {
         return callContext.getRoomName();
+    }
+
+    /**
+     * Returns the URL of the meeting
+     *
+     * @return the URL of the meeting
+     */
+    public String getMeetingUrl()
+    {
+
+        return callContext.getMeetingUrl();
     }
 
     private class JvbCallListener

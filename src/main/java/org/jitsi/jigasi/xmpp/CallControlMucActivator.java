@@ -35,6 +35,7 @@ import org.osgi.framework.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -290,7 +291,7 @@ public class CallControlMucActivator
 
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
-            updatePresenceStatusForXmppProvider(pps);
+            updatePresenceStatusForXmppProviders(Collections.singletonList(pps));
 
             // getting direct access to the xmpp connection in order to add
             // a listener for incoming iqs
@@ -322,10 +323,14 @@ public class CallControlMucActivator
     public void onSessionAdded(AbstractGatewaySession session)
     {
         session.addListener(this);
-        // we are not updating anything here (stats), cause session was just
-        // created and we haven't joined the jvb room so there is no change
-        // in participant count and the conference is actually not started yet
-        // till we join
+
+        // We have to check if we can update anything here (stats),
+        // cause session was just created and  might not have joined the jvb
+        // room, which means there is no change in participant count yet
+        if(session.isInTheRoom())
+        {
+            updatePresenceStatusForXmppProviders();
+        }
     }
 
     @Override
@@ -340,47 +345,39 @@ public class CallControlMucActivator
     {}
 
     /**
-     * Gets the list of active sessions and update their presence in their
-     * control room.
-     * Counts number of active sessions as conference count, and number of
-     * all participants in all jvb rooms as global participant count.
+     * Updates the presence in each {@link ProtocolProviderService} registered
+     * with OSGi with the current number of conferences and participants.
      */
     private void updatePresenceStatusForXmppProviders()
     {
-        SipGateway gateway = ServiceUtils.getService(
-            osgiContext, SipGateway.class);
-
-        int participants = 0;
-        for(SipGatewaySession ses : gateway.getActiveSessions())
-        {
-            participants += ses.getJvbChatRoom().getMembersCount();
-        }
-
         Collection<ServiceReference<ProtocolProviderService>> refs
             = ServiceUtils.getServiceReferences(
                 osgiContext,
                 ProtocolProviderService.class);
 
-        for (ServiceReference<ProtocolProviderService> ref : refs)
-        {
-            updatePresenceStatusForXmppProvider(
-                gateway, osgiContext.getService(ref), participants);
-        }
+        List<ProtocolProviderService> ppss
+            = refs.stream()
+                .map(ref -> osgiContext.getService(ref))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        updatePresenceStatusForXmppProviders(ppss);
     }
 
     /**
-     * Sends <tt>ColibriStatsExtension</tt> as part of presence with
-     * load information for the <tt>ProtocolProviderService</tt> in its
-     * brewery room.
+     * Updates the presence in the given {@link ProtocolProviderService} with
+     * the current number of conferences and participants.
      *
-     * @param gateway the <tt>SipGateway</tt> instance we serve.
+     * Adds a {@link ColibriStatsExtension} to our presence in the brewery room.
+     *
      * @param pps the protocol provider service
-     * @param participantsCount the participant count.
+     * @param participants the participant count.
+     * @param conferences the active session/conference count.
      */
     private void updatePresenceStatusForXmppProvider(
-        SipGateway gateway,
         ProtocolProviderService pps,
-        int participantsCount)
+        int participants,
+        int conferences)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
             && pps.getAccountID() instanceof JabberAccountID
@@ -400,13 +397,15 @@ public class CallControlMucActivator
                 ChatRoom mucRoom = muc.findRoom(roomName);
 
                 if (mucRoom == null)
+                {
                     return;
+                }
 
                 ColibriStatsExtension stats = new ColibriStatsExtension();
                 stats.addStat(new ColibriStatsExtension.Stat("conferences",
-                    gateway.getActiveSessions().size()));
+                    conferences));
                 stats.addStat(new ColibriStatsExtension.Stat("participants",
-                    participantsCount));
+                    participants));
 
                 pps.getOperationSet(OperationSetJitsiMeetTools.class)
                     .sendPresenceExtension(mucRoom, stats);
@@ -419,25 +418,52 @@ public class CallControlMucActivator
     }
 
     /**
-     * Counts number of active sessions as conference count, and number of
-     * all participants in all jvb rooms as global participant count.
-     * And updates the presence of the <tt>ProtocolProviderService</tt> that
-     * is specified.
-     * @param pps the protocol provider to update.
+     * Updates the presence in each of the given {@link ProtocolProviderService}s
+     * with the current number of conferences and participants.
+     *
+     * @param ppss the list of protocol providers to update.
      */
-    private void updatePresenceStatusForXmppProvider(
-        ProtocolProviderService pps)
+    private void updatePresenceStatusForXmppProviders(
+        List<ProtocolProviderService> ppss)
     {
-        SipGateway gateway = ServiceUtils.getService(
+        SipGateway sipGateway= ServiceUtils.getService(
             osgiContext, SipGateway.class);
+        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
+            osgiContext, TranscriptionGateway.class);
 
-        int participants = 0;
-        for(SipGatewaySession ses : gateway.getActiveSessions())
+        List<AbstractGatewaySession> sessions = new ArrayList<>();
+        if(sipGateway != null)
         {
-            participants += ses.getJvbChatRoom().getMembersCount();
+           sessions.addAll(sipGateway.getActiveSessions());
+        }
+        if(transcriptionGateway != null)
+        {
+            sessions.addAll(transcriptionGateway.getActiveSessions());
         }
 
-        updatePresenceStatusForXmppProvider(gateway, pps, participants);
+        int sesCount = 0;
+        int participantCount = 0;
+
+        for(AbstractGatewaySession ses : sessions)
+        {
+            ChatRoom room = ses.getJvbChatRoom();
+            if(room != null)
+            {
+                participantCount += ses.getJvbChatRoom().getMembersCount();
+                sesCount++;
+            }
+            else
+            {
+                logger.warn("non-active session in active session list");
+            }
+        }
+
+        final int finalSesCount = sesCount;
+        final int finalParticipantCount = participantCount;
+        ppss.forEach(
+            pps ->
+                updatePresenceStatusForXmppProvider(
+                    pps, finalParticipantCount, finalSesCount));
     }
 
     /**
@@ -465,7 +491,11 @@ public class CallControlMucActivator
             {
                 AbstractGatewaySession[] session = { null };
                 RefIq resultIQ = callControl.handleDialIq(packet, ctx, session);
-                setDialResponseAndRegisterHangUpHandler(resultIQ, session[0]);
+
+                if(session[0] != null)
+                    setDialResponseAndRegisterHangUpHandler(resultIQ,
+                        session[0]);
+
                 return resultIQ;
             }
             catch (CallControlAuthorizationException ccae)

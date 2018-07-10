@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
@@ -55,6 +56,30 @@ public class JigasiBundleActivator
     public static BundleContext osgiContext;
 
     /**
+     * The property name for the boolean value whether transcription should be
+     * enabled.
+     */
+    public final static String P_NAME_ENABLE_TRANSCRIPTION
+        = "org.jitsi.jigasi.ENABLE_TRANSCRIPTION";
+
+    /**
+     * The property name for the boolean value whether SIP calls should be
+     * enabled.
+     */
+    public final static String P_NAME_ENABLE_SIP
+        = "org.jitsi.jigasi.ENABLE_SIP";
+
+    /**
+     * The default value for enabling transcription
+     */
+    public final static boolean ENABLE_TRANSCRIPTION_DEFAULT_VALUE = false;
+
+    /**
+     * The default value for enabling sip
+     */
+    public final static boolean ENABLE_SIP_DEFAULT_VALUE = true;
+
+    /**
      * The Gateway which will manage bridging between a jvb conference and a sip
      * call
      */
@@ -78,6 +103,39 @@ public class JigasiBundleActivator
             osgiContext, ConfigurationService.class);
     }
 
+    /**
+     * Get whether transcription is currently enabled
+     *
+     * @return true if transcription is enabled, false otherwise
+     */
+    public static boolean isTranscriptionEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_TRANSCRIPTION,
+                ENABLE_TRANSCRIPTION_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether sip is currently enabled
+     *
+     * @return true if sip is enabled, false otherwise
+     */
+    public static boolean isSipEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_SIP, ENABLE_SIP_DEFAULT_VALUE);
+    }
+
+    /**
+     * Returns a {@link StatsDClient} instance to push statistics to datadog
+     *
+     * @return the {@link StatsDClient}
+     */
+    public static StatsDClient getDataDogClient()
+    {
+        return ServiceUtils.getService(osgiContext, StatsDClient.class);
+    }
+
     @Override
     public void start(final BundleContext bundleContext)
         throws Exception
@@ -86,12 +144,29 @@ public class JigasiBundleActivator
 
         bundleContext.registerService(UIService.class, uiServiceStub, null);
 
-        sipGateway = new SipGateway(bundleContext);
-        transcriptionGateway = new TranscriptionGateway(bundleContext);
+        if(isSipEnabled())
+        {
+            logger.info("initialized SipGateway");
+            sipGateway = new SipGateway(bundleContext);
+            osgiContext.registerService(SipGateway.class, sipGateway, null);
+        }
+        else
+        {
+            logger.info("skipped initialization of SipGateway");
+        }
 
-        osgiContext.registerService(SipGateway.class, sipGateway, null);
-        osgiContext.registerService(TranscriptionGateway.class,
+        if(isTranscriptionEnabled())
+        {
+            logger.info("initialized TranscriptionGateway");
+            transcriptionGateway = new TranscriptionGateway(bundleContext);
+            osgiContext.registerService(TranscriptionGateway.class,
                 transcriptionGateway, null);
+        }
+        else
+        {
+            logger.info("skipped initialization of TranscriptionGateway");
+
+        }
 
         bundleContext.addServiceListener(this);
 
@@ -106,7 +181,8 @@ public class JigasiBundleActivator
 
             if (ProtocolNames.SIP.equals(pps.getProtocolName()))
             {
-                sipGateway.setSipProvider(pps);
+                if (sipGateway != null)
+                    sipGateway.setSipProvider(pps);
             }
         }
     }
@@ -117,8 +193,11 @@ public class JigasiBundleActivator
     {
         logger.info("Stopping JigasiBundleActivator");
 
-        sipGateway.stop();
-        transcriptionGateway.stop();
+        if(sipGateway != null)
+            sipGateway.stop();
+
+        if(transcriptionGateway != null)
+            transcriptionGateway.stop();
     }
 
     @Override
@@ -150,7 +229,7 @@ public class JigasiBundleActivator
         );
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
-        if (sipGateway.getSipProvider() == null &&
+        if (sipGateway != null && sipGateway.getSipProvider() == null &&
             ProtocolNames.SIP.equals(pps.getProtocolName()))
         {
             sipGateway.setSipProvider(pps);

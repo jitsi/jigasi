@@ -17,9 +17,9 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -154,6 +154,16 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     private static final Logger logger
         = Logger.getLogger(AbstractTranscriptPublisher.class);
+
+    /**
+     * Aspect for successful upload of transcript
+     */
+    private static final String DD_ASPECT_SUCCESS = "upload_success";
+
+    /**
+     * Aspect for failed upload of transcript
+     */
+    private static final String DD_ASPECT_FAIL = "upload_fail";
 
     /**
      * Get a string which contains a time stamp and a random UUID, with an
@@ -471,6 +481,11 @@ public abstract class AbstractTranscriptPublisher<T>
         protected String roomName;
 
         /**
+         * A string of the room url
+         */
+        protected String roomUrl;
+
+        /**
          * A list of initial participant names
          */
         protected List<Participant> initialMembers = new LinkedList<>();
@@ -510,6 +525,21 @@ public abstract class AbstractTranscriptPublisher<T>
             if(roomName != null)
             {
                 this.roomName = roomName;
+            }
+            return this;
+        }
+
+        /**
+         * Format a transcript which includes a room url
+         *
+         * @param url the url of the room
+         * @return this formatter
+         */
+        BaseFormatter tookPlaceAtUrl(String url)
+        {
+            if(url != null)
+            {
+                this.roomUrl = url;
             }
             return this;
         }
@@ -799,8 +829,46 @@ public abstract class AbstractTranscriptPublisher<T>
                         logger.info("executing " + scriptPath +
                         " with arguments '" + absDirPath + "'");
 
-                        new ProcessBuilder(scriptPath.toString(),
+                        Process p = new ProcessBuilder(scriptPath.toString(),
                             absDirPath.toString()).start();
+
+                        StatsDClient dClient
+                            = JigasiBundleActivator.getDataDogClient();
+                        if(dClient != null)
+                        {
+                            int returnValue;
+
+                            try
+                            {
+                                returnValue = p.waitFor();
+                            }
+                            catch (InterruptedException e)
+                            {
+                                e.printStackTrace();
+                                returnValue = -1;
+                            }
+
+                            if (returnValue == 0)
+                            {
+                                dClient.increment(DD_ASPECT_SUCCESS);
+                                if(logger.isDebugEnabled())
+                                {
+                                    logger.debug("thrown stat: " +
+                                        DD_ASPECT_SUCCESS
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                dClient.increment(DD_ASPECT_FAIL);
+                                if(logger.isDebugEnabled())
+                                {
+                                    logger.debug("thrown stat: " +
+                                        DD_ASPECT_FAIL
+                                    );
+                                }
+                            }
+                        }
                     }
                     catch (IOException e)
                     {

@@ -77,7 +77,7 @@ public class TranscriptionGatewaySession
     /**
      * The transcriber managing transcriptions of audio
      */
-    private Transcriber transcriber = null;
+    private Transcriber transcriber;
 
     /**
      * The call to the jvb room jigasi joins. This is used to get
@@ -111,15 +111,20 @@ public class TranscriptionGatewaySession
         super(gateway, context);
         this.service = service;
         this.handler = handler;
+
+        this.transcriber = new Transcriber(this.service);
     }
 
     @Override
     void onConferenceCallInvited(Call incomingCall)
     {
-        // We got invited to a room, ready up the transcriber!
-        transcriber = new Transcriber(getJvbRoomName(), service);
+        // We got invited to a room, we can tell the transcriber
+        // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
         transcriber.addTranslationListener(this);
+        transcriber.setRoomName(getJvbRoomName());
+        transcriber.setRoomUrl(getMeetingUrl());
+
         logger.debug("Invited for conference");
     }
 
@@ -219,6 +224,8 @@ public class TranscriptionGatewaySession
             }
         }
 
+        this.gateway.notifyCallEnded(this.callContext);
+
         logger.debug("Conference ended");
     }
 
@@ -275,6 +282,14 @@ public class TranscriptionGatewaySession
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDefaultInitStatus()
+    {
+        return null;
+    }
 
     /**
      * This method will be called by the {@link Transcriber} every time a new

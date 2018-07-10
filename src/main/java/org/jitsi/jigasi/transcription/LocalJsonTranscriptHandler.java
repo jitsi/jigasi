@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.json.simple.*;
+import org.json.*;
 
 import java.time.*;
 import java.util.*;
@@ -62,6 +62,12 @@ public class LocalJsonTranscriptHandler
      */
     public final static String JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME
         = "room_name";
+
+    /**
+     * This fields stores the room url of the conference as a string
+     */
+    public final static String JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL
+        = "room_url";
 
     /**
      * This field stores all the events as an JSON array
@@ -172,6 +178,24 @@ public class LocalJsonTranscriptHandler
      * This fields stores the URL of the avatar of a participant as a string
      */
     public final static String JSON_KEY_PARTICIPANT_AVATAR_URL = "avatar_url";
+
+    /**
+     * This fields stores the identity username of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_USERNAME
+        = "identity_name";
+
+    /**
+     * This fields stores the identity user id of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_USERID
+        = "identity_id";
+
+    /**
+     * This fields stores the identity group id of a participant as a string
+     */
+    public final static String JSON_KEY_PARTICIPANT_IDENTITY_GROUPID
+        = "identity_group_id";
 
     // JSON object to send to MUC
 
@@ -310,22 +334,8 @@ public class LocalJsonTranscriptHandler
         jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toString());
 
         JSONObject participantJson = new JSONObject();
-        participantJson.put(JSON_KEY_PARTICIPANT_NAME, e.getName());
-        participantJson.put(JSON_KEY_PARTICIPANT_ID, e.getID());
 
-        // adds email if it exists
-        Participant participant = e.getParticipant();
-        String email = participant.getEmail();
-        if (email != null)
-        {
-            participantJson.put(JSON_KEY_PARTICIPANT_EMAIL, email);
-        }
-
-        String avatarUrl = participant.getAvatarUrl();
-        if (avatarUrl != null)
-        {
-            participantJson.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
-        }
+        addParticipantDescription(participantJson, e.getParticipant());
 
         jsonObject.put(JSON_KEY_EVENT_PARTICIPANT, participantJson);
     }
@@ -355,7 +365,7 @@ public class LocalJsonTranscriptHandler
             alternativeJSON.put(JSON_KEY_ALTERNATIVE_CONFIDENCE,
                 alternative.getConfidence());
 
-            alternativeJSONArray.add(alternativeJSON);
+            alternativeJSONArray.put(alternativeJSON);
         }
 
         jsonObject.put(JSON_KEY_EVENT_TRANSCRIPT, alternativeJSONArray);
@@ -364,6 +374,54 @@ public class LocalJsonTranscriptHandler
         jsonObject.put(JSON_KEY_EVENT_MESSAGE_ID,
             result.getMessageID().toString());
         jsonObject.put(JSON_KEY_EVENT_STABILITY, result.getStability());
+    }
+
+
+    /**
+     * Make a given JSON object the "participant" JSON object
+     *
+     * @param pJSON the given JSON object to fill with the participant info
+     * @param participant the participant whose information to use
+     */
+    @SuppressWarnings("unchecked")
+    private static void addParticipantDescription(JSONObject pJSON,
+                                                  Participant participant)
+    {
+        pJSON.put(JSON_KEY_PARTICIPANT_NAME, participant.getName());
+        pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
+
+        // adds email if it exists
+        String email = participant.getEmail();
+        if (email != null)
+        {
+            pJSON.put(JSON_KEY_PARTICIPANT_EMAIL, email);
+        }
+
+        // adds avatar-url if it exists
+        String avatarUrl = participant.getAvatarUrl();
+        if (avatarUrl != null)
+        {
+            pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
+        }
+
+        // add identity information if it exists
+        String identityUsername = participant.getIdentityUserName();
+        if (identityUsername != null)
+        {
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_USERNAME, identityUsername);
+        }
+
+        String identityUserId = participant.getIdentityUserId();
+        if(identityUserId != null)
+        {
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_USERID, identityUserId);
+        }
+
+        String identityGroupId = participant.getIdentityGroupId();
+        if(identityGroupId != null)
+        {
+            pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_GROUPID, identityGroupId);
+        }
     }
 
     /**
@@ -381,6 +439,7 @@ public class LocalJsonTranscriptHandler
     @SuppressWarnings("unchecked")
     private void addTranscriptDescription(JSONObject jsonObject,
                                           String roomName,
+                                          String roomUrl,
                                           Collection<Participant> participants,
                                           Instant start,
                                           Instant end,
@@ -389,6 +448,10 @@ public class LocalJsonTranscriptHandler
         if(roomName != null && !roomName.isEmpty())
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME, roomName);
+        }
+        if(roomUrl != null && !roomUrl.isEmpty())
+        {
+            jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL, roomUrl);
         }
         if(start != null)
         {
@@ -407,23 +470,9 @@ public class LocalJsonTranscriptHandler
             {
                 JSONObject pJSON = new JSONObject();
 
-                pJSON.put(JSON_KEY_PARTICIPANT_NAME, participant.getName());
-                pJSON.put(JSON_KEY_PARTICIPANT_ID, participant.getId());
+                addParticipantDescription(pJSON, participant);
 
-                // adds email if it exists
-                String email = participant.getEmail();
-                if (email != null)
-                {
-                    pJSON.put(JSON_KEY_PARTICIPANT_EMAIL, email);
-                }
-
-                String avatarUrl = participant.getAvatarUrl();
-                if (avatarUrl != null)
-                {
-                    pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
-                }
-
-                participantArray.add(pJSON);
+                participantArray.put(pJSON);
             }
 
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_INITIAL_PARTICIPANTS,
@@ -432,7 +481,9 @@ public class LocalJsonTranscriptHandler
         if(events != null && !events.isEmpty())
         {
             JSONArray eventArray = new JSONArray();
-            eventArray.addAll(events);
+
+            events.forEach(eventArray::put);
+
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_EVENTS, eventArray);
         }
     }
@@ -452,6 +503,7 @@ public class LocalJsonTranscriptHandler
             addTranscriptDescription(
                 transcript,
                 super.roomName,
+                super.roomUrl,
                 super.initialMembers,
                 super.startInstant,
                 super.endInstant,

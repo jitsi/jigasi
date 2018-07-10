@@ -314,6 +314,11 @@
             <fileset refid="runtime.fileset" />
             <mapper type="flatten" />
         </copy>
+        <!-- clear smack debug from the resulting libs included
+             in the deb package, fails to start in headless mode -->
+        <delete failonerror="false">
+            <fileset file="lib/smack-debug*.jar" />
+        </delete>
     </target>
 
 </project>

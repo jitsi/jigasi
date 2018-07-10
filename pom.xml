@@ -55,6 +55,7 @@
     <dependency>
       <groupId>org.igniterealtime.whack</groupId>
       <artifactId>core</artifactId>
+      <version>2.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.gagravarr</groupId>
@@ -195,8 +196,9 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20180130</version>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -344,6 +346,23 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
+          <execution>
+            <id>assembly-native-libraries</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <appendAssemblyId>true</appendAssemblyId>
+              <descriptors>
+                <!-- The slightly odd artifact names help with backwards compatibility with the checkNatives() implementation. -->
+                <descriptor>src/assembly/native-linux-32.xml</descriptor>
+                <descriptor>src/assembly/native-linux-64.xml</descriptor>
+                <descriptor>src/assembly/native-macosx.xml</descriptor>
+              </descriptors>
+              <skipAssembly>false</skipAssembly>
+            </configuration>
+          </execution>
           <execution>
             <id>assembly-linux-x64-bin-archive</id>
             <phase>package</phase>
