@@ -293,6 +293,24 @@ public class Transcriber
     }
 
     /**
+     * Update the {@link Participant} with the given identifier by setting the
+     * <tt>translationLanguage</tt> of the participant and update the count for
+     * languages in the @link {@link TranslationManager}
+     *
+     * @param identifier the identifier of the participant
+     * @param language the language tag to be updated for the participant
+     */
+    public void updateParticipantLanguage(String identifier, String language)
+    {
+        Participant participant = getParticipant(identifier);
+        String previousTargetLanguage = participant.getTranslationLanguage();
+
+        translationManager.addLanguage(language);
+        translationManager.removeLanguage(previousTargetLanguage);
+        participant.setTranslationLanguage(language);
+    }
+
+    /**
      * Remove a participant from the list of participants being transcribed
      *
      * @param identifier the identifier of the participant
@@ -303,6 +321,8 @@ public class Transcriber
 
         if (participant != null)
         {
+            translationManager.removeLanguage(
+                participant.getTranslationLanguage());
             participant.left();
             TranscriptEvent event = transcript.notifyLeft(participant);
             if (event != null)

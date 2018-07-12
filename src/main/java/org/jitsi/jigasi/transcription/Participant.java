@@ -141,6 +141,11 @@ public class Participant
     private String identifier;
 
     /**
+     * The String representing the language code for required translation.
+     */
+    private String translationLanguage = null;
+
+    /**
      * Create a participant with a given name and audio stream
      *
      * @param transcriber the transcriber which created this participant
@@ -349,6 +354,25 @@ public class Participant
             return DEFAULT_UNKNOWN_AUDIO_SSRC;
         }
         return getConferenceMemberAudioSSRC(confMember);
+    }
+
+    /**
+     * Get the language code for translation for this @link {@link Participant}.
+     *
+     * @return language code for translation
+     */
+    public String getTranslationLanguage()
+    {
+        return translationLanguage;
+    }
+
+    /**
+     * Set the language code for translation for this @link {@link Participant}.
+     *
+     */
+    public void setTranslationLanguage(String language)
+    {
+        translationLanguage = language;
     }
 
     /**

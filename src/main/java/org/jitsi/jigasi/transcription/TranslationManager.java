@@ -45,7 +45,7 @@ public class TranslationManager
     /**
      * List of target languages for translating the transcriptions.
      */
-    private ArrayList<String> languages  = new ArrayList<>();
+    private Map<String, Integer> languages = new HashMap<>();
 
     /**
      * List of listeners to be notified about a new TranslationResult.
@@ -70,7 +70,7 @@ public class TranslationManager
 
         if(!defaultTargetLanguage.isEmpty())
         {
-            addTargetLanguage(defaultTargetLanguage);
+            addLanguage(defaultTargetLanguage);
         }
     }
 
@@ -87,13 +87,36 @@ public class TranslationManager
 
     /**
      * Adds a language tag to the list of target languages for
-     * translation.
+     * translation or increments its count in the map if key exists.
      *
      * @param language to be added to the list
      */
-    public void addTargetLanguage(String language)
+    public void addLanguage(String language)
     {
-        languages.add(language);
+        languages.put(language, languages.getOrDefault(language, 0) + 1);
+    }
+
+    /**
+     * Decrements the language count in the map and removes the language if
+     * no more participants need it.
+     *
+     * @param language whose count is to be decremented
+     */
+    public void removeLanguage(String language)
+    {
+        if(language == null)
+            return;
+
+        int count = languages.get(language);
+
+        if (count == 1)
+        {
+            languages.remove(language);
+        }
+        else
+        {
+            languages.put(language, count - 1);
+        }
     }
 
     /**
@@ -108,7 +131,8 @@ public class TranslationManager
     {
         ArrayList<TranslationResult> translatedResults
             = new ArrayList<>();
-        for(String language : languages)
+
+        for(String language : languages.keySet())
         {
             String translatedText = translationService.translate(
                 result.getAlternatives().iterator().next().getTranscription(),
