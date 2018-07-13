@@ -1,0 +1,13 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Jitsi Gateway to SIP
+Upstream-Contact: Emil Ivov <emcho@jitsi.org>
+Source: https://github.com/jitsi/jigasi
+
+Files: *
+Copyright: 2014-2018 Jitsi
+License: Apache 2.0
+
+License: Apache 2.0
+On Debian systems, the full text of the Apache licence
+version 2.0 can be found in the file
+'/usr/share/common-licenses/Apache-2.0'.
