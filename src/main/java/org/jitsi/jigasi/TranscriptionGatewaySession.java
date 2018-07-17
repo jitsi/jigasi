@@ -41,7 +41,8 @@ import java.util.*;
 public class TranscriptionGatewaySession
     extends AbstractGatewaySession
     implements TranscriptionListener,
-               TranscriptionEventListener
+               TranscriptionEventListener,
+               TranslationResultListener
 {
     /**
      * The logger of this class
@@ -120,6 +121,7 @@ public class TranscriptionGatewaySession
         // We got invited to a room, we can tell the transcriber
         // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
+        transcriber.addTranslationListener(this);
         transcriber.setRoomName(getJvbRoomName());
         transcriber.setRoomUrl(getMeetingUrl());
 
@@ -299,6 +301,18 @@ public class TranscriptionGatewaySession
     public void notify(TranscriptionResult result)
     {
         sendTranscriptionResultToRoom(result);
+    }
+
+    /**
+     * This method will be called by the {@link TranslationManager} every time a
+     * final transcription result is translated.
+     *
+     * @param result the translation result which has come in
+     */
+    @Override
+    public void notify(TranslationResult result)
+    {
+        sendTranslationResultToRoom(result);
     }
 
     /**
@@ -529,6 +543,16 @@ public class TranscriptionGatewaySession
     private void sendTranscriptionResultToRoom(TranscriptionResult result)
     {
         handler.publishTranscriptionResult(this.chatRoom, result);
+    }
+
+    /**
+     * Send a {@link TranslationResult} to the {@link ChatRoom}
+     *
+     * @param result the {@link TranscriptionResult} to send
+     */
+    private void sendTranslationResultToRoom(TranslationResult result)
+    {
+        handler.publishTranslationResult(this.chatRoom, result);
     }
 
     @Override

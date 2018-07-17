@@ -116,6 +116,13 @@ public class Transcriber
         = new TranscribingAudioMixerMediaDevice(this);
 
     /**
+     * The TranslationManager and the TranslationService which will be used
+     * for managing translations.
+     */
+    private TranslationManager translationManager
+        = new TranslationManager(new GoogleCloudTranslationService());
+
+    /**
      * Every listener which will be notified when a new result comes in
      * or the transcription has been completed
      */
@@ -176,6 +183,7 @@ public class Transcriber
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
+        addTranscriptionListener(this.translationManager);
 
         this.roomName = roomName;
         this.roomUrl = roomUrl;
@@ -473,6 +481,17 @@ public class Transcriber
     public void addTranscriptionListener(TranscriptionListener listener)
     {
         listeners.add(listener);
+    }
+
+    /**
+     * Add a TranslationResultListener which will be notified when the
+     * a new TranslationResult comes.
+     *
+     * @param listener the listener which will be notified
+     */
+    public void addTranslationListener(TranslationResultListener listener)
+    {
+        translationManager.addListener(listener);
     }
 
     /**

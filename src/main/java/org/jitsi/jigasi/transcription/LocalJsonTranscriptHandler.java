@@ -205,9 +205,17 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_TYPE = "type";
 
     /**
-     * This field stores the value of the type of the muc message as a string
+     * This field stores the value of the type of the muc message  for
+     * a transcription result to be sent.
      */
     public final static String JSON_VALUE_TYPE = "transcription-result";
+
+    /**
+     * This field stores the value of the type of muc message for
+     * a translation result to be sent.
+     */
+    public final static String JSON_VALUE_TYPE_TRANSLATION_RESULT
+        = "translation-result";
 
     @Override
     public JSONFormatter getFormatter()
@@ -219,6 +227,14 @@ public class LocalJsonTranscriptHandler
     public void publish(ChatRoom room, TranscriptionResult result)
     {
         JSONObject eventObject = createJSONObject(result);
+
+        super.sendJsonMessage(room, eventObject);
+    }
+
+    @Override
+    public void publish(ChatRoom room, TranslationResult result)
+    {
+        JSONObject eventObject = createTranslationJSONObject(result);
 
         super.sendJsonMessage(room, eventObject);
     }
@@ -242,6 +258,27 @@ public class LocalJsonTranscriptHandler
         return eventObject;
     }
 
+    /**
+     *Creates a json object representing the <tt>TranslationResult</tt>.
+     *
+     * @param result the object to be used to produce json.
+     * @return json object representing the <tt>TranslationResult</tt>.
+     */
+    @SuppressWarnings("unchecked")
+    private static JSONObject createTranslationJSONObject(TranslationResult result)
+    {
+        JSONObject eventObject = new JSONObject();
+        SpeechEvent event = new SpeechEvent(Instant.now(),
+            result.getTranscriptionResult());
+
+        addEventDescriptions(eventObject, event);
+
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
+        eventObject.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
+        eventObject.put(JSON_KEY_ALTERNATIVE_TEXT, result.getTranslatedText());
+
+        return eventObject;
+    }
     @Override
     public Promise getPublishPromise()
     {

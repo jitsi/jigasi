@@ -195,6 +195,17 @@ public class LocalTxtTranscriptHandler
         super.sendMessage(chatRoom, toSend);
     }
 
+    /**
+     * Translated Speech-to-text results can be published to the Chatroom
+     * as plain-text here.
+     *
+     * {@inheritDoc}
+     */
+    @Override
+    public void publish(ChatRoom chatRoom, TranslationResult result)
+    {
+    }
+
     @Override
     public Promise getPublishPromise()
     {
