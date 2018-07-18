@@ -31,18 +31,6 @@ public class TranslationManager
 {
 
     /**
-     * Property name for getting a target language for translation.
-     */
-    public final static String P_NAME_DEFAULT_TARGET_LANGUAGE
-        = "org.jitsi.jigasi.transcription.DEFAULT_TARGET_LANGUAGE";
-
-    /**
-     * Whether to translate text before sending results in the target language.
-     */
-    public final static String DEFAULT_TARGET_LANGUAGE
-        = "";
-
-    /**
      * List of target languages for translating the transcriptions.
      */
     private Map<String, Integer> languages = new HashMap<>();
@@ -66,12 +54,6 @@ public class TranslationManager
     public TranslationManager(TranslationService service)
     {
         translationService = service;
-        String defaultTargetLanguage = getTargetLanguage();
-
-        if(!defaultTargetLanguage.isEmpty())
-        {
-            addLanguage(defaultTargetLanguage);
-        }
     }
 
     /**
@@ -93,6 +75,9 @@ public class TranslationManager
      */
     public void addLanguage(String language)
     {
+        if(language == null || language.isEmpty())
+            return;
+
         languages.put(language, languages.getOrDefault(language, 0) + 1);
     }
 
@@ -173,16 +158,5 @@ public class TranslationManager
     public void completed()
     {
         languages.clear();
-    }
-
-    /**
-     * Get the default target language for translation.
-     *
-     * @return "" if disabled, otherwise the target language tag.
-     */
-    private String getTargetLanguage()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-            .getString(P_NAME_DEFAULT_TARGET_LANGUAGE, DEFAULT_TARGET_LANGUAGE);
     }
 }

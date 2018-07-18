@@ -276,6 +276,8 @@ public class LocalJsonTranscriptHandler
         eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
         eventObject.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
         eventObject.put(JSON_KEY_ALTERNATIVE_TEXT, result.getTranslatedText());
+        eventObject.put(JSON_KEY_EVENT_MESSAGE_ID,
+                result.getTranscriptionResult().getMessageID().toString());
 
         return eventObject;
     }

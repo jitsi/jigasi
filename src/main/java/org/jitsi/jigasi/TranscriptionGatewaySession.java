@@ -27,7 +27,7 @@ import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
-import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smack.packet.Presence;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -266,16 +266,20 @@ public class TranscriptionGatewaySession
     {
         super.notifyChatRoomMemberUpdated(chatMember, presence);
 
+        String identifier = getParticipantIdentifier(chatMember);
         TranslationLanguageExtension translationLanguage
             = presence.getExtension(
                 TranslationLanguageExtension.ELEMENT_NAME,
                 TranslationLanguageExtension.NAMESPACE);
 
         if(translationLanguage != null) {
-            String identifier = getParticipantIdentifier(chatMember);
             String language = translationLanguage.getTranslationLanguage();
 
             this.transcriber.updateParticipantLanguage(identifier, language);
+        }
+        else
+        {
+            this.transcriber.updateParticipantLanguage(identifier, null);
         }
     }
 

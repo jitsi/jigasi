@@ -55,6 +55,18 @@ public class Transcriber
     private final static String DD_ASPECT_STOP = "stop_transcriber";
 
     /**
+     * The property name for the boolean value whether translations should be
+     * enabled.
+     */
+    public final static String P_NAME_ENABLE_TRANSLATION
+        = "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION";
+
+    /**
+     * Whether to translate text before sending results in the target languages.
+     */
+    public final static boolean ENABLE_TRANSLATION_DEFAULT_VALUE = false;
+
+    /**
      * The states the transcriber can be in. The Transcriber
      * can only go through one cycle. So once it is started it can never
      * be started, and once is is stopped it can never be stopped and once
@@ -119,8 +131,7 @@ public class Transcriber
      * The TranslationManager and the TranslationService which will be used
      * for managing translations.
      */
-    private TranslationManager translationManager
-        = new TranslationManager(new GoogleCloudTranslationService());
+    private TranslationManager translationManager;
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -183,8 +194,12 @@ public class Transcriber
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
-        addTranscriptionListener(this.translationManager);
 
+        if(isTranslationEnabled()) {
+            this.translationManager
+                = new TranslationManager(new GoogleCloudTranslationService());
+            addTranscriptionListener(this.translationManager);
+        }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
     }
@@ -511,7 +526,10 @@ public class Transcriber
      */
     public void addTranslationListener(TranslationResultListener listener)
     {
-        translationManager.addListener(listener);
+        if(isTranslationEnabled())
+        {
+            translationManager.addListener(listener);
+        }
     }
 
     /**
@@ -735,5 +753,17 @@ public class Transcriber
         {
             listener.notify(this, event);
         }
+    }
+
+    /**
+     * Get whether translation is enabled.
+     *
+     * @return true if enabled, otherwise returns false.
+     */
+    private boolean isTranslationEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_TRANSLATION,
+                    ENABLE_TRANSLATION_DEFAULT_VALUE);
     }
 }
