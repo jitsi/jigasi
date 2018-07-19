@@ -17,8 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.jigasi.*;
-
 import java.util.*;
 
 /**

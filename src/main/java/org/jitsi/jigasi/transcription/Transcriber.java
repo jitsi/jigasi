@@ -131,7 +131,8 @@ public class Transcriber
      * The TranslationManager and the TranslationService which will be used
      * for managing translations.
      */
-    private TranslationManager translationManager;
+    private TranslationManager translationManager
+        = new TranslationManager(new GoogleCloudTranslationService());;
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -195,9 +196,8 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
 
-        if(isTranslationEnabled()) {
-            this.translationManager
-                = new TranslationManager(new GoogleCloudTranslationService());
+        if(isTranslationEnabled())
+        {
             addTranscriptionListener(this.translationManager);
         }
         this.roomName = roomName;
@@ -318,11 +318,15 @@ public class Transcriber
     public void updateParticipantLanguage(String identifier, String language)
     {
         Participant participant = getParticipant(identifier);
-        String previousTargetLanguage = participant.getTranslationLanguage();
 
-        translationManager.addLanguage(language);
-        translationManager.removeLanguage(previousTargetLanguage);
-        participant.setTranslationLanguage(language);
+        if(participant != null)
+        {
+            String previousTargetLanguage = participant.getTranslationLanguage();
+
+            translationManager.addLanguage(language);
+            translationManager.removeLanguage(previousTargetLanguage);
+            participant.setTranslationLanguage(language);
+        }
     }
 
     /**
@@ -526,10 +530,7 @@ public class Transcriber
      */
     public void addTranslationListener(TranslationResultListener listener)
     {
-        if(isTranslationEnabled())
-        {
-            translationManager.addListener(listener);
-        }
+        translationManager.addListener(listener);
     }
 
     /**
