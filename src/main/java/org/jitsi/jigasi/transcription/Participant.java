@@ -45,11 +45,6 @@ public class Participant
     private final static Logger logger = Logger.getLogger(Participant.class);
 
     /**
-     * Currently assume everyone to have this locale
-     */
-    private final static Locale ENGLISH_LOCALE = Locale.forLanguageTag("en-US");
-
-    /**
      * The expected amount of bytes each given buffer will have. Webrtc
      * usually has 20ms opus frames which are decoded to 2 bytes per sample
      * and 48000Hz sampling rate, which results in 2 * 48000 = 96000 bytes
@@ -139,6 +134,11 @@ public class Participant
      * The string which is used to identify this participant
      */
     private String identifier;
+
+    /**
+     * Set default language code as en-US for this participant's locale
+     */
+    private Locale sourceLanguageLocale = Locale.forLanguageTag("en-US");
 
     /**
      * The String representing the language code for required translation.
@@ -357,7 +357,18 @@ public class Participant
     }
 
     /**
-     * Get the language code for translation for this @link {@link Participant}.
+     * Get the source language code of the transcription for
+     * this {@link Participant}.
+     *
+     * @return source language code
+     */
+    public String getSourceLanguage()
+    {
+        return sourceLanguageLocale.getLanguage();
+    }
+
+    /**
+     * Get the language code for translation for this {@link Participant}.
      *
      * @return language code for translation
      */
@@ -367,8 +378,19 @@ public class Participant
     }
 
     /**
+     * Set the source language locale for this @link {@link Participant}.
+     *
+     * @param language code for transcription
+     */
+    public void setSourceLanguage(String language)
+    {
+        sourceLanguageLocale = Locale.forLanguageTag(language);
+    }
+
+    /**
      * Set the language code for translation for this @link {@link Participant}.
      *
+     * @param language code for translation
      */
     public void setTranslationLanguage(String language)
     {
@@ -548,7 +570,7 @@ public class Participant
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
                                            audioFormat,
-                                           ENGLISH_LOCALE);
+                                           sourceLanguageLocale);
 
             if (session != null && !session.ended())
             {

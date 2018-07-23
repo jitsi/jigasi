@@ -208,7 +208,8 @@ public class LocalJsonTranscriptHandler
      * This field stores the value of the type of the muc message  for
      * a transcription result to be sent.
      */
-    public final static String JSON_VALUE_TYPE = "transcription-result";
+    public final static String JSON_VALUE_TYPE_TRANSCRIPTION_RESULT
+        = "transcription-result";
 
     /**
      * This field stores the value of the type of muc message for
@@ -226,7 +227,7 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject eventObject = createJSONObject(result);
+        JSONObject eventObject = createTranscriptionJSONObject(result);
 
         super.sendJsonMessage(room, eventObject);
     }
@@ -245,7 +246,8 @@ public class LocalJsonTranscriptHandler
      * @return json object representing the <tt>TranscriptionResult</>.
      */
     @SuppressWarnings("unchecked")
-    public static JSONObject createJSONObject(TranscriptionResult result)
+    public static JSONObject createTranscriptionJSONObject(
+        TranscriptionResult result)
     {
         JSONObject eventObject = new JSONObject();
         SpeechEvent event = new SpeechEvent(Instant.now(), result);
@@ -253,7 +255,7 @@ public class LocalJsonTranscriptHandler
         addEventDescriptions(eventObject, event);
         addAlternatives(eventObject, event);
 
-        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE);
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSCRIPTION_RESULT);
 
         return eventObject;
     }
@@ -265,7 +267,8 @@ public class LocalJsonTranscriptHandler
      * @return json object representing the <tt>TranslationResult</tt>.
      */
     @SuppressWarnings("unchecked")
-    private static JSONObject createTranslationJSONObject(TranslationResult result)
+    private static JSONObject createTranslationJSONObject(
+        TranslationResult result)
     {
         JSONObject eventObject = new JSONObject();
         SpeechEvent event = new SpeechEvent(Instant.now(),

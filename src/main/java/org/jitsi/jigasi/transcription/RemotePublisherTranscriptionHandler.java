@@ -60,7 +60,7 @@ public class RemotePublisherTranscriptionHandler
         if (result.isInterim())
             return;
 
-        JSONObject eventObject = createJSONObject(result);
+        JSONObject eventObject = createTranscriptionJSONObject(result);
 
         eventObject.put(
             LocalJsonTranscriptHandler

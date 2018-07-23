@@ -321,10 +321,10 @@ public class Transcriber
 
         if(participant != null)
         {
-            String previousTargetLanguage = participant.getTranslationLanguage();
+            String previousLanguage = participant.getTranslationLanguage();
 
             translationManager.addLanguage(language);
-            translationManager.removeLanguage(previousTargetLanguage);
+            translationManager.removeLanguage(previousLanguage);
             participant.setTranslationLanguage(language);
         }
     }

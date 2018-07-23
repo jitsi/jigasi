@@ -204,6 +204,10 @@ public class LocalTxtTranscriptHandler
     @Override
     public void publish(ChatRoom chatRoom, TranslationResult result)
     {
+        /*
+         * We do not send the translated speech-to-text results to the Chatroom
+         * as it will flood the Chatroom with messages.
+         */
     }
 
     @Override

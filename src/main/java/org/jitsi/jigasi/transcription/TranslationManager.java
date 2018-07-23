@@ -29,14 +29,16 @@ public class TranslationManager
 {
 
     /**
-     * List of target languages for translating the transcriptions.
+     * Map of target languages for translating the transcriptions
+     * to number of participants who need the particular language.
      */
-    private Map<String, Integer> languages = new HashMap<>();
+    private final Map<String, Integer> languages = new HashMap<>();
 
     /**
      * List of listeners to be notified about a new TranslationResult.
      */
-    private ArrayList<TranslationResultListener> listeners = new ArrayList<>();
+    private final List<TranslationResultListener> listeners
+        = new ArrayList<>();
 
     /**
      * The translationService to be used for translations.
@@ -62,7 +64,11 @@ public class TranslationManager
      */
     public void addListener(TranslationResultListener listener)
     {
-        listeners.add(listener);
+        synchronized(listeners)
+        {
+            if (!listeners.contains(listener))
+                listeners.add(listener);
+        }
     }
 
     /**
@@ -76,7 +82,10 @@ public class TranslationManager
         if(language == null || language.isEmpty())
             return;
 
-        languages.put(language, languages.getOrDefault(language, 0) + 1);
+        synchronized(languages)
+        {
+            languages.put(language, languages.getOrDefault(language, 0) + 1);
+        }
     }
 
     /**
@@ -90,15 +99,18 @@ public class TranslationManager
         if(language == null)
             return;
 
-        int count = languages.get(language);
+        synchronized(languages)
+        {
+            int count = languages.get(language);
 
-        if (count == 1)
-        {
-            languages.remove(language);
-        }
-        else
-        {
-            languages.put(language, count - 1);
+            if (count == 1)
+            {
+                languages.remove(language);
+            }
+            else
+            {
+                languages.put(language, count - 1);
+            }
         }
     }
 
@@ -109,24 +121,37 @@ public class TranslationManager
      * @param result the TranscriptionResult notified to the TranslationManager
      * @return list of TranslationResults
      */
-    public ArrayList<TranslationResult> getTranslations(
+    private List<TranslationResult> getTranslations(
         TranscriptionResult result)
     {
         ArrayList<TranslationResult> translatedResults
             = new ArrayList<>();
+        Set<String> translationLanguages;
 
-        for(String language : languages.keySet())
+        synchronized (languages)
         {
-            String translatedText = translationService.translate(
-                result.getAlternatives().iterator().next().getTranscription(),
-                result.getLanguage().substring(0,2),
-                language);
-
-            translatedResults.add(new TranslationResult(
-                result,
-                language,
-                translatedText));
+            translationLanguages = languages.keySet();
         }
+
+        Collection<TranscriptionAlternative> alternatives
+            = result.getAlternatives();
+
+        if(!alternatives.isEmpty())
+        {
+            for(String targetLanguage : translationLanguages)
+            {
+                String translatedText = translationService.translate(
+                    alternatives.iterator().next().getTranscription(),
+                    result.getParticipant().getSourceLanguage(),
+                    targetLanguage);
+
+                translatedResults.add(new TranslationResult(
+                    result,
+                    targetLanguage,
+                    translatedText));
+            }
+        }
+
         return translatedResults;
     }
 
@@ -142,13 +167,17 @@ public class TranslationManager
     {
         if(!result.isInterim())
         {
-            ArrayList<TranslationResult> translations
+            List<TranslationResult> translations
                 = getTranslations(result);
-            for (TranslationResultListener listener : listeners)
+            Iterable<TranslationResultListener> translationResultListeners;
+
+            synchronized (listeners)
             {
-                for (TranslationResult translation : translations)
-                    listener.notify(translation);
+                translationResultListeners = new ArrayList<>(listeners);
             }
+
+            translationResultListeners.forEach(
+                listener -> translations.forEach(listener::notify));
         }
     }
 

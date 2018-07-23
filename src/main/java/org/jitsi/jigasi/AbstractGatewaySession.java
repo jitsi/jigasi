@@ -295,9 +295,9 @@ public abstract class AbstractGatewaySession
 
     /**
      * Method called by {@link JvbConference} to notify session that a member
-     * has sent an updated presence packet,
+     * has sent an updated presence packet.
      *
-3     * @param member the member who left the JVB conference
+     * @param member the member who left the JVB conference
      * @param presence the updated presence of the member
      */
     void notifyChatRoomMemberUpdated(ChatRoomMember member, Presence presence)

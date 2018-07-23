@@ -267,13 +267,15 @@ public class TranscriptionGatewaySession
         super.notifyChatRoomMemberUpdated(chatMember, presence);
 
         String identifier = getParticipantIdentifier(chatMember);
-        TranslationLanguageExtension translationLanguage
+        TranslationLanguageExtension translationLanguageExtension
             = presence.getExtension(
                 TranslationLanguageExtension.ELEMENT_NAME,
                 TranslationLanguageExtension.NAMESPACE);
 
-        if(translationLanguage != null) {
-            String language = translationLanguage.getTranslationLanguage();
+        if(translationLanguageExtension != null)
+        {
+            String language
+                = translationLanguageExtension.getTranslationLanguage();
 
             this.transcriber.updateParticipantLanguage(identifier, language);
         }
