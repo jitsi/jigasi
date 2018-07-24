@@ -801,6 +801,8 @@ public class JvbConference
                     Presence presence
                         = ((ChatRoomMemberJabberImpl) member).getLastPresence();
 
+                    gatewaySession.notifyChatRoomMemberUpdated(member, presence);
+
                     RecordingStatus rs = presence.getExtension(
                         RecordingStatus.ELEMENT_NAME,
                         RecordingStatus.NAMESPACE);

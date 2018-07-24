@@ -21,6 +21,7 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
 
@@ -290,6 +291,18 @@ public abstract class AbstractGatewaySession
          * Note that we do NOT update {@link this#participantsCount} because
          * it is the cumulative count of the participants over the whole session
          */
+    }
+
+    /**
+     * Method called by {@link JvbConference} to notify session that a member
+     * has sent an updated presence packet.
+     *
+     * @param member the member who left the JVB conference
+     * @param presence the updated presence of the member
+     */
+    void notifyChatRoomMemberUpdated(ChatRoomMember member, Presence presence)
+    {
+        // We don't need to do anything here.
     }
 
     /**

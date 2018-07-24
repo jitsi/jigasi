@@ -187,7 +187,7 @@ public class ActionServicesHandler
                     new TranscriptionAlternative(newText, alt.getConfidence()));
 
                 JSONObject jsonResult =
-                    LocalJsonTranscriptHandler.createJSONObject(result);
+                    LocalJsonTranscriptHandler.createTranscriptionJSONObject(result);
                 String roomName
                     = result.getParticipant().getTranscriber().getRoomName();
                 jsonResult.put(

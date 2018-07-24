@@ -55,6 +55,18 @@ public class Transcriber
     private final static String DD_ASPECT_STOP = "stop_transcriber";
 
     /**
+     * The property name for the boolean value whether translations should be
+     * enabled.
+     */
+    public final static String P_NAME_ENABLE_TRANSLATION
+        = "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION";
+
+    /**
+     * Whether to translate text before sending results in the target languages.
+     */
+    public final static boolean ENABLE_TRANSLATION_DEFAULT_VALUE = false;
+
+    /**
      * The states the transcriber can be in. The Transcriber
      * can only go through one cycle. So once it is started it can never
      * be started, and once is is stopped it can never be stopped and once
@@ -114,6 +126,13 @@ public class Transcriber
      */
     private TranscribingAudioMixerMediaDevice mediaDevice
         = new TranscribingAudioMixerMediaDevice(this);
+
+    /**
+     * The TranslationManager and the TranslationService which will be used
+     * for managing translations.
+     */
+    private TranslationManager translationManager
+        = new TranslationManager(new GoogleCloudTranslationService());;
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -177,6 +196,10 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
 
+        if(isTranslationEnabled())
+        {
+            addTranscriptionListener(this.translationManager);
+        }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
     }
@@ -285,6 +308,28 @@ public class Transcriber
     }
 
     /**
+     * Update the {@link Participant} with the given identifier by setting the
+     * <tt>translationLanguage</tt> of the participant and update the count for
+     * languages in the @link {@link TranslationManager}
+     *
+     * @param identifier the identifier of the participant
+     * @param language the language tag to be updated for the participant
+     */
+    public void updateParticipantLanguage(String identifier, String language)
+    {
+        Participant participant = getParticipant(identifier);
+
+        if(participant != null)
+        {
+            String previousLanguage = participant.getTranslationLanguage();
+
+            translationManager.addLanguage(language);
+            translationManager.removeLanguage(previousLanguage);
+            participant.setTranslationLanguage(language);
+        }
+    }
+
+    /**
      * Remove a participant from the list of participants being transcribed
      *
      * @param identifier the identifier of the participant
@@ -295,6 +340,8 @@ public class Transcriber
 
         if (participant != null)
         {
+            translationManager.removeLanguage(
+                participant.getTranslationLanguage());
             participant.left();
             TranscriptEvent event = transcript.notifyLeft(participant);
             if (event != null)
@@ -473,6 +520,17 @@ public class Transcriber
     public void addTranscriptionListener(TranscriptionListener listener)
     {
         listeners.add(listener);
+    }
+
+    /**
+     * Add a TranslationResultListener which will be notified when the
+     * a new TranslationResult comes.
+     *
+     * @param listener the listener which will be notified
+     */
+    public void addTranslationListener(TranslationResultListener listener)
+    {
+        translationManager.addListener(listener);
     }
 
     /**
@@ -696,5 +754,17 @@ public class Transcriber
         {
             listener.notify(this, event);
         }
+    }
+
+    /**
+     * Get whether translation is enabled.
+     *
+     * @return true if enabled, otherwise returns false.
+     */
+    private boolean isTranslationEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_TRANSLATION,
+                    ENABLE_TRANSLATION_DEFAULT_VALUE);
     }
 }
