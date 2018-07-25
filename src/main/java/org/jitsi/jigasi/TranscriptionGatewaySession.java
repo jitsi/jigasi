@@ -267,21 +267,34 @@ public class TranscriptionGatewaySession
         super.notifyChatRoomMemberUpdated(chatMember, presence);
 
         String identifier = getParticipantIdentifier(chatMember);
+        TranscriptionLanguageExtension transcriptionLanguageExtension
+            = presence.getExtension(
+                TranscriptionLanguageExtension.ELEMENT_NAME,
+                TranscriptionLanguageExtension.NAMESPACE);
         TranslationLanguageExtension translationLanguageExtension
             = presence.getExtension(
                 TranslationLanguageExtension.ELEMENT_NAME,
                 TranslationLanguageExtension.NAMESPACE);
+
+        if(transcriptionLanguageExtension != null)
+        {
+            String language
+                = transcriptionLanguageExtension.getTranscriptionLanguage();
+
+            this.transcriber.updateParticipantSourceLanguage(identifier,
+                language);
+        }
 
         if(translationLanguageExtension != null)
         {
             String language
                 = translationLanguageExtension.getTranslationLanguage();
 
-            this.transcriber.updateParticipantLanguage(identifier, language);
+            this.transcriber.updateParticipantTargetLanguage(identifier, language);
         }
         else
         {
-            this.transcriber.updateParticipantLanguage(identifier, null);
+            this.transcriber.updateParticipantTargetLanguage(identifier, null);
         }
     }
 

@@ -309,13 +309,32 @@ public class Transcriber
 
     /**
      * Update the {@link Participant} with the given identifier by setting the
+     * <tt>sourceLanguageLocale</tt> of the participant.
+     *
+     * @param identifier the identifier of the participant
+     * @param language the source language tag for the participant
+     */
+    public void updateParticipantSourceLanguage(String identifier,
+                                                String language)
+    {
+        Participant participant = getParticipant(identifier);
+
+        if(participant != null)
+        {
+            participant.setSourceLanguage(language);
+        }
+    }
+
+    /**
+     * Update the {@link Participant} with the given identifier by setting the
      * <tt>translationLanguage</tt> of the participant and update the count for
      * languages in the @link {@link TranslationManager}
      *
      * @param identifier the identifier of the participant
      * @param language the language tag to be updated for the participant
      */
-    public void updateParticipantLanguage(String identifier, String language)
+    public void updateParticipantTargetLanguage(String identifier,
+                                                String language)
     {
         Participant participant = getParticipant(identifier);
 
