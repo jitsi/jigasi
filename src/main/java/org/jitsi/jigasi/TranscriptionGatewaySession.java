@@ -18,6 +18,7 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -26,6 +27,7 @@ import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
+import org.jivesoftware.smack.packet.Presence;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -41,7 +43,8 @@ import java.util.*;
 public class TranscriptionGatewaySession
     extends AbstractGatewaySession
     implements TranscriptionListener,
-               TranscriptionEventListener
+               TranscriptionEventListener,
+               TranslationResultListener
 {
     /**
      * The logger of this class
@@ -120,6 +123,7 @@ public class TranscriptionGatewaySession
         // We got invited to a room, we can tell the transcriber
         // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
+        transcriber.addTranslationListener(this);
         transcriber.setRoomName(getJvbRoomName());
         transcriber.setRoomUrl(getMeetingUrl());
 
@@ -222,6 +226,8 @@ public class TranscriptionGatewaySession
             }
         }
 
+        this.gateway.notifyCallEnded(this.callContext);
+
         logger.debug("Conference ended");
     }
 
@@ -256,6 +262,30 @@ public class TranscriptionGatewaySession
     }
 
     @Override
+    void notifyChatRoomMemberUpdated(ChatRoomMember chatMember, Presence presence)
+    {
+        super.notifyChatRoomMemberUpdated(chatMember, presence);
+
+        String identifier = getParticipantIdentifier(chatMember);
+        TranslationLanguageExtension translationLanguageExtension
+            = presence.getExtension(
+                TranslationLanguageExtension.ELEMENT_NAME,
+                TranslationLanguageExtension.NAMESPACE);
+
+        if(translationLanguageExtension != null)
+        {
+            String language
+                = translationLanguageExtension.getTranslationLanguage();
+
+            this.transcriber.updateParticipantLanguage(identifier, language);
+        }
+        else
+        {
+            this.transcriber.updateParticipantLanguage(identifier, null);
+        }
+    }
+
+    @Override
     void notifyConferenceMemberJoined(ConferenceMember conferenceMember)
     {
         super.notifyConferenceMemberJoined(conferenceMember);
@@ -278,6 +308,14 @@ public class TranscriptionGatewaySession
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDefaultInitStatus()
+    {
+        return null;
+    }
 
     /**
      * This method will be called by the {@link Transcriber} every time a new
@@ -289,6 +327,18 @@ public class TranscriptionGatewaySession
     public void notify(TranscriptionResult result)
     {
         sendTranscriptionResultToRoom(result);
+    }
+
+    /**
+     * This method will be called by the {@link TranslationManager} every time a
+     * final transcription result is translated.
+     *
+     * @param result the translation result which has come in
+     */
+    @Override
+    public void notify(TranslationResult result)
+    {
+        sendTranslationResultToRoom(result);
     }
 
     /**
@@ -519,6 +569,16 @@ public class TranscriptionGatewaySession
     private void sendTranscriptionResultToRoom(TranscriptionResult result)
     {
         handler.publishTranscriptionResult(this.chatRoom, result);
+    }
+
+    /**
+     * Send a {@link TranslationResult} to the {@link ChatRoom}
+     *
+     * @param result the {@link TranscriptionResult} to send
+     */
+    private void sendTranslationResultToRoom(TranslationResult result)
+    {
+        handler.publishTranslationResult(this.chatRoom, result);
     }
 
     @Override

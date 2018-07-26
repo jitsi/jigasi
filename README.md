@@ -39,7 +39,7 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
 
  Go to jigasi/jigasi-home and edit sip-communicator.properties file. Replace ```<<JIGASI_SIPUSER>>``` tag with SIP username for example: "user1232@sipserver.net". Then put Base64 encoded password in place of ```<<JIGASI_SIPPWD>>```.
 
-5. Start Jigasi
+6. Start Jigasi
  
  ```
  cd jigasi/target/jigasi-{os-version}-{version}/
@@ -74,6 +74,19 @@ Jigasi will register on your SIP server with some identity and it will accept ca
 Example:
 
 Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.jit.si/room1234' (assuming that our domain is 'meet.jit.si').
+
+Configuring SIP and Transcription
+=======================================
+
+It is possible to either enable or disable the functionality of SIP and 
+transcription. By default, the properties 
+`org.jitsi.jigasi.ENABLE_TRANSCRIPTION=false` 
+and 
+`org.jitsi.jigasi.ENABLE_SIP=true` 
+in
+`jigasi-home/sip-communicator.properties` 
+enable SIP and disable transcription. To change this, simple set the desired
+property to `true` or `false`.
 
 
 Using Jigasi to transcribe a Jitsi Meet conference

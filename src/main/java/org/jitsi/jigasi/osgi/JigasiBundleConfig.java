@@ -149,6 +149,9 @@ public class JigasiBundleConfig
             },
             {
                 "org/jitsi/jigasi/xmpp/CallControlMucActivator"
+            },
+            {
+                "org/jitsi/ddclient/Activator"
             }
         };
 

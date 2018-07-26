@@ -17,8 +17,10 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import com.timgroup.statsd.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
@@ -41,6 +43,28 @@ public class Transcriber
      * The logger of this class
      */
     private final static Logger logger = Logger.getLogger(Transcriber.class);
+
+    /**
+     * Datadog aspect for starting transcribing
+     */
+    private final static String DD_ASPECT_START = "start_transcriber";
+
+    /**
+     * Datadog aspect for ending transcribing
+     */
+    private final static String DD_ASPECT_STOP = "stop_transcriber";
+
+    /**
+     * The property name for the boolean value whether translations should be
+     * enabled.
+     */
+    public final static String P_NAME_ENABLE_TRANSLATION
+        = "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION";
+
+    /**
+     * Whether to translate text before sending results in the target languages.
+     */
+    public final static boolean ENABLE_TRANSLATION_DEFAULT_VALUE = false;
 
     /**
      * The states the transcriber can be in. The Transcriber
@@ -104,6 +128,13 @@ public class Transcriber
         = new TranscribingAudioMixerMediaDevice(this);
 
     /**
+     * The TranslationManager and the TranslationService which will be used
+     * for managing translations.
+     */
+    private TranslationManager translationManager
+        = new TranslationManager(new GoogleCloudTranslationService());;
+
+    /**
      * Every listener which will be notified when a new result comes in
      * or the transcription has been completed
      */
@@ -165,6 +196,10 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
 
+        if(isTranslationEnabled())
+        {
+            addTranscriptionListener(this.translationManager);
+        }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
     }
@@ -273,6 +308,28 @@ public class Transcriber
     }
 
     /**
+     * Update the {@link Participant} with the given identifier by setting the
+     * <tt>translationLanguage</tt> of the participant and update the count for
+     * languages in the @link {@link TranslationManager}
+     *
+     * @param identifier the identifier of the participant
+     * @param language the language tag to be updated for the participant
+     */
+    public void updateParticipantLanguage(String identifier, String language)
+    {
+        Participant participant = getParticipant(identifier);
+
+        if(participant != null)
+        {
+            String previousLanguage = participant.getTranslationLanguage();
+
+            translationManager.addLanguage(language);
+            translationManager.removeLanguage(previousLanguage);
+            participant.setTranslationLanguage(language);
+        }
+    }
+
+    /**
      * Remove a participant from the list of participants being transcribed
      *
      * @param identifier the identifier of the participant
@@ -283,6 +340,8 @@ public class Transcriber
 
         if (participant != null)
         {
+            translationManager.removeLanguage(
+                participant.getTranslationLanguage());
             participant.left();
             TranscriptEvent event = transcript.notifyLeft(participant);
             if (event != null)
@@ -312,6 +371,16 @@ public class Transcriber
         {
             if (logger.isDebugEnabled())
                 logger.debug("Transcriber is now transcribing");
+
+            StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
+            if(dClient != null)
+            {
+                dClient.increment(DD_ASPECT_START);
+                if(logger.isDebugEnabled())
+                {
+                    logger.debug("thrown stat: " + DD_ASPECT_START);
+                }
+            }
 
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
@@ -347,6 +416,16 @@ public class Transcriber
             if (logger.isDebugEnabled())
                 logger.debug("Transcriber is now finishing up");
 
+            StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
+            if(dClient != null)
+            {
+                dClient.increment(DD_ASPECT_STOP);
+                if(logger.isDebugEnabled())
+                {
+                    logger.debug("thrown stat: " + DD_ASPECT_STOP);
+                }
+            }
+
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
 
@@ -359,7 +438,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Trying to stop Transcriber while it is" +
+            logger.warn("Trying to stop Transcriber while it is " +
                             "already stopped");
         }
     }
@@ -378,7 +457,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Trying to notify Transcriber for a while it is" +
+            logger.warn("Trying to notify Transcriber for a while it is " +
                 "already stopped");
         }
     }
@@ -441,6 +520,17 @@ public class Transcriber
     public void addTranscriptionListener(TranscriptionListener listener)
     {
         listeners.add(listener);
+    }
+
+    /**
+     * Add a TranslationResultListener which will be notified when the
+     * a new TranslationResult comes.
+     *
+     * @param listener the listener which will be notified
+     */
+    public void addTranslationListener(TranslationResultListener listener)
+    {
+        translationManager.addListener(listener);
     }
 
     /**
@@ -664,5 +754,17 @@ public class Transcriber
         {
             listener.notify(this, event);
         }
+    }
+
+    /**
+     * Get whether translation is enabled.
+     *
+     * @return true if enabled, otherwise returns false.
+     */
+    private boolean isTranslationEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_TRANSLATION,
+                    ENABLE_TRANSLATION_DEFAULT_VALUE);
     }
 }

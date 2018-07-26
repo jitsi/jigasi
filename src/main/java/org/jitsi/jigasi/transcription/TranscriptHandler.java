@@ -148,6 +148,22 @@ public class TranscriptHandler
     }
 
     /**
+     * Handle a {@link TranslationResult} with all given
+     * {@link TranscriptionResultPublisher}'s
+     *
+     * @param room the {@link ChatRoom} to send the result to
+     * @param result the {@link TranslationResult} to handle
+     */
+    public void publishTranslationResult(ChatRoom room,
+                                         TranslationResult result)
+    {
+        for(TranscriptionResultPublisher p : resultPublishers)
+        {
+            p.publish(room, result);
+        }
+    }
+
+    /**
      * Get a list of {@link TranscriptPublisher.Promise}s which can handle a
      * {@link Transcript}. The list will contain such a
      * {@link TranscriptPublisher.Promise} for all {@link TranscriptPublisher}s

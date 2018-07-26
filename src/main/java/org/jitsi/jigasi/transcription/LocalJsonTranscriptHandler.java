@@ -200,19 +200,23 @@ public class LocalJsonTranscriptHandler
     // JSON object to send to MUC
 
     /**
-     * This fields stores the topic of the muc message as a string
+     * This fields stores the type of the muc message as a string
      */
-    public final static String JSON_KEY_TOPIC = "jitsi-meet-muc-msg-topic";
+    public final static String JSON_KEY_TYPE = "type";
 
     /**
-     * This field stores the value of the topic of the muc message as a string
+     * This field stores the value of the type of the muc message  for
+     * a transcription result to be sent.
      */
-    public final static String JSON_VALUE_TOPIC = "transcription-result";
+    public final static String JSON_VALUE_TYPE_TRANSCRIPTION_RESULT
+        = "transcription-result";
 
     /**
-     * This field stores the payload object which will be send as a muc message
+     * This field stores the value of the type of muc message for
+     * a translation result to be sent.
      */
-    public final static String JSON_KEY_PAYLOAD = "payload";
+    public final static String JSON_VALUE_TYPE_TRANSLATION_RESULT
+        = "translation-result";
 
     @Override
     public JSONFormatter getFormatter()
@@ -223,27 +227,17 @@ public class LocalJsonTranscriptHandler
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        JSONObject eventObject = createJSONObject(result);
+        JSONObject eventObject = createTranscriptionJSONObject(result);
 
-        JSONObject encapsulatingObject = new JSONObject();
-        createEncapsulatingObject(encapsulatingObject, eventObject);
-
-        super.sendMessage(room, encapsulatingObject);
+        super.sendJsonMessage(room, eventObject);
     }
 
-    /**
-     * Create the JSON object will be send to the {@link ChatRoom}
-     *
-     * @param encapsulatingObject the json object which will be send
-     * @param transcriptResultObject the json object which will be added as
-     *                               payload
-     */
-    @SuppressWarnings("unchecked")
-    protected void createEncapsulatingObject(JSONObject encapsulatingObject,
-                                           JSONObject transcriptResultObject)
+    @Override
+    public void publish(ChatRoom room, TranslationResult result)
     {
-        encapsulatingObject.put(JSON_KEY_TOPIC, JSON_VALUE_TOPIC);
-        encapsulatingObject.put(JSON_KEY_PAYLOAD, transcriptResultObject);
+        JSONObject eventObject = createTranslationJSONObject(result);
+
+        super.sendJsonMessage(room, eventObject);
     }
 
     /**
@@ -251,7 +245,9 @@ public class LocalJsonTranscriptHandler
      * @param result the object to use to produce json.
      * @return json object representing the <tt>TranscriptionResult</>.
      */
-    public static JSONObject createJSONObject(TranscriptionResult result)
+    @SuppressWarnings("unchecked")
+    public static JSONObject createTranscriptionJSONObject(
+        TranscriptionResult result)
     {
         JSONObject eventObject = new JSONObject();
         SpeechEvent event = new SpeechEvent(Instant.now(), result);
@@ -259,9 +255,35 @@ public class LocalJsonTranscriptHandler
         addEventDescriptions(eventObject, event);
         addAlternatives(eventObject, event);
 
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSCRIPTION_RESULT);
+
         return eventObject;
     }
 
+    /**
+     *Creates a json object representing the <tt>TranslationResult</tt>.
+     *
+     * @param result the object to be used to produce json.
+     * @return json object representing the <tt>TranslationResult</tt>.
+     */
+    @SuppressWarnings("unchecked")
+    private static JSONObject createTranslationJSONObject(
+        TranslationResult result)
+    {
+        JSONObject eventObject = new JSONObject();
+        SpeechEvent event = new SpeechEvent(Instant.now(),
+            result.getTranscriptionResult());
+
+        addEventDescriptions(eventObject, event);
+
+        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
+        eventObject.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
+        eventObject.put(JSON_KEY_ALTERNATIVE_TEXT, result.getTranslatedText());
+        eventObject.put(JSON_KEY_EVENT_MESSAGE_ID,
+                result.getTranscriptionResult().getMessageID().toString());
+
+        return eventObject;
+    }
     @Override
     public Promise getPublishPromise()
     {

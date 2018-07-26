@@ -60,26 +60,23 @@ public class RemotePublisherTranscriptionHandler
         if (result.isInterim())
             return;
 
-        JSONObject eventObject = createJSONObject(result);
+        JSONObject eventObject = createTranscriptionJSONObject(result);
 
-        JSONObject encapsulatingObject = new JSONObject();
-        createEncapsulatingObject(encapsulatingObject, eventObject);
-
-        encapsulatingObject.put(
+        eventObject.put(
             LocalJsonTranscriptHandler
                 .JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME,
             result.getParticipant().getTranscriber().getRoomName());
 
         // adds event type to the encapsulating object to be consistent
         // with the events we push to the remote service
-        encapsulatingObject.put(
+        eventObject.put(
             LocalJsonTranscriptHandler
                 .JSON_KEY_EVENT_EVENT_TYPE,
             Transcript.TranscriptEventType.SPEECH.toString());
 
         for (String url : urls)
         {
-            Util.postJSON(url, encapsulatingObject);
+            Util.postJSON(url, eventObject);
         }
     }
 

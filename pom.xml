@@ -20,7 +20,7 @@
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
     <smack.version>4.2.1</smack.version>
-    <jitsi-desktop.version>2.13.b917280</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.67d8c8b</jitsi-desktop.version>
   </properties>
 
   <dependencies>
@@ -33,6 +33,11 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-speech</artifactId>
       <version>0.49.0-alpha</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-translate</artifactId>
+      <version>1.31.0</version>
     </dependency>
     <dependency>
       <groupId>dom4j</groupId>

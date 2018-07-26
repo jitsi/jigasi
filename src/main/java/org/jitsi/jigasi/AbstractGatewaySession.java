@@ -21,6 +21,7 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
 
@@ -144,7 +145,7 @@ public abstract class AbstractGatewaySession
      */
     public boolean isInTheRoom()
     {
-        return jvbConference.isInTheRoom();
+        return jvbConference != null && jvbConference.isInTheRoom();
     }
 
     /**
@@ -293,6 +294,18 @@ public abstract class AbstractGatewaySession
     }
 
     /**
+     * Method called by {@link JvbConference} to notify session that a member
+     * has sent an updated presence packet.
+     *
+     * @param member the member who left the JVB conference
+     * @param presence the updated presence of the member
+     */
+    void notifyChatRoomMemberUpdated(ChatRoomMember member, Presence presence)
+    {
+        // We don't need to do anything here.
+    }
+
+    /**
      * Returns the cumulative number of participants that were active during
      * this session including the focus.
      *
@@ -319,6 +332,14 @@ public abstract class AbstractGatewaySession
      * otherwise
      */
     public abstract boolean isTranslatorSupported();
+
+    /**
+     * Get the default status of our participant before we get any state from
+     * the <tt>CallPeer</tt>.
+     *
+     * @return the default status, or null when none desired
+     */
+    public abstract String getDefaultInitStatus();
 
     /**
      * Returns the gateway used for this session.
