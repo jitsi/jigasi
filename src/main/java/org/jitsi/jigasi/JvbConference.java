@@ -1094,15 +1094,11 @@ public class JvbConference
             + ".DTLS-SRTP", "true");
 
         AbstractGateway gw = gatewaySession.getGateway();
+        boolean preventAuthLogin = false;
         if(gw instanceof SipGateway)
         {
-            String preventAuthLogin
-                = ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN");
-
-            if (Boolean.valueOf(preventAuthLogin))
-            {
-                return properties;
-            }
+            preventAuthLogin = Boolean.valueOf(
+                ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN"));
         }
 
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
@@ -1117,7 +1113,8 @@ public class JvbConference
 
             // The key for the password field can't end in PASSWORD, otherwise
             // it is encrypted by our configuration service implementation.
-            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp))
+            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp) &&
+                !preventAuthLogin)
             {
                 // The password is fully managed (i.e. stored/retrieved) by the
                 // configuration service and credentials storage service. See
@@ -1154,6 +1151,11 @@ public class JvbConference
                 // account and there we can alter the connection credentials.
 
                 this.xmppPassword = value;
+            }
+            else if ("org.jitsi.jigasi.xmpp.acc.USER_ID".equals(overridenProp)
+                && !preventAuthLogin)
+            {
+                properties.put(key, value);
             }
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
