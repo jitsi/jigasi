@@ -1157,6 +1157,18 @@ public class JvbConference
             {
                 properties.put(key, value);
             }
+            else if ("org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH"
+                .equals(overridenProp))
+            {
+                if (preventAuthLogin)
+                {
+                    properties.put(key, Boolean.toString(true));
+                }
+                else
+                {
+                    properties.put(key, value);
+                }
+            }
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
             {
