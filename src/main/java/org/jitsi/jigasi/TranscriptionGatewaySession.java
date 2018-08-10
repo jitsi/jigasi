@@ -59,6 +59,12 @@ public class TranscriptionGatewaySession
     public final static String DISPLAY_NAME = "Transcriber";
 
     /**
+     * How long the transcriber should wait until really leaving the conference
+     * when no participant is requesting transcription anymore.
+     */
+    public final static int PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION = 2500;
+
+    /**
      * The TranscriptionService used by this session
      */
     private TranscriptionService service;
@@ -295,6 +301,27 @@ public class TranscriptionGatewaySession
         else
         {
             this.transcriber.updateParticipantTargetLanguage(identifier, null);
+        }
+
+        if(transcriber.isTranscribing() &&
+            !transcriber.isAnyParticipantRequestingTranscription())
+        {
+            new Thread(() ->
+            {
+                try
+                {
+                    Thread.sleep(PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+
+                if(!transcriber.isAnyParticipantRequestingTranscription())
+                {
+                    jvbConference.stop();
+                }
+            }).start();
         }
     }
 

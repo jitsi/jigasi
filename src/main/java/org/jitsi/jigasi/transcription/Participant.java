@@ -364,7 +364,9 @@ public class Participant
      */
     public String getSourceLanguage()
     {
-        return sourceLanguageLocale.getLanguage();
+        return sourceLanguageLocale == null ?
+            null :
+            sourceLanguageLocale.getLanguage();
     }
 
     /**
@@ -384,7 +386,14 @@ public class Participant
      */
     public void setSourceLanguage(String language)
     {
-        sourceLanguageLocale = Locale.forLanguageTag(language);
+        if (language == null)
+        {
+            sourceLanguageLocale = null;
+        }
+        else
+        {
+            sourceLanguageLocale = Locale.forLanguageTag(language);
+        }
     }
 
     /**
@@ -616,5 +625,18 @@ public class Participant
     {
         // bitwise AND to fix signed int casted to long
         return confMember.getAudioSsrc() & 0xffffffffL;
+    }
+
+    /**
+     * Check whether this Participant is requesting a source language
+     *
+     * @return true when the source language is set and non-empty, false
+     * otherwise.
+     */
+    public boolean hasValidSourceLanguage()
+    {
+        String lang = this.getSourceLanguage();
+
+        return lang != null && !lang.isEmpty();
     }
 }

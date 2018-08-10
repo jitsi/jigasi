@@ -611,10 +611,14 @@ public class Transcriber
         long ssrc = receiveStream.getSSRC() & 0xffffffffL;
 
         Participant p = findParticipant(ssrc);
+
         if (p != null)
         {
-            logger.trace("Gave audio to buffer");
-            p.giveBuffer(buffer);
+            if (p.hasValidSourceLanguage())
+            {
+                logger.trace("Gave audio to buffer");
+                p.giveBuffer(buffer);
+            }
         }
         else
         {
@@ -658,6 +662,25 @@ public class Transcriber
         {
             return this.participants.get(identifier);
         }
+    }
+
+    /**
+     * Check whether any {@link Participant} are requesting transcription
+     *
+     * @return true when at least one {@link Participant} is requesting
+     * transcription, false otherwise
+     */
+    public boolean isAnyParticipantRequestingTranscription()
+    {
+        List<Participant> participantsCopy;
+        synchronized (this.participants)
+        {
+            participantsCopy = new ArrayList<>(this.participants.values());
+        }
+
+        return participantsCopy
+            .stream()
+            .anyMatch(Participant::hasValidSourceLanguage);
     }
 
     /**
