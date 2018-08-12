@@ -132,7 +132,7 @@ public class Transcriber
      * for managing translations.
      */
     private TranslationManager translationManager
-        = new TranslationManager(new GoogleCloudTranslationService());;
+        = new TranslationManager(new GoogleCloudTranslationService());
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -199,6 +199,8 @@ public class Transcriber
         if(isTranslationEnabled())
         {
             addTranscriptionListener(this.translationManager);
+            addTranslationListener(this.transcript);
+            transcript.setTranslationManager(this.translationManager);
         }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
@@ -328,7 +330,8 @@ public class Transcriber
     /**
      * Update the {@link Participant} with the given identifier by setting the
      * <tt>translationLanguage</tt> of the participant and update the count for
-     * languages in the @link {@link TranslationManager}
+     * languages in the @link {@link TranslationManager} and adds the language
+     * for the storing the final translated {@link Transcript}.
      *
      * @param identifier the identifier of the participant
      * @param language the language tag to be updated for the participant
@@ -345,6 +348,7 @@ public class Transcriber
             translationManager.addLanguage(language);
             translationManager.removeLanguage(previousLanguage);
             participant.setTranslationLanguage(language);
+            transcript.addTranslationLanguage(language);
         }
     }
 

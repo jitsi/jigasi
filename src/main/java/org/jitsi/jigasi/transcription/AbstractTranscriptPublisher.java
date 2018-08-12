@@ -442,6 +442,14 @@ public abstract class AbstractTranscriptPublisher<T>
     protected abstract T formatSpeechEvent(SpeechEvent e);
 
     /**
+     * Format a translated speech event to the used format
+     *
+     * @param e the speech event
+     * @return the TranslatedSpeechEvent formatted in the desired type
+     */
+    protected abstract T formatTranslatedSpeechEvent(TranslatedSpeechEvent e);
+
+    /**
      * Format a join event to the used format
      *
      * @param e the join event
@@ -480,6 +488,12 @@ public abstract class AbstractTranscriptPublisher<T>
          * The instant when the conference ended
          */
         protected Instant endInstant;
+
+        /**
+         * A string of the target language
+         */
+        protected String language;
+
         /**
          * A string of the room name
          */
@@ -550,6 +564,20 @@ public abstract class AbstractTranscriptPublisher<T>
         }
 
         /**
+         * Format a transcript in a particular translated language
+         *
+         * @param language of translation for this translated transcript
+         * @return this formatter
+         */
+        BaseFormatter transcriptLanguage(String language)
+        {
+            if(language != null)
+            {
+                this.language = language;
+            }
+            return this;
+        }
+        /**
          * Format a transcript which includes the list of initial participant
          *
          * @param participants the list of participants
@@ -576,6 +604,26 @@ public abstract class AbstractTranscriptPublisher<T>
                 if(e.getEvent().equals(Transcript.TranscriptEventType.SPEECH))
                 {
                     formattedEvents.put(e, formatSpeechEvent(e));
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Format a transcript which includes the translations of what everyone
+         * who was transcribed said. Ignored when the given event does not have
+         * the event type {@link Transcript.TranscriptEventType#SPEECH}
+         *
+         * @param events a list of events containing the translated transcriptions
+         * @return this formatter
+         */
+        BaseFormatter translatedSpeechEvents(List<TranslatedSpeechEvent> events)
+        {
+            for(TranslatedSpeechEvent e : events)
+            {
+                if(e.getEvent().equals(Transcript.TranscriptEventType.SPEECH))
+                {
+                    formattedEvents.put(e, formatTranslatedSpeechEvent(e));
                 }
             }
             return this;

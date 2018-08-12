@@ -22,12 +22,14 @@ import java.util.*;
 
 /**
  * A transcript of a conference. An instance of this class will hold the
- * complete transcript once a conference is over
+ * complete transcript once a conference is over in original and language
+ * for which translations are requested.
  *
  * @author Nik Vaessen
  */
 public class Transcript
-    implements TranscriptionListener
+    implements TranscriptionListener,
+               TranslationResultListener
 {
     /**
      * Events which can take place in the transcript
@@ -47,6 +49,12 @@ public class Transcript
      * The list of all received speechEvents
      */
     private final List<SpeechEvent> speechEvents = new LinkedList<>();
+
+    /**
+     * The map of language tag to the list of speechEvents in that language.
+     */
+    private final Map<String, LinkedList<TranslatedSpeechEvent>> translatedSpeechEvents
+        = new HashMap<>();
 
     /**
      * The list of all received
@@ -88,6 +96,11 @@ public class Transcript
      * The url of the conference this transcript belongs to
      */
     private String roomUrl;
+
+    /**
+     * The translation manager to be used for translating the transcriptions
+     */
+    private TranslationManager translationManager;
 
     /**
      * Create a Transcript object which can store events related to a conference
@@ -137,6 +150,55 @@ public class Transcript
             speechEvents.add(speechEvent);
         }
     }
+
+    /**
+     * Sets the translation manager to be used by this {@link Transcript}
+     * for translations
+     *
+     * @param translationManager to be used
+     */
+    public void setTranslationManager(TranslationManager translationManager)
+    {
+        this.translationManager = translationManager;
+    }
+
+    /**
+     * Initialises an empty list to hold the Translated results in the given
+     * language as a key in the map
+     *
+     * @param language the target language for creating the final
+     * translated transcript
+     */
+    public void addTranslationLanguage(String language)
+    {
+        if(language == null || language.isEmpty())
+            return;
+
+        translatedSpeechEvents.putIfAbsent(language, new LinkedList<>());
+    }
+
+    /**
+     * Returns the list of languages to prepare the final transcript in.
+     *
+     * @return set of languages for translations
+     */
+    public Set<String> getTranslationLanguages()
+    {
+        return translatedSpeechEvents.keySet();
+    }
+
+    @Override
+    public void notify(TranslationResult result)
+    {
+        if(started != null)
+        {
+            TranslatedSpeechEvent translatedSpeechEvent
+                = new TranslatedSpeechEvent(Instant.now(), result);
+            translatedSpeechEvents.get(result.getLanguage())
+                .add(translatedSpeechEvent);
+        }
+    }
+
 
     @Override
     public void completed()
@@ -322,4 +384,59 @@ public class Transcript
             .finish();
     }
 
+    public <T> T getTranslatedTranscript(
+        AbstractTranscriptPublisher<T> publisher, String language)
+    {
+        List<TranslatedSpeechEvent> translatedSpeechEventsList;
+
+        if(speechEvents.size() != translatedSpeechEvents.get(language).size())
+        {
+            Iterator<TranslatedSpeechEvent> translatedSpeechEventIterator
+                = translatedSpeechEvents.get(language).iterator();
+            System.out.println(translatedSpeechEvents.get(language));
+            translatedSpeechEventsList = new LinkedList<>();
+
+            TranslatedSpeechEvent currentMessage
+                = translatedSpeechEventIterator.next();
+
+            for (SpeechEvent speechEvent : speechEvents)
+            {
+                if(currentMessage == null ||
+                   currentMessage.getResult().getTranscriptionResult().getMessageID()
+                           != speechEvent.getResult().getMessageID())
+                {
+                    // Speech event is not present in the target language
+                    translatedSpeechEventsList.add(new TranslatedSpeechEvent(
+                        speechEvent.getTimeStamp(),
+                        translationManager.getSingleTranslation(
+                            speechEvent.getResult(), language)));
+                }
+                else
+                {
+                    // Speech event is already present in the target language
+                    translatedSpeechEventsList.add(currentMessage);
+                    currentMessage = translatedSpeechEventIterator.hasNext() ?
+                        translatedSpeechEventIterator.next() : null;
+                }
+            }
+
+        }
+        else
+        {
+            translatedSpeechEventsList = translatedSpeechEvents.get(language);
+        }
+
+        return publisher.getFormatter()
+            .startedOn(started)
+            .initialParticipants(initialParticipantNames)
+            .tookPlaceInRoom(roomName)
+            .tookPlaceAtUrl(roomUrl)
+            .transcriptLanguage(language)
+            .translatedSpeechEvents(translatedSpeechEventsList)
+            .raiseHandEvents(raisedHandEvents)
+            .joinEvents(joinedEvents)
+            .leaveEvents(leftEvents)
+            .endedOn(ended)
+            .finish();
+    }
 }

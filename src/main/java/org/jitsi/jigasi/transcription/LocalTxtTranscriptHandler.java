@@ -241,6 +241,23 @@ public class LocalTxtTranscriptHandler
     }
 
     @Override
+    protected String formatTranslatedSpeechEvent(TranslatedSpeechEvent e)
+    {
+        String name = e.getName();
+        String timeStamp = timeFormatter.format(e.getTimeStamp());
+        String translatedText = e.getResult().getTranslatedText();
+
+        String base = String.format(UNFORMATTED_EVENT_BASE, timeStamp, name);
+        String speech = String.format(UNFORMATTED_SPEECH, translatedText);
+        String formatted
+                = base + String.format(UNFORMATTED_SPEECH, translatedText);
+
+        return formatToMaximumLineLength(formatted, MAX_LINE_WIDTH,
+                base.length() + (speech.length() - translatedText.length()))
+                + NEW_LINE;
+    }
+
+    @Override
     protected String formatJoinEvent(TranscriptEvent e)
     {
         String name = e.getName();
@@ -462,6 +479,20 @@ public class LocalTxtTranscriptHandler
                 transcript.getTranscript(LocalTxtTranscriptHandler.this);
 
             saveTranscriptStringToFile(getDirPath(), fileName, t);
+
+            Set<String> targetLanguages = transcript.getTranslationLanguages();
+
+            targetLanguages.forEach(language ->
+            {
+                String translatedTranscript
+                    = transcript.getTranslatedTranscript(
+                        LocalTxtTranscriptHandler.this, language);
+                String translationFileName = generateHardToGuessTimeString(
+                    "transcript_" + language, ".txt");
+
+                saveTranscriptStringToFile(getDirPath(),
+                    translationFileName, translatedTranscript);
+            });
         }
 
         /**

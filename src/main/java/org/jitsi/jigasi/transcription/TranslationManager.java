@@ -114,6 +114,20 @@ public class TranslationManager
         }
     }
 
+    public TranslationResult getSingleTranslation(TranscriptionResult result,
+                                                   String targetLanguage)
+    {
+        String translatedText = translationService.translate(
+            result.getAlternatives().iterator().next().getTranscription(),
+            result.getParticipant().getSourceLanguage(),
+            targetLanguage);
+
+        return new TranslationResult(
+            result,
+            targetLanguage,
+            translatedText);
+    }
+
     /**
      * Translates the received {@link TranscriptionResult} into required languages
      * and returns a list of {@link TranslationResult}s.

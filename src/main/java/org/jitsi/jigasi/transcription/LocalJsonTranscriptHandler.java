@@ -300,6 +300,20 @@ public class LocalJsonTranscriptHandler
     }
 
     @Override
+    protected JSONObject formatTranslatedSpeechEvent(TranslatedSpeechEvent e)
+    {
+        JSONObject object = new JSONObject();
+        addEventDescriptions(object, e);
+
+        object.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
+        object.put(JSON_KEY_EVENT_LANGUAGE, e.getResult().getLanguage());
+        object.put(JSON_KEY_ALTERNATIVE_TEXT, e.getResult().getTranslatedText());
+        object.put(JSON_KEY_EVENT_MESSAGE_ID,
+                e.getResult().getTranscriptionResult().getMessageID().toString());
+        return object;
+    }
+
+    @Override
     protected JSONObject formatJoinEvent(TranscriptEvent e)
     {
         JSONObject object = new JSONObject();
@@ -539,6 +553,20 @@ public class LocalJsonTranscriptHandler
 
             saveTranscriptStringToFile(getDirPath(), fileName,
                 t.toString());
+
+            Set<String> targetLanguages = transcript.getTranslationLanguages();
+
+            targetLanguages.forEach(language ->
+            {
+                String translatedTranscript
+                    = transcript.getTranslatedTranscript(
+                        LocalJsonTranscriptHandler.this, language).toString();
+                String translationFileName = generateHardToGuessTimeString(
+                    "transcript_" + language, ".json");
+
+                saveTranscriptStringToFile(getDirPath(),
+                    translationFileName, translatedTranscript);
+            });
         }
 
         /**
