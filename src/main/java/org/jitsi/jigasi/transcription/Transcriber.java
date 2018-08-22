@@ -680,7 +680,7 @@ public class Transcriber
 
         return participantsCopy
             .stream()
-            .anyMatch(Participant::hasValidSourceLanguage);
+            .anyMatch(Participant::isRequestingTranscription);
     }
 
     /**

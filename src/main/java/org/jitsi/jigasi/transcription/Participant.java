@@ -342,6 +342,13 @@ public class Participant
             AvatarIdPacketExtension.NAME_SPACE);
     }
 
+    private TranscriptionRequestExtension
+                getTranscriptionRequestExtensionOrNull(Presence p)
+    {
+        return p.getExtension(TranscriptionRequestExtension.ELEMENT_NAME,
+                              TranscriptionRequestExtension.NAMESPACE);
+    }
+
     /**
      * Get the ssrc of the audio of this participant
      *
@@ -638,5 +645,25 @@ public class Participant
         String lang = this.getSourceLanguage();
 
         return lang != null && !lang.isEmpty();
+    }
+
+    /**
+     * Get whether this {@link Participant} is requesting transcription by
+     * checking the {@link TranscriptionRequestExtension} in the
+     * {@link Presence}
+     *
+     * @return true when the {@link Participant} is requesting transcription,
+     * false otherwise
+     */
+    public boolean isRequestingTranscription()
+    {
+        ChatRoomMemberJabberImpl memberJabber
+            = ((ChatRoomMemberJabberImpl) this.chatMember);
+
+        TranscriptionRequestExtension ext
+            = getTranscriptionRequestExtensionOrNull(
+                memberJabber.getLastPresence());
+
+        return ext != null && Boolean.valueOf(ext.getText());
     }
 }
