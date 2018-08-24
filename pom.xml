@@ -20,7 +20,7 @@
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
     <smack.version>4.2.1</smack.version>
-    <jitsi-desktop.version>2.13.812e3ed</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.5160aa9</jitsi-desktop.version>
   </properties>
 
   <dependencies>
