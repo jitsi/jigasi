@@ -191,8 +191,7 @@ public class TranscriptionGatewaySession
         // to the transcriber
         addInitialMembers();
 
-        StringBuilder welcomeMessage =
-            new StringBuilder("Started transcription!\n");
+        StringBuilder welcomeMessage = new StringBuilder();
 
         finalTranscriptPromises.addAll(handler.getTranscriptPublishPromises());
         for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
@@ -205,7 +204,10 @@ public class TranscriptionGatewaySession
             promise.maybeStartRecording(transcriber.getMediaDevice());
         }
 
-        sendMessageToRoom(welcomeMessage.toString());
+        if(welcomeMessage.length() > 0)
+        {
+            sendMessageToRoom(welcomeMessage.toString());
+        }
 
         logger.debug("TranscriptionGatewaySession started transcribing");
 
