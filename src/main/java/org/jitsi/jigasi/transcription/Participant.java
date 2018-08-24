@@ -72,7 +72,7 @@ public class Participant
      * TODO: assign unique easy to read names to unknown participants (e.g.
      * Speaker 1, Speaker 2, etc.).
      */
-    public static final String UNKNOWN_NAME = "Unknown";
+    public static final String UNKNOWN_NAME = "Fellow Jitser";
 
     /**
      * The audio ssrc when it is not known yet
@@ -168,16 +168,13 @@ public class Participant
         {
             return UNKNOWN_NAME;
         }
+
         String name = chatMember.getDisplayName();
-        if (name != null)
+        if (name != null && !name.isEmpty())
         {
             return name;
         }
-        String id = chatMember.getContactAddress();
-        if (id != null)
-        {
-            return id;
-        }
+
         return UNKNOWN_NAME;
     }
 
