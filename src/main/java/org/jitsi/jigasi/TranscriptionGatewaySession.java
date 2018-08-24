@@ -23,7 +23,6 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.transcription.*;
-import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
@@ -57,6 +56,12 @@ public class TranscriptionGatewaySession
      * room
      */
     public final static String DISPLAY_NAME = "Transcriber";
+
+    /**
+     * How long the transcriber should wait until really leaving the conference
+     * when no participant is requesting transcription anymore.
+     */
+    public final static int PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION = 2500;
 
     /**
      * The TranscriptionService used by this session
@@ -295,6 +300,27 @@ public class TranscriptionGatewaySession
         else
         {
             this.transcriber.updateParticipantTargetLanguage(identifier, null);
+        }
+
+        if(transcriber.isTranscribing() &&
+            !transcriber.isAnyParticipantRequestingTranscription())
+        {
+            new Thread(() ->
+            {
+                try
+                {
+                    Thread.sleep(PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+
+                if(!transcriber.isAnyParticipantRequestingTranscription())
+                {
+                    jvbConference.stop();
+                }
+            }).start();
         }
     }
 
