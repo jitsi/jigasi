@@ -178,6 +178,11 @@ public class TranscriptionGatewaySession
         }
         catch (ClockStartedError e)
         {
+            TranscriptionStatusExtension extension
+                = new TranscriptionStatusExtension();
+            extension.setStatus(TranscriptionStatusExtension.Status.OFF);
+            jvbConference.sendPresenceExtension(extension);
+
             jvbConference.stop();
             throw new RuntimeException(e);
         }
