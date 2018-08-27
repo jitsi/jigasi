@@ -31,6 +31,7 @@ import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
 
+import javax.media.*;
 import java.util.*;
 
 /**
@@ -157,7 +158,9 @@ public class TranscriptionGatewaySession
 
         // We create a MediaWareCallConference whose MediaDevice
         // will get the get all of the audio and video packets
-        jvbConferenceCall.setConference(new MediaAwareCallConference()
+        try
+        {
+            jvbConferenceCall.setConference(new MediaAwareCallConference()
             {
                 @Override
                 public MediaDevice getDefaultDevice(MediaType mediaType,
@@ -172,6 +175,12 @@ public class TranscriptionGatewaySession
                     return super.getDefaultDevice(mediaType, useCase);
                 }
             });
+        }
+        catch (ClockStartedError e)
+        {
+            jvbConference.stop();
+            throw new RuntimeException(e);
+        }
 
         // adds all TranscriptionEventListener among TranscriptResultPublishers
         for (TranscriptionResultPublisher pub
