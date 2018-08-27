@@ -19,6 +19,7 @@ package org.jitsi.jigasi.transcription;
 
 import javax.media.format.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * A TranscriptionRequest serves as a holder for some audio fragment
@@ -60,6 +61,24 @@ public class TranscriptionRequest
         this.format = format;
         this.locale = locale;
     }
+
+    /**
+     * Get the length of the audio in this {@link TranscriptionRequest} in
+     * milliseconds
+     *
+     * @return the duration of the audio in milliseconds or -1 when unknown
+     */
+    public long getDurationInMs()
+    {
+        if(this.format == null)
+        {
+            return -1;
+        }
+
+        return TimeUnit.NANOSECONDS.toMillis(
+            this.format.computeDuration(this.audio.length));
+    }
+
 
     /**
      * The audio this instance is holding
