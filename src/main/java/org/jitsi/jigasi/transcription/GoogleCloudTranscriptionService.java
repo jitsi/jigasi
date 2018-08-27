@@ -21,6 +21,8 @@ import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
+import com.timgroup.statsd.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.util.*;
 
@@ -458,6 +460,71 @@ public class GoogleCloudTranscriptionService
     }
 
     /**
+     * Class to keep track of the cost of using the Google Cloud speech-to-text
+     * API.
+     */
+    private static class GoogleCloudCostLogger
+    {
+        /**
+         * The length of a cost interval of the google cloud speech-to-text API
+         */
+        private final static int INTERVAL_LENGTH_MS = 15000;
+
+        /**
+         * The aspect to log the information to.
+         */
+        private final static String ASPECT_INTERVAL
+            = "google_cloud_speech_15s_intervals";
+
+        /**
+         * The client to send statistics to
+         */
+        private StatsDClient client = JigasiBundleActivator.getDataDogClient();
+
+        /**
+         * Keep track of the time already send
+         */
+        private long summedTime = 0;
+
+        /**
+         * Tell the {@link GoogleCloudCostLogger} that a certain length of audio
+         * was send.
+         *
+         * @param ms the length of the audio chunk sent to the API
+         */
+        synchronized void increment(long ms)
+        {
+            if(ms < 0)
+            {
+                return;
+            }
+
+            summedTime += ms;
+        }
+
+        /**
+         * Tell the logger a session has closed, meaning the total interval
+         * length can now be computed
+         */
+        synchronized void sessionEnded()
+        {
+            // round up to 15 second intervals
+            int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
+
+            if(client != null)
+            {
+                client.count(ASPECT_INTERVAL, intervals15s);
+            }
+
+            logger.info("sent " + summedTime + "ms to speech API, " +
+                            "for a total of " + intervals15s + " intervals");
+
+            summedTime = 0;
+        }
+
+    }
+
+    /**
      * A Manager for RequestApiStreamObserver instances.
      * It will make sure a RequestApiStreamObserver will only be used for a
      * minute, as that is the maximum amount of time supported by the Google API
@@ -497,6 +564,11 @@ public class GoogleCloudTranscriptionService
          * anymore
          */
         private boolean stopped = false;
+
+        /**
+         * Used to log the cost of every request which is send
+         */
+        private GoogleCloudCostLogger costLogger = new GoogleCloudCostLogger();
 
         /**
          * Create a new RequestApiStreamObserverManager, which will try
@@ -596,6 +668,8 @@ public class GoogleCloudTranscriptionService
                         = createObserver(getRecognitionConfig(request));
                 }
 
+                costLogger.increment(request.getDurationInMs());
+
                 currentRequestObserver.onNext(
                     StreamingRecognizeRequest.newBuilder()
                         .setAudioContent(audioBytes)
@@ -651,6 +725,8 @@ public class GoogleCloudTranscriptionService
 
                     currentRequestObserver.onCompleted();
                     currentRequestObserver = null;
+
+                    costLogger.sessionEnded();
                 }
 
                 if(terminatingSessionThread != null &&
