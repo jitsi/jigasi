@@ -227,10 +227,20 @@ public abstract class AbstractTranscriptPublisher<T>
             logger.error("Cannot sent message as chatRoom is null");
             return;
         }
+
         if (!(chatRoom instanceof ChatRoomJabberImpl))
         {
             logger.error("Cannot sent message as chatRoom is not an" +
                 "instance of ChatRoomJabberImpl");
+            return;
+        }
+
+        if (!chatRoom.isJoined())
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Skip sending message to room which we left!");
+            }
             return;
         }
 
