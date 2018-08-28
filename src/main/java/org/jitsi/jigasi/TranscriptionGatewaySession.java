@@ -132,6 +132,26 @@ public class TranscriptionGatewaySession
         transcriber.setRoomName(getJvbRoomName());
         transcriber.setRoomUrl(getMeetingUrl());
 
+        // We create a MediaWareCallConference whose MediaDevice
+        // will get the get all of the audio and video packets
+        incomingCall.setConference(new MediaAwareCallConference()
+        {
+            @Override
+            public MediaDevice getDefaultDevice(MediaType mediaType,
+                MediaUseCase useCase)
+            {
+                if(MediaType.AUDIO.equals(mediaType))
+                {
+                    logger.info("Transcriber: Media Device Audio");
+                    return transcriber.getMediaDevice();
+                }
+                logger.info("Transcriber: Media Device Video");
+                // FIXME: 18/07/17 what to do with video?
+                // will cause an exception when mediaType == VIDEO
+                return super.getDefaultDevice(mediaType, useCase);
+            }
+        });
+
         logger.debug("Invited for conference");
     }
 
@@ -154,24 +174,6 @@ public class TranscriptionGatewaySession
             jvbConference.stop();
             return null;
         }
-
-        // We create a MediaWareCallConference whose MediaDevice
-        // will get the get all of the audio and video packets
-        jvbConferenceCall.setConference(new MediaAwareCallConference()
-            {
-                @Override
-                public MediaDevice getDefaultDevice(MediaType mediaType,
-                                                    MediaUseCase useCase)
-                {
-                    if(MediaType.AUDIO.equals(mediaType))
-                    {
-                        return transcriber.getMediaDevice();
-                    }
-                    // FIXME: 18/07/17 what to do with video?
-                    // will cause an exception when mediaType == VIDEO
-                    return super.getDefaultDevice(mediaType, useCase);
-                }
-            });
 
         // adds all TranscriptionEventListener among TranscriptResultPublishers
         for (TranscriptionResultPublisher pub
