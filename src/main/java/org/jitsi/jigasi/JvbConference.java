@@ -830,7 +830,7 @@ public class JvbConference
         }
 
         // if it is the focus leaving
-        if (member.getContactAddress().equals(focusResourceAddr))
+        if (member.getName().equals(focusResourceAddr))
         {
             logger.info("Focus left! - stopping");
             stop();
@@ -861,7 +861,6 @@ public class JvbConference
     public void localUserPresenceChanged(
         LocalUserChatRoomPresenceChangeEvent evt)
     {
-
         if (evt.getChatRoom().equals(JvbConference.this.mucRoom)
             && Objects.equals(evt.getEventType(),
                     LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED))
