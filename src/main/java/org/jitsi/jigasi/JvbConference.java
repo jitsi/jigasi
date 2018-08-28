@@ -1332,14 +1332,22 @@ public class JvbConference
             this.errorLog = errorLog;
         }
 
+        /**
+         * Schedules a new timeout thread if not already scheduled.
+         *
+         * @param timeout the milliseconds to wait before we stop the conference
+         * if not canceled.
+         */
         void scheduleTimeout(long timeout)
         {
             synchronized (syncRoot)
             {
-                this.timeout = timeout;
-
                 if (timeoutThread != null)
-                    throw new IllegalStateException("already scheduled");
+                {
+                    return;
+                }
+
+                this.timeout = timeout;
 
                 timeoutThread = new Thread(this, name);
                 willCauseTimeout = true;
