@@ -19,7 +19,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <smack.version>4.2.1</smack.version>
+    <smack.version>4.2.4-47d17fc</smack.version>
     <jitsi-desktop.version>2.13.5160aa9</jitsi-desktop.version>
   </properties>
 
@@ -50,6 +50,16 @@
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack-extensions</artifactId>
+      <version>${smack.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-bosh</artifactId>
+      <version>${smack.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-tcp</artifactId>
       <version>${smack.version}</version>
     </dependency>
     <dependency>
