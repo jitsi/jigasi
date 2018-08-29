@@ -140,7 +140,7 @@ public class TranscriptionGatewaySession
             public MediaDevice getDefaultDevice(MediaType mediaType,
                 MediaUseCase useCase)
             {
-                if(MediaType.AUDIO.equals(mediaType))
+                if (MediaType.AUDIO.equals(mediaType))
                 {
                     logger.info("Transcriber: Media Device Audio");
                     return transcriber.getMediaDevice();
@@ -165,7 +165,7 @@ public class TranscriptionGatewaySession
 
         // If the transcription service is not correctly configured, there is no
         // point in continuing this session, so end it immediately
-        if(!service.isConfiguredProperly())
+        if (!service.isConfiguredProperly())
         {
             logger.warn("TranscriptionService is not properly configured");
             sendMessageToRoom("Transcriber is not properly " +
@@ -196,9 +196,9 @@ public class TranscriptionGatewaySession
         StringBuilder welcomeMessage = new StringBuilder();
 
         finalTranscriptPromises.addAll(handler.getTranscriptPublishPromises());
-        for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
+        for (TranscriptPublisher.Promise promise : finalTranscriptPromises)
         {
-            if(promise.hasDescription())
+            if (promise.hasDescription())
             {
                 welcomeMessage.append(promise.getDescription());
             }
@@ -206,7 +206,7 @@ public class TranscriptionGatewaySession
             promise.maybeStartRecording(transcriber.getMediaDevice());
         }
 
-        if(welcomeMessage.length() > 0)
+        if (welcomeMessage.length() > 0)
         {
             sendMessageToRoom(welcomeMessage.toString());
         }
@@ -225,11 +225,11 @@ public class TranscriptionGatewaySession
         // Need a solution for stopping the transcription earlier
 
         // The conference is over, make sure the transcriber stops
-        if(!transcriber.finished())
+        if (!transcriber.finished())
         {
             transcriber.stop();
 
-            for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
+            for (TranscriptPublisher.Promise promise : finalTranscriptPromises)
             {
                 promise.publish(transcriber.getTranscript());
             }
@@ -244,7 +244,7 @@ public class TranscriptionGatewaySession
     void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
         String reason)
     {
-        if(!transcriber.finished())
+        if (!transcriber.finished())
         {
             transcriber.willStop();
         }
@@ -285,7 +285,7 @@ public class TranscriptionGatewaySession
                 TranslationLanguageExtension.ELEMENT_NAME,
                 TranslationLanguageExtension.NAMESPACE);
 
-        if(transcriptionLanguageExtension != null)
+        if (transcriptionLanguageExtension != null)
         {
             String language
                 = transcriptionLanguageExtension.getTranscriptionLanguage();
@@ -294,7 +294,7 @@ public class TranscriptionGatewaySession
                 language);
         }
 
-        if(translationLanguageExtension != null)
+        if (translationLanguageExtension != null)
         {
             String language
                 = translationLanguageExtension.getTranslationLanguage();
@@ -306,7 +306,7 @@ public class TranscriptionGatewaySession
             this.transcriber.updateParticipantTargetLanguage(identifier, null);
         }
 
-        if(transcriber.isTranscribing() &&
+        if (transcriber.isTranscribing() &&
             !transcriber.isAnyParticipantRequestingTranscription())
         {
             new Thread(() ->
@@ -320,7 +320,7 @@ public class TranscriptionGatewaySession
                     e.printStackTrace();
                 }
 
-                if(!transcriber.isAnyParticipantRequestingTranscription())
+                if (!transcriber.isAnyParticipantRequestingTranscription())
                 {
                     jvbConference.stop();
                 }
@@ -421,17 +421,17 @@ public class TranscriptionGatewaySession
     private void addInitialMembers()
     {
         List<ConferenceMember> confMembers = getCurrentConferenceMembers();
-        if(confMembers == null)
+        if (confMembers == null)
         {
             logger.warn("Cannot add initial ConferenceMembers to " +
                 "transcription");
         }
         else
         {
-            for(ConferenceMember confMember : confMembers)
+            for (ConferenceMember confMember : confMembers)
             {
                 // We should not have the bridge as a participant
-                if("jvb".equals(confMember.getAddress()))
+                if ("jvb".equals(confMember.getAddress()))
                 {
                     continue;
                 }
@@ -443,7 +443,7 @@ public class TranscriptionGatewaySession
         }
 
         List<ChatRoomMember> chatRoomMembers = getCurrentChatRoomMembers();
-        if(chatRoomMembers == null)
+        if (chatRoomMembers == null)
         {
             logger.warn("Cannot add initial ChatRoomMembers to transcription");
             return;
@@ -529,7 +529,7 @@ public class TranscriptionGatewaySession
         {
             Jid jid = JidCreate.from(member.getAddress());
 
-            if(jid.hasResource())
+            if (jid.hasResource())
             {
                 return jid.getResourceOrThrow().toString();
             }
@@ -552,7 +552,7 @@ public class TranscriptionGatewaySession
      */
     private String getParticipantIdentifier(ChatRoomMember chatRoomMember)
     {
-        if(chatRoomMember == null)
+        if (chatRoomMember == null)
         {
             return null;
         }
@@ -570,7 +570,7 @@ public class TranscriptionGatewaySession
      */
     private String getParticipantIdentifier(ConferenceMember conferenceMember)
     {
-        if(conferenceMember == null)
+        if (conferenceMember == null)
         {
             return null;
         }
