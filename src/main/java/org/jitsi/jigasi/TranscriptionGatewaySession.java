@@ -31,6 +31,7 @@ import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
 
+import javax.media.*;
 import java.util.*;
 
 /**
@@ -132,25 +133,41 @@ public class TranscriptionGatewaySession
         transcriber.setRoomName(getJvbRoomName());
         transcriber.setRoomUrl(getMeetingUrl());
 
-        // We create a MediaWareCallConference whose MediaDevice
-        // will get the get all of the audio and video packets
-        incomingCall.setConference(new MediaAwareCallConference()
+        try
         {
-            @Override
-            public MediaDevice getDefaultDevice(MediaType mediaType,
-                MediaUseCase useCase)
+            // We create a MediaWareCallConference whose MediaDevice
+            // will get the get all of the audio and video packets
+            incomingCall.setConference(new MediaAwareCallConference()
             {
-                if (MediaType.AUDIO.equals(mediaType))
+                @Override
+                public MediaDevice getDefaultDevice(MediaType mediaType,
+                                                    MediaUseCase useCase)
                 {
-                    logger.info("Transcriber: Media Device Audio");
-                    return transcriber.getMediaDevice();
+                    if (MediaType.AUDIO.equals(mediaType))
+                    {
+                        logger.info("Transcriber: Media Device Audio");
+                        return transcriber.getMediaDevice();
+                    }
+                    logger.info("Transcriber: Media Device Video");
+                    // FIXME: 18/07/17 what to do with video?
+                    // will cause an exception when mediaType == VIDEO
+                    return super.getDefaultDevice(mediaType, useCase);
                 }
-                logger.info("Transcriber: Media Device Video");
-                // FIXME: 18/07/17 what to do with video?
-                // will cause an exception when mediaType == VIDEO
-                return super.getDefaultDevice(mediaType, useCase);
-            }
-        });
+            });
+        }
+        catch (ClockStartedError e)
+        {
+            // We've observed this error in rare cases, but the reason is
+            // unknown. We explicitly add a transcription status extension
+            // because jicofo needs it to recognize us as a transcriber and
+            // handle the failure.
+            TranscriptionStatusExtension extension
+                = new TranscriptionStatusExtension();
+            extension.setStatus(TranscriptionStatusExtension.Status.OFF);
+            jvbConference.sendPresenceExtension(extension);
+            jvbConference.stop();
+            throw new RuntimeException(e);
+        }
 
         logger.debug("Invited for conference");
     }
