@@ -61,8 +61,11 @@ public class TranscriptionGateway
     public void stop()
     {
         // stop action handler
-        actionServicesHandler.stop();
-        actionServicesHandler = null;
+        if (actionServicesHandler != null)
+        {
+            actionServicesHandler.stop();
+            actionServicesHandler = null;
+        }
     }
 
     @Override

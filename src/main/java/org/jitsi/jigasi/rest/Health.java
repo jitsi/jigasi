@@ -41,48 +41,67 @@ public class Health
      * {@link SipGateway}. The method is synchronized so anything other than
      * the health check itself (which is cached) needs to return very quickly.
      *
-     * @param gateway the {@code SipGateway} to get the health (status)
-     * of in the form of a JSON representation
      * @param baseRequest the original unwrapped {@link Request} object
      * @param request the request either as the {@code Request} object or a
      * wrapper of that request
      * @param response the response either as the {@code Response} object or a
      * wrapper of that response
      * @throws IOException
-     * @throws ServletException
      */
-    static synchronized void getJSON(
-        SipGateway gateway,
-        Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException,
-        ServletException
+    static synchronized void sendJSON(
+            Request baseRequest,
+            HttpServletRequest request,
+            HttpServletResponse response)
+        throws IOException
     {
+        // TODO: for now we only check sip registration status, but we
+        // will extend that logic
+        SipGateway sipGateway = null;
+        for (AbstractGateway gw : JigasiBundleActivator.getAvailableGateways())
+        {
+            if (gw instanceof SipGateway)
+                sipGateway = (SipGateway)gw;
+        }
+
         int status;
         String reason = null;
         Map<String,Object> responseMap = new HashMap<>();
 
-        try
+        if (sipGateway != null)
         {
-            RegistrationState registrationState =
-                gateway.getSipProvider().getRegistrationState();
-            responseMap.put(
-                "registrationState", registrationState.getStateName());
-            if (registrationState == RegistrationState.REGISTERED)
+            try
             {
-                status = HttpServletResponse.SC_OK;
+                RegistrationState registrationState =
+                    sipGateway.getSipProvider().getRegistrationState();
+                responseMap.put(
+                    "registrationState", registrationState.getStateName());
+                if (registrationState == RegistrationState.REGISTERED)
+                {
+                    status = HttpServletResponse.SC_OK;
+                }
+                else
+                {
+                    status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                    reason = "SIP provider not registered.";
+                }
+            }
+            catch (Exception ex)
+            {
+                status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                reason = ex.getMessage();
+            }
+        }
+        else
+        {
+            if (JigasiBundleActivator.getAvailableGateways().isEmpty())
+            {
+                status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                reason = "No gateways configured";
             }
             else
             {
-                status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-                reason = "SIP provider not registered.";
+                status = HttpServletResponse.SC_OK;
             }
-        }
-        catch (Exception ex)
-        {
-            status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-            reason = ex.getMessage();
         }
 
         if (reason != null)

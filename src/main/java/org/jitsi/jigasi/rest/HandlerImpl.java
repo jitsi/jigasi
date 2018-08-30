@@ -18,15 +18,16 @@
 package org.jitsi.jigasi.rest;
 
 import java.io.*;
+import java.util.*;
 import java.util.concurrent.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 
 import net.java.sip.communicator.util.*;
-
 import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.rest.*;
 import org.osgi.framework.*;
 
@@ -94,6 +95,11 @@ public class HandlerImpl
     implements GatewayListener
 {
     /**
+     * The logger
+     */
+    private final static Logger logger = Logger.getLogger(HandlerImpl.class);
+
+    /**
      * The HTTP resource which is used to trigger graceful shutdown.
      */
     private static final String SHUTDOWN_TARGET = "/about/shutdown";
@@ -112,11 +118,6 @@ public class HandlerImpl
     private final boolean shutdownEnabled;
 
     /**
-     * The sip gateway instance.
-     */
-    private SipGateway gateway;
-
-    /**
      * Initializes a new {@code HandlerImpl} instance within a specific
      * {@code BundleContext}.
      *
@@ -131,38 +132,16 @@ public class HandlerImpl
 
         shutdownEnabled = enableShutdown;
 
-        this.gateway = ServiceUtils.getService(bundleContext, SipGateway.class);
+        List<AbstractGateway> gatewayList
+            = JigasiBundleActivator.getAvailableGateways();
+        gatewayList.forEach(gw -> gw.addGatewayListener(this));
 
-        if (this.gateway != null)
+        if (gatewayList.isEmpty())
         {
-            this.gateway.addGatewayListener(this);
-        }
-        else
-        {
-            bundleContext.addServiceListener(new ServiceListener()
-            {
-                @Override
-                public void serviceChanged(ServiceEvent serviceEvent)
-                {
-                    if (serviceEvent.getType() != ServiceEvent.REGISTERED)
-                        return;
-
-                    ServiceReference ref = serviceEvent.getServiceReference();
-                    BundleContext bundleContext
-                        = ref.getBundle().getBundleContext();
-
-                    Object service = bundleContext.getService(ref);
-
-                    if (!(service instanceof SipGateway))
-                        return;
-
-                    bundleContext.removeServiceListener(this);
-
-                    SipGateway sipGw = (SipGateway) service;
-                    HandlerImpl.this.gateway = sipGw;
-                    sipGw.addGatewayListener(HandlerImpl.this);
-                }
-            });
+            // in case somebody moves the osgi activators order
+            // and we no longer get the gateways
+            logger.error("No gateways found. "
+                + "Total statistics count will be missing!");
         }
     }
 
@@ -171,21 +150,20 @@ public class HandlerImpl
      */
     @Override
     protected void doGetHealthJSON(
-        Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException,
-        ServletException
+            Request baseRequest,
+            HttpServletRequest request,
+            HttpServletResponse response)
+        throws IOException
     {
         beginResponse(/* target */ null, baseRequest, request, response);
 
-        if (this.gateway == null)
+        if (JigasiBundleActivator.getAvailableGateways().isEmpty())
         {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
         else
         {
-            Health.getJSON(this.gateway, baseRequest, request, response);
+            Health.sendJSON(baseRequest, request, response);
         }
 
         endResponse(/* target */ null, baseRequest, request, response);
@@ -196,12 +174,11 @@ public class HandlerImpl
      */
     @Override
     protected void handleJSON(
-        String target,
-        Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException,
-        ServletException
+            String target,
+            Request baseRequest,
+            HttpServletRequest request,
+            HttpServletResponse response)
+        throws IOException, ServletException
     {
         super.handleJSON(target, baseRequest, request, response);
 
@@ -231,7 +208,7 @@ public class HandlerImpl
             if (POST_HTTP_METHOD.equals(request.getMethod()))
             {
                 // Update graceful shutdown state
-                doPostShutdownJSON(baseRequest, request, response);
+                JigasiBundleActivator.enableGracefulShutdownMode();
             }
             else
             {
@@ -266,20 +243,6 @@ public class HandlerImpl
         }
     }
 
-    private void doPostShutdownJSON(Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException
-    {
-        if (this.gateway == null)
-        {
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-            return;
-        }
-
-        this.gateway.enableGracefulShutdownMode();
-    }
-
     /**
      * Gets a JSON representation of the <tt>Statistics</tt> of (the
      * associated) <tt>Jigasi</tt>.
@@ -290,22 +253,20 @@ public class HandlerImpl
      * @param response the response either as the {@code Response} object or a
      * wrapper of that response
      * @throws IOException
-     * @throws ServletException
      */
     private void doGetStatisticsJSON(
-        Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException,
-        ServletException
+            Request baseRequest,
+            HttpServletRequest request,
+            HttpServletResponse response)
+        throws IOException
     {
-        if (this.gateway != null)
+        if (JigasiBundleActivator.getAvailableGateways().isEmpty())
         {
-            Statistics.getJSON(this.gateway, baseRequest, request, response);
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
         else
         {
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            Statistics.sendJSON(baseRequest, request, response);
         }
     }
 
