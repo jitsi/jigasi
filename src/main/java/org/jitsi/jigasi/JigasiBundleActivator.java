@@ -24,7 +24,10 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.stats.*;
+import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
@@ -46,7 +49,6 @@ public class JigasiBundleActivator
     implements BundleActivator,
                ServiceListener
 {
-
     /**
      * The logger
      */
@@ -83,13 +85,24 @@ public class JigasiBundleActivator
      * The Gateway which will manage bridging between a jvb conference and a sip
      * call
      */
-    private SipGateway sipGateway;
+    private static SipGateway sipGateway;
 
     /**
      * The Gateway which will manage a bridge between a jvb conference and a
      * transcription service
      */
-    private TranscriptionGateway transcriptionGateway;
+    private static TranscriptionGateway transcriptionGateway;
+
+    /**
+     * Keep a list of available gateway instances
+     * (sipGateway, transcriptionGateway).
+     */
+    private static List<AbstractGateway> gateways = new ArrayList<>();
+
+    /**
+     * Indicates if jigasi instance has entered graceful shutdown mode.
+     */
+    private static boolean shutdownInProgress;
 
     private UIServiceStub uiServiceStub = new UIServiceStub();
 
@@ -147,7 +160,17 @@ public class JigasiBundleActivator
         if(isSipEnabled())
         {
             logger.info("initialized SipGateway");
-            sipGateway = new SipGateway(bundleContext);
+            sipGateway = new SipGateway(bundleContext)
+            {
+                @Override
+                void notifyCallEnded(CallContext callContext)
+                {
+                    super.notifyCallEnded(callContext);
+
+                    maybeDoShutdown();
+                }
+            };
+            gateways.add(sipGateway);
             osgiContext.registerService(SipGateway.class, sipGateway, null);
         }
         else
@@ -155,10 +178,20 @@ public class JigasiBundleActivator
             logger.info("skipped initialization of SipGateway");
         }
 
-        if(isTranscriptionEnabled())
+        if (isTranscriptionEnabled())
         {
             logger.info("initialized TranscriptionGateway");
-            transcriptionGateway = new TranscriptionGateway(bundleContext);
+            transcriptionGateway = new TranscriptionGateway(bundleContext)
+            {
+                @Override
+                void notifyCallEnded(CallContext callContext)
+                {
+                    super.notifyCallEnded(callContext);
+
+                    maybeDoShutdown();
+                }
+            };
+            gateways.add(transcriptionGateway);
             osgiContext.registerService(TranscriptionGateway.class,
                 transcriptionGateway, null);
         }
@@ -193,11 +226,8 @@ public class JigasiBundleActivator
     {
         logger.info("Stopping JigasiBundleActivator");
 
-        if(sipGateway != null)
-            sipGateway.stop();
-
-        if(transcriptionGateway != null)
-            transcriptionGateway.stop();
+        gateways.forEach(AbstractGateway::stop);
+        gateways.clear();
     }
 
     @Override
@@ -234,5 +264,73 @@ public class JigasiBundleActivator
         {
             sipGateway.setSipProvider(pps);
         }
+    }
+
+    /**
+     * Returns {@code true} if this instance has entered graceful shutdown mode.
+     *
+     * @return {@code true} if this instance has entered graceful shutdown mode;
+     * otherwise, {@code false}
+     */
+    public static boolean isShutdownInProgress()
+    {
+        return shutdownInProgress;
+    }
+
+    /**
+     * Enables graceful shutdown mode on this jigasi instance and eventually
+     * starts the shutdown immediately if no conferences are currently being
+     * hosted. Otherwise jigasi will shutdown once all conferences expire.
+     */
+    public static void enableGracefulShutdownMode()
+    {
+        if (!shutdownInProgress)
+        {
+            logger.info("Entered graceful shutdown mode");
+        }
+        shutdownInProgress = true;
+        maybeDoShutdown();
+
+        // lets send the status if using brewery
+        if (getConfigurationService().getBoolean(
+                CallControlMucActivator.BREWERY_ENABLED_PROP, false))
+        {
+            Statistics.updatePresenceStatusForXmppProviders();
+        }
+    }
+
+    /**
+     * Triggers the shutdown given that we're in graceful shutdown mode and
+     * there are no conferences currently in progress.
+     */
+    private static void maybeDoShutdown()
+    {
+        if (!shutdownInProgress)
+            return;
+
+        List<AbstractGatewaySession> sessions = new ArrayList<>();
+        gateways.forEach(gw -> sessions.addAll(gw.getActiveSessions()));
+
+        if (sessions.isEmpty())
+        {
+            gateways.forEach(AbstractGateway::stop);
+
+            ShutdownService shutdownService
+                = ServiceUtils.getService(
+                osgiContext,
+                ShutdownService.class);
+
+            logger.info("Jigasi is shutting down NOW");
+            shutdownService.beginShutdown();
+        }
+    }
+
+    /**
+     * Returns the list of enabled gateways.
+     * @return
+     */
+    public static List<AbstractGateway> getAvailableGateways()
+    {
+        return gateways;
     }
 }

@@ -18,7 +18,6 @@
 package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.service.protocol.*;
@@ -26,6 +25,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
@@ -35,7 +35,6 @@ import org.osgi.framework.*;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -66,12 +65,12 @@ public class CallControlMucActivator
      * The account property to search in configuration service for the room name
      * where all xmpp providers will join.
      */
-    private static final String ROOM_NAME_ACCOUNT_PROP = "BREWERY";
+    public static final String ROOM_NAME_ACCOUNT_PROP = "BREWERY";
 
     /**
      * A property to enable or disable muc call control, disabled by default.
      */
-    private static final String BREWERY_ENABLED_PROP
+    public static final String BREWERY_ENABLED_PROP
         = "org.jitsi.jigasi.BREWERY_ENABLED";
 
     /**
@@ -291,7 +290,8 @@ public class CallControlMucActivator
 
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
-            updatePresenceStatusForXmppProviders(Collections.singletonList(pps));
+            Statistics.updatePresenceStatusForXmppProviders(
+                Collections.singletonList(pps));
 
             // getting direct access to the xmpp connection in order to add
             // a listener for incoming iqs
@@ -350,120 +350,7 @@ public class CallControlMucActivator
      */
     private void updatePresenceStatusForXmppProviders()
     {
-        Collection<ServiceReference<ProtocolProviderService>> refs
-            = ServiceUtils.getServiceReferences(
-                osgiContext,
-                ProtocolProviderService.class);
-
-        List<ProtocolProviderService> ppss
-            = refs.stream()
-                .map(ref -> osgiContext.getService(ref))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        updatePresenceStatusForXmppProviders(ppss);
-    }
-
-    /**
-     * Updates the presence in the given {@link ProtocolProviderService} with
-     * the current number of conferences and participants.
-     *
-     * Adds a {@link ColibriStatsExtension} to our presence in the brewery room.
-     *
-     * @param pps the protocol provider service
-     * @param participants the participant count.
-     * @param conferences the active session/conference count.
-     */
-    private void updatePresenceStatusForXmppProvider(
-        ProtocolProviderService pps,
-        int participants,
-        int conferences)
-    {
-        if (ProtocolNames.JABBER.equals(pps.getProtocolName())
-            && pps.getAccountID() instanceof JabberAccountID
-            && !((JabberAccountID)pps.getAccountID()).isAnonymousAuthUsed())
-        {
-            try
-            {
-                String roomName = pps.getAccountID()
-                    .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
-                if (roomName == null)
-                {
-                    return;
-                }
-
-                OperationSetMultiUserChat muc
-                    = pps.getOperationSet(OperationSetMultiUserChat.class);
-                ChatRoom mucRoom = muc.findRoom(roomName);
-
-                if (mucRoom == null)
-                {
-                    return;
-                }
-
-                ColibriStatsExtension stats = new ColibriStatsExtension();
-                stats.addStat(new ColibriStatsExtension.Stat("conferences",
-                    conferences));
-                stats.addStat(new ColibriStatsExtension.Stat("participants",
-                    participants));
-
-                pps.getOperationSet(OperationSetJitsiMeetTools.class)
-                    .sendPresenceExtension(mucRoom, stats);
-            }
-            catch (Exception e)
-            {
-                logger.error("Error updating presence for:" + pps, e);
-            }
-        }
-    }
-
-    /**
-     * Updates the presence in each of the given {@link ProtocolProviderService}s
-     * with the current number of conferences and participants.
-     *
-     * @param ppss the list of protocol providers to update.
-     */
-    private void updatePresenceStatusForXmppProviders(
-        List<ProtocolProviderService> ppss)
-    {
-        SipGateway sipGateway= ServiceUtils.getService(
-            osgiContext, SipGateway.class);
-        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
-            osgiContext, TranscriptionGateway.class);
-
-        List<AbstractGatewaySession> sessions = new ArrayList<>();
-        if(sipGateway != null)
-        {
-           sessions.addAll(sipGateway.getActiveSessions());
-        }
-        if(transcriptionGateway != null)
-        {
-            sessions.addAll(transcriptionGateway.getActiveSessions());
-        }
-
-        int sesCount = 0;
-        int participantCount = 0;
-
-        for(AbstractGatewaySession ses : sessions)
-        {
-            ChatRoom room = ses.getJvbChatRoom();
-            if(room != null)
-            {
-                participantCount += ses.getJvbChatRoom().getMembersCount();
-                sesCount++;
-            }
-            else
-            {
-                logger.warn("non-active session in active session list");
-            }
-        }
-
-        final int finalSesCount = sesCount;
-        final int finalParticipantCount = participantCount;
-        ppss.forEach(
-            pps ->
-                updatePresenceStatusForXmppProvider(
-                    pps, finalParticipantCount, finalSesCount));
+        Statistics.updatePresenceStatusForXmppProviders();
     }
 
     /**
