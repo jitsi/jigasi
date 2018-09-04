@@ -147,7 +147,7 @@ case "$1" in
         if [ -f $PROSODY_HOST_CONFIG ]; then
             JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""
             # update prosody config
-            if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" /etc/prosody/prosody.cfg.lua)" ] || [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
+            if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
                 echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
             else
                 sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" -i $PROSODY_HOST_CONFIG
