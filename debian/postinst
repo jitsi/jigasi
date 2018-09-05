@@ -136,6 +136,13 @@ case "$1" in
             fi
         fi
 
+        # create lib folder, will be used for transcriptions
+        if [ ! -d /var/lib/jigasi ]; then
+            mkdir -p /var/lib/jigasi
+            chown $OWNER:$GROUP /var/lib/jigasi
+            chmod 770 /var/lib/jigasi
+        fi
+
         # populate the config with debconf values
         sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
         sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /etc/jitsi/jigasi/sip-communicator.properties
