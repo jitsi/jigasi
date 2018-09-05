@@ -1093,17 +1093,26 @@ public class JvbConference
             + ".DTLS-SRTP", "true");
 
         AbstractGateway gw = gatewaySession.getGateway();
-        boolean preventAuthLogin = false;
-        if(gw instanceof SipGateway)
-        {
-            preventAuthLogin = Boolean.valueOf(
-                ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN"));
-        }
-
         String overridePrefix = "org.jitsi.jigasi.xmpp.acc";
         List<String> overriddenProps =
             JigasiBundleActivator.getConfigurationService()
                 .getPropertyNamesByPrefix(overridePrefix, false);
+
+        if(gw instanceof SipGateway
+            && Boolean.valueOf(
+                ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN")))
+        {
+            // if we do not want auth login we need to ignore custom USER_ID,
+            //PASS, ANONYMOUS_AUTH, ALLOW_NON_SECURE and leave defaults
+            overriddenProps.remove(overridePrefix
+                + "." + ProtocolProviderFactory.USER_ID);
+            overriddenProps.remove(overridePrefix + ".PASS");
+            overriddenProps.remove(overridePrefix
+                + "." + JabberAccountID.ANONYMOUS_AUTH);
+            overriddenProps.remove(overridePrefix
+                + "." + ProtocolProviderFactory.IS_ALLOW_NON_SECURE);
+        }
+
         for(String overridenProp : overriddenProps)
         {
             String key = overridenProp.replace(overridePrefix + ".", "");
@@ -1112,8 +1121,7 @@ public class JvbConference
 
             // The key for the password field can't end in PASSWORD, otherwise
             // it is encrypted by our configuration service implementation.
-            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp) &&
-                !preventAuthLogin)
+            if ("org.jitsi.jigasi.xmpp.acc.PASS".equals(overridenProp))
             {
                 // The password is fully managed (i.e. stored/retrieved) by the
                 // configuration service and credentials storage service. See
@@ -1150,23 +1158,6 @@ public class JvbConference
                 // account and there we can alter the connection credentials.
 
                 this.xmppPassword = value;
-            }
-            else if ("org.jitsi.jigasi.xmpp.acc.USER_ID".equals(overridenProp)
-                && !preventAuthLogin)
-            {
-                properties.put(key, value);
-            }
-            else if ("org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH"
-                .equals(overridenProp))
-            {
-                if (preventAuthLogin)
-                {
-                    properties.put(key, Boolean.toString(true));
-                }
-                else
-                {
-                    properties.put(key, value);
-                }
             }
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
