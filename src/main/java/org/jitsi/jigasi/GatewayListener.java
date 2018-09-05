@@ -42,4 +42,9 @@ public interface GatewayListener
      * @param session the session that failed.
      */
     void onSessionFailed(AbstractGatewaySession session);
+
+    /**
+     * Called when the gateway is ready to create new sessions.
+     */
+    void onReady();
 }

@@ -36,8 +36,7 @@ import java.util.*;
  * @author Nik Vaessen
  */
 public abstract class AbstractGateway<T extends AbstractGatewaySession>
-    implements RegistrationStateChangeListener,
-               GatewaySessionListener<T>
+    implements GatewaySessionListener<T>
 {
     /**
      * The logger
@@ -108,13 +107,11 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      */
     public abstract void stop();
 
-    @Override
-    public void registrationStateChanged(RegistrationStateChangeEvent evt)
-    {
-        ProtocolProviderService pps = evt.getProvider();
-
-        logger.info("REG STATE CHANGE " + pps + " -> " + evt);
-    }
+    /**
+     * Whether this gateway is ready to create sessions.
+     * @return whether this gateway is ready to create sessions.
+     */
+    public abstract boolean isReady();
 
     /**
      * Notified that current call has ended.
@@ -324,4 +321,23 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
             listener.onSessionFailed(session);
         }
     }
+
+    /**
+     * Delivers event that Gateway is ready.
+     */
+    void fireGatewayReady()
+    {
+        Iterable<GatewayListener> listeners;
+        synchronized (gatewayListeners)
+        {
+            listeners
+                = new ArrayList<>(gatewayListeners);
+        }
+
+        for (GatewayListener listener : listeners)
+        {
+            listener.onReady();
+        }
+    }
+
 }

@@ -344,6 +344,10 @@ public class CallControlMucActivator
     public void onSessionFailed(AbstractGatewaySession session)
     {}
 
+    @Override
+    public void onReady()
+    {}
+
     /**
      * Updates the presence in each {@link ProtocolProviderService} registered
      * with OSGi with the current number of conferences and participants.

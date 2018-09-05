@@ -26,6 +26,7 @@ import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
@@ -218,6 +219,8 @@ public class JigasiBundleActivator
                     sipGateway.setSipProvider(pps);
             }
         }
+
+        Health.start();
     }
 
     @Override
@@ -228,6 +231,8 @@ public class JigasiBundleActivator
 
         gateways.forEach(AbstractGateway::stop);
         gateways.clear();
+
+        Health.stop();
     }
 
     @Override

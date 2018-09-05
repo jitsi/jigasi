@@ -55,6 +55,10 @@ public class GatewaySessions
         AbstractGatewaySession session)
     {}
 
+    @Override
+    public void onReady()
+    {}
+
     /**
      * Obtain sessions
      * @param timeout the time to wait to receive the sessions
