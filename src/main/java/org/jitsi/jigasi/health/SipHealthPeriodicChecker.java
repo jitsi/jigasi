@@ -66,15 +66,15 @@ class SipHealthPeriodicChecker
         = "org.jitsi.jigasi.HEALTH_CHECK_SIP_URI";
 
     /**
-     * The default interval between health checks. 20 minutes.
+     * The default interval between health checks. 5 minutes.
      */
-    private static final long DEFAULT_HEALTH_CHECK_INTERVAL = 20*60*1000;
+    private static final long DEFAULT_HEALTH_CHECK_INTERVAL = 5*60*1000;
 
     /**
      * The API will return failure unless a there was a health check performed
-     * in the last that many milliseconds. 30 minutes.
+     * in the last that many milliseconds. 10 minutes.
      */
-    private static final long DEFAULT_HEALTH_CHECK_TIMEOUT = 30*60*1000;
+    private static final long DEFAULT_HEALTH_CHECK_TIMEOUT = 10*60*1000;
 
     /**
      * The seconds to wait for receiving media, when creating healthcheck call.
