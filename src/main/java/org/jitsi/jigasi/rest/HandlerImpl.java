@@ -27,8 +27,10 @@ import javax.servlet.http.*;
 import net.java.sip.communicator.util.*;
 import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.rest.*;
+import org.json.simple.*;
 import org.osgi.framework.*;
 
 /**
@@ -163,7 +165,7 @@ public class HandlerImpl
         }
         else
         {
-            Health.sendJSON(baseRequest, request, response);
+            sendJSON(response);
         }
 
         endResponse(/* target */ null, baseRequest, request, response);
@@ -294,4 +296,43 @@ public class HandlerImpl
     @Override
     public void onSessionFailed(AbstractGatewaySession session)
     {}
+
+    @Override
+    public void onReady()
+    {}
+
+    /**
+     * Gets a JSON representation of the health (status) of a specific
+     * {@link SipGateway}. The method is synchronized so anything other than
+     * the health check itself (which is cached) needs to return very quickly.
+     *
+     * @param response the response either as the {@code Response} object or a
+     * wrapper of that response
+     * @throws IOException
+     */
+    static synchronized void sendJSON(
+        HttpServletResponse response)
+        throws IOException
+    {
+        int status;
+        String reason = null;
+        Map<String,Object> responseMap = new HashMap<>();
+        try
+        {
+            Health.check();
+            status = HttpServletResponse.SC_OK;
+        }
+        catch (Exception e)
+        {
+            status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+            reason = e.getMessage();
+        }
+
+        if (reason != null)
+        {
+            responseMap.put("reason", reason);
+        }
+        response.setStatus(status);
+        new JSONObject(responseMap).writeJSONString(response.getWriter());
+    }
 }

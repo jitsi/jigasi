@@ -82,4 +82,13 @@ public class TranscriptionGateway
 
         return outgoingSession;
     }
+
+    /**
+     * Whether this gateway is ready to create sessions.
+     * @return whether this gateway is ready to create sessions.
+     */
+    public boolean isReady()
+    {
+        return true;
+    }
 }

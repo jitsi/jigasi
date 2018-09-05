@@ -33,6 +33,7 @@ import org.osgi.framework.*;
  */
 public class SipGateway
     extends AbstractGateway<SipGatewaySession>
+    implements RegistrationStateChangeListener
 {
     /**
      * The logger
@@ -96,6 +97,19 @@ public class SipGateway
         new RegisterThread(sipProvider).start();
     }
 
+    @Override
+    public void registrationStateChanged(RegistrationStateChangeEvent evt)
+    {
+        ProtocolProviderService pps = evt.getProvider();
+
+        logger.info("REG STATE CHANGE " + pps + " -> " + evt);
+
+        if (evt.getNewState().equals(RegistrationState.REGISTERED))
+        {
+            fireGatewayReady();
+        }
+    }
+
     /**
      * Returns SIP provider used by this instance.
      * @return the SIP provider used by this instance.
@@ -132,6 +146,17 @@ public class SipGateway
             OperationSetBasicTelephony.class);
 
         telephony.addCallListener(callListener);
+    }
+
+    /**
+     * Whether this gateway is ready to create sessions.
+     * @return whether this gateway is ready to create sessions.
+     */
+    public boolean isReady()
+    {
+        return this.sipProvider != null
+            && this.sipProvider.getRegistrationState()
+                .equals(RegistrationState.REGISTERED);
     }
 
     /**
