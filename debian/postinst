@@ -149,11 +149,8 @@ case "$1" in
             # update prosody config
             if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
                 echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
-            else
-                sed "/Component \"callcontrol.$JVB_HOSTNAME\"/d" -i $PROSODY_HOST_CONFIG
-                echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
+                invoke-rc.d prosody restart
             fi
-            invoke-rc.d prosody restart
         fi
 
         # ensure jigasi is not running - it will be started at the end
