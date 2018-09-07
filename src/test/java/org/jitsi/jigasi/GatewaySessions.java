@@ -46,19 +46,6 @@ public class GatewaySessions
         }
     }
 
-    @Override
-    public void onSessionRemoved(AbstractGatewaySession session)
-    {}
-
-    @Override
-    public void onSessionFailed(
-        AbstractGatewaySession session)
-    {}
-
-    @Override
-    public void onReady()
-    {}
-
     /**
      * Obtain sessions
      * @param timeout the time to wait to receive the sessions

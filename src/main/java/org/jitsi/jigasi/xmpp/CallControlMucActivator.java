@@ -340,14 +340,6 @@ public class CallControlMucActivator
         session.removeListener(this);
     }
 
-    @Override
-    public void onSessionFailed(AbstractGatewaySession session)
-    {}
-
-    @Override
-    public void onReady()
-    {}
-
     /**
      * Updates the presence in each {@link ProtocolProviderService} registered
      * with OSGi with the current number of conferences and participants.

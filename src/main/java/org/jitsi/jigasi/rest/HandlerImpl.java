@@ -272,10 +272,6 @@ public class HandlerImpl
         }
     }
 
-    @Override
-    public void onSessionAdded(AbstractGatewaySession session)
-    {}
-
     /**
      * When a session ends we add all the cumulative statistics.
      *
@@ -292,14 +288,6 @@ public class HandlerImpl
                 System.currentTimeMillis()
                     - session.getCallContext().getTimestamp()));
     }
-
-    @Override
-    public void onSessionFailed(AbstractGatewaySession session)
-    {}
-
-    @Override
-    public void onReady()
-    {}
 
     /**
      * Gets a JSON representation of the health (status) of a specific
