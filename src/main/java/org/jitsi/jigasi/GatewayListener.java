@@ -29,22 +29,26 @@ public interface GatewayListener
      * Called when new session is added to the list of active sessions.
      * @param session the session that was added.
      */
-    void onSessionAdded(AbstractGatewaySession session);
+    default void onSessionAdded(AbstractGatewaySession session)
+    {}
 
     /**
      * Called when a session is removed from the list of active sessions.
      * @param session the session that was removed.
      */
-    void onSessionRemoved(AbstractGatewaySession session);
+    default void onSessionRemoved(AbstractGatewaySession session)
+    {}
 
     /**
      * Called when a session failed to establish.
      * @param session the session that failed.
      */
-    void onSessionFailed(AbstractGatewaySession session);
+    default void onSessionFailed(AbstractGatewaySession session)
+    {}
 
     /**
      * Called when the gateway is ready to create new sessions.
      */
-    void onReady();
+    default void onReady()
+    {}
 }

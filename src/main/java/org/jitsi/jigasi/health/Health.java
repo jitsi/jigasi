@@ -69,18 +69,6 @@ public class Health
                 sipGateway.addGatewayListener(new GatewayListener()
                 {
                     @Override
-                    public void onSessionAdded(AbstractGatewaySession session)
-                    {}
-
-                    @Override
-                    public void onSessionRemoved(AbstractGatewaySession session)
-                    {}
-
-                    @Override
-                    public void onSessionFailed(AbstractGatewaySession session)
-                    {}
-
-                    @Override
                     public void onReady()
                     {
                         finalSipGw.removeGatewayListener(this);
