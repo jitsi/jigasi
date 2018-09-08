@@ -371,19 +371,21 @@ public class Transcript
      */
     public <T> T getTranscript(AbstractTranscriptPublisher<T> publisher)
     {
-        return publisher.getFormatter()
-            .startedOn(started)
-            .initialParticipants(initialParticipantNames)
-            .tookPlaceInRoom(roomName)
-            .tookPlaceAtUrl(roomUrl)
-            .speechEvents(speechEvents)
-            .raiseHandEvents(raisedHandEvents)
-            .joinEvents(joinedEvents)
-            .leaveEvents(leftEvents)
-            .endedOn(ended)
-            .finish();
+        return getRoomEvents(publisher)
+               .speechEvents(speechEvents)
+               .finish();
     }
 
+    /**
+     * Get a formatted transcript of events stored by this object in the target
+     * language.
+     *
+     * @param publisher a publisher which has a formatter to create a transcript
+     *                  in the desired type.
+     * @param language the target language of the transcript.
+     * @param <T> the type in which the transcript will be stored.
+     * @return a formatted transcript with type T in the target language.
+     */
     public <T> T getTranslatedTranscript(
         AbstractTranscriptPublisher<T> publisher, String language)
     {
@@ -426,17 +428,31 @@ public class Transcript
             translatedSpeechEventsList = translatedSpeechEvents.get(language);
         }
 
+        return getRoomEvents(publisher)
+            .transcriptLanguage(language)
+            .translatedSpeechEvents(translatedSpeechEventsList)
+            .finish();
+    }
+
+    /**
+     * Gets a formatter of type T with details of the room events.
+     *
+     * @param publisher a publisher which has a formatter to create a transcript
+     *                  in the desired type.
+     * @param <T> the type in which the room details are to be formatted.
+     * @return a formatter for the transcript with type T.
+     */
+    public <T> AbstractTranscriptPublisher<T>.BaseFormatter
+               getRoomEvents(AbstractTranscriptPublisher<T> publisher)
+    {
         return publisher.getFormatter()
             .startedOn(started)
             .initialParticipants(initialParticipantNames)
             .tookPlaceInRoom(roomName)
             .tookPlaceAtUrl(roomUrl)
-            .transcriptLanguage(language)
-            .translatedSpeechEvents(translatedSpeechEventsList)
             .raiseHandEvents(raisedHandEvents)
             .joinEvents(joinedEvents)
             .leaveEvents(leftEvents)
-            .endedOn(ended)
-            .finish();
+            .endedOn(ended);
     }
 }

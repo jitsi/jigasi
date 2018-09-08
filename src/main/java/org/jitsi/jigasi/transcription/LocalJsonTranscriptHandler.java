@@ -70,6 +70,12 @@ public class LocalJsonTranscriptHandler
         = "room_url";
 
     /**
+     * This field stores the language in which the transcript is being stored.
+     */
+    public final static String JSON_KEY_FINAL_TRANSCRIPT_LANGUAGE
+        = "transcript_language";
+
+    /**
      * This field stores all the events as an JSON array
      */
     public final static String JSON_KEY_FINAL_TRANSCRIPT_EVENTS = "events";
@@ -147,9 +153,10 @@ public class LocalJsonTranscriptHandler
     // "alternative" JSON object fields
 
     /**
-     * This field stores the text of a speech-to-text result as a string
+     * This field stores the text of a speech-to-text result in original or
+     * translated language as a string
      */
-    public final static String JSON_KEY_ALTERNATIVE_TEXT = "text";
+    public final static String JSON_KEY_TEXT = "text";
 
     /**
      * This fields stores the confidence of the speech-to-text result as a
@@ -275,12 +282,7 @@ public class LocalJsonTranscriptHandler
             result.getTranscriptionResult());
 
         addEventDescriptions(eventObject, event);
-
-        eventObject.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
-        eventObject.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
-        eventObject.put(JSON_KEY_ALTERNATIVE_TEXT, result.getTranslatedText());
-        eventObject.put(JSON_KEY_EVENT_MESSAGE_ID,
-                result.getTranscriptionResult().getMessageID().toString());
+        addTranslations(eventObject, result);
 
         return eventObject;
     }
@@ -304,12 +306,7 @@ public class LocalJsonTranscriptHandler
     {
         JSONObject object = new JSONObject();
         addEventDescriptions(object, e);
-
-        object.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
-        object.put(JSON_KEY_EVENT_LANGUAGE, e.getResult().getLanguage());
-        object.put(JSON_KEY_ALTERNATIVE_TEXT, e.getResult().getTranslatedText());
-        object.put(JSON_KEY_EVENT_MESSAGE_ID,
-                e.getResult().getTranscriptionResult().getMessageID().toString());
+        addTranslations(object, e.getResult());
         return object;
     }
 
@@ -361,7 +358,7 @@ public class LocalJsonTranscriptHandler
 
     /**
      * Make a given JSON object the "event" json object by adding the fields
-     * transcripts, is_interim, messageID and langiage to the given object.
+     * transcripts, is_interim, messageID and language to the given object.
      * Assumes that
      * {@link this#addEventDescriptions(JSONObject, TranscriptEvent)}
      * has been or will be called on the same given JSON object
@@ -379,7 +376,7 @@ public class LocalJsonTranscriptHandler
         {
             JSONObject alternativeJSON = new JSONObject();
 
-            alternativeJSON.put(JSON_KEY_ALTERNATIVE_TEXT,
+            alternativeJSON.put(JSON_KEY_TEXT,
                 alternative.getTranscription());
             alternativeJSON.put(JSON_KEY_ALTERNATIVE_CONFIDENCE,
                 alternative.getConfidence());
@@ -393,6 +390,25 @@ public class LocalJsonTranscriptHandler
         jsonObject.put(JSON_KEY_EVENT_MESSAGE_ID,
             result.getMessageID().toString());
         jsonObject.put(JSON_KEY_EVENT_STABILITY, result.getStability());
+    }
+
+    /**
+     * Adds event information to the json object by adding the type,
+     * translated text, is_interim, messageID and language to the given object.
+     *
+     * @param object the json object where the required fields are to be added.
+     * @param result the translation result which contains the required
+     *               language and translated text.
+     */
+    @SuppressWarnings("unchecked")
+    private static void addTranslations(JSONObject object,
+                                        TranslationResult result)
+    {
+        object.put(JSON_KEY_TYPE, JSON_VALUE_TYPE_TRANSLATION_RESULT);
+        object.put(JSON_KEY_EVENT_LANGUAGE, result.getLanguage());
+        object.put(JSON_KEY_TEXT, result.getTranslatedText());
+        object.put(JSON_KEY_EVENT_MESSAGE_ID,
+                result.getTranscriptionResult().getMessageID().toString());
     }
 
 
@@ -460,6 +476,7 @@ public class LocalJsonTranscriptHandler
                                           String roomName,
                                           String roomUrl,
                                           Collection<Participant> participants,
+                                          String language,
                                           Instant start,
                                           Instant end,
                                           Collection<JSONObject> events)
@@ -471,6 +488,10 @@ public class LocalJsonTranscriptHandler
         if(roomUrl != null && !roomUrl.isEmpty())
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL, roomUrl);
+        }
+        if(language != null && !language.isEmpty())
+        {
+            jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_LANGUAGE, language);
         }
         if(start != null)
         {
@@ -524,6 +545,7 @@ public class LocalJsonTranscriptHandler
                 super.roomName,
                 super.roomUrl,
                 super.initialMembers,
+                super.language,
                 super.startInstant,
                 super.endInstant,
                 super.getSortedEvents());

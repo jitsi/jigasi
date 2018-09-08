@@ -19,20 +19,12 @@ package org.jitsi.jigasi.transcription;
 
 import java.time.Instant;
 
-///**
-// * A TranslatedSpeechEvent extends a normal TranscriptEvent by including a
-// * TranslationResult
-// *
-// * APP.conference._room.dial("jitsi_meet_transcribe")
-// *
-// * APP.conference._room.setLocalParticipantProperty('translation_language','hi');
-// *
-// * APP.conference._room.setLocalParticipantProperty('transcription_language','hi-in');
-// *
-// * APP.conference._room.setLocalParticipantProperty('translation_language','en');
-// *
-// * @author Praveen Kumar Gupta
-// */
+/**
+ * A TranslatedSpeechEvent extends a normal TranscriptEvent by including a
+ * TranslationResult
+ *
+ * @author Praveen Kumar Gupta
+ */
 public class TranslatedSpeechEvent
     extends TranscriptEvent
 {
