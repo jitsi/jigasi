@@ -180,54 +180,16 @@ public class GoogleCloudTranscriptionService
     private final static int STREAMING_SESSION_TIMEOUT_MS = 2000;
 
     /**
-     * List of <tt>SpeechContext</tt>s to be inserted in
-     * the <tt>RecognitionConfig</tt>. This is a list of phrases to be used as
-     * a dictionary to assist the speech recognition.
+     * Property name to determine whether to use the Google Speech API's
+     * video model
      */
-    private static List<SpeechContext> speechContexts = null;
+    private final static String P_NAME_USE_VIDEO_MODEL
+        = "org.jitsi.jigasi.transcription.USE_VIDEO_MODEL";
 
     /**
-     * Creates the RecognitionConfig the Google service uses based
-     * on the TranscriptionRequest
-     *
-     * @param request the transcriptionRequest which will need to be transcribed
-     * @return the config based on the audio contained in the request
-     * @throws UnsupportedOperationException when this service cannot process
-     * the given request
+     * The default value for the property USE_VIDEO_MODEL
      */
-    private static RecognitionConfig getRecognitionConfig(TranscriptionRequest
-                                                              request)
-        throws UnsupportedOperationException
-    {
-        RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
-
-        // Set the sampling rate and encoding of the audio
-        AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(new Double(format.getSampleRate())
-            .intValue());
-        switch(format.getEncoding())
-        {
-            case "LINEAR":
-                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
-                break;
-            default:
-                throw new IllegalArgumentException("Given AudioFormat" +
-                    "has unexpected" +
-                    "encoding");
-        }
-
-        // set the Language tag
-        String languageTag = request.getLocale().toLanguageTag();
-        validateLanguageTag(languageTag);
-        builder.setLanguageCode(languageTag);
-
-        addSpeechContexts(builder);
-
-        // set the requested alternatives
-        builder.setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES);
-
-        return builder.build();
-    }
+    private final static boolean DEFAULT_VALUE_USE_VIDEO_MODEL = false;
 
     /**
      * Check whether the given string contains a supported language tag
@@ -247,8 +209,74 @@ public class GoogleCloudTranscriptionService
             }
         }
         throw new UnsupportedOperationException(tag + " is not a language " +
-            "supported by the Google " +
-            "Cloud speech-to-text API");
+                                                    "supported by the Google " +
+                                                    "Cloud speech-to-text API");
+    }
+
+    /**
+     * List of <tt>SpeechContext</tt>s to be inserted in
+     * the <tt>RecognitionConfig</tt>. This is a list of phrases to be used as
+     * a dictionary to assist the speech recognition.
+     */
+    private List<SpeechContext> speechContexts = null;
+
+    /**
+     * Whether to use the more expensive video model when making
+     * requests.
+     */
+    private boolean useVideoModel;
+
+    /**
+     * Creates the RecognitionConfig the Google service uses based
+     * on the TranscriptionRequest
+     *
+     * @param request the transcriptionRequest which will need to be transcribed
+     * @return the config based on the audio contained in the request
+     * @throws UnsupportedOperationException when this service cannot process
+     * the given request
+     */
+    private RecognitionConfig getRecognitionConfig(TranscriptionRequest request)
+        throws UnsupportedOperationException
+    {
+        RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
+
+        // Set the sampling rate and encoding of the audio
+        AudioFormat format = request.getFormat();
+        builder.setSampleRateHertz(new Double(format.getSampleRate())
+            .intValue());
+        switch(format.getEncoding())
+        {
+            case "LINEAR":
+                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
+                break;
+            default:
+                throw new IllegalArgumentException("Given AudioFormat" +
+                    "has unexpected" +
+                    "encoding");
+        }
+
+        // set the model to use. It will default to a cheaper model with
+        // lower performance when not set.
+        if(useVideoModel)
+        {
+            if(logger.isDebugEnabled())
+            {
+                logger.debug("Using the more expensive video model");
+            }
+            builder.setModel("video");
+        }
+
+        // set the Language tag
+        String languageTag = request.getLocale().toLanguageTag();
+        validateLanguageTag(languageTag);
+        builder.setLanguageCode(languageTag);
+
+        addSpeechContexts(builder);
+
+        // set the requested alternatives
+        builder.setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES);
+
+        return builder.build();
     }
 
     /**
@@ -257,6 +285,8 @@ public class GoogleCloudTranscriptionService
      */
     public GoogleCloudTranscriptionService()
     {
+        useVideoModel = JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_USE_VIDEO_MODEL, DEFAULT_VALUE_USE_VIDEO_MODEL);
     }
 
     /**
@@ -356,7 +386,7 @@ public class GoogleCloudTranscriptionService
      * Inserts all speechContexts to the <tt>RecognitionConfig.Builder</tt>.
      * @param builder the builder where to add speech contexts.
      */
-    private static void addSpeechContexts(RecognitionConfig.Builder builder)
+    private void addSpeechContexts(RecognitionConfig.Builder builder)
     {
         if (speechContexts == null)
         {
@@ -529,7 +559,7 @@ public class GoogleCloudTranscriptionService
      * It will make sure a RequestApiStreamObserver will only be used for a
      * minute, as that is the maximum amount of time supported by the Google API
      */
-    private static class RequestApiStreamObserverManager
+    private class RequestApiStreamObserverManager
     {
         /**
          * The SpeechClient which will be used to initiate the session
@@ -605,7 +635,8 @@ public class GoogleCloudTranscriptionService
                 StreamingRecognitionConfig.newBuilder()
                     .setConfig(config)
                     .setInterimResults(RETRIEVE_INTERIM_RESULTS)
-                    .setSingleUtterance(SINGLE_UTTERANCE_ONLY)
+                    .setSingleUtterance(!useVideoModel &&
+                                            SINGLE_UTTERANCE_ONLY)
                     .build();
 
             // StreamingCallable manages sending the audio and receiving

@@ -132,7 +132,7 @@ public class Transcriber
      * for managing translations.
      */
     private TranslationManager translationManager
-        = new TranslationManager(new GoogleCloudTranslationService());;
+        = new TranslationManager(new GoogleCloudTranslationService());
 
     /**
      * Every listener which will be notified when a new result comes in
