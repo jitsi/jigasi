@@ -72,6 +72,18 @@ public class Transcriber
     public final static boolean ENABLE_TRANSLATION_DEFAULT_VALUE = false;
 
     /**
+     * The property name for the boolean value whether voice activity detection
+     * should be used to filter out audio without speech.
+     */
+    public final static String P_NAME_FILTER_SILENCE
+        = "org.jitsi.jigasi.transcription.FILTER_SILENCE";
+
+    /**
+     * Default value for property FILTER_SILENCE
+     */
+    public final static boolean FILTER_SILENCE_DEFAULT_VALUE = false;
+
+    /**
      * The states the transcriber can be in. The Transcriber
      * can only go through one cycle. So once it is started it can never
      * be started, and once is is stopped it can never be stopped and once
@@ -179,6 +191,12 @@ public class Transcriber
     private String roomUrl;
 
     /**
+     * Whether silenced audio should be filtered out before sending audio to
+     * a {@link TranscriptionService}.
+     */
+    private boolean filterSilence = shouldFilterSilence();
+
+    /**
      * Create a transcription object which can be used to add and remove
      * participants of a conference to a list of audio streams which will
      * be transcribed.
@@ -276,7 +294,7 @@ public class Transcriber
         synchronized (this.participants)
         {
             this.participants.computeIfAbsent(identifier,
-                key -> new Participant(this, identifier));
+                key -> new Participant(this, identifier, filterSilence));
         }
     }
 
@@ -858,5 +876,17 @@ public class Transcriber
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_TRANSLATION,
                     ENABLE_TRANSLATION_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether the {@link Participant} should filter out audio lacking
+     * speech.
+     *
+     * @return true when silence audio should be filtered, false otherwise
+     */
+    private boolean shouldFilterSilence()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_FILTER_SILENCE, FILTER_SILENCE_DEFAULT_VALUE);
     }
 }

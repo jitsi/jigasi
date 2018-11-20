@@ -27,6 +27,7 @@ import org.jivesoftware.smack.packet.*;
 import javax.media.format.*;
 import java.nio.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * This class describes a participant in a conference whose
@@ -146,6 +147,12 @@ public class Participant
     private String translationLanguage = null;
 
     /**
+     * The {@link SilenceFilter} which is used to filter out silenced audio.
+     * This object is null when it's not required.
+     */
+    private SilenceFilter silenceFilter = null;
+
+    /**
      * Create a participant with a given name and audio stream
      *
      * @param transcriber the transcriber which created this participant
@@ -153,8 +160,24 @@ public class Participant
      */
     Participant(Transcriber transcriber, String identifier)
     {
+        this(transcriber, identifier, false);
+    }
+
+    /**
+     * Create a participant with a given name and audio stream
+     *
+     * @param transcriber the transcriber which created this participant
+     * @param identifier the string which is used to identify this participant
+     */
+    Participant(Transcriber transcriber, String identifier, boolean filterAudio)
+    {
         this.transcriber = transcriber;
         this.identifier = identifier;
+
+        if(filterAudio)
+        {
+            silenceFilter = new SilenceFilter();
+        }
     }
 
     /**
@@ -521,6 +544,12 @@ public class Participant
      * Give a packet of the audio of this participant such that it can be
      * buffered and sent to the transcription once enough has been stored
      *
+     * Note: the thread on which this method is called has only a limited amount
+     * of time until it is shutdown. Thus, we need to minimize the amount of
+     * work we do on in this method (and the children this method calls).
+     * This is done by using a single-threaded {@link ExecutorService} defined
+     * in {@link Transcriber#executorService}.
+     *
      * @param buffer a buffer which is expected to contain a single packet
      *               of audio of this participant
      */
@@ -585,21 +614,49 @@ public class Participant
      */
     private void buffer(byte[] audio)
     {
-        try
-        {
-            buffer.put(audio);
-        }
-        catch (BufferOverflowException | ReadOnlyBufferException e)
-        {
-            //e.printStackTrace();
-        }
+        // note: the executorService is single-threaded and thus order
+        //       is preserved, even though there are multiple participants.
+        transcriber.executorService.submit(() ->
+           {
+               byte[] toBuffer;
+               if(silenceFilter != null)
+               {
+                   silenceFilter.giveSegment(audio);
+                   if(silenceFilter.shouldFilter())
+                   {
+                       return;
+                   }
+                   else if(silenceFilter.newSpeech())
+                   {
+                       buffer.clear();
+                       toBuffer = silenceFilter.getSpeechWindow();
+                   }
+                   else
+                   {
+                       toBuffer = audio;
+                   }
+               }
+               else
+               {
+                   toBuffer = audio;
+               }
 
-        int spaceLeft = buffer.limit() - buffer.position();
-        if(spaceLeft < EXPECTED_AUDIO_LENGTH)
-        {
-            sendRequest(buffer.array());
-            buffer.clear();
-        }
+               try
+               {
+                   buffer.put(toBuffer);
+               }
+               catch (BufferOverflowException | ReadOnlyBufferException e)
+               {
+                   sendRequest(audio);
+               }
+
+               int spaceLeft = buffer.limit() - buffer.position();
+               if(spaceLeft < EXPECTED_AUDIO_LENGTH)
+               {
+                   sendRequest(buffer.array());
+                   buffer.clear();
+               }
+           });
     }
 
     /**

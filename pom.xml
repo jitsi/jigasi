@@ -156,6 +156,11 @@
       <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.jitsi</groupId>
+      <artifactId>jitsi-webrtcvadwrapper</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
       <version>1.0-39-gd481c98</version>
@@ -327,6 +332,11 @@
       <artifactId>jitsi-systray-service</artifactId>
       <version>${jitsi-desktop.version}</version>
       <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-webrtcvadwrapper</artifactId>
+      <version>1.0-20200414.144800-2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
