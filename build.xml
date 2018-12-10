@@ -290,9 +290,11 @@
             <filelist dir="." files="pom.xml"/>
             <filelist dir="." files="jigasi.jar"/>
             <filelist dir="script" files="graceful_shutdown.sh"/>
+            <filelist dir="script" files="collect-dump-logs.sh"/>
         </copy>
         <chmod file="${debian.target.dir}/jigasi.sh" perm="+x"/>
         <chmod file="${debian.target.dir}/graceful_shutdown.sh" perm="+x"/>
+        <chmod file="${debian.target.dir}/collect-dump-logs.sh" perm="+x"/>
 
         <copy file="debian/changelog.tmpl"
               tofile="${debian.target.dir}/debian/changelog"
