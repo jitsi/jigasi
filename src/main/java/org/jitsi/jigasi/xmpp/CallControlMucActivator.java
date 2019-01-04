@@ -31,6 +31,7 @@ import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
+import org.jxmpp.jid.parts.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -283,15 +284,7 @@ public class CallControlMucActivator
         {
             logger.info(
                 "Joining call control room: " + roomName + " pps:" + pps);
-
-            ChatRoom mucRoom = muc.findRoom(roomName);
-
-            mucRoom.join();
-
-            // sends initial stats, used some kind of advertising
-            // so jicofo can recognize us as real jigasi and load balance us
-            Statistics.updatePresenceStatusForXmppProviders(
-                Collections.singletonList(pps));
+            Resourcepart connectionResource = null;
 
             // getting direct access to the xmpp connection in order to add
             // a listener for incoming iqs
@@ -305,7 +298,25 @@ public class CallControlMucActivator
                     ((ProtocolProviderServiceJabberImpl) pps).getConnection();
                 conn.registerIQRequestHandler(new DialIqHandler(pps));
                 conn.registerIQRequestHandler(new HangUpIqHandler(pps));
+
+                connectionResource = conn.getUser().getResourceOrNull();
             }
+
+
+            ChatRoom mucRoom = muc.findRoom(roomName);
+            if (connectionResource != null)
+            {
+                mucRoom.joinAs(connectionResource.toString());
+            }
+            else
+            {
+                mucRoom.join();
+            }
+
+            // sends initial stats, used some kind of advertising
+            // so jicofo can recognize us as real jigasi and load balance us
+            Statistics.updatePresenceStatusForXmppProviders(
+                Collections.singletonList(pps));
         }
         catch (Exception e)
         {
