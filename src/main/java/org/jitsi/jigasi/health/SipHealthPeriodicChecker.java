@@ -269,7 +269,7 @@ class SipHealthPeriodicChecker
 
         countDownLatch.await(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
 
-        if (receivedBuffer[0] != true)
+        if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
         {
             throw new Exception("Health check call failed with no media!");
         }
