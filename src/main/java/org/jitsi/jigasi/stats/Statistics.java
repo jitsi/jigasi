@@ -214,7 +214,10 @@ public class Statistics
                 = conferenceEndpoints < conferenceSizes.length
                 ? conferenceEndpoints
                 : conferenceSizes.length - 1;
-            conferenceSizes[idx]++;
+            if (idx >= 0)
+            {
+                conferenceSizes[idx]++;
+            }
             conferences++;
         }
 
