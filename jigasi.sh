@@ -27,4 +27,6 @@ if [ -f $logging_config ]; then
     LOGGING_CONFIG_PARAM="-Djava.util.logging.config.file=$logging_config"
 fi
 
-LD_LIBRARY_PATH=$libs exec java -Djava.library.path=$libs $LOGGING_CONFIG_PARAM $JAVA_SYS_PROPS -cp $cp $mainClass $@
+if [ -z "$JIGASI_MAX_MEMORY" ]; then JIGASI_MAX_MEMORY=3072m; fi
+
+LD_LIBRARY_PATH=$libs exec java -Xmx$JIGASI_MAX_MEMORY -Djava.library.path=$libs $LOGGING_CONFIG_PARAM $JAVA_SYS_PROPS -cp $cp $mainClass $@
