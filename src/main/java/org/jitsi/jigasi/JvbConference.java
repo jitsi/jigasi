@@ -20,6 +20,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
+import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
@@ -566,6 +567,12 @@ public class JvbConference
             logger.error("Unregistered XMPP on "
                         + callContext.getCallResource());
         }
+        else if (evt.getNewState() == RegistrationState.CONNECTION_FAILED)
+        {
+            logger.error("Connection failed XMPP on "
+                        + callContext.getCallResource());
+            stop();
+        }
         else
         {
             logger.info(
@@ -777,7 +784,10 @@ public class JvbConference
     @Override
     public void memberPresenceChanged(ChatRoomMemberPresenceChangeEvent evt)
     {
-        logger.info("Member presence change: "+evt);
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("Member presence change: " + evt);
+        }
 
         ChatRoomMember member = evt.getChatRoomMember();
         String eventType = evt.getEventType();
