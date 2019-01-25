@@ -10,7 +10,15 @@
 #export DH_VERBOSE=1
 
 %:
-	dh $@ --with javahelper
+	dh $@ --with javahelper --with systemd
+
+override_dh_installinit:
+	dh_installinit --noscripts
+
+override_dh_auto_install:
+	dh_auto_install
+	dh_systemd_enable || true
+	dh_systemd_start || true
 
 override_dh_auto_clean:
 

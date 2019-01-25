@@ -44,8 +44,13 @@ done
 shift "$((OPTIND-1))"
 
 # Try the pid file, if no pid was provided as an argument.
+# for systemd we use different pid file in a subfolder
 if [ "$pid" = "" ] ;then
-    pid=`cat /var/run/jigasi.pid`
+    if [ -f /var/run/jigasi.pid ]; then
+        pid=`cat /var/run/jigasi.pid`
+    else
+        pid=`cat /var/run/jigasi/jigasi.pid`
+    fi
 fi
 
 #Check if PID is a number
@@ -125,6 +130,7 @@ then
 		fi
 	fi
 	rm -f /var/run/jigasi.pid
+	rm -f /var/run/jigasi/jigasi.pid
 	printInfo "Jigasi shutdown OK"
 	exit 0
 else

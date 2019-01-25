@@ -161,8 +161,8 @@ case "$1" in
         fi
 
         # ensure jigasi is not running - it will be started at the end
-        if invoke-rc.d jigasi status >/dev/null 2>&1 ; then
-            invoke-rc.d jigasi stop || true
+        if [ -d /run/systemd/system ]; then
+            systemctl stop jigasi.service >/dev/null || true
         fi
 
         # clean up old jigasi group
