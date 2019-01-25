@@ -14,6 +14,11 @@ unset PID
 #Find any crashes in /var/crash from our user in the past 20 minutes, if they exist
 CRASH_FILES=$(find /var/crash -name '*.crash' -uid $JIGASI_UID -mmin -20 -type f)
 
+# for systemd we use different pid file
+if [ ! -f $PID_PATH ]; then
+    PID_PATH="/var/run/jigasi/jigasi.pid"
+fi
+
 [ -e $PID_PATH ] && PID=$(cat $PID_PATH)
 if [ ! -z $PID ]; then
    ps -p $PID | grep -q java
