@@ -585,7 +585,7 @@ public class CallManager
                 {
                     basicTelephony.hangupCallPeer(peer, reasonCode, reason);
                 }
-                catch (OperationFailedException ofe)
+                catch (Exception ofe)
                 {
                     logger.error("Could not hang up: " + peer, ofe);
                 }
