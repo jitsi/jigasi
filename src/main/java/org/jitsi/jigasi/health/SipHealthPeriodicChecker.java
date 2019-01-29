@@ -28,6 +28,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 
+import java.lang.management.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -271,22 +272,84 @@ class SipHealthPeriodicChecker
 
         if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
         {
+            logger.error("Outgoing health check failed. " + getThreadDumb());
             throw new Exception("Health check call failed with no media!");
         }
         else
         {
             // the call had succeeded  as we had received media, we do not care
             // for any failures on hangup
-            try
+            Iterator<? extends CallPeer> peerIter = call.getCallPeers();
+            while (peerIter.hasNext())
             {
-                Iterator<? extends CallPeer> peerIter = call.getCallPeers();
-
-                while (peerIter.hasNext())
+                try
                 {
                     tele.hangupCallPeer(peerIter.next());
                 }
+                catch (Throwable t){}
             }
-            catch (Throwable t){}
         }
+    }
+
+    /**
+     * Retrieves a thread dump.
+     * @return string representing current state of threads.
+     */
+    private static String getThreadDumb()
+    {
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(
+            threadMXBean.getAllThreadIds(), 100);
+        StringBuilder dbg = new StringBuilder();
+        for (ThreadInfo threadInfo : threadInfos)
+        {
+            if (threadInfo == null)
+            {
+                continue;
+            }
+            dbg.append('"').append(threadInfo.getThreadName()).append('"');
+
+            Thread.State state = threadInfo.getThreadState();
+            dbg.append("\n   java.lang.Thread.State: ").append(state);
+
+            if (threadInfo.getLockName() != null)
+            {
+                dbg.append(" on ").append(threadInfo.getLockName());
+            }
+            dbg.append('\n');
+
+            StackTraceElement[] stackTraceElements
+                = threadInfo.getStackTrace();
+            for (int i = 0; i < stackTraceElements.length; i++)
+            {
+                StackTraceElement ste = stackTraceElements[i];
+                dbg.append("\tat " + ste.toString());
+                dbg.append('\n');
+                if (i == 0 && threadInfo.getLockInfo() != null)
+                {
+                    Thread.State ts = threadInfo.getThreadState();
+                    if (ts == Thread.State.BLOCKED
+                        || ts == Thread.State.WAITING
+                        || ts == Thread.State.TIMED_WAITING)
+                    {
+                        dbg.append("\t-  " + ts + " on "
+                            + threadInfo.getLockInfo());
+                        dbg.append('\n');
+                    }
+                }
+
+                for (MonitorInfo mi
+                    : threadInfo.getLockedMonitors())
+                {
+                    if (mi.getLockedStackDepth() == i) {
+                        dbg.append("\t-  locked " + mi);
+                        dbg.append('\n');
+                    }
+                }
+            }
+            dbg.append("\n\n");
+        }
+
+        return dbg.toString();
     }
 }
