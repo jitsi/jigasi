@@ -84,6 +84,11 @@ class SipHealthPeriodicChecker
     private static final long CALL_ESTABLISH_TIMEOUT = 10;
 
     /**
+     * The seconds to wait before retrying a check after a failure.
+     */
+    private static final long CHECK_RETRY_INTERVAL = 60;
+
+    /**
      * A property to enable health check debug, printing thread dump in the logs
      * for those failed health checks.
      */
@@ -198,6 +203,17 @@ class SipHealthPeriodicChecker
     @Override
     protected void doRun()
     {
+        this.doRunInternal(true);
+    }
+
+    /**
+     * The doRun implementation.
+     * @param retryOnFailure <tt>true</tt> if we want to do a short retry after
+     * failure, the retry will happen after <tt>CHECK_RETRY_INTERVAL</tt>
+     * seconds.
+     */
+    private void doRunInternal(boolean retryOnFailure)
+    {
         long start = System.currentTimeMillis();
         Exception exception = null;
 
@@ -224,6 +240,18 @@ class SipHealthPeriodicChecker
         {
             logger.error(
                 "Health check failed in " + duration + "ms:", exception);
+
+            if (retryOnFailure)
+            {
+                new Timer().schedule(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        doRunInternal(false);
+                    }
+                }, CHECK_RETRY_INTERVAL*1000);
+            }
         }
     }
 
