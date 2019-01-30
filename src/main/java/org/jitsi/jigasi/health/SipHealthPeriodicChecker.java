@@ -84,6 +84,18 @@ class SipHealthPeriodicChecker
     private static final long CALL_ESTABLISH_TIMEOUT = 10;
 
     /**
+     * A property to enable health check debug, printing thread dump in the logs
+     * for those failed health checks.
+     */
+    private static final String HEALTH_CHECK_DEBUG_PROP_NAME =
+        "org.jitsi.jigasi.HEALTH_CHECK_DEBUG_ENABLED";
+
+    /**
+     * Whether health check debug is enabled. Off by default.
+     */
+    private boolean healthChecksDebugEnabled = false;
+
+    /**
      * The health check interval ({@link #DEFAULT_HEALTH_CHECK_TIMEOUT}).
      */
     private static long timeout;
@@ -114,6 +126,10 @@ class SipHealthPeriodicChecker
     private SipHealthPeriodicChecker(SipGateway o, long period)
     {
         super(o, period, true);
+
+        healthChecksDebugEnabled
+            = JigasiBundleActivator.getConfigurationService()
+                .getBoolean(HEALTH_CHECK_DEBUG_PROP_NAME, false);
     }
 
     /**
@@ -187,7 +203,7 @@ class SipHealthPeriodicChecker
 
         try
         {
-            doCheck(this.o.getSipProvider());
+            doCheck(this.o.getSipProvider(), healthChecksDebugEnabled);
         }
         catch (Exception e)
         {
@@ -217,10 +233,12 @@ class SipHealthPeriodicChecker
      *
      * @param pps the {@code ProtocolProviderService} to check
      * the health (status) of
+     * @param debugEnabled whether to do a thread dump on failure
      * @throws Exception if an error occurs while checking the health (status)
      * or the check determines that is not healthy
      */
-    private static void doCheck(ProtocolProviderService pps)
+    private static void doCheck(
+        ProtocolProviderService pps, boolean debugEnabled)
         throws Exception
     {
         // countdown will wait for received audio buffer or call being ended
@@ -272,7 +290,9 @@ class SipHealthPeriodicChecker
 
         if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
         {
-            logger.error("Outgoing health check failed. " + getThreadDumb());
+            logger.error("Outgoing health check failed. " +
+                (debugEnabled ? getThreadDumb() : ""));
+
             throw new Exception("Health check call failed with no media!");
         }
         else
