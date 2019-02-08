@@ -195,10 +195,9 @@ public class JigasiBundleConfig
             DeviceConfiguration.PROP_VIDEO_RTP_PACING_THRESHOLD,
             Integer.toString(Integer.MAX_VALUE));
 
-        // FIXME not sure about this one
         /*
-         * XXX Explicitly support JitMeet by default because is is the primary
-         * use case of Jitsi Videobridge right now.
+         * Drops silent audio packets that has the
+         * rtp extension(rfc6464) with sound level information.
          */
         defaults.put(
             SsrcTransformEngine
