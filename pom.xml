@@ -20,7 +20,7 @@
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
     <smack.version>4.2.4-47d17fc</smack.version>
-    <jitsi-desktop.version>2.13.4823e46</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.d455bdc</jitsi-desktop.version>
   </properties>
 
   <dependencies>
@@ -142,7 +142,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-20190130.125305-375</version>
+      <version>1.0-20190207.123737-377</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
