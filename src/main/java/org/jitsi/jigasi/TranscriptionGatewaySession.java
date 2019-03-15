@@ -120,6 +120,12 @@ public class TranscriptionGatewaySession
         this.handler = handler;
 
         this.transcriber = new Transcriber(this.service);
+
+        if (this.service instanceof TranscriptionEventListener)
+        {
+            this.transcriber.addTranscriptionEventListener(
+                (TranscriptionEventListener)this.service);
+        }
     }
 
     @Override

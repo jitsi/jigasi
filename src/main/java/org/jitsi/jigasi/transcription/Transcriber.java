@@ -391,28 +391,13 @@ public class Transcriber
             if (logger.isDebugEnabled())
                 logger.debug("Transcriber is now transcribing");
 
-            StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
-            if(dClient != null)
-            {
-                dClient.increment(DD_ASPECT_START);
-                if(logger.isDebugEnabled())
-                {
-                    logger.debug("thrown stat: " + DD_ASPECT_START);
-                }
-            }
+            updateDDClient(DD_ASPECT_START);
 
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
 
-            List<Participant> participantsClone;
-            synchronized (this.participants)
-            {
-                participantsClone = new ArrayList<>(this.participants.size());
-                participantsClone.addAll(this.participants.values());
-            }
-
             TranscriptEvent event
-                = this.transcript.started(roomName, roomUrl, participantsClone);
+                = this.transcript.started(roomName, roomUrl, getParticipants());
             if (event != null)
             {
                 fireTranscribeEvent(event);
@@ -435,15 +420,7 @@ public class Transcriber
             if (logger.isDebugEnabled())
                 logger.debug("Transcriber is now finishing up");
 
-            StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
-            if(dClient != null)
-            {
-                dClient.increment(DD_ASPECT_STOP);
-                if(logger.isDebugEnabled())
-                {
-                    logger.debug("thrown stat: " + DD_ASPECT_STOP);
-                }
-            }
+            updateDDClient(DD_ASPECT_STOP);
 
             this.state = State.FINISHING_UP;
             this.executorService.shutdown();
@@ -459,6 +436,24 @@ public class Transcriber
         {
             logger.warn("Trying to stop Transcriber while it is " +
                             "already stopped");
+        }
+    }
+
+    /**
+     * Updated dd client with a stat.
+     *
+     * @param ddAspectStop
+     */
+    private void updateDDClient(String ddAspectStop)
+    {
+        StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
+        if(dClient != null)
+        {
+            dClient.increment(ddAspectStop);
+            if(logger.isDebugEnabled())
+            {
+                logger.debug("thrown stat: " + ddAspectStop);
+            }
         }
     }
 
@@ -672,15 +667,26 @@ public class Transcriber
      */
     public boolean isAnyParticipantRequestingTranscription()
     {
+
+        return getParticipants()
+            .stream()
+            .anyMatch(Participant::isRequestingTranscription);
+    }
+
+    /**
+     * Returns the list of participants. A copy of it.
+     *
+     * @return the list of current participants.
+     */
+    public List<Participant> getParticipants()
+    {
         List<Participant> participantsCopy;
         synchronized (this.participants)
         {
             participantsCopy = new ArrayList<>(this.participants.values());
         }
 
-        return participantsCopy
-            .stream()
-            .anyMatch(Participant::isRequestingTranscription);
+        return participantsCopy;
     }
 
     /**

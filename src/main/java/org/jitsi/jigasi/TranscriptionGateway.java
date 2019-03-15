@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.osgi.framework.*;
@@ -31,6 +32,18 @@ import org.osgi.framework.*;
 public class TranscriptionGateway
     extends AbstractGateway<TranscriptionGatewaySession>
 {
+    /**
+     * The logger
+     */
+    private final static Logger logger
+        = Logger.getLogger(TranscriptionGateway.class);
+
+    /**
+     * Property for the class name of a custom transcription service.
+     */
+    private static final String CUSTOM_TRANSCRIPTION_SERVICE_PROP
+        = "org.jitsi.jigasi.transcription.customService";
+
     /**
      * Class which manages the desired {@link TranscriptPublisher} and
      * {@link TranscriptionResultPublisher}
@@ -71,11 +84,35 @@ public class TranscriptionGateway
     @Override
     public TranscriptionGatewaySession createOutgoingCall(CallContext ctx)
     {
+        String customTranscriptionServiceClass
+            = JigasiBundleActivator.getConfigurationService()
+                .getString(
+                    CUSTOM_TRANSCRIPTION_SERVICE_PROP,
+                    null);
+        TranscriptionService service = null;
+        if (customTranscriptionServiceClass != null)
+        {
+            try
+            {
+                service = (TranscriptionService)Class.forName(
+                    customTranscriptionServiceClass).newInstance();
+            }
+            catch(Exception e)
+            {
+                logger.error("Cannot instantiate custom transcription service");
+            }
+        }
+
+        if (service == null)
+        {
+            service = new GoogleCloudTranscriptionService();
+        }
+
         TranscriptionGatewaySession outgoingSession =
                 new TranscriptionGatewaySession(
                     this,
                     ctx,
-                    new GoogleCloudTranscriptionService(),
+                    service,
                     this.handler);
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();

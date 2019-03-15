@@ -473,8 +473,8 @@ public class Participant
 
         if (transcriber.getTranscriptionService().supportsStreamRecognition())
         {
-            session
-                = transcriber.getTranscriptionService().initStreamingSession();
+            session = transcriber.getTranscriptionService()
+                .initStreamingSession(this);
             session.addTranscriptionListener(this);
             isCompleted = false;
         }
@@ -484,7 +484,7 @@ public class Participant
      * When a participant has left it does not accept audio and thus no new
      * results will come in
      */
-    void left()
+    public void left()
     {
         if (session != null)
         {
@@ -558,7 +558,7 @@ public class Participant
         }
         catch (BufferOverflowException | ReadOnlyBufferException e)
         {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
 
         int spaceLeft = buffer.limit() - buffer.position();
