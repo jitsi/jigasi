@@ -859,7 +859,7 @@ public abstract class AbstractTranscriptPublisher<T>
                             }
                             catch (InterruptedException e)
                             {
-                                e.printStackTrace();
+                                logger.error("", e);
                                 returnValue = -1;
                             }
 
