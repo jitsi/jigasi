@@ -357,12 +357,13 @@ public class GoogleCloudTranscriptionService
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            logger.error("Error sending single req", e);
         }
     }
 
     @Override
-    public StreamingRecognitionSession initStreamingSession()
+    public StreamingRecognitionSession initStreamingSession(
+            Participant participant)
         throws UnsupportedOperationException
     {
         return new GoogleCloudStreamingRecognitionSession();
@@ -438,7 +439,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
-                e.printStackTrace();
+                logger.error("Error creating stream obesrver", e);
             }
         }
 
@@ -477,7 +478,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
-                e.printStackTrace();
+                logger.error("Error ending session", e);
             }
         }
 

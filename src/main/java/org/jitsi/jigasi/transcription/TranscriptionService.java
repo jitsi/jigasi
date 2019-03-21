@@ -68,12 +68,13 @@ public interface TranscriptionService
      * Initialise a session which sends a continuous stream of audio to the
      * service to be transcribed
      *
+     * @param participant the participant starting the session.
      * @return a session which can be given new packets and which can be polled
      * or subscribed to for new incoming transcription results
      * @throws UnsupportedOperationException when the service does not support
      * streaming speech-to-text
      */
-    StreamingRecognitionSession initStreamingSession()
+    StreamingRecognitionSession initStreamingSession(Participant participant)
         throws UnsupportedOperationException;
 
     /**
