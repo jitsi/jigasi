@@ -27,6 +27,7 @@ import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jivesoftware.smack.*;
 
 /**
  * FIXME: update description
@@ -146,6 +147,28 @@ public class Main
      */
     private static final String CONFIG_DIR_NAME_ARG_NAME = "--configdirname";
 
+    /**
+     * A list of packages(iq providers) not used by jigasi.
+     * Removing them from smack, removes a lot of weakHashMaps and
+     * connection listeners.
+     */
+    private static final String[] disabledSmackPackages
+        = new String[]
+        {
+            "org.jivesoftware.smackx.iqlast",
+            "org.jivesoftware.smackx.xdata",
+            "org.jivesoftware.smackx.eme",
+            "org.jivesoftware.smackx.bytestreams.socks5",
+            "org.jivesoftware.smackx.iqprivate",
+            "org.jivesoftware.smackx.bytestreams.ibb",
+            "org.jivesoftware.smackx.bookmarks",
+            "org.jivesoftware.smackx.receipts",
+            "org.jivesoftware.smackx.commands",
+            "org.jivesoftware.smackx.privacy",
+            "org.jivesoftware.smackx.time",
+            "org.jivesoftware.smackx.muc.bookmarkautojoin"
+        };
+
     public static void main(String[] args)
         throws ParseException
     {
@@ -226,6 +249,9 @@ public class Main
         System.setProperty(ConfigurationActivator.PNAME_USE_PROPFILE_CONFIG,
             "true");
 
+        // disable smack packages before loading smack
+        disableSmackProviders();
+
         ComponentMain main = new ComponentMain();
 
         main.runMainProgramLoop(
@@ -235,5 +261,16 @@ public class Main
                 new CallControlComponent(
                     host, port, domain, subdomain, secret),
             new JigasiBundleConfig());
+    }
+
+    /**
+     * Disables some unused smack packages.
+     */
+    private static void disableSmackProviders()
+    {
+        for (String classPackage: disabledSmackPackages)
+        {
+            SmackConfiguration.addDisabledSmackClass(classPackage);
+        }
     }
 }
