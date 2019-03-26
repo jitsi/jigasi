@@ -17,6 +17,9 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.jigasi.transcription.audio.*;
+import org.jitsi.jigasi.transcription.audio.AudioFormat;
+
 import javax.media.format.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -54,8 +57,7 @@ public class TranscriptionRequest
      * @param format the format of the given audio fragment
      * @param locale the locale of the audio being spoken
      */
-    public TranscriptionRequest(byte[] audio, AudioFormat format,
-                                Locale locale)
+    public TranscriptionRequest(byte[] audio, AudioFormat format, Locale locale)
     {
         this.audio = audio;
         this.format = format;
@@ -76,7 +78,7 @@ public class TranscriptionRequest
         }
 
         return TimeUnit.NANOSECONDS.toMillis(
-            this.format.computeDuration(this.audio.length));
+            this.format.computeDurationInMs(this.audio.length));
     }
 
 

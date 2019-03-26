@@ -23,6 +23,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.transcription.*;
+import org.jitsi.jigasi.transcription.audio.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
@@ -50,6 +51,13 @@ public class TranscriptionGatewaySession
      */
     private final static Logger logger
             = Logger.getLogger(TranscriptionGatewaySession.class);
+
+    public final static String P_NAME_AUDIO_FORMAT
+        = "org.jitsi.jigasi.transcription.AUDIO_FORMAT";
+
+    public final static String P_NAME_AUDIO_FORMAT_DEFAULT_VALUE = "linear16";
+
+    public final static String P_NAME_AUDIO_FORMAT_OPUS_VALUE = "opus";
 
     /**
      * The display name which should be displayed when Jigasi joins the
@@ -93,6 +101,11 @@ public class TranscriptionGatewaySession
     private Call jvbCall = null;
 
     /**
+     *
+     */
+    private AbstractForwarder audioForwarder = null;
+
+    /**
      * A list of {@link TranscriptPublisher.Promise}s which will be used
      * to handle the {@link Transcript} when the session is stopped
      */
@@ -132,27 +145,110 @@ public class TranscriptionGatewaySession
         transcriber.setRoomName(getJvbRoomName());
         transcriber.setRoomUrl(getMeetingUrl());
 
-        // We create a MediaWareCallConference whose MediaDevice
-        // will get the get all of the audio and video packets
-        incomingCall.setConference(new MediaAwareCallConference()
+        if(requireOpusAudio())
         {
-            @Override
-            public MediaDevice getDefaultDevice(MediaType mediaType,
-                MediaUseCase useCase)
+            logger.debug("adding OpusAudioPacketForwarder to MediaStream to " +
+                             "receive opus audio");
+
+            OpusAudioPacketForwarder forwarder = new OpusAudioPacketForwarder();
+            audioForwarder = forwarder;
+            CallPeer peer = incomingCall.getCallPeers().next();
+
+            if(!addOpusAudioForwarder(peer, forwarder))
             {
-                if(MediaType.AUDIO.equals(mediaType))
+                logger.debug("first attempt at adding " +
+                                 "OpusAudioPacketForwarder failed");
+
+                // if we failed to add the forwarded, the connection was
+                // not ready yet and we need to try again as soon as
+                // the connection is ready
+                peer.addCallPeerListener(new CallPeerAdapter()
                 {
-                    logger.info("Transcriber: Media Device Audio");
-                    return transcriber.getMediaDevice();
-                }
-                logger.info("Transcriber: Media Device Video");
-                // FIXME: 18/07/17 what to do with video?
-                // will cause an exception when mediaType == VIDEO
-                return super.getDefaultDevice(mediaType, useCase);
+                    @Override
+                    public void peerStateChanged(CallPeerChangeEvent evt)
+                    {
+                        CallPeer peer = evt.getSourceCallPeer();
+                        CallPeerState peerState = peer.getState();
+
+                        if (CallPeerState.CONNECTED.equals(peerState))
+                        {
+                            peer.removeCallPeerListener(this);
+                            if(!addOpusAudioForwarder(peer, forwarder))
+                            {
+                                logger.error("failed to add " +
+                                                 "OpusAudioPacketForwarder" +
+                                                 " to MediaStream");
+                            }
+                            else
+                            {
+                                logger.debug("second attempt at adding " +
+                                                 "OpusAudioPacketForwarder " +
+                                                 "was successful");
+                            }
+                        }
+                    }
+                });
             }
-        });
+        }
+        else
+        {
+            Linear16AudioPacketForwarder forwarder
+                = new Linear16AudioPacketForwarder();
+            audioForwarder = forwarder;
+
+            logger.debug("creating a custom MediaDevice to receive linear16 " +
+                            " audio");
+
+            // We create a MediaWareCallConference whose MediaDevice
+            // will get the get all of the audio and video packets
+            incomingCall.setConference(new MediaAwareCallConference()
+            {
+                @Override
+                public MediaDevice getDefaultDevice(MediaType mediaType,
+                                                    MediaUseCase useCase)
+                {
+                    if(MediaType.AUDIO.equals(mediaType))
+                    {
+                        logger.info("Transcriber: Media Device Audio");
+                        return forwarder.getMediaDevice();
+                    }
+                    logger.info("Transcriber: Media Device Video");
+                    // FIXME: 18/07/17 what to do with video?
+                    // will cause an exception when mediaType == VIDEO
+                    return super.getDefaultDevice(mediaType, useCase);
+                }
+            });
+
+        }
+
+        audioForwarder.addListener(transcriber);
 
         logger.debug("Invited for conference");
+    }
+
+    private boolean addOpusAudioForwarder(CallPeer peer,
+                                          OpusAudioPacketForwarder forwarder)
+    {
+        if (peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler = peerMedia.getMediaHandler();
+
+            if (mediaHandler != null)
+            {
+                MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
+
+                if (stream != null)
+                {
+                    stream.setExternalTransformer(forwarder.getAdapter());
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -198,12 +294,17 @@ public class TranscriptionGatewaySession
         finalTranscriptPromises.addAll(handler.getTranscriptPublishPromises());
         for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
         {
-            if(promise.hasDescription())
+            if (promise.hasDescription())
             {
                 welcomeMessage.append(promise.getDescription());
             }
 
-            promise.maybeStartRecording(transcriber.getMediaDevice());
+            if (audioForwarder instanceof Linear16AudioPacketForwarder)
+            {
+                promise.maybeStartRecording(
+                    ((Linear16AudioPacketForwarder) audioForwarder)
+                        .getMediaDevice());
+            }
         }
 
         if(welcomeMessage.length() > 0)
@@ -256,6 +357,8 @@ public class TranscriptionGatewaySession
         super.notifyChatRoomMemberJoined(chatMember);
 
         String identifier = getParticipantIdentifier(chatMember);
+
+        System.out.println("member with " + identifier + " joined");
 
         this.transcriber.updateParticipant(identifier, chatMember);
         this.transcriber.participantJoined(identifier);
@@ -348,7 +451,9 @@ public class TranscriptionGatewaySession
     @Override
     public boolean isTranslatorSupported()
     {
-        return false;
+        // we use translator mode when we want to receive opus-formatted audio,
+        // or "default" mode when we want to receive linear16 audio
+        return requireOpusAudio();
     }
 
     /**
@@ -652,6 +757,18 @@ public class TranscriptionGatewaySession
 
             jvbConference.sendPresenceExtension(extension);
         }
+    }
+
+    private String getAudioFormat()
+    {
+        return JigasiBundleActivator.getConfigurationService().getString(
+            P_NAME_AUDIO_FORMAT, P_NAME_AUDIO_FORMAT_DEFAULT_VALUE
+        );
+    }
+
+    private boolean requireOpusAudio()
+    {
+        return P_NAME_AUDIO_FORMAT_OPUS_VALUE.equals(getAudioFormat());
     }
 
 }

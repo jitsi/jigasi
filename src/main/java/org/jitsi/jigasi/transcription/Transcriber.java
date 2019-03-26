@@ -22,10 +22,9 @@ import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
+import org.jitsi.jigasi.transcription.audio.*;
 import org.jitsi.util.*;
 
-import javax.media.Buffer;
-import javax.media.rtp.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -37,7 +36,7 @@ import java.util.concurrent.*;
  * @author Nik Vaessen
  */
 public class Transcriber
-    implements ReceiveStreamBufferListener
+    implements AudioSegmentListener
 {
     /**
      * The logger of this class
@@ -122,12 +121,6 @@ public class Transcriber
     private Transcript transcript = new Transcript();
 
     /**
-     * The MediaDevice which will get all audio to transcribe
-     */
-    private TranscribingAudioMixerMediaDevice mediaDevice
-        = new TranscribingAudioMixerMediaDevice(this);
-
-    /**
      * The TranslationManager and the TranslationService which will be used
      * for managing translations.
      */
@@ -202,6 +195,50 @@ public class Transcriber
         }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
+
+//        Executors.newSingleThreadExecutor().submit(new Runnable()
+//        {
+//            @Override
+//            public void run()
+//            {
+//
+//                while (true)
+//                {
+//                    synchronized (Transcriber.this.participants)
+//                    {
+//                        System.out.println("currently know about " + participants.size() + " participants");
+//
+//                        int count = 0;
+//                        for(Participant p : participants.values())
+//                        {
+//                            count++;
+//                            System.out.print("participant " + count + ":");
+//
+//                            ConferenceMember m = p.getConfMember();
+//                            if(m == null)
+//                            {
+//                                System.out.println(" confmember=null");
+//                            }
+//                            else
+//                            {
+//                                System.out.println(" ssrc=" + m.getAudioSsrc());
+//                            }
+//                        }
+//
+//                        System.out.println();
+//                    }
+//
+//                    try
+//                    {
+//                        Thread.sleep(1000);
+//                    }
+//                    catch (InterruptedException e)
+//                    {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//        });
     }
 
     /**
@@ -257,6 +294,7 @@ public class Transcriber
      */
     public void maybeAddParticipant(String identifier)
     {
+        System.out.println("maybe adding participant with identifier " + identifier);
         synchronized (this.participants)
         {
             this.participants.computeIfAbsent(identifier,
@@ -280,6 +318,7 @@ public class Transcriber
         if (participant != null)
         {
             participant.setChatMember(chatRoomMember);
+            System.out.println("added chatroommember to participant " + identifier);
         }
         else
         {
@@ -304,6 +343,10 @@ public class Transcriber
         if (participant != null)
         {
             participant.setConfMember(conferenceMember);
+            System.out.println("added conferencemember to participant " + identifier);
+            System.out.println("ssrc of participant is " + participant.getSSRC());
+            System.out.println("real ssrc is " + conferenceMember.getAudioSsrc());
+
         }
     }
 
@@ -596,11 +639,10 @@ public class Transcriber
      * Note that this code is run in a Thread doing audio mixing and only
      * has 20 ms for each frame
      *
-     * @param receiveStream the stream from which the audio was received
-     * @param buffer the containing the audio as well as meta-data
+     * @param segment the stream from which the audio was received
      */
     @Override
-    public void bufferReceived(ReceiveStream receiveStream, Buffer buffer)
+    public void receiveAudioSegment(AudioSegment segment)
     {
         if (!isTranscribing())
         {
@@ -608,7 +650,8 @@ public class Transcriber
             return;
         }
 
-        long ssrc = receiveStream.getSSRC() & 0xffffffffL;
+        long ssrc = segment.getSsrc();
+        System.out.println("receiving audio segment");
 
         Participant p = findParticipant(ssrc);
 
@@ -616,8 +659,9 @@ public class Transcriber
         {
             if (p.hasValidSourceLanguage())
             {
+                System.out.println("giving audio segment to participant");
                 logger.trace("Gave audio to buffer");
-                p.giveBuffer(buffer);
+                p.giveSegment(segment);
             }
         }
         else
@@ -681,17 +725,6 @@ public class Transcriber
         return participantsCopy
             .stream()
             .anyMatch(Participant::isRequestingTranscription);
-    }
-
-    /**
-     * Get the MediaDevice this transcriber is listening to for audio
-     *
-     * @return the AudioMixerMediaDevice which should receive all audio needed
-     * to be transcribed
-     */
-    public AudioMixerMediaDevice getMediaDevice()
-    {
-        return this.mediaDevice;
     }
 
     /**

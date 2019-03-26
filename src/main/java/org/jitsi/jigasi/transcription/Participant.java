@@ -20,11 +20,11 @@ package org.jitsi.jigasi.transcription;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.transcription.audio.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
 
-import javax.media.format.*;
 import java.nio.*;
 import java.util.*;
 
@@ -43,24 +43,6 @@ public class Participant
      * The logger of this class
      */
     private final static Logger logger = Logger.getLogger(Participant.class);
-
-    /**
-     * The expected amount of bytes each given buffer will have. Webrtc
-     * usually has 20ms opus frames which are decoded to 2 bytes per sample
-     * and 48000Hz sampling rate, which results in 2 * 48000 = 96000 bytes
-     * per second, and because frames are 20 ms we have 1000/20 = 50
-     * packets per second. Each packet will thus contain
-     * 96000 / 50 = 1920 bytes
-     */
-    private static final int EXPECTED_AUDIO_LENGTH = 1920;
-
-    /**
-     * The size of the local buffer. A single packet is expected to contain
-     * 1920 bytes, so the size should be a multiple of 1920. Using
-     * 25 results in 20 ms * 25 packets = 500 ms of audio being buffered
-     * locally before being send to the TranscriptionService
-     */
-    private static final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
 
     /**
      * Whether we should buffer locally before sending
@@ -117,7 +99,7 @@ public class Participant
     /**
      * A buffer which is used to locally store audio before sending
      */
-    private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    private AudioBuffer buffer;
 
     /**
      * The AudioFormat of the audio being read. It is assumed to not change
@@ -496,25 +478,34 @@ public class Participant
      * Give a packet of the audio of this participant such that it can be
      * buffered and sent to the transcription once enough has been stored
      *
-     * @param buffer a buffer which is expected to contain a single packet
+     * @param segment a buffer which is expected to contain a single packet
      *               of audio of this participant
      */
-    void giveBuffer(javax.media.Buffer buffer)
+    void giveSegment(AudioSegment segment)
     {
+        // if this is the first segment, we need to set the audio format as we
+        // as we cannot know the format before the first segment will be given
         if (audioFormat == null)
         {
-            audioFormat = (AudioFormat) buffer.getFormat();
-        }
+            audioFormat = segment.getFormat();
 
-        byte[] audio = (byte[]) buffer.getData();
+            if(USE_LOCAL_BUFFER)
+            {
+                buffer = new AudioBuffer();
+            }
+        }
+        else if(!audioFormat.equals(segment.getFormat()))
+        {
+            throw new IllegalStateException("audio format changed midstream") ;
+        }
 
         if (USE_LOCAL_BUFFER)
         {
-            buffer(audio);
+            buffer(segment);
         }
         else
         {
-            sendRequest(audio);
+            sendRequest(segment.getAudio());
         }
     }
 
@@ -548,24 +539,35 @@ public class Participant
      * Store the given audio in a buffer. When the buffer is full,
      * send the audio
      *
-     * @param audio the audio to buffer
+     * @param segment the audio to buffer
      */
-    private void buffer(byte[] audio)
+    private void buffer(AudioSegment segment)
     {
-        try
+        System.out.println("trying to buffer");
+        if(buffer == null)
         {
-            buffer.put(audio);
+            throw new IllegalStateException("AudioBuffer should have been" +
+                                                " initialized");
         }
-        catch (BufferOverflowException | ReadOnlyBufferException e)
+        if(buffer.exceedsBufferSize(segment))
         {
-            e.printStackTrace();
+            System.out.println("exceeds buffer size, directly sending audio!");
+            sendRequest(segment.getAudio());
         }
 
-        int spaceLeft = buffer.limit() - buffer.position();
-        if(spaceLeft < EXPECTED_AUDIO_LENGTH)
+        if(buffer.doesFit(segment))
         {
-            sendRequest(buffer.array());
+            System.out.println("putting audio in buffer; space left=" + buffer.spaceLeft());
+            buffer.put(segment);
+        }
+        else
+        {
+            System.out.println("does not fit, retrying!");
+            AudioSegment bufferedSegment = buffer.getBufferedSegments();
+            sendRequest(bufferedSegment.getAudio());
             buffer.clear();
+
+            buffer(segment);
         }
     }
 
@@ -578,12 +580,16 @@ public class Participant
      */
     private void sendRequest(byte[] audio)
     {
-        transcriber.executorService.submit(() ->
-        {
+        System.out.println("trying to send a request of audio with length " + audio.length);
+
+//        transcriber.executorService.submit(() ->
+//        {
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
                                            audioFormat,
                                            sourceLanguageLocale);
+
+            System.out.println("sending a new request to google, of length " + audio.length);
 
             if (session != null && !session.ended())
             {
@@ -605,7 +611,7 @@ public class Participant
                         request,
                         this::notify);
             }
-        });
+//        });
     }
 
     /**

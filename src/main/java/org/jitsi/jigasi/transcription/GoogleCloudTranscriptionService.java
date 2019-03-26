@@ -24,6 +24,7 @@ import com.google.protobuf.*;
 import com.timgroup.statsd.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
+import org.jitsi.jigasi.transcription.audio.AudioFormat;
 import org.jitsi.util.*;
 
 import javax.media.format.*;
@@ -242,17 +243,22 @@ public class GoogleCloudTranscriptionService
 
         // Set the sampling rate and encoding of the audio
         AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(new Double(format.getSampleRate())
-            .intValue());
+
+        builder.setSampleRateHertz(format.getSampleRate());
+
+        System.out.println(format.getEncoding() + ", " +  AudioFormat.OPUS_ENCODING + ", equal=" + format.getEncoding().equals(AudioFormat.OPUS_ENCODING));
         switch(format.getEncoding())
         {
-            case "LINEAR":
+            case AudioFormat.LINEAR16_ENCODING:
                 builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
                 break;
+            case AudioFormat.OPUS_ENCODING:
+                builder.setEncoding(RecognitionConfig.AudioEncoding.OGG_OPUS);
+                break;
             default:
-                throw new IllegalArgumentException("Given AudioFormat" +
-                    "has unexpected" +
-                    "encoding");
+                throw new IllegalArgumentException("Given AudioFormat " +
+                    "has unexpected " +
+                    "encoding " + format.getEncoding());
         }
 
         // set the model to use. It will default to a cheaper model with
@@ -821,7 +827,10 @@ public class GoogleCloudTranscriptionService
         public void onNext(StreamingRecognizeResponse message)
         {
             if (logger.isDebugEnabled())
+            {
                 logger.debug("Received a StreamingRecognizeResponse");
+            }
+
             if(message.hasError())
             {
                 // it is expected to get an error if the 60 seconds are exceeded
@@ -944,6 +953,7 @@ public class GoogleCloudTranscriptionService
         @Override
         public void onError(Throwable t)
         {
+            System.out.println("received warning!");
             logger.warn("Received an error from the Google Cloud API", t);
             requestManager.terminateCurrentSession();
         }
