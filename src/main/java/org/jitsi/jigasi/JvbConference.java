@@ -20,7 +20,6 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
-import net.java.sip.communicator.impl.protocol.sip.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
@@ -33,7 +32,7 @@ import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jivesoftware.smack.SmackException.*;
+import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jxmpp.jid.*;
@@ -1323,15 +1322,27 @@ public class JvbConference
         // this check just skips an exception when running tests
         if (xmppProvider instanceof ProtocolProviderServiceJabberImpl)
         {
+            StanzaCollector collector = null;
             try
             {
-                ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                    .getConnection().sendStanza(focusInviteIQ);
+                collector = ((ProtocolProviderServiceJabberImpl) xmppProvider)
+                    .getConnection()
+                    .createStanzaCollectorAndSend(focusInviteIQ);
+                collector.nextResultOrThrow();
             }
-            catch (NotConnectedException | InterruptedException e)
+            catch (SmackException
+                | XMPPException.XMPPErrorException
+                | InterruptedException e)
             {
                 logger.error(
                     "Could not invite the focus to the conference", e);
+            }
+            finally
+            {
+                if (collector != null)
+                {
+                    collector.cancel();
+                }
             }
         }
     }
