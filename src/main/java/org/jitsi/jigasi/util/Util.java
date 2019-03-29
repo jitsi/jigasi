@@ -27,6 +27,7 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 import java.util.*;
 
@@ -35,7 +36,6 @@ import javax.xml.transform.stream.*;
 import java.io.*;
 import java.math.*;
 import java.security.*;
-import java.util.*;
 
 /**
  * Various utility methods.

@@ -26,6 +26,7 @@ import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.Presence;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
