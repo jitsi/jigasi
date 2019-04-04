@@ -39,6 +39,12 @@ public class Health
     private static SipHealthPeriodicChecker sipChecker = null;
 
     /**
+     * Whether there is a <tt>SipGateway</tt> returned from the list of
+     * available gateways.
+     */
+    private static boolean hasSipGw = false;
+
+    /**
      * Starts a runnable which checks the health of jigasi
      * periodically (at an interval).
      */
@@ -53,6 +59,8 @@ public class Health
 
         if (sipGateway != null)
         {
+            hasSipGw = true;
+
             if (sipGateway.isReady())
             {
                 sipChecker = SipHealthPeriodicChecker.create(sipGateway);
@@ -108,6 +116,12 @@ public class Health
         }
         else
         {
+            if (hasSipGw)
+            {
+                // we have sip gw, but no sipChecker, means gw is not ready yet
+                throw new Exception("GW not ready.");
+            }
+
             if (JigasiBundleActivator.getAvailableGateways().isEmpty())
             {
                 throw new Exception("No gateways configured.");
