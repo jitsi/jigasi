@@ -18,6 +18,7 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -29,6 +30,16 @@ import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 
+import com.google.gson.*;
+import org.apache.http.*;
+import org.apache.http.client.config.*;
+import org.apache.http.client.methods.*;
+import org.apache.http.impl.client.*;
+import org.apache.http.util.*;
+import org.jivesoftware.smackx.nick.packet.*;
+
+import java.net.*;
+import java.text.ParseException;
 import java.text.*;
 import java.util.*;
 
@@ -177,6 +188,19 @@ public class SipGatewaySession
      * The sound file to use when recording is OFF.
      */
     private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
+
+    /**
+     * A property for requesting participant info. The result is expected to be:
+     * {"result":<USEROBJECT>,"success":true} or {"result":{},"success":false}
+     * Where <USEROBJECT> is:
+     * {"user":{
+     *      "id": "12346798",
+     *      "name":"Joe Bob",
+     *      "avatar":"https://avatar-service.com/avatarUrl.png"},
+     * "group":"877292"}
+     */
+    private static final String PARTICIPANT_INFO_CALLBACK_URL_PROP
+        = "org.jitsi.sip.PARTICIPANT_INFO_CALLBACK_URL";
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -722,6 +746,103 @@ public class SipGatewaySession
             Util.injectSoundFile(this.call, REC_OFF_SOUND);
         }
         currentRecordingStatus = status;
+    }
+
+    @Override
+    void notifyJvbRoomJoined()
+    {
+        super.notifyJvbRoomJoined();
+
+        new Thread(
+            () -> retrieveParticipantInfo(),
+            "participant-info-retriever")
+            .start();
+    }
+
+    /**
+     * Creates a GET request, retrieves the data and update it
+     * in the conference.
+     */
+    private void retrieveParticipantInfo()
+    {
+        String infoURLStr = JigasiBundleActivator.getConfigurationService()
+            .getString(PARTICIPANT_INFO_CALLBACK_URL_PROP);
+        String number = getMucDisplayName();
+        // not configured, skip
+        if (infoURLStr == null || number == null)
+        {
+            return;
+        }
+
+        try
+        {
+            URI restURI = new URI(
+                MessageFormat.format(
+                    infoURLStr,
+                    number));
+
+            RequestConfig defaultRequestConfig = RequestConfig.custom()
+                .setSocketTimeout(5000)
+                .setConnectTimeout(5000)
+                .setConnectionRequestTimeout(5000)
+                .build();
+            CloseableHttpClient httpclient = HttpClientBuilder.create()
+                .setDefaultRequestConfig(defaultRequestConfig).build();
+
+            HttpHost targetHost = new HttpHost(
+                restURI.getHost(),
+                restURI.getPort(),
+                restURI.getScheme());
+
+            HttpGet httpget = new HttpGet(restURI);
+            try (CloseableHttpResponse response = httpclient.execute(
+                targetHost, httpget))
+            {
+                if (response.getStatusLine().getStatusCode() != 200)
+                {
+                    logger.error("REST returned error:"
+                        + response.getStatusLine());
+
+                    return;
+                }
+
+                HttpEntity entity = response.getEntity();
+                String value = EntityUtils.toString(entity);
+
+                JsonObject json = new JsonParser()
+                    .parse(value).getAsJsonObject();
+
+                if (!json.get("success").getAsBoolean())
+                {
+                    logger.error("REST service request not successful");
+
+                    return;
+                }
+
+                JsonObject result = json.get("result").getAsJsonObject();
+                if (result.has("user"))
+                {
+                    JsonObject user = result.get("user").getAsJsonObject();
+
+                    if (user.has("name"))
+                    {
+                        jvbConference.sendPresenceExtension(
+                            new Nick(user.get("name").getAsString()));
+                    }
+
+                    if (user.has("avatar"))
+                    {
+                        jvbConference.sendPresenceExtension(
+                            new AvatarUrl(user.get("avatar").getAsString()));
+                    }
+                }
+
+            }
+        }
+        catch (Exception e)
+        {
+            logger.error("Error sending REST request:" + e.getMessage());
+        }
     }
 
     class SipCallStateListener
