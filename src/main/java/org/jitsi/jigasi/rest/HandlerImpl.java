@@ -159,7 +159,9 @@ public class HandlerImpl
     {
         beginResponse(/* target */ null, baseRequest, request, response);
 
-        if (JigasiBundleActivator.getAvailableGateways().isEmpty())
+        // if there is a gateway that is not ready, that means unhealthy
+        if (JigasiBundleActivator.getAvailableGateways()
+            .stream().anyMatch(g -> !g.isReady()))
         {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
