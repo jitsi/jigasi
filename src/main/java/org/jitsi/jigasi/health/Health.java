@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.health;
 
 import org.jitsi.jigasi.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.concurrent.*;
 
 /**
  * Checks the health of Jigasi.

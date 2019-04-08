@@ -25,9 +25,9 @@ import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 import org.jitsi.utils.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.concurrent.*;
 
 import java.lang.management.*;
 import java.util.*;

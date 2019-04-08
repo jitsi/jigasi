@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.13.f4d340d</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.2bc6ccf</jitsi-desktop.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.7</slf4j.version>
     <smack.version>4.2.4-47d17fc</smack.version>
@@ -81,7 +81,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
-      <version>1.1-20190329.151034-12</version>
+      <version>1.1-20190407.140606-13</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -146,12 +146,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-20190329.111334-6</version>
+      <version>1.0-20190401.122850-7</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-20190329.124239-380</version>
+      <version>1.0-20190405.175243-382</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -196,7 +196,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
-      <version>1.0-20190327.212057-6</version>
+      <version>1.0-20190407.140545-7</version>
     </dependency>
     <dependency>
       <!--
@@ -358,7 +358,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-videobridge</artifactId>
-      <version>1.1-20190328.092314-109</version>
+      <version>1.1-20190407.144758-111</version>
       <scope>test</scope>
     </dependency>
     <dependency>

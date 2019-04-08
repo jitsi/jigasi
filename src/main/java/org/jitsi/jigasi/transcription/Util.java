@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 import org.json.*;
 
 import java.io.*;
@@ -33,8 +33,7 @@ public class Util
     /**
      * The logger for this class
      */
-    private final static org.jitsi.util.Logger logger
-        = Logger.getLogger(Util.class);
+    private final static Logger logger = Logger.getLogger(Util.class);
 
     /**
      * Posts json object to an address of a service to handle it and further

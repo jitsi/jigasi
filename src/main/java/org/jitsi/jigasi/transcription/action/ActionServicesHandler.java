@@ -20,7 +20,7 @@ package org.jitsi.jigasi.transcription.action;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.configuration.*;
-import org.jitsi.util.Logger;
+import org.jitsi.utils.logging.Logger;
 import org.json.*;
 import org.osgi.framework.*;
 
