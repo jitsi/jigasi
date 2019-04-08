@@ -17,9 +17,9 @@
  */
 package org.jitsi.jigasi.xmpp;
 
-import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
 import org.jxmpp.jid.*;

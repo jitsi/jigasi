@@ -17,13 +17,13 @@
  */
 package org.jitsi.jigasi.xmpp;
 
-import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.RayoIqProvider.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.xmpp.component.*;
+import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.xmpp.util.*;
 import org.osgi.framework.*;
 import org.xmpp.component.*;

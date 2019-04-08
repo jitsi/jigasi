@@ -17,8 +17,8 @@
  */
 package org.jitsi.jigasi.xmpp.rayo;
 
-import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import org.custommonkey.xmlunit.*;
+import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.xmpp.util.*;
 import org.junit.*;
 import org.junit.runner.*;

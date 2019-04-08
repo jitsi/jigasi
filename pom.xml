@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.13.2bc6ccf</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.b5f2aa0</jitsi-desktop.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.7</slf4j.version>
     <smack.version>4.2.4-47d17fc</smack.version>
@@ -324,6 +324,11 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-xmpp-extensions</artifactId>
+      <version>1.0-20190408.170703-2</version>
+    </dependency>
+    <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
       <version>4.3.1</version>
@@ -358,7 +363,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-videobridge</artifactId>
-      <version>1.1-20190407.144758-111</version>
+      <version>1.1-20190408.175802-112</version>
       <scope>test</scope>
     </dependency>
     <dependency>
