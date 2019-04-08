@@ -18,8 +18,6 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
@@ -28,7 +26,8 @@ import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
-import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.xmpp.extensions.jibri.*;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
@@ -1297,7 +1296,8 @@ public class JvbConference
             return;
         }
 
-        ConferenceIq focusInviteIQ = new ConferenceIq(roomIdentifier);
+        ConferenceIq focusInviteIQ = new ConferenceIq();
+        focusInviteIQ.setRoom(roomIdentifier);
 
         // FIXME: uses hardcoded values that are currently used in production
         // we need to configure them or retrieve them in the future
