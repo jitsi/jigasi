@@ -31,7 +31,6 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.packet.*;

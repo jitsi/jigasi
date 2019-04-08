@@ -24,7 +24,7 @@ import com.google.protobuf.*;
 import com.timgroup.statsd.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import javax.media.format.*;
 import java.io.*;

@@ -18,7 +18,8 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
+import org.jitsi.utils.*;
 
 /**
  * No UI just returns default credentials.

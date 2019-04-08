@@ -22,7 +22,7 @@ import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import javax.media.Buffer;
 import javax.media.rtp.*;

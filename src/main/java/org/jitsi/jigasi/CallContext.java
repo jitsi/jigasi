@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;

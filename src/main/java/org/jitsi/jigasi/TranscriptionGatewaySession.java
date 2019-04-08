@@ -25,7 +25,7 @@ import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.Presence;
 import org.jxmpp.jid.*;

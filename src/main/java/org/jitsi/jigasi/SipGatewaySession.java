@@ -25,7 +25,6 @@ import net.java.sip.communicator.util.Logger;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 

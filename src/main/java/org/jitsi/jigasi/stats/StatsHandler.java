@@ -23,7 +23,7 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.stats.media.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.concurrent.*;
 import org.osgi.framework.*;
 
 import java.util.*;
