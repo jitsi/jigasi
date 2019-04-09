@@ -648,14 +648,10 @@ public class JvbConference
 
             ChatRoom mucRoom = muc.findRoom(roomName);
 
-            if (mucRoom.getMembersCount() == 0)
-            {
-                logger.info("No focus in the room, let's invite it!");
-                // we do an invite and do not wait for response, as we will
-                // start ringing and will be invited when another participant
-                // joins
-                inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
-            }
+            // we invite focus and wait for its response
+            // to be sure that if it is not in the room, the focus will be the
+            // first to join, mimic the web behaviour
+            inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
 
             Localpart resourceIdentifier = getResourceIdentifier();
 
