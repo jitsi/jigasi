@@ -331,7 +331,8 @@ public class Statistics
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
             && pps.getAccountID() instanceof JabberAccountID
-            && !((JabberAccountID)pps.getAccountID()).isAnonymousAuthUsed())
+            && !((JabberAccountID)pps.getAccountID()).isAnonymousAuthUsed()
+            && pps.isRegistered())
         {
             try
             {
