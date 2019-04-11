@@ -156,11 +156,15 @@ public class Main
         = new String[]
         {
             "org.jivesoftware.smackx.iqlast",
+            "org.jivesoftware.smackx.bytestreams",
+            "org.jivesoftware.smackx.filetransfer",
+            "org.jivesoftware.smackx.hoxt",
+            "org.jivesoftware.smackx.si",
+            "org.jivesoftware.smackx.vcardtemp",
+            "org.jivesoftware.smackx.xhtmlim",
             "org.jivesoftware.smackx.xdata",
             "org.jivesoftware.smackx.eme",
-            "org.jivesoftware.smackx.bytestreams.socks5",
             "org.jivesoftware.smackx.iqprivate",
-            "org.jivesoftware.smackx.bytestreams.ibb",
             "org.jivesoftware.smackx.bookmarks",
             "org.jivesoftware.smackx.receipts",
             "org.jivesoftware.smackx.commands",
