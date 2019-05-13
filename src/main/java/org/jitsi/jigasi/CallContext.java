@@ -22,6 +22,8 @@ import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
 
+import java.util.*;
+
 /**
  * The call context with all the parameters needed while
  * processing call requests.
@@ -46,6 +48,8 @@ public class CallContext
      * An account property to specify domain served by a sip or xmpp provider.
      */
     public static final String DOMAIN_BASE_ACCOUNT_PROP = "DOMAIN_BASE";
+
+    private static final Random RANDOM = new Random();
 
     /**
      * The room name of the MUC room that holds JVB conference call.
@@ -292,8 +296,13 @@ public class CallContext
         {
             try
             {
+                // The local part of this JID ends up being used as the resource
+                // part of the JID in the MUC, so make sure it uses the format
+                // jitsi-meet and jitsi-videobridge expect: 8 hex digits padded
+                // with 0s if necessary.
+                long random = RANDOM.nextInt() & 0xffff_ffff;
                 this.callResource = JidCreate.entityBareFrom(
-                    Long.toHexString(this.timestamp)
+                    String.format("%8h", random).replace(' ', '0')
                     + "@"
                     + (this.subDomain != null ? this.subDomain + "." : "")
                     + this.domain);
