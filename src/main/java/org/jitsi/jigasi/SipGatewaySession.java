@@ -443,7 +443,8 @@ public class SipGatewaySession
                 // lets add cs to outgoing call
                 if (statsHandler == null)
                 {
-                    statsHandler = new StatsHandler(DEFAULT_STATS_REMOTE_ID);
+                    statsHandler = new StatsHandler(
+                        DEFAULT_STATS_REMOTE_ID + "-" + destination);
                 }
                 call.addCallChangeListener(statsHandler);
 
@@ -551,7 +552,8 @@ public class SipGatewaySession
         // lets add cs to incoming call
         if (statsHandler == null)
         {
-            statsHandler = new StatsHandler(DEFAULT_STATS_REMOTE_ID);
+            statsHandler = new StatsHandler(
+                DEFAULT_STATS_REMOTE_ID + "-" + this.getMucDisplayName());
         }
         call.addCallChangeListener(statsHandler);
 

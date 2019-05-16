@@ -22,14 +22,13 @@ import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.stats.*;
 import org.jitsi.stats.media.*;
-import org.jitsi.util.concurrent.*;
 import org.jitsi.utils.*;
 
 import java.util.*;
 
 /**
- * Implements a {@link RecurringRunnable} which periodically generates a
- * statistics for the conference channels.
+ * Implements a {@link AbstractStatsPeriodicRunnable} which periodically
+ * generates a statistics for the conference channels.
  *
  * @author Damian Minkov
  */
