@@ -240,7 +240,7 @@
     <target name="make-deb"
             if="dpkg.build.present"
             depends="dpkg-build-warning">
-            
+
         <!-- Build binary .deb package -->
         <exec executable="${dpkg-buildpackage}" dir="${debian.target.dir}">
             <arg value="-tc"/>
@@ -273,6 +273,12 @@
                 <include name="**/*"/>
             </fileset>
         </copy>
+        <!-- callstats-java-sdk -->
+        <replace file="${debian.target.dir}/jigasi-home/log4j2.xml"
+                 token="logs">
+            <replacevalue>/var/log/jitsi</replacevalue>
+        </replace>
+
         <copy todir="${debian.target.dir}/lib">
             <fileset dir="lib">
                 <include name="**/*"/>
