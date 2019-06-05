@@ -69,6 +69,11 @@ public abstract class AbstractGatewaySession
     private int participantsCount = 0;
 
     /**
+     * Whether media had stopped being received from the gateway side.
+     */
+    protected boolean gatewayMediaDropped = false;
+
+    /**
      * Creates new <tt>AbstractGatewaySession</tt> that can be used to
      * join a conference by using the {@link #createOutgoingCall()} method.
      *
@@ -370,5 +375,15 @@ public abstract class AbstractGatewaySession
     void notifyConferenceMemberLeft(ConferenceMember conferenceMember)
     {
         // we don't have anything to do here
+    }
+
+    /**
+     * Returns whether current gateway is up and running and media is being
+     * received or it was dropped.
+     * @return current gateway media status.
+     */
+    public boolean isGatewayMediaDropped()
+    {
+        return gatewayMediaDropped;
     }
 }

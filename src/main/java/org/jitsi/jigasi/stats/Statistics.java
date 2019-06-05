@@ -21,6 +21,7 @@ import java.io.*;
 import java.lang.management.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 import java.util.stream.*;
 
 import javax.servlet.http.*;
@@ -110,6 +111,14 @@ public class Statistics
         = "total_conference_seconds";
 
     /**
+     * The name of the number of conferences which do not receive media from
+     * the gateway side.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_DROPPED_MEDIA
+        = "total_calls_with_dropped_media";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -118,6 +127,12 @@ public class Statistics
      * Total number of conferences since started.
      */
     private static int totalConferencesCount = 0;
+
+    /**
+     * Total number of calls with dropped media since started.
+     */
+    private static AtomicLong totalCallsWithMediaDroppedCount
+        = new AtomicLong();
 
     /**
      * Cumulative number of seconds of all conferences.
@@ -172,6 +187,9 @@ public class Statistics
         stats.put(TOTAL_CONFERENCES, totalConferencesCount);
         stats.put(TOTAL_NUMBEROFPARTICIPANTS, totalParticipantsCount);
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
+        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
+            totalCallsWithMediaDroppedCount.get());
+
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -262,6 +280,14 @@ public class Statistics
     public static void addTotalConferencesCount(int value)
     {
         totalConferencesCount += value;
+    }
+
+    /**
+     * Increment the value of total number of calls with dropped media.
+     */
+    public static void incrementTotalCallsWithMediaDropped()
+    {
+        totalCallsWithMediaDroppedCount.incrementAndGet();
     }
 
     /**
