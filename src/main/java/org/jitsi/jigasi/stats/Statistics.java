@@ -21,6 +21,7 @@ import java.io.*;
 import java.lang.management.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 import java.util.stream.*;
 
 import javax.servlet.http.*;
@@ -128,6 +129,12 @@ public class Statistics
     private static int totalConferencesCount = 0;
 
     /**
+     * Total number of calls with dropped media since started.
+     */
+    private static AtomicLong totalCallsWithMediaDroppedCount
+        = new AtomicLong();
+
+    /**
      * Cumulative number of seconds of all conferences.
      */
     private static long cumulativeConferenceSeconds = 0;
@@ -180,6 +187,9 @@ public class Statistics
         stats.put(TOTAL_CONFERENCES, totalConferencesCount);
         stats.put(TOTAL_NUMBEROFPARTICIPANTS, totalParticipantsCount);
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
+        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
+            totalCallsWithMediaDroppedCount);
+
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -206,7 +216,6 @@ public class Statistics
 
         int participants = 0;
         int conferences = 0;
-        int mediaDropped = 0;
 
         for(AbstractGatewaySession ses : sessions)
         {
@@ -228,18 +237,10 @@ public class Statistics
                 conferenceSizes[idx]++;
             }
             conferences++;
-
-            if (ses.isGatewayMediaDropped())
-            {
-                mediaDropped++;
-            }
         }
 
         // CONFERENCES
         stats.put(CONFERENCES, conferences);
-
-        // TOTAL_CALLS_WITH_DROPPED_MEDIA
-        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA, mediaDropped);
 
         // CONFERENCE_SIZES
         JSONArray conferenceSizesJson = new JSONArray();
@@ -279,6 +280,14 @@ public class Statistics
     public static void addTotalConferencesCount(int value)
     {
         totalConferencesCount += value;
+    }
+
+    /**
+     * Increment the value of total number of calls with dropped media.
+     */
+    public static void incrementTotalCallsWithMediaDropped()
+    {
+        totalCallsWithMediaDroppedCount.incrementAndGet();
     }
 
     /**

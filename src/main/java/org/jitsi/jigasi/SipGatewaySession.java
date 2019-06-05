@@ -111,8 +111,8 @@ public class SipGatewaySession
      * incoming sip RTP drop. Specifying the time with no media that
      * we consider that the call had gone bad and we log an error or hang it up.
      */
-    private static final String P_NAME_MEDIA_DROPPED_THRESHOLD
-        = "org.jitsi.jigasi.SIP_MEDIA_DROPPED_THRESHOLD";
+    private static final String P_NAME_MEDIA_DROPPED_THRESHOLD_MS
+        = "org.jitsi.jigasi.SIP_MEDIA_DROPPED_THRESHOLD_MS";
 
     /**
      * By default we consider sip call bad if there is no RTP for 10 seconds.
@@ -131,6 +131,14 @@ public class SipGatewaySession
      * if media stop.
      */
     private ExpireMediaStream expireMediaStream;
+
+    /**
+     * The threshold configured for detecting dropped media.
+     */
+    private static final int mediaDroppedThresholdMs
+        = JigasiBundleActivator.getConfigurationService().getInt(
+            P_NAME_MEDIA_DROPPED_THRESHOLD_MS,
+            DEFAULT_MEDIA_DROPPED_THRESHOLD);
 
     /**
      * The executor which periodically calls {@link ExpireMediaStream}.
@@ -592,9 +600,7 @@ public class SipGatewaySession
         }
         call.addCallChangeListener(statsHandler);
 
-        if (JigasiBundleActivator.getConfigurationService().getInt(
-                P_NAME_MEDIA_DROPPED_THRESHOLD,
-                DEFAULT_MEDIA_DROPPED_THRESHOLD) != -1)
+        if (mediaDroppedThresholdMs != -1)
         {
             CallPeer peer = call.getCallPeers().next();
             if(!addExpireRunnable(peer))
@@ -824,13 +830,15 @@ public class SipGatewaySession
          */
         private MediaStream stream;
 
+        /**
+         * Whether we had sent stats for dropped media.
+         */
+        private boolean statsSent = false;
+
         public ExpireMediaStream(MediaStream stream)
         {
-            super(
-                JigasiBundleActivator.getConfigurationService().getInt(
-                    P_NAME_MEDIA_DROPPED_THRESHOLD,
-                    DEFAULT_MEDIA_DROPPED_THRESHOLD),
-                false);
+            // we want to check every 2 seconds for the media state
+            super(2000, false);
             this.stream = stream;
         }
 
@@ -844,7 +852,8 @@ public class SipGatewaySession
                 long lastReceived =
                     ((AudioMediaStreamImpl)stream).getLastInputActivityTime();
 
-                if(System.currentTimeMillis() - lastReceived > this.getPeriod())
+                if(System.currentTimeMillis() - lastReceived
+                        > mediaDroppedThresholdMs)
                 {
                     // we want to log only when we go from not-expired into
                     // expired state
@@ -852,6 +861,12 @@ public class SipGatewaySession
                     {
                         logger.error(
                             "Stopped receiving RTP for " + getSipCall());
+
+                        if (!statsSent)
+                        {
+                            Statistics.incrementTotalCallsWithMediaDropped();
+                            statsSent = true;
+                        }
                     }
 
                     gatewayMediaDropped = true;
@@ -874,7 +889,11 @@ public class SipGatewaySession
                     gatewayMediaDropped = false;
                 }
             }
-            catch(IOException e){/* Should not happen */}
+            catch(IOException e)
+            {
+                //Should not happen
+                logger.error("Should not happen exception", e);
+            }
         }
     }
 

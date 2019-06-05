@@ -69,7 +69,7 @@ public abstract class AbstractGatewaySession
     private int participantsCount = 0;
 
     /**
-     * Whether we receive media from the gateway side.
+     * Whether media had stopped being received from the gateway side.
      */
     protected boolean gatewayMediaDropped = false;
 
