@@ -110,6 +110,14 @@ public class Statistics
         = "total_conference_seconds";
 
     /**
+     * The name of the number of conferences which do not receive media from
+     * the gateway side.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_DROPPED_MEDIA
+        = "total_calls_with_dropped_media";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -198,6 +206,7 @@ public class Statistics
 
         int participants = 0;
         int conferences = 0;
+        int mediaDropped = 0;
 
         for(AbstractGatewaySession ses : sessions)
         {
@@ -219,10 +228,18 @@ public class Statistics
                 conferenceSizes[idx]++;
             }
             conferences++;
+
+            if (ses.isGatewayMediaDropped())
+            {
+                mediaDropped++;
+            }
         }
 
         // CONFERENCES
         stats.put(CONFERENCES, conferences);
+
+        // TOTAL_CALLS_WITH_DROPPED_MEDIA
+        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA, mediaDropped);
 
         // CONFERENCE_SIZES
         JSONArray conferenceSizesJson = new JSONArray();

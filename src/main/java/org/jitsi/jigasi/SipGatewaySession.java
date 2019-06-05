@@ -21,13 +21,16 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.concurrent.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 
+import java.io.*;
 import java.text.*;
 import java.util.*;
 
@@ -102,6 +105,38 @@ public class SipGatewaySession
      * the <tt>CallPeer</tt>.
      */
     private static final String INIT_STATUS_NAME = "Initializing Call";
+
+    /**
+     * The name of the property that is used to enable detection of
+     * incoming sip RTP drop. Specifying the time with no media that
+     * we consider that the call had gone bad and we log an error or hang it up.
+     */
+    private static final String P_NAME_MEDIA_DROPPED_THRESHOLD
+        = "org.jitsi.jigasi.SIP_MEDIA_DROPPED_THRESHOLD";
+
+    /**
+     * By default we consider sip call bad if there is no RTP for 10 seconds.
+     */
+    private static final int DEFAULT_MEDIA_DROPPED_THRESHOLD = 10*1000;
+
+    /**
+     * The name of the property that is used to indicate whether we will hangup
+     * sip calls with no RTP after some timeout.
+     */
+    private static final String P_NAME_HANGUP_SIP_ON_MEDIA_DROPPED
+        = "org.jitsi.jigasi.HANGUP_SIP_ON_MEDIA_DROPPED";
+
+    /**
+     * The runnable responsible for checking sip call incoming RTP and detecting
+     * if media stop.
+     */
+    private ExpireMediaStream expireMediaStream;
+
+    /**
+     * The executor which periodically calls {@link ExpireMediaStream}.
+     */
+    private static final RecurringRunnableExecutor EXECUTOR
+        = new RecurringRunnableExecutor(ExpireMediaStream.class.getName());
 
     /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
@@ -557,6 +592,31 @@ public class SipGatewaySession
         }
         call.addCallChangeListener(statsHandler);
 
+        if (JigasiBundleActivator.getConfigurationService().getInt(
+                P_NAME_MEDIA_DROPPED_THRESHOLD,
+                DEFAULT_MEDIA_DROPPED_THRESHOLD) != -1)
+        {
+            CallPeer peer = call.getCallPeers().next();
+            if(!addExpireRunnable(peer))
+            {
+                peer.addCallPeerListener(new CallPeerAdapter()
+                {
+                    @Override
+                    public void peerStateChanged(CallPeerChangeEvent evt)
+                    {
+                        CallPeer peer = evt.getSourceCallPeer();
+                        CallPeerState peerState = peer.getState();
+
+                        if(CallPeerState.CONNECTED.equals(peerState))
+                        {
+                            peer.removeCallPeerListener(this);
+                            addExpireRunnable(peer);
+                        }
+                    }
+                });
+            }
+        }
+
         peerStateListener = new CallPeerListener(call);
 
         if (jvbConference != null)
@@ -669,6 +729,34 @@ public class SipGatewaySession
         return false;
     }
 
+    /**
+     * Adds a thread that will be checking the sip call for incoming RTP
+     * and log or hangup it when we hit the threshold.
+     * @param peer the call peer.
+     * @return whether had started the thread.
+     */
+    private boolean addExpireRunnable(CallPeer peer)
+    {
+        if (peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler = peerMedia.getMediaHandler();
+            if (mediaHandler != null)
+            {
+                MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
+                if (stream != null)
+                {
+                    expireMediaStream = new ExpireMediaStream(stream);
+                    EXECUTOR.registerRecurringRunnable(expireMediaStream);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public String getMucDisplayName()
     {
@@ -725,6 +813,71 @@ public class SipGatewaySession
         currentRecordingStatus = status;
     }
 
+    /**
+     * PeriodicRunnable that will check incoming RTP and if needed to hangup.
+     */
+    private class ExpireMediaStream
+        extends PeriodicRunnable
+    {
+        /**
+         * The stream to check.
+         */
+        private MediaStream stream;
+
+        public ExpireMediaStream(MediaStream stream)
+        {
+            super(
+                JigasiBundleActivator.getConfigurationService().getInt(
+                    P_NAME_MEDIA_DROPPED_THRESHOLD,
+                    DEFAULT_MEDIA_DROPPED_THRESHOLD),
+                false);
+            this.stream = stream;
+        }
+
+        @Override
+        public void run()
+        {
+            super.run();
+
+            try
+            {
+                long lastReceived =
+                    ((AudioMediaStreamImpl)stream).getLastInputActivityTime();
+
+                if(System.currentTimeMillis() - lastReceived > this.getPeriod())
+                {
+                    // we want to log only when we go from not-expired into
+                    // expired state
+                    if (!gatewayMediaDropped)
+                    {
+                        logger.error(
+                            "Stopped receiving RTP for " + getSipCall());
+                    }
+
+                    gatewayMediaDropped = true;
+
+                    if (JigasiBundleActivator.getConfigurationService()
+                        .getBoolean(P_NAME_HANGUP_SIP_ON_MEDIA_DROPPED, false))
+                    {
+                        CallManager.hangupCall(getSipCall(),
+                            OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT,
+                            "Stopped receiving media");
+                    }
+
+                }
+                else
+                {
+                    if (gatewayMediaDropped)
+                    {
+                        logger.info("RTP resumed for " + getSipCall());
+                    }
+                    gatewayMediaDropped = false;
+                }
+            }
+            catch(IOException e){/* Should not happen */}
+        }
+    }
+
     class SipCallStateListener
         implements CallChangeListener
     {
@@ -769,6 +922,9 @@ public class SipGatewaySession
 
                 if (peerStateListener != null)
                     peerStateListener.unregister();
+
+                EXECUTOR.deRegisterRecurringRunnable(expireMediaStream);
+                expireMediaStream = null;
 
                 // If we have something to show and we're still in the MUC
                 // then we display error reason string and leave the room with
