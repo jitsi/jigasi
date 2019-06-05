@@ -188,7 +188,7 @@ public class Statistics
         stats.put(TOTAL_NUMBEROFPARTICIPANTS, totalParticipantsCount);
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
         stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
-            totalCallsWithMediaDroppedCount);
+            totalCallsWithMediaDroppedCount.get());
 
 
         stats.put(SHUTDOWN_IN_PROGRESS,

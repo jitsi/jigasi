@@ -127,12 +127,6 @@ public class SipGatewaySession
         = "org.jitsi.jigasi.HANGUP_SIP_ON_MEDIA_DROPPED";
 
     /**
-     * The runnable responsible for checking sip call incoming RTP and detecting
-     * if media stop.
-     */
-    private ExpireMediaStream expireMediaStream;
-
-    /**
      * The threshold configured for detecting dropped media.
      */
     private static final int mediaDroppedThresholdMs
@@ -145,6 +139,22 @@ public class SipGatewaySession
      */
     private static final RecurringRunnableExecutor EXECUTOR
         = new RecurringRunnableExecutor(ExpireMediaStream.class.getName());
+
+    /**
+     * The sound file to use when recording is ON.
+     */
+    private static final String REC_ON_SOUND = "sounds/RecordingOn.opus";
+
+    /**
+     * The sound file to use when recording is OFF.
+     */
+    private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
+
+    /**
+     * The runnable responsible for checking sip call incoming RTP and detecting
+     * if media stop.
+     */
+    private ExpireMediaStream expireMediaStream;
 
     /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
@@ -209,16 +219,6 @@ public class SipGatewaySession
      * The current recording status in the conference.
      */
     private JibriIq.Status currentRecordingStatus = JibriIq.Status.OFF;
-
-    /**
-     * The sound file to use when recording is ON.
-     */
-    private static final String REC_ON_SOUND = "sounds/RecordingOn.opus";
-
-    /**
-     * The sound file to use when recording is OFF.
-     */
-    private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -753,7 +753,8 @@ public class SipGatewaySession
                 MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
                 if (stream != null)
                 {
-                    expireMediaStream = new ExpireMediaStream(stream);
+                    expireMediaStream
+                        = new ExpireMediaStream((AudioMediaStreamImpl)stream);
                     EXECUTOR.registerRecurringRunnable(expireMediaStream);
                     return true;
                 }
@@ -828,14 +829,14 @@ public class SipGatewaySession
         /**
          * The stream to check.
          */
-        private MediaStream stream;
+        private AudioMediaStreamImpl stream;
 
         /**
          * Whether we had sent stats for dropped media.
          */
         private boolean statsSent = false;
 
-        public ExpireMediaStream(MediaStream stream)
+        public ExpireMediaStream(AudioMediaStreamImpl stream)
         {
             // we want to check every 2 seconds for the media state
             super(2000, false);
@@ -849,8 +850,7 @@ public class SipGatewaySession
 
             try
             {
-                long lastReceived =
-                    ((AudioMediaStreamImpl)stream).getLastInputActivityTime();
+                long lastReceived = stream.getLastInputActivityTime();
 
                 if(System.currentTimeMillis() - lastReceived
                         > mediaDroppedThresholdMs)
