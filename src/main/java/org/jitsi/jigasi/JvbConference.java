@@ -122,6 +122,12 @@ public class JvbConference
     public static final String DEFAULT_BRIDGE_ID = "jitsi";
 
     /**
+     * The name of the property which configured the local region.
+     */
+    public static final String LOCAL_REGION_PNAME
+        = "org.jitsi.jigasi.LOCAL_REGION";
+
+    /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      */
@@ -648,6 +654,36 @@ public class JvbConference
 
             ChatRoom mucRoom = muc.findRoom(roomName);
 
+            if (mucRoom instanceof ChatRoomJabberImpl)
+            {
+                String displayName = gatewaySession.getMucDisplayName();
+                if (displayName != null)
+                {
+                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(
+                        new Nick(displayName));
+                }
+                else
+                {
+                    logger.error("No display name to use...");
+                }
+
+                String region = JigasiBundleActivator.getConfigurationService()
+                    .getString(LOCAL_REGION_PNAME);
+                if(!StringUtils.isNullOrEmpty(region))
+                {
+                    RegionPacketExtension rpe = new RegionPacketExtension();
+                    rpe.setRegionId(region);
+
+                    ((ChatRoomJabberImpl)mucRoom)
+                        .addPresencePacketExtensions(rpe);
+                }
+            }
+            else
+            {
+                logger.error("Cannot set presence extensions as chatRoom " +
+                    "is not an instance of ChatRoomJabberImpl");
+            }
+
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
             // first to join, mimic the web behaviour
@@ -668,17 +704,6 @@ public class JvbConference
             this.mucRoom = mucRoom;
 
             mucRoom.addMemberPresenceListener(this);
-
-            String displayName = gatewaySession.getMucDisplayName();
-            if (displayName != null)
-            {
-                Nick nick = new Nick(displayName);
-                sendPresenceExtension(nick);
-            }
-            else
-            {
-                logger.error("No display name to use...");
-            }
 
             // Announce that we're connecting to JVB conference
             // (waiting for invite)
