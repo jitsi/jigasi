@@ -181,7 +181,6 @@ public class StatsHandler
                 bundleContext,
                 ProtocolProviderService.class);
 
-
             for (ServiceReference<ProtocolProviderService> serviceRef
                 : providers)
             {
@@ -204,8 +203,33 @@ public class StatsHandler
 
         if (targetAccountID == null)
         {
-            logger.debug("No account found with enabled stats");
-            return;
+            // No account found with enabled stats
+            // we are maybe in the case where there are no xmpp control accounts
+            // this is when outgoing calls are disabled
+            // and we have only the xmpp client account, which may have the
+            // callstats settings
+
+            for (Call confCall : call.getConference().getCalls())
+            {
+                if (confCall.getProtocolProvider().getProtocolName()
+                    .equals(ProtocolNames.JABBER))
+                {
+                    AccountID acc = confCall.getProtocolProvider()
+                        .getAccountID();
+                    if (acc.getAccountPropertyInt(CS_ACC_PROP_APP_ID, 0) != 0)
+                    {
+                        // there are callstats settings then use it
+                        targetAccountID = acc;
+                    }
+                }
+            }
+
+            if (targetAccountID == null)
+            {
+                logger.debug("No account found with enabled stats");
+
+                return;
+            }
         }
 
         int appId
