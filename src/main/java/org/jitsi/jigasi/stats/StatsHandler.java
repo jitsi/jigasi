@@ -269,6 +269,7 @@ public class StatsHandler
                     keyId,
                     keyPath,
                     jigasiId,
+                    true,
                     ((reason, errorMessage) -> {
                         logger.error("Jitsi-stats library failed to initialize "
                             + "with reason: " + reason

@@ -196,7 +196,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
-      <version>1.0-20190407.140545-7</version>
+      <version>1.0-20190606.142627-9</version>
     </dependency>
     <dependency>
       <!--
