@@ -115,12 +115,19 @@ public class StatsHandler
     private final String remoteEndpointID;
 
     /**
+     * The origin ID. From jigasi we always report jigasi-NUMBER as
+     * the origin ID.
+     */
+    private final String originID;
+
+    /**
      * Constructs StatsHandler.
      * @param remoteEndpointID the remote endpoint.
      */
-    public StatsHandler(String remoteEndpointID)
+    public StatsHandler(String originID, String remoteEndpointID)
     {
         this.remoteEndpointID = remoteEndpointID;
+        this.originID = originID;
     }
 
     @Override
@@ -311,7 +318,7 @@ public class StatsHandler
                 statsService,
                 conferenceName,
                 conferenceIDPrefix,
-                DEFAULT_JIGASI_ID,
+                DEFAULT_JIGASI_ID + "-" + originID,
                 this.remoteEndpointID);
         cpr.start();
 
