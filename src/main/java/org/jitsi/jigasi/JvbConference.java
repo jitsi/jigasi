@@ -1068,7 +1068,8 @@ public class JvbConference
 
             if (statsHandler == null)
             {
-                statsHandler = new StatsHandler(DEFAULT_BRIDGE_ID);
+                statsHandler = new StatsHandler(
+                    gatewaySession.getMucDisplayName(), DEFAULT_BRIDGE_ID);
             }
             jvbCall.addCallChangeListener(statsHandler);
 
