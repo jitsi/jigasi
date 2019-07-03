@@ -284,6 +284,11 @@ public class StatsHandler
                             + " for account: " + targetAccountIDDescription);
 
                         bundleContext.removeServiceListener(serviceListener);
+
+                        // callstats holds this lambda and listener instance
+                        // and we clean instances to make sure we do not leave
+                        // anything behind, as much as possible
+                        serviceListener.clean();
                     }));
 
             return;
@@ -336,22 +341,22 @@ public class StatsHandler
         /**
          * The context.
          */
-        private final BundleContext context;
+        private BundleContext context;
 
         /**
          * The conference name.
          */
-        private final String conferenceName;
+        private String conferenceName;
 
         /**
          * The call.
          */
-        private final Call call;
+        private Call call;
 
         /**
          * The accountID.
          */
-        private final AccountID accountID;
+        private AccountID accountID;
 
         /**
          * Constructs <tt>StatsServiceListener</tt>.
@@ -372,9 +377,30 @@ public class StatsHandler
             this.accountID = accountID;
         }
 
+        /**
+         * Cleans instances the listener holds.
+         */
+        private void clean()
+        {
+            this.context = null;
+            this.conferenceName = null;
+            this.call = null;
+            this.accountID = null;
+        }
+
         @Override
         public void serviceChanged(ServiceEvent ev)
         {
+            if (this.context == null
+                || this.conferenceName == null
+                || this.call == null
+                || this.accountID == null)
+            {
+                logger.warn(
+                    "Received serviceChanged after listener was maybe cleaned");
+                return;
+            }
+
             Object service;
 
             try
