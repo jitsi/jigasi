@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.13.1f9891e</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.cb5485e</jitsi-desktop.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.26</slf4j.version>
     <smack.version>4.2.4-47d17fc</smack.version>
@@ -81,7 +81,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
-      <version>1.1-20190509.130302-15</version>
+      <version>1.1-1-ge7184ab</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -146,12 +146,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-20190401.122850-7</version>
+      <version>1.0-1-gaca0e20</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-20190619.163300-386</version>
+      <version>1.0-0-gb3296cf</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -196,7 +196,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
-      <version>1.0-20190606.142627-9</version>
+      <version>1.0-1-g944da7a</version>
     </dependency>
     <dependency>
       <!--
