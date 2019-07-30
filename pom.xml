@@ -319,12 +319,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-version</artifactId>
-      <version>${jitsi-desktop.version}</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
       <version>1.0-20190605.124131-5</version>
     </dependency>
