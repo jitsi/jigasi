@@ -18,13 +18,13 @@
 package org.jitsi.jigasi;
 
 import com.timgroup.statsd.*;
+import org.jitsi.meet.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
@@ -320,10 +320,14 @@ public class JigasiBundleActivator
         {
             gateways.forEach(AbstractGateway::stop);
 
+            // Note that there are two ShutdownService implementations. One in
+            // jitsi coming from the ui-service bundle, and one is jicoco. We
+            // only use the one in jicoco because the other one is essentially
+            // a no-op.
             ShutdownService shutdownService
                 = ServiceUtils.getService(
-                osgiContext,
-                ShutdownService.class);
+                    osgiContext,
+                    ShutdownService.class);
 
             logger.info("Jigasi is shutting down NOW");
             shutdownService.beginShutdown();
