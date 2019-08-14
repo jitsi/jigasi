@@ -164,7 +164,7 @@ public class SipGatewaySession
     /**
      * The SIP call instance if any SIP call is active.
      */
-    private Call call;
+    private Call sipCall;
 
     /**
      * Stores JVB call instance that will be merged into single conference with
@@ -237,7 +237,7 @@ public class SipGatewaySession
                              Call       sipCall)
     {
         this(gateway, callContext);
-        this.call = sipCall;
+        this.sipCall = sipCall;
     }
 
     /**
@@ -297,7 +297,7 @@ public class SipGatewaySession
      */
     public void createOutgoingCall()
     {
-        if (call != null)
+        if (sipCall != null)
         {
             throw new IllegalStateException("SIP call in progress");
         }
@@ -315,7 +315,7 @@ public class SipGatewaySession
      */
     public Call getSipCall()
     {
-        return call;
+        return sipCall;
     }
 
     public void hangUp()
@@ -336,12 +336,12 @@ public class SipGatewaySession
     {
         cancelWaitThread();
 
-        if (call != null)
+        if (sipCall != null)
         {
             if (reasonCode != -1)
-                CallManager.hangupCall(call, reasonCode, reason);
+                CallManager.hangupCall(sipCall, reasonCode, reason);
             else
-                CallManager.hangupCall(call);
+                CallManager.hangupCall(sipCall);
         }
     }
 
@@ -380,7 +380,7 @@ public class SipGatewaySession
         // Incoming SIP connection mode sets common conference here
         if (destination == null)
         {
-            call.setConference(incomingCall.getConference());
+            sipCall.setConference(incomingCall.getConference());
 
             boolean useTranslator = incomingCall.getProtocolProvider()
                 .getAccountID().getAccountPropertyBoolean(
@@ -418,7 +418,7 @@ public class SipGatewaySession
 
         if (destination == null)
         {
-            CallManager.acceptCall(call);
+            CallManager.acceptCall(sipCall);
         }
         else
         {
@@ -470,19 +470,19 @@ public class SipGatewaySession
             });
             try
             {
-                this.call = tele.createCall(destination);
-                call.setData(CallContext.class,  super.callContext);
+                this.sipCall = tele.createCall(destination);
+                sipCall.setData(CallContext.class,  super.callContext);
 
-                peerStateListener = new CallPeerListener(this.call);
+                peerStateListener = new CallPeerListener(this.sipCall);
 
                 // Outgoing SIP connection mode sets common conference object
                 // just after the call has been created
-                call.setConference(jvbConferenceCall.getConference());
+                sipCall.setConference(jvbConferenceCall.getConference());
 
                 logger.info(
-                    "Created outgoing call to " + destination + " " + call);
+                    "Created outgoing call to " + destination + " " + sipCall);
 
-                this.call.addCallChangeListener(callStateListener);
+                this.sipCall.addCallChangeListener(callStateListener);
                 // lets add cs to outgoing call
                 if (statsHandler == null)
                 {
@@ -490,12 +490,12 @@ public class SipGatewaySession
                         destination,
                         DEFAULT_STATS_REMOTE_ID + "-" + destination);
                 }
-                call.addCallChangeListener(statsHandler);
+                sipCall.addCallChangeListener(statsHandler);
 
                 //FIXME: It might be already in progress or ended ?!
-                if (!CallState.CALL_INITIALIZATION.equals(call.getCallState()))
+                if (!CallState.CALL_INITIALIZATION.equals(sipCall.getCallState()))
                 {
-                    callStateListener.handleCallState(call, null);
+                    callStateListener.handleCallState(sipCall, null);
                 }
             }
             catch (OperationFailedException | ParseException e)
@@ -515,7 +515,7 @@ public class SipGatewaySession
     {
         this.jvbConference = null;
 
-        if (call != null)
+        if (sipCall != null)
         {
             hangUp(reasonCode, reason);
         }
@@ -546,14 +546,14 @@ public class SipGatewaySession
 
     private void sipCallEnded()
     {
-        if (call == null)
+        if (sipCall == null)
             return;
 
-        logger.info("Sip call ended: " + call.toString());
+        logger.info("Sip call ended: " + sipCall.toString());
 
-        call.removeCallChangeListener(callStateListener);
+        sipCall.removeCallChangeListener(callStateListener);
 
-        call = null;
+        sipCall = null;
 
         if (jvbConference != null)
         {
@@ -569,7 +569,7 @@ public class SipGatewaySession
     public void onJoinJitsiMeetRequest(
         Call call, String room, Map<String, String> data)
     {
-        if (jvbConference == null && this.call == call)
+        if (jvbConference == null && this.sipCall == call)
         {
             if (room != null)
             {
@@ -591,7 +591,7 @@ public class SipGatewaySession
      */
     void initIncomingCall()
     {
-        call.addCallChangeListener(callStateListener);
+        sipCall.addCallChangeListener(callStateListener);
 
         // lets add cs to incoming call
         if (statsHandler == null)
@@ -600,11 +600,11 @@ public class SipGatewaySession
             statsHandler = new StatsHandler(
                 displayName, DEFAULT_STATS_REMOTE_ID + "-" + displayName);
         }
-        call.addCallChangeListener(statsHandler);
+        sipCall.addCallChangeListener(statsHandler);
 
         if (mediaDroppedThresholdMs != -1)
         {
-            CallPeer peer = call.getCallPeers().next();
+            CallPeer peer = sipCall.getCallPeers().next();
             if(!addExpireRunnable(peer))
             {
                 peer.addCallPeerListener(new CallPeerAdapter()
@@ -625,12 +625,12 @@ public class SipGatewaySession
             }
         }
 
-        peerStateListener = new CallPeerListener(call);
+        peerStateListener = new CallPeerListener(sipCall);
 
         if (jvbConference != null)
         {
             // Reject incoming call
-            CallManager.hangupCall(call);
+            CallManager.hangupCall(sipCall);
         }
         else
         {
@@ -813,11 +813,11 @@ public class SipGatewaySession
         {
             // if call is still not established this will be ignored in
             // injectSoundFile and nothing will be played
-            Util.injectSoundFile(this.call, REC_ON_SOUND);
+            Util.injectSoundFile(this.sipCall, REC_ON_SOUND);
         }
         else if (JibriIq.Status.OFF.equals(status))
         {
-            Util.injectSoundFile(this.call, REC_OFF_SOUND);
+            Util.injectSoundFile(this.sipCall, REC_OFF_SOUND);
         }
         currentRecordingStatus = status;
     }
@@ -1040,7 +1040,7 @@ public class SipGatewaySession
             {
                 if (currentRecordingStatus.equals(JibriIq.Status.ON))
                 {
-                    Util.injectSoundFile(call, REC_ON_SOUND);
+                    Util.injectSoundFile(sipCall, REC_ON_SOUND);
                 }
             }
         }
@@ -1075,7 +1075,7 @@ public class SipGatewaySession
                     }
 
                     if (getJvbRoomName() == null
-                           && !CallState.CALL_ENDED.equals(call.getCallState()))
+                           && !CallState.CALL_ENDED.equals(sipCall.getCallState()))
                     {
                         String defaultRoom
                             = JigasiBundleActivator.getConfigurationService()
