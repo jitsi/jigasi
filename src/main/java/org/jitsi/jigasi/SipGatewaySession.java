@@ -471,9 +471,7 @@ public class SipGatewaySession
             try
             {
                 this.sipCall = tele.createCall(destination);
-                sipCall.setData(CallContext.class,  super.callContext);
-
-                peerStateListener = new CallPeerListener(this.sipCall);
+                this.initSipCall(destination);
 
                 // Outgoing SIP connection mode sets common conference object
                 // just after the call has been created
@@ -481,16 +479,6 @@ public class SipGatewaySession
 
                 logger.info(
                     "Created outgoing call to " + destination + " " + sipCall);
-
-                this.sipCall.addCallChangeListener(callStateListener);
-                // lets add cs to outgoing call
-                if (statsHandler == null)
-                {
-                    statsHandler = new StatsHandler(
-                        destination,
-                        DEFAULT_STATS_REMOTE_ID + "-" + destination);
-                }
-                sipCall.addCallChangeListener(statsHandler);
 
                 //FIXME: It might be already in progress or ended ?!
                 if (!CallState.CALL_INITIALIZATION.equals(sipCall.getCallState()))
@@ -586,19 +574,20 @@ public class SipGatewaySession
     }
 
     /**
-     * Initializes this instance for incoming call which was passed to the
-     * constructor {@link #SipGatewaySession(SipGateway, CallContext, Call)}.
+     * Initializes the sip call listeners.
+     * @param sipCallIdentifier the stats identifier for the call in or out.
      */
-    void initIncomingCall()
+    private void initSipCall(String sipCallIdentifier)
     {
+        sipCall.setData(CallContext.class, super.callContext);
         sipCall.addCallChangeListener(callStateListener);
 
         // lets add cs to incoming call
         if (statsHandler == null)
         {
-            String displayName = this.getMucDisplayName();
             statsHandler = new StatsHandler(
-                displayName, DEFAULT_STATS_REMOTE_ID + "-" + displayName);
+                sipCallIdentifier,
+                DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
         }
         sipCall.addCallChangeListener(statsHandler);
 
@@ -626,6 +615,15 @@ public class SipGatewaySession
         }
 
         peerStateListener = new CallPeerListener(sipCall);
+    }
+
+    /**
+     * Initializes this instance for incoming call which was passed to the
+     * constructor {@link #SipGatewaySession(SipGateway, CallContext, Call)}.
+     */
+    void initIncomingCall()
+    {
+        initSipCall(this.getMucDisplayName());
 
         if (jvbConference != null)
         {
