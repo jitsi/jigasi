@@ -39,8 +39,7 @@ public class CallManager
 
     public synchronized static void acceptCall(Call incomingCall)
     {
-        threadPool.submit(
-            new AnswerCallThread(incomingCall, null, false));
+        threadPool.submit(new AnswerCallThread(incomingCall, false));
     }
 
     /**
@@ -251,30 +250,20 @@ public class CallManager
         private final Call call;
 
         /**
-         * The existing <tt>Call</tt>, if any, which represents a telephony
-         * conference in which {@link #call} is to be answered.
-         */
-        private final Call existingCall;
-
-        /**
          * The indicator which determines whether this instance is to answer
          * {@link #call} with video.
          */
         private final boolean video;
 
-        public AnswerCallThread(Call call, Call existingCall, boolean video)
+        public AnswerCallThread(Call call, boolean video)
         {
             this.call = call;
-            this.existingCall = existingCall;
             this.video = video;
         }
 
         @Override
         public void run()
         {
-            if (existingCall != null)
-                call.setConference(existingCall.getConference());
-
             ProtocolProviderService pps = call.getProtocolProvider();
             Iterator<? extends CallPeer> peers = call.getCallPeers();
 
