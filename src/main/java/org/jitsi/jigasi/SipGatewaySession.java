@@ -407,6 +407,16 @@ public class SipGatewaySession
                 });
             }
         }
+
+        logger.info("JVB conference call IN_PROGRESS "
+            + callContext.getRoomName());
+
+        Exception error = this.onConferenceCallStarted(incomingCall);
+
+        if (error != null)
+        {
+            logger.error(error, error);
+        }
     }
 
     /**
@@ -491,6 +501,8 @@ public class SipGatewaySession
                 return e;
             }
         }
+
+        CallManager.acceptCall(jvbConferenceCall);
 
         return null;
     }
