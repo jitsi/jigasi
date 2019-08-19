@@ -285,50 +285,6 @@ public class JvbConference
             .getString(FOCUSE_RESOURCE_PROP, "focus");
     }
 
-    /**
-     * Includes info about given <tt>peer</tt> media SSRCs in MUC presence.
-     * @param peer the <tt>CallPeer</tt> whose media SSRCs will be advertised.
-     */
-    private void advertisePeerSSRCs(CallPeer peer)
-    {
-        String audioSSRC = getPeerSSRCforMedia(peer,
-                                               MediaType.AUDIO);
-        String videoSSRC = getPeerSSRCforMedia(peer,
-                                               MediaType.VIDEO);
-        logger.info(
-            "Peer " + peer.getState()
-                + " SSRCs audio: " + audioSSRC
-                + " video: " + videoSSRC);
-
-        MediaPresenceExtension mediaPresence
-            = new MediaPresenceExtension();
-
-        if (audioSSRC != null)
-        {
-            MediaPresenceExtension.Source ssrc
-                = new MediaPresenceExtension.Source();
-
-            ssrc.setMediaType(MediaType.AUDIO.toString());
-            ssrc.setSSRC(audioSSRC);
-
-            mediaPresence.addChildExtension(ssrc);
-        }
-
-        if (videoSSRC != null)
-        {
-            MediaPresenceExtension.Source ssrc
-                = new MediaPresenceExtension.Source();
-
-            ssrc.setMediaType(MediaType.VIDEO.toString());
-            ssrc.setSSRC(videoSSRC);
-
-            mediaPresence.addChildExtension(ssrc);
-        }
-
-        sendPresenceExtension(mediaPresence);
-    }
-
-
     private Localpart getResourceIdentifier()
     {
         Localpart resourceIdentifier = null;
@@ -1045,24 +1001,6 @@ public class JvbConference
                 ((MediaAwareCallPeer)peer).getMediaHandler()
                     .setDisableHolePunching(true);
             }
-
-            peer.addCallPeerListener(new CallPeerAdapter()
-            {
-                @Override
-                public void peerStateChanged(CallPeerChangeEvent evt)
-                {
-                    CallPeer peer = evt.getSourceCallPeer();
-                    CallPeerState peerState = peer.getState();
-                    logger.info(
-                        callContext.getCallResource()
-                        + " JVB peer state: " + peerState);
-
-                    if (CallPeerState.CONNECTED.equals(peerState))
-                    {
-                        advertisePeerSSRCs(peer);
-                    }
-                }
-            });
 
             jvbCall.addCallChangeListener(callChangeListener);
 
