@@ -160,6 +160,8 @@ public class TranscriptionGatewaySession
         });
 
         logger.debug("Invited for conference");
+
+        CallManager.acceptCall(incomingCall);
     }
 
     @Override

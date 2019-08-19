@@ -584,11 +584,16 @@ public class JvbConference
     {
         // Advertise gateway feature before joining
         addSupportedFeatures(
-                xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
+            xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
 
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.addPresenceListener(this);
+
+        OperationSetIncomingDTMF opSet
+            = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
+        if (opSet != null)
+            opSet.addDTMFListener(gatewaySession);
 
         try
         {
@@ -719,24 +724,6 @@ public class JvbConference
         if(started)
         {
             stop();
-        }
-    }
-
-    private void onJvbCallStarted()
-    {
-        logger.info("JVB conference call IN_PROGRESS "
-            + callContext.getRoomName());
-
-        OperationSetIncomingDTMF opSet
-            = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
-        if (opSet != null)
-            opSet.addDTMFListener(gatewaySession);
-
-        Exception error = gatewaySession.onConferenceCallStarted(jvbCall);
-
-        if (error != null)
-        {
-            logger.error(error, error);
         }
     }
 
@@ -1012,9 +999,6 @@ public class JvbConference
             jvbCall.addCallChangeListener(statsHandler);
 
             gatewaySession.onConferenceCallInvited(jvbCall);
-
-            // Accept incoming jingle call
-            CallManager.acceptCall(jvbCall);
         }
 
         @Override
@@ -1038,12 +1022,7 @@ public class JvbConference
                 return;
             }
 
-            // Once call is started notify SIP gateway
-            if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
-            {
-                onJvbCallStarted();
-            }
-            else if(jvbCall.getCallState() == CallState.CALL_ENDED)
+            if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
                 onJvbCallEnded();
             }
