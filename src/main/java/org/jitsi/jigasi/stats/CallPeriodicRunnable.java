@@ -72,33 +72,13 @@ public class CallPeriodicRunnable
     }
 
 
-    @Override
-    protected Map<String, Collection<? extends ReceiveTrackStats>>
-        getReceiveTrackStats()
-    {
-        return getTrackStats(true);
-    }
-
-    @Override
-    protected Map<String, Collection<? extends SendTrackStats>>
-        getSendTrackStats()
-    {
-        return getTrackStats(false);
-    }
-
     /**
-     * Get stats receive or send from current call.
-     *
-     * @param receive whether to get receive if <tt>true</tt> or
-     * send statistics otherwise.
-     * @param <T> the type of result stats Collection, ReceiveTrackStats
-     * or SendTrackStats.
-     * @return the result collection of stats grouped by remote id.
+     * {@inheritDoc}
      */
-    private <T extends Collection> Map<String, T> getTrackStats(boolean receive)
+    @Override
+    protected List<EndpointStats> getEndpointStats()
     {
-        Map<String, T> resultStats = new HashMap<>();
-        T statsCollection = (T)new ArrayList();
+        List<MediaStreamStats2> mediaStreamStatsList = new LinkedList<>();
 
         Iterator<? extends CallPeer> iter = o.getCallPeers();
         while (iter.hasNext())
@@ -113,21 +93,62 @@ public class CallPeriodicRunnable
                 continue;
             }
 
-            MediaStreamStats2 stats = stream.getMediaStreamStats();
-            if (stats == null)
+            MediaStreamStats2 peerMediaStreamStats
+                    = stream.getMediaStreamStats();
+            if (peerMediaStreamStats != null)
             {
-                continue;
+                mediaStreamStatsList.add(peerMediaStreamStats);
             }
-
-            statsCollection.addAll(
-                receive ? stats.getAllReceiveStats() : stats.getAllSendStats());
         }
 
-        if (statsCollection.size() > 0)
+        EndpointStats endpointStats = new EndpointStats(remoteID);
+
+        mediaStreamStatsList.forEach(mediaStreamStats ->
         {
-            resultStats.put(this.remoteID, statsCollection);
-        }
+            mediaStreamStats.getAllReceiveStats().forEach(stats ->
+            {
+                SsrcStats receiveStats = new SsrcStats();
+                receiveStats.ssrc = stats.getSSRC();
+                receiveStats.bytes = stats.getBytes();
+                receiveStats.packets = stats.getPackets();
+                receiveStats.packetsLost = stats.getPacketsLost();
+                receiveStats.fractionalPacketLoss = stats.getLossRate();
 
-        return resultStats;
+                if (stats.getJitter() != TrackStats.JITTER_UNSET)
+                {
+                    receiveStats.jitter_ms = stats.getJitter();
+                }
+
+                if (stats.getRtt() != -1)
+                {
+                    receiveStats.rtt_ms = (int) stats.getRtt();
+                }
+
+                endpointStats.addReceiveStats(receiveStats);
+            });
+            mediaStreamStats.getAllSendStats().forEach(stats ->
+            {
+                SsrcStats sendStats = new SsrcStats();
+                sendStats.ssrc = stats.getSSRC();
+                sendStats.bytes = stats.getBytes();
+                sendStats.packets = stats.getPackets();
+                //sendStats.packetsLost = stats.getPacketsLost();
+                sendStats.fractionalPacketLoss = stats.getLossRate();
+
+                if (stats.getJitter() != TrackStats.JITTER_UNSET)
+                {
+                    sendStats.jitter_ms = stats.getJitter();
+                }
+
+                if (stats.getRtt() != -1)
+                {
+                    sendStats.rtt_ms = (int) stats.getRtt();
+                }
+
+                endpointStats.addSendStats(sendStats);
+            });
+        });
+
+        return Collections.singletonList(endpointStats);
     }
 }
