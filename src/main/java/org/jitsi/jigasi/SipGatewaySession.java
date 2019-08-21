@@ -221,6 +221,14 @@ public class SipGatewaySession
     private JibriIq.Status currentRecordingStatus = JibriIq.Status.OFF;
 
     /**
+     * A transformer that monitors RTP and RTCP traffic going and coming
+     * from the sip direction. Skips forwarding RTCP traffic which is not
+     * intended for that direction (particularly we had seen RTCP.BYE for
+     * to cause media to stop (even when ssrc is not matching)).
+     */
+    private SipCallTransformerMonitor transformerMonitor;
+
+    /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -380,7 +388,7 @@ public class SipGatewaySession
         // Incoming SIP connection mode sets common conference here
         if (destination == null)
         {
-            sipCall.setConference(incomingCall.getConference());
+            incomingCall.setConference(sipCall.getConference());
 
             boolean useTranslator = incomingCall.getProtocolProvider()
                 .getAccountID().getAccountPropertyBoolean(
@@ -432,6 +440,19 @@ public class SipGatewaySession
         }
         else
         {
+            if (this.sipCall != null)
+            {
+                logger.info(
+                    "Connecting existing sip call to incoming xmpp call "
+                        + this);
+
+                jvbConferenceCall.setConference(sipCall.getConference());
+
+                CallManager.acceptCall(jvbConferenceCall);
+
+                return null;
+            }
+
             //sendPresenceExtension(
               //  createPresenceExtension(
                 //    SipGatewayExtension.STATE_RINGING, null));
@@ -485,7 +506,7 @@ public class SipGatewaySession
 
                 // Outgoing SIP connection mode sets common conference object
                 // just after the call has been created
-                sipCall.setConference(jvbConferenceCall.getConference());
+                jvbConferenceCall.setConference(sipCall.getConference());
 
                 logger.info(
                     "Created outgoing call to " + destination + " " + sipCall);
@@ -552,6 +573,12 @@ public class SipGatewaySession
         logger.info("Sip call ended: " + sipCall.toString());
 
         sipCall.removeCallChangeListener(callStateListener);
+
+        if (this.transformerMonitor != null)
+        {
+            this.transformerMonitor.dispose();
+            this.transformerMonitor = null;
+        }
 
         sipCall = null;
 
@@ -627,6 +654,31 @@ public class SipGatewaySession
         }
 
         peerStateListener = new CallPeerListener(sipCall);
+
+        boolean useTranslator = sipCall.getProtocolProvider()
+            .getAccountID().getAccountPropertyBoolean(
+                ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                false);
+
+        CallPeer sipPeer = sipCall.getCallPeers().next();
+        if (useTranslator && !addSipCallTransformer(sipPeer))
+        {
+            sipPeer.addCallPeerListener(new CallPeerAdapter()
+            {
+                @Override
+                public void peerStateChanged(CallPeerChangeEvent evt)
+                {
+                    CallPeer peer = evt.getSourceCallPeer();
+                    CallPeerState peerState = peer.getState();
+
+                    if (CallPeerState.CONNECTED.equals(peerState))
+                    {
+                        peer.removeCallPeerListener(this);
+                        addSipCallTransformer(peer);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -830,6 +882,44 @@ public class SipGatewaySession
             Util.injectSoundFile(this.sipCall, REC_OFF_SOUND);
         }
         currentRecordingStatus = status;
+    }
+
+    /**
+     * Adds a sip transformer monitor to the peers media stream.
+     * @param peer the peer which media streams to manipulate
+     * @return true if transformer was added to peer's media stream.
+     */
+    private boolean addSipCallTransformer(CallPeer peer)
+    {
+        if (peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler
+                = peerMedia.getMediaHandler();
+            if (mediaHandler != null)
+            {
+                MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
+                if (stream != null)
+                {
+                    transformerMonitor = new SipCallTransformerMonitor(
+                        peerMedia.getMediaHandler(), stream);
+                    stream.setExternalTransformer(transformerMonitor);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "SipGatewaySession{" +
+            "sipCall=" + sipCall +
+            ", destination='" + destination + '\'' +
+            '}';
     }
 
     /**
