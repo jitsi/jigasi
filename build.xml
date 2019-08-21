@@ -333,7 +333,7 @@
                 <tokenfilter>
                     <filetokenizer/>
                     <replaceregex pattern="\d*\." replace="" />
-                    <replaceregex pattern="-\d*" replace="" />
+                    <replaceregex pattern="-\d*-[\w\d]*" replace="" />
                 </tokenfilter>
             </filterchain>
         </loadresource>
@@ -343,7 +343,8 @@
             <filterchain>
                 <tokenfilter>
                     <filetokenizer/>
-                    <replaceregex pattern=".*\-" replace="" />
+                    <replaceregex pattern="\d*\." replace="" />
+                    <replaceregex pattern="\d*-" replace="" />
                 </tokenfilter>
             </filterchain>
         </loadresource>
