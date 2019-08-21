@@ -159,7 +159,8 @@ public class JvbConference
     }
 
     /**
-     * {@link SipGatewaySession} that uses this <tt>JvbConference</tt> instance.
+     * {@link AbstractGatewaySession} that uses this <tt>JvbConference</tt>
+     * instance.
      */
     private final AbstractGatewaySession gatewaySession;
 
@@ -272,8 +273,8 @@ public class JvbConference
 
     /**
      * Creates new instance of <tt>JvbConference</tt>
-     * @param gatewaySession the <tt>SipGatewaySession</tt> that will be using
-     *                       this <tt>JvbConference</tt>.
+     * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
+     *                       using this <tt>JvbConference</tt>.
      * @param ctx the call context of the current conference
      */
     public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
@@ -721,9 +722,21 @@ public class JvbConference
 
         jvbCall = null;
 
-        if(started)
+        // if leave timeout is 0 or less we will not wait for new invite
+        // and let's stop the call
+        if(started && AbstractGateway.getLeaveTimeout() <= 0)
         {
             stop();
+        }
+        else if (started)
+        {
+            logger.info("Proceed with gwSession call on xmpp call hangup:"
+                + gatewaySession);
+
+            // if no invite comes back we want to hangup the sip call
+            // and disconnect from the conference
+            inviteTimeout.scheduleTimeout(
+                AbstractGateway.getJvbInviteTimeout());
         }
     }
 
