@@ -226,7 +226,7 @@ public class SipGatewaySession
      * intended for that direction (particularly we had seen RTCP.BYE for
      * to cause media to stop (even when ssrc is not matching)).
      */
-    private SipCallTransformerMonitor transformerMonitor;
+    private SipCallKeepAliveTransformer transformerMonitor;
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -415,9 +415,6 @@ public class SipGatewaySession
                 });
             }
         }
-
-        logger.info("JVB conference call IN_PROGRESS "
-            + callContext.getRoomName());
 
         Exception error = this.onConferenceCallStarted(incomingCall);
 
@@ -902,7 +899,7 @@ public class SipGatewaySession
                 MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
                 if (stream != null)
                 {
-                    transformerMonitor = new SipCallTransformerMonitor(
+                    transformerMonitor = new SipCallKeepAliveTransformer(
                         peerMedia.getMediaHandler(), stream);
                     stream.setExternalTransformer(transformerMonitor);
                     return true;
@@ -1026,7 +1023,8 @@ public class SipGatewaySession
             // Once call is started notify SIP gateway
             if (call.getCallState() == CallState.CALL_IN_PROGRESS)
             {
-                logger.info("Sip call IN_PROGRESS: " + call);
+                logger.info("Sip call IN_PROGRESS: "
+                    + call + " " + callContext.getRoomName());
                 //sendPresenceExtension(
                   //  createPresenceExtension(
                     //    SipGatewayExtension.STATE_IN_PROGRESS, null));
