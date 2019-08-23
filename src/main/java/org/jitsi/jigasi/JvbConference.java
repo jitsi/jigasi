@@ -225,22 +225,15 @@ public class JvbConference
     /**
      * Handles timeout for the waiting for JVB conference call invite sent by
      * the focus.
+     * If we are left alone in the room we can keep the gw session till someone
+     * joins, but still if none joined and no jingle session was initiated
+     * for some time we want to drop the call.
      */
     private JvbConferenceStopTimeout
         inviteTimeout = new JvbConferenceStopTimeout(
             "JvbInviteTimeout",
             "No invite from conference focus",
             "Did not received session invite"
-        );
-
-    /**
-     * Handles timeout for the waiting some participant to join.
-     */
-    private JvbConferenceStopTimeout
-        leaveTimeout = new JvbConferenceStopTimeout(
-            "JvbLeaveTimeout",
-            "No participant joined for long time",
-            "No participant joined for long time"
         );
 
     /**
@@ -724,7 +717,7 @@ public class JvbConference
 
         // if leave timeout is 0 or less we will not wait for new invite
         // and let's stop the call
-        if(started && AbstractGateway.getLeaveTimeout() <= 0)
+        if(started && AbstractGateway.getJvbInviteTimeout() <= 0)
         {
             stop();
         }
@@ -804,8 +797,6 @@ public class JvbConference
             if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED
                     .equals(eventType))
             {
-                leaveTimeout.cancel();
-
                 gatewaySession.notifyChatRoomMemberJoined(member);
             }
             else if(ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
@@ -856,10 +847,10 @@ public class JvbConference
         // if it is us and the focus
         if (evt.getChatRoom().getMembersCount() == 2)
         {
-            long leaveTime = AbstractGateway.getLeaveTimeout();
-            if (leaveTime > 0)
+            long inviteTime = AbstractGateway.getJvbInviteTimeout();
+            if (inviteTime > 0)
             {
-                leaveTimeout.scheduleTimeout(leaveTime);
+                inviteTimeout.scheduleTimeout(inviteTime);
             }
             else
             {
