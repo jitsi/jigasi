@@ -331,10 +331,10 @@ public class SipGatewaySession
         hangUp(-1, null);
     }
 
-    private void hangUp(int reasionCode, String reason)
+    private void hangUp(int reasonCode, String reason)
     {
         super.hangUp(); // to leave JvbConference
-        hangUpSipCall(-1, null);
+        hangUpSipCall(reasonCode, reason);
     }
 
     /**
