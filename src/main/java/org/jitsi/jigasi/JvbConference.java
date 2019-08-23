@@ -201,6 +201,11 @@ public class JvbConference
     private Call jvbCall;
 
     /**
+     * Synchronizes the write access to {@code jvbCall}.
+     */
+    private final Object jvbCallWriteSync = new Object();
+
+    /**
      * Operation set telephony.
      */
     private OperationSetBasicTelephony telephony;
@@ -488,6 +493,8 @@ public class JvbConference
         }
 
         gatewaySession.onJvbConferenceStopped(this, endReasonCode, endReason);
+
+        setJvbCall(null);
     }
 
     /**
@@ -673,8 +680,7 @@ public class JvbConference
 
             gatewaySession.notifyJvbRoomJoined();
 
-            inviteTimeout.scheduleTimeout(
-                AbstractGateway.getJvbInviteTimeout());
+            inviteTimeout.maybeScheduleInviteTimeout();
         }
         catch (Exception e)
         {
@@ -713,23 +719,21 @@ public class JvbConference
         jvbCall.removeCallChangeListener(statsHandler);
         statsHandler = null;
 
-        jvbCall = null;
+        setJvbCall(null);
 
-        // if leave timeout is 0 or less we will not wait for new invite
-        // and let's stop the call
-        if(started && AbstractGateway.getJvbInviteTimeout() <= 0)
+        if (started)
         {
-            stop();
-        }
-        else if (started)
-        {
-            logger.info("Proceed with gwSession call on xmpp call hangup:"
-                + gatewaySession);
-
-            // if no invite comes back we want to hangup the sip call
-            // and disconnect from the conference
-            inviteTimeout.scheduleTimeout(
-                AbstractGateway.getJvbInviteTimeout());
+            // if leave timeout is 0 or less we will not wait for new invite
+            // and let's stop the call
+            if(AbstractGateway.getJvbInviteTimeout() <= 0)
+            {
+                stop();
+            }
+            else
+            {
+                logger.info("Proceed with gwSession call on xmpp call hangup:"
+                    + gatewaySession);
+            }
         }
     }
 
@@ -850,6 +854,9 @@ public class JvbConference
             long inviteTime = AbstractGateway.getJvbInviteTimeout();
             if (inviteTime > 0)
             {
+                // We want to be safe and schedule a timeout just in case jicofo
+                // mess something and does not send us a session-terminate.
+                // On session-terminate we will schedule another timeout
                 inviteTimeout.scheduleTimeout(inviteTime);
             }
             else
@@ -961,9 +968,8 @@ public class JvbConference
                 return;
             }
 
-            inviteTimeout.cancel();
-
-            jvbCall = event.getSourceCall();
+            Call jvbCall = event.getSourceCall();
+            setJvbCall(jvbCall);
             jvbCall.setData(CallContext.class, callContext);
 
             if(jvbCall != null)
@@ -1296,6 +1302,21 @@ public class JvbConference
     }
 
     /**
+     * Sets new jvbCall and checks whether invite timeout should be scheduled
+     * or canceled.
+     * @param newJvbCall the new jvbCall.
+     */
+    private void setJvbCall(Call newJvbCall)
+    {
+        synchronized(jvbCallWriteSync)
+        {
+            this.jvbCall = newJvbCall;
+
+            inviteTimeout.maybeScheduleInviteTimeout();
+        }
+    }
+
+    /**
      * Threads handles the timeout for stopping the conference.
      * For waiting for conference call invite sent by the focus or for waiting
      * another participant to joins.
@@ -1372,7 +1393,7 @@ public class JvbConference
             }
         }
 
-        void cancel()
+        private void cancel()
         {
             synchronized (syncRoot)
             {
@@ -1393,6 +1414,31 @@ public class JvbConference
             catch (InterruptedException e)
             {
                 Thread.currentThread().interrupt();
+            }
+        }
+
+        /**
+         * Checks whether invite timeout should be scheduled or canceled.
+         * If there is no jvb call instance we want to schedule invite timeout
+         * so we can close the conference if nobody join for certain time
+         * or if jvbCall is present we want to cancel any pending timeouts.
+         */
+        void maybeScheduleInviteTimeout()
+        {
+            synchronized(jvbCallWriteSync)
+            {
+                if (JvbConference.this.jvbCall == null
+                        && JvbConference.this.started)
+                {
+                    // if no invite comes back we want to hangup the sip call
+                    // and disconnect from the conference
+                    inviteTimeout.scheduleTimeout(
+                        AbstractGateway.getJvbInviteTimeout());
+                }
+                else
+                {
+                    inviteTimeout.cancel();
+                }
             }
         }
     }
