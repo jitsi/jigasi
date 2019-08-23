@@ -38,16 +38,10 @@ import java.util.*;
  *
  * @author Damian Minkov
  */
-public class SipCallTransformerMonitor
+public class SipCallKeepAliveTransformer
     extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
-    /**
-     * The logger.
-     */
-    private final static Logger logger = Logger.getLogger(
-        SipCallTransformerMonitor.class);
-
     /**
      * The RTCP transformer.
      */
@@ -56,7 +50,7 @@ public class SipCallTransformerMonitor
     /**
      * List of seen incoming or outgoing ssrcs.
      */
-    private Set<Long> seenSSRCs = new HashSet<>();
+    private Set<Long> seenSSRCs = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * The executor which periodically calls {@link KeepAliveIncomingMedia}.
@@ -68,7 +62,7 @@ public class SipCallTransformerMonitor
      * The runner that checks media.
      */
     private KeepAliveIncomingMedia recurringMediaChecker
-        = new KeepAliveIncomingMedia(25000);
+        = new KeepAliveIncomingMedia(15000);
 
     private long lastOutgoingActivity;
 
@@ -85,7 +79,7 @@ public class SipCallTransformerMonitor
     /**
      * Initializes a new {@link SsrcRewriter} instance.
      */
-    public SipCallTransformerMonitor(
+    public SipCallKeepAliveTransformer(
         CallPeerMediaHandler handler, MediaStream stream)
     {
         super(RTPPacketPredicate.INSTANCE);
@@ -102,7 +96,6 @@ public class SipCallTransformerMonitor
     void dispose()
     {
         EXECUTOR.deRegisterRecurringRunnable(recurringMediaChecker);
-        EXECUTOR.close();
     }
 
     /**
@@ -198,6 +191,22 @@ public class SipCallTransformerMonitor
     private class KeepAliveIncomingMedia
         extends PeriodicRunnable
     {
+        /**
+         * The timestamp of the keepalive packets.
+         */
+        private long ts = new Random().nextInt() & 0xFFFFFFFFL;
+
+        /**
+         * The sequence number of the keepalive packets.
+         */
+        private int seqNum = new Random().nextInt(0xFFFF);
+
+        /**
+         * In case of 20 seconds of no media we want to send few
+         * rtp packets to keep it alive.
+         */
+        private long NO_MEDIA_THRESHOLD = 20000;
+
         public KeepAliveIncomingMedia(long period)
         {
             super(period);
@@ -210,17 +219,32 @@ public class SipCallTransformerMonitor
 
             try
             {
-                if (System.currentTimeMillis()
-                        - lastOutgoingActivity > getPeriod())
+                // if there was no activity for a period 5secs less the
+                // period we check
+                if (System.currentTimeMillis() - lastOutgoingActivity
+                        > NO_MEDIA_THRESHOLD)
                 {
-                    handler.sendHolePunchPacket(stream, MediaType.AUDIO);
+                    // we may want to send more than one packet
+                    // in case they get lost
+                    for(int i=0; i < 3; i++)
+                    {
+                        RawPacket packet = RawPacket.makeRTP(
+                            stream.getLocalSourceID(),
+                            13/* comfort noise payload type */,
+                            seqNum++,
+                            ts,
+                            RawPacket.FIXED_HEADER_SIZE + 1);
+
+                        stream.injectPacket(
+                            packet, true, SipCallKeepAliveTransformer.this);
+
+                        ts += 160;
+                    }
+                    lastOutgoingActivity = System.currentTimeMillis();
                 }
             }
-            catch(Exception e)
-            {
-                //Should not happen
-                logger.error("Should not happen exception", e);
-            }
+            catch(Throwable e)
+            {}
         }
     }
 

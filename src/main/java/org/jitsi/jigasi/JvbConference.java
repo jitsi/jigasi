@@ -1035,7 +1035,12 @@ public class JvbConference
                 return;
             }
 
-            if(jvbCall.getCallState() == CallState.CALL_ENDED)
+            if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
+            {
+                logger.info("JVB conference call IN_PROGRESS "
+                    + callContext.getRoomName());
+            }
+            else if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
                 onJvbCallEnded();
             }
