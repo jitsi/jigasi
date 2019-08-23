@@ -37,12 +37,6 @@ public abstract class AbstractGatewaySession
                DTMFListener
 {
     /**
-     * The logger.
-     */
-    private final static Logger logger = Logger.getLogger(
-        AbstractGatewaySession.class);
-
-    /**
      * The <tt>AbstractGateway</tt> that manages this session.
      */
     protected AbstractGateway gateway;
