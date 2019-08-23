@@ -17,9 +17,6 @@
  */
 package org.jitsi.jigasi;
 
-import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.*;
 import org.osgi.framework.*;
@@ -55,14 +52,6 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      */
     public static final String P_NAME_JVB_INVITE_TIMEOUT
         = "org.jitsi.jigasi.JVB_INVITE_TIMEOUT";
-
-    /**
-     * Name of the property used to set default leave timeout. The time to wait
-     * before leaving a conference when the last non-focus participant leaves.
-     * In milliseconds.
-     */
-    public static final String P_NAME_LEAVE_TIMEOUT
-        = "org.jitsi.jigasi.LEAVE_TIMEOUT";
 
     /**
      * Name of the property used to disable advertisement of ICE feature in
@@ -201,16 +190,6 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
         {
             return new ArrayList<>(sessions.values());
         }
-    }
-
-    /**
-     * Returns timeout for waiting before leaving the conference after the last
-     * non-focus participant leaves. Defaults to 3 minutes.
-     */
-    public static long getLeaveTimeout()
-    {
-        return JigasiBundleActivator.getConfigurationService()
-                    .getLong(P_NAME_LEAVE_TIMEOUT, 180L * 1000L);
     }
 
     /**
