@@ -151,6 +151,18 @@ public class SipGatewaySession
     private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
 
     /**
+     * The sound file to use when live streaming is ON.
+     */
+    private static final String LIVE_STREAMING_ON_SOUND
+        = "sounds/LiveStreamingOn.opus";
+
+    /**
+     * The sound file to use when live streaming is OFF.
+     */
+    private static final String LIVE_STREAMING_OFF_SOUND
+        = "sounds/LiveStreamingOff.opus";
+
+    /**
      * The runnable responsible for checking sip call incoming RTP and detecting
      * if media stop.
      */
@@ -216,9 +228,14 @@ public class SipGatewaySession
     public static final String DEFAULT_STATS_REMOTE_ID = "sip";
 
     /**
-     * The current recording status in the conference.
+     * The current Jibri status in the conference.
      */
-    private JibriIq.Status currentRecordingStatus = JibriIq.Status.OFF;
+    private JibriIq.Status currentJibriStatus = JibriIq.Status.OFF;
+
+    /**
+     * The current jibri On sound to use, recording or live streaming.
+     */
+    private String currentJibriOnSound = null;
 
     /**
      * A transformer that monitors RTP and RTCP traffic going and coming
@@ -856,29 +873,39 @@ public class SipGatewaySession
     public void notifyRecordingStatusChanged(
         JibriIq.RecordingMode mode, JibriIq.Status status)
     {
-        // not a recording, ignore
-        if (!mode.equals(JibriIq.RecordingMode.FILE))
-        {
-            return;
-        }
-
         // not a change, ignore
-        if (currentRecordingStatus.equals(status))
+        if (currentJibriStatus.equals(status))
+        {
+            return;
+        }
+        currentJibriStatus = status;
+
+        String offSound;
+        if (mode.equals(JibriIq.RecordingMode.FILE))
+        {
+            currentJibriOnSound = REC_ON_SOUND;
+            offSound = REC_OFF_SOUND;
+        }
+        else if (mode.equals(JibriIq.RecordingMode.STREAM))
+        {
+            currentJibriOnSound = LIVE_STREAMING_ON_SOUND;
+            offSound = LIVE_STREAMING_OFF_SOUND;
+        }
+        else
         {
             return;
         }
 
-        if (JibriIq.Status.ON.equals(status))
+        if(JibriIq.Status.ON.equals(status))
         {
             // if call is still not established this will be ignored in
             // injectSoundFile and nothing will be played
-            Util.injectSoundFile(this.sipCall, REC_ON_SOUND);
+            Util.injectSoundFile(this.sipCall, currentJibriOnSound);
         }
-        else if (JibriIq.Status.OFF.equals(status))
+        else if(JibriIq.Status.OFF.equals(status))
         {
-            Util.injectSoundFile(this.sipCall, REC_OFF_SOUND);
+            Util.injectSoundFile(this.sipCall, offSound);
         }
-        currentRecordingStatus = status;
     }
 
     /**
@@ -1136,9 +1163,9 @@ public class SipGatewaySession
             // when someone connects and recording is on, play notification
             if (CallPeerState.CONNECTED.equals(callPeerState))
             {
-                if (currentRecordingStatus.equals(JibriIq.Status.ON))
+                if (currentJibriStatus.equals(JibriIq.Status.ON))
                 {
-                    Util.injectSoundFile(sipCall, REC_ON_SOUND);
+                    Util.injectSoundFile(sipCall, currentJibriOnSound);
                 }
             }
         }

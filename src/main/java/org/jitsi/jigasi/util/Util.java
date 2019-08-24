@@ -135,7 +135,8 @@ public class Util
             .getAccountID().getAccountPropertyBoolean(
                 ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
                 false)
-            || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1)
+            || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
+            || fileName == null)
         {
             return;
         }
