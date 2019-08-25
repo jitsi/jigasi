@@ -85,6 +85,10 @@ public class OSGiHandler
 
         OSGi.setBundleConfig(bundles);
 
+        bundles.setSystemPropertyDefaults();
+
+        OSGi.setClassLoader(ClassLoader.getSystemClassLoader());
+
         OSGi.start(bundleActivator);
 
         if (bc == null)
