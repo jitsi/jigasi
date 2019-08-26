@@ -20,7 +20,6 @@ package org.jitsi.jigasi;
 import org.jitsi.xmpp.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.util.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;

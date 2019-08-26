@@ -185,16 +185,17 @@ public class CallControl
         if (roomName == null)
             throw new RuntimeException("No JvbRoomName header found");
 
-        logger.info(
-            "Got dial request " + from + " -> " + to + " room: " + roomName);
+        logger.info(ctx +
+            " Got dial request " + from + " -> " + to + " room: " + roomName);
 
         AbstractGatewaySession session = null;
         if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
         {
             if(transcriptionGateway == null)
             {
-                logger.error("Cannot accept dial request " + to + " because" +
-                    " the TranscriptionGateway is disabled");
+                logger.error(ctx
+                    + " Cannot accept dial request " + to + " because"
+                    + " the TranscriptionGateway is disabled");
                 return RefIq.createResult(iq,
                     XMPPError.Condition.not_acceptable.toString());
             }
@@ -205,8 +206,9 @@ public class CallControl
         {
             if(sipGateway == null)
             {
-                logger.error("Cannot accept dial request " + to + " because" +
-                    " the SipGateway is disabled");
+                logger.error(ctx
+                    + " Cannot accept dial request " + to + " because"
+                    + " the SipGateway is disabled");
                 return RefIq.createResult(iq,
                     XMPPError.Condition.not_acceptable.toString());
             }

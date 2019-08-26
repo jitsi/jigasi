@@ -437,7 +437,7 @@ public class SipGatewaySession
 
         if (error != null)
         {
-            logger.error(error, error);
+            logger.error(this.callContext + " " + error, error);
         }
     }
 
@@ -457,7 +457,8 @@ public class SipGatewaySession
             if (this.sipCall != null)
             {
                 logger.info(
-                    "Connecting existing sip call to incoming xmpp call "
+                    this.callContext +
+                    " Connecting existing sip call to incoming xmpp call "
                         + this);
 
                 jvbConferenceCall.setConference(sipCall.getConference());
@@ -523,7 +524,7 @@ public class SipGatewaySession
                 jvbConferenceCall.setConference(sipCall.getConference());
 
                 logger.info(
-                    "Created outgoing call to " + destination + " " + sipCall);
+                    this.callContext + " Created outgoing call to " + this);
 
                 //FIXME: It might be already in progress or ended ?!
                 if (!CallState.CALL_INITIALIZATION.equals(sipCall.getCallState()))
@@ -573,8 +574,8 @@ public class SipGatewaySession
         }
         else
         {
-            logger.error(
-                "JVB conference unavailable. Failed to send: "
+            logger.error(this.callContext +
+                " JVB conference unavailable. Failed to send: "
                     + extension.toXML());
         }
     }
@@ -584,7 +585,8 @@ public class SipGatewaySession
         if (sipCall == null)
             return;
 
-        logger.info("Sip call ended: " + sipCall.toString());
+        logger.info(this.callContext
+            + " Sip call ended: " + sipCall.toString());
 
         sipCall.removeCallChangeListener(callStateListener);
 
@@ -759,7 +761,8 @@ public class SipGatewaySession
                     }
                     catch (OperationFailedException ofe)
                     {
-                        logger.info("Failed to forward a DTMF tone: " + ofe);
+                        logger.info(this.callContext
+                            + " Failed to forward a DTMF tone: " + ofe);
                     }
                 }
                 else
@@ -986,7 +989,8 @@ public class SipGatewaySession
                     if (!gatewayMediaDropped)
                     {
                         logger.error(
-                            "Stopped receiving RTP for " + getSipCall());
+                            SipGatewaySession.this.callContext +
+                            " Stopped receiving RTP for " + getSipCall());
 
                         if (!statsSent)
                         {
@@ -1010,7 +1014,8 @@ public class SipGatewaySession
                 {
                     if (gatewayMediaDropped)
                     {
-                        logger.info("RTP resumed for " + getSipCall());
+                        logger.info(SipGatewaySession.this.callContext
+                            + " RTP resumed for " + getSipCall());
                     }
                     gatewayMediaDropped = false;
                 }
@@ -1018,7 +1023,8 @@ public class SipGatewaySession
             catch(IOException e)
             {
                 //Should not happen
-                logger.error("Should not happen exception", e);
+                logger.error(SipGatewaySession.this.callContext
+                    + " Should not happen exception", e);
             }
         }
     }
@@ -1040,8 +1046,6 @@ public class SipGatewaySession
         @Override
         public void callStateChanged(CallChangeEvent evt)
         {
-            //logger.info("SIP call " + evt);
-
             handleCallState(evt.getSourceCall(), evt.getCause());
         }
 
@@ -1050,8 +1054,8 @@ public class SipGatewaySession
             // Once call is started notify SIP gateway
             if (call.getCallState() == CallState.CALL_IN_PROGRESS)
             {
-                logger.info("Sip call IN_PROGRESS: "
-                    + call + " " + callContext.getRoomName());
+                logger.info(SipGatewaySession.this.callContext
+                    + " Sip call IN_PROGRESS: " + call);
                 //sendPresenceExtension(
                   //  createPresenceExtension(
                     //    SipGatewayExtension.STATE_IN_PROGRESS, null));
@@ -1059,12 +1063,14 @@ public class SipGatewaySession
                 //jvbConference.setPresenceStatus(
                   //  SipGatewayExtension.STATE_IN_PROGRESS);
 
-                logger.info("SIP call format used: "
-                                + Util.getFirstPeerMediaFormat(call));
+                logger.info(SipGatewaySession.this.callContext
+                    + " SIP call format used: "
+                    + Util.getFirstPeerMediaFormat(call));
             }
             else if(call.getCallState() == CallState.CALL_ENDED)
             {
-                logger.info("SIP call ended: " + cause);
+                logger.info(SipGatewaySession.this.callContext
+                    + " SIP call ended: " + cause);
 
                 if (peerStateListener != null)
                     peerStateListener.unregister();
@@ -1129,10 +1135,7 @@ public class SipGatewaySession
             CallPeerState callPeerState = (CallPeerState)evt.getNewValue();
             String stateString = callPeerState.getStateString();
 
-            logger.info(
-                (callContext == null ?
-                    "no-call-ctx" : callContext.getCallResource())
-                + " SIP peer state: " + stateString);
+            logger.info(callContext + " SIP peer state: " + stateString);
 
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
@@ -1195,7 +1198,8 @@ public class SipGatewaySession
 
                     if (cancel)
                     {
-                        logger.info("Wait thread cancelled");
+                        logger.info(SipGatewaySession.this.callContext
+                            + " Wait thread cancelled");
                         return;
                     }
 
@@ -1209,8 +1213,9 @@ public class SipGatewaySession
                         if (defaultRoom != null)
                         {
                             logger.info(
-                                    "Using default JVB room name property "
-                                            + defaultRoom);
+                                SipGatewaySession.this.callContext
+                                + "Using default JVB room name property "
+                                + defaultRoom);
 
                             callContext.setRoomName(defaultRoom);
 
@@ -1219,7 +1224,9 @@ public class SipGatewaySession
                         else
                         {
                             logger.info(
-                                "No JVB room name provided in INVITE header");
+                                SipGatewaySession.this.callContext
+                                + " No JVB room name provided in INVITE header"
+                            );
 
                             hangUp(
                             OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE,
