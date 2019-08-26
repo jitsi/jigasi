@@ -127,12 +127,18 @@ public class CallContext
     private final Object source;
 
     /**
+     * A unique id of this context.
+     */
+    private final String ctxId;
+
+    /**
      * Constructs new CallContext saving the timestamp at which it was created.
      */
     public CallContext(Object source)
     {
         this.source = source;
         this.timestamp = System.currentTimeMillis();
+        this.ctxId = this.timestamp + String.valueOf(super.hashCode());
     }
 
     /**
@@ -410,5 +416,11 @@ public class CallContext
         room = room.substring(0, room.indexOf("@"));
 
         return url + "/" + room;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "[ctx=" + ctxId + ']';
     }
 }

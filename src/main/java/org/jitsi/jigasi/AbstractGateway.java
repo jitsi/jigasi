@@ -117,18 +117,15 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
 
             if (session == null)
             {
-                // FIXME: print some gateway ID or provider here
                 logger.error(
-                    "Call resource not exists for session "
-                    + callContext.getCallResource());
+                    callContext + " Call resource not exists for session.");
                 return;
             }
 
             fireGatewaySessionRemoved(session);
         }
 
-        logger.info("Removed session for call "
-                    + callContext.getCallResource());
+        logger.info(callContext + " Removed session for call.");
     }
 
     /**

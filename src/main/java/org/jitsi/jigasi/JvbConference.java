@@ -387,7 +387,7 @@ public class JvbConference
     {
         if (started)
         {
-            logger.error("Already started !");
+            logger.error(this.callContext + " Already started !");
             return;
         }
 
@@ -449,7 +449,7 @@ public class JvbConference
     {
         if (!started)
         {
-            logger.error("Already stopped !");
+            logger.error(this.callContext + " Already stopped !");
             return;
         }
 
@@ -480,8 +480,7 @@ public class JvbConference
             xmppProvider.removeRegistrationStateChangeListener(this);
 
             logger.info(
-                callContext.getCallResource()
-                    + " is removing account " + xmppAccount);
+                callContext + " Removing account " + xmppAccount);
 
             xmppProviderFactory.unloadAccount(xmppAccount);
 
@@ -517,11 +516,11 @@ public class JvbConference
         {
 
             logger.info(
-                callResource + " rejects XMPP provider " + xmppProvider);
+                this.callContext + " Rejects XMPP provider " + xmppProvider);
             return;
         }
 
-        logger.info(callResource + " will use " + xmppProvider);
+        logger.info(this.callContext + " Using " + xmppProvider);
 
         this.xmppProvider = xmppProvider;
 
@@ -555,20 +554,16 @@ public class JvbConference
         }
         else if (evt.getNewState() == RegistrationState.UNREGISTERED)
         {
-            logger.error("Unregistered XMPP on "
-                        + callContext.getCallResource());
+            logger.error(this.callContext + " Unregistered XMPP.");
         }
         else if (evt.getNewState() == RegistrationState.CONNECTION_FAILED)
         {
-            logger.error("Connection failed XMPP on "
-                        + callContext.getCallResource());
+            logger.error(this.callContext + " XMPP Connection failed.");
             stop();
         }
         else
         {
-            logger.info(
-                "XMPP (" + callContext.getCallResource()
-                         + "): " + evt.toString());
+            logger.info(this.callContext + evt.toString());
         }
     }
 
@@ -612,7 +607,7 @@ public class JvbConference
             }
             String roomPassword = callContext.getRoomPassword();
 
-            logger.info("Joining JVB conference room: " + roomName);
+            logger.info(this.callContext + " Joining JVB conference room: " + roomName);
 
             ChatRoom mucRoom = muc.findRoom(roomName);
 
@@ -626,7 +621,8 @@ public class JvbConference
                 }
                 else
                 {
-                    logger.error("No display name to use...");
+                    logger.error(this.callContext
+                        + " No display name to use...");
                 }
 
                 String region = JigasiBundleActivator.getConfigurationService()
@@ -684,7 +680,7 @@ public class JvbConference
         }
         catch (Exception e)
         {
-            logger.error(e, e);
+            logger.error(this.callContext.toString() + e, e);
 
             // inform that this session had failed
             gatewaySession.getGateway()
@@ -711,7 +707,7 @@ public class JvbConference
     {
         if (jvbCall == null)
         {
-            logger.warn("Jvb call already disposed");
+            logger.warn(this.callContext + " JVB call already disposed");
             return;
         }
 
@@ -731,8 +727,8 @@ public class JvbConference
             }
             else
             {
-                logger.info("Proceed with gwSession call on xmpp call hangup:"
-                    + gatewaySession);
+                logger.info(this.callContext
+                    + " Proceed with gwSession call on xmpp call hangup.");
             }
         }
     }
@@ -741,7 +737,7 @@ public class JvbConference
     {
         if (mucRoom == null)
         {
-            logger.warn("MUC room is null");
+            logger.warn(this.callContext + " MUC room is null");
             return;
         }
 
@@ -788,7 +784,7 @@ public class JvbConference
     {
         if (logger.isTraceEnabled())
         {
-            logger.trace("Member presence change: " + evt);
+            logger.trace(this.callContext + " Member presence change: " + evt);
         }
 
         ChatRoomMember member = evt.getChatRoomMember();
@@ -835,14 +831,14 @@ public class JvbConference
         {
             gatewaySession.notifyChatRoomMemberLeft(member);
             logger.info(
-                    "Member left : " + member.getRole()
+                this.callContext + " Member left : " + member.getRole()
                             + " " + member.getContactAddress());
         }
 
         // if it is the focus leaving
         if (member.getName().equals(focusResourceAddr))
         {
-            logger.info("Focus left! - stopping");
+            logger.info(this.callContext + " Focus left! - stopping");
             stop();
 
             return;
@@ -931,7 +927,8 @@ public class JvbConference
             String peerAddress;
             if (peer == null || peer.getAddress() == null)
             {
-                logger.error("Failed to obtain focus peer address");
+                logger.error(callContext
+                    + " Failed to obtain focus peer address");
                 peerAddress = null;
             }
             else
@@ -941,12 +938,17 @@ public class JvbConference
                     = fullAddress.substring(
                             fullAddress.indexOf("/") + 1);
 
-                logger.info("Got invite from " + peerAddress);
+                logger.info(callContext
+                    + " Got invite from " + peerAddress);
             }
 
             if (peerAddress == null || !peerAddress.equals(focusResourceAddr))
             {
-                logger.warn("Calls not initiated from focus are not allowed");
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(callContext +
+                        " Calls not initiated from focus are not allowed");
+                }
 
                 CallManager.hangupCall(event.getSourceCall(),
                     403, "Only calls from focus allowed");
@@ -955,8 +957,8 @@ public class JvbConference
 
             if (jvbCall != null)
             {
-                logger.error(
-                    "JVB conference call already started " + hashCode());
+                logger.error(callContext +
+                    " JVB conference call already started ");
                 CallManager.hangupCall(event.getSourceCall(),
                     200, "Call completed elsewhere");
                 return;
@@ -964,7 +966,7 @@ public class JvbConference
 
             if (!started || xmppProvider == null)
             {
-                logger.error("Instance disposed");
+                logger.error(callContext + " Instance disposed");
                 return;
             }
 
@@ -981,16 +983,16 @@ public class JvbConference
                 }
                 else
                 {
-                    logger.warn("Could not add JvbConference as " +
-                        "CallPeerConferenceListener because CallPeer is" +
-                        " null");
+                    logger.warn(callContext + " Could not add JvbConference as "
+                        + "CallPeerConferenceListener because CallPeer is null"
+                    );
                 }
             }
             else
             {
-                logger.warn("Could not add JvbConference as " +
-                    "CallPeerConferenceListener because jvbCall is" +
-                    " null");            }
+                logger.warn(callContext + " Could not add JvbConference as "
+                    + "CallPeerConferenceListener because jvbCall is null");
+            }
 
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
@@ -1027,15 +1029,14 @@ public class JvbConference
             if (jvbCall != evt.getSourceCall())
             {
                 logger.error(
-                    "Call change event for different call ? "
+                    callContext + " Call change event for different call ? "
                         + evt.getSourceCall() + " : " + jvbCall);
                 return;
             }
 
             if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
             {
-                logger.info("JVB conference call IN_PROGRESS "
-                    + callContext.getRoomName());
+                logger.info(callContext + " JVB conference call IN_PROGRESS.");
             }
             else if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
@@ -1245,7 +1246,8 @@ public class JvbConference
     {
         if (callContext == null || callContext.getDomain() == null)
         {
-            logger.error("No domain name info to use for inviting focus!"
+            logger.error(this.callContext
+                + " No domain name info to use for inviting focus!"
                 + " Please set DOMAIN_BASE to the sip account.");
             return;
         }
@@ -1268,8 +1270,8 @@ public class JvbConference
         }
         catch (XmppStringprepException e)
         {
-            logger.error(
-                "Could not create destination address for focus invite", e);
+            logger.error(this.callContext +
+                " Could not create destination address for focus invite", e);
             return;
         }
 
@@ -1288,8 +1290,8 @@ public class JvbConference
                 | XMPPException.XMPPErrorException
                 | InterruptedException e)
             {
-                logger.error(
-                    "Could not invite the focus to the conference", e);
+                logger.error(this.callContext +
+                    " Could not invite the focus to the conference", e);
             }
             finally
             {
@@ -1377,7 +1379,8 @@ public class JvbConference
 
                     if (willCauseTimeout)
                     {
-                        logger.error(errorLog + " (" + timeout + " ms)");
+                        logger.error(callContext + " "
+                            + errorLog + " (" + timeout + " ms)");
 
                         JvbConference.this.endReason = this.endReason;
                         JvbConference.this.endReasonCode
