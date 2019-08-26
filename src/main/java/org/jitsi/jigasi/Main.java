@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,15 +30,18 @@ import org.jitsi.utils.*;
 import org.jivesoftware.smack.*;
 
 /**
- * FIXME: update description
- * SIP gateway for Jitsi Videobridge conferences. Requires one XMPP and one SIP
- * account to be configured in sip-communicator.properties file. JVB conference
- * must be held on the same server as XMPP account. Currently after start the
- * conference held in {@link JvbConference#callContext} MUC is joined.
- * SIP account is used to dial {@link SipGateway} once we join
- * the conference. Work in progress...
+ * The gateway for Jitsi Videobridge conferences. Requires one SIP
+ * account to be configured in sip-communicator.properties file that will be
+ * used for getting incoming calls and placing outgoing calls. Commands placing
+ * outgoing calls can be received through XMPP connection, either a component
+ * one or multiple XMPP client connections connecting to the so called brewery
+ * rooms (MUCs). Currently after start the
+ * conference held in {@link JvbConference} MUC is joined using a common client
+ * connection. SIP account is used to dial {@link SipGateway} once we join
+ * the conference or to receive the incoming calls.
  *
  * @author Pawel Domas
+ * @author Damian Minkov
  */
 public class Main
 {
@@ -148,6 +151,12 @@ public class Main
     private static final String CONFIG_DIR_NAME_ARG_NAME = "--configdirname";
 
     /**
+     * The name of the command-line argument which specifies that configuration
+     * file is writable.
+     */
+    private static final String CONFIG_WRITABLE_ARG_NAME = "--configwritable";
+
+    /**
      * A list of packages(iq providers) not used by jigasi.
      * Removing them from smack, removes a lot of weakHashMaps and
      * connection listeners.
@@ -237,6 +246,12 @@ public class Main
         System.setProperty(
             ConfigurationService.PNAME_SC_HOME_DIR_NAME,
             configDirName);
+
+        Boolean isConfigReadonly =
+            !Boolean.valueOf(cmdLine.getOptionValue(CONFIG_WRITABLE_ARG_NAME));
+        System.setProperty(
+            ConfigurationService.PNAME_CONFIGURATION_FILE_IS_READ_ONLY,
+            isConfigReadonly.toString());
 
         String logdir = cmdLine.getOptionValue(LOGDIR_ARG_NAME);
         if (!StringUtils.isNullOrEmpty(logdir))
