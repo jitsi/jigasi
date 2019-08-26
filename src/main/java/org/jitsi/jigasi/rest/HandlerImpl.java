@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,17 @@ import java.util.concurrent.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
-import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
+import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.rest.*;
+
+import org.eclipse.jetty.server.*;
 import org.json.simple.*;
+import org.json.simple.parser.*;
 import org.osgi.framework.*;
 
 /**
@@ -80,10 +84,26 @@ import org.osgi.framework.*;
  *       <td>POST</td>
  *       <td>/about/shutdown</td>
  *       <td>
- *         200 OK if shuting down through rest is enabled will put Jigasi in
+ *         200 OK if shutting down through rest is enabled will put Jigasi in
  *         graceful shutdown and will wait for all conferences to end and will
  *         shutdown after that.
  *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/configure/call-control-muc/add</td>
+ *       <td>
+ *         200 OK if adding an XMPP call control MUC was successful.
+ *       </td>
+ *     </tr>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/configure/call-control-muc/remove</td>
+ *       <td>
+ *         200 OK if removing an XMPP call control MUC was successful.
+ *       </td>
+ *     </tr>
  *     </tr>
  *   </tbody>
  * </table>
@@ -100,6 +120,12 @@ public class HandlerImpl
      * The logger
      */
     private final static Logger logger = Logger.getLogger(HandlerImpl.class);
+
+    /**
+     * The HTTP resource which is used to add/remove new XMPP control MUC.
+     */
+    private static final String CONFIGURE_MUC_TARGET
+        = "/configure/call-control-muc";
 
     /**
      * The HTTP resource which is used to trigger graceful shutdown.
@@ -231,6 +257,13 @@ public class HandlerImpl
                 response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         }
+        else if (target.startsWith(CONFIGURE_MUC_TARGET + "/"))
+        {
+            doHandleConfigureMucRequest(
+                target.substring((CONFIGURE_MUC_TARGET + "/").length()),
+                request,
+                response);
+        }
 
         int newResponseStatus = response.getStatus();
 
@@ -324,5 +357,114 @@ public class HandlerImpl
         }
         response.setStatus(status);
         new JSONObject(responseMap).writeJSONString(response.getWriter());
+    }
+
+    /**
+     * Configures new MUC control room or removes it. Handles requests:
+     * to /configure/call-control-muc.
+     *
+     * @param target the target URL with the part after
+     * {@code CONFIGURE_MUC_TARGET}.
+     * @param request the request either as the {@code Request} object or a
+     * wrapper of that request
+     * @param response the response either as the {@code Response} object or a
+     * wrapper of that response
+     * @throws IOException
+     */
+    private void doHandleConfigureMucRequest(
+        String target,
+        HttpServletRequest request,
+        HttpServletResponse response)
+        throws IOException
+    {
+        if (!POST_HTTP_METHOD.equals(request.getMethod()))
+        {
+            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            return;
+        }
+
+        if (!RESTUtil.isJSONContentType(request.getContentType()))
+        {
+            response.setStatus(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+            return;
+        }
+
+        JSONObject requestJSONObject;
+        try
+        {
+            Object o = new JSONParser().parse(request.getReader());
+            if (o instanceof JSONObject)
+            {
+                requestJSONObject = (JSONObject) o;
+            }
+            else
+            {
+                requestJSONObject = null;
+            }
+        }
+        catch (Exception e)
+        {
+            requestJSONObject = null;
+        }
+
+        if (requestJSONObject == null)
+        {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        if (!JigasiBundleActivator.getConfigurationService()
+                .getBoolean(
+                    CallControlMucActivator.BREWERY_ENABLED_PROP, false))
+        {
+            //MUC call control disabled.
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            return;
+        }
+
+        if ("add".equals(target))
+        {
+            if (requestJSONObject == null
+                || !(requestJSONObject.get("id") instanceof String))
+            {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            String id = (String) requestJSONObject.get("id");
+
+            try
+            {
+                CallControlMucActivator.addCallControlMucAccount(
+                    id, requestJSONObject.entrySet());
+            }
+            catch(OperationFailedException e)
+            {
+                logger.error("Failed to add account:" + id, e);
+                response.setStatus(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
+
+            response.setStatus(HttpServletResponse.SC_OK);
+        }
+        else if ("remove".equals(target))
+        {
+            if (requestJSONObject == null
+                || !(requestJSONObject.get("id") instanceof String))
+            {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            CallControlMucActivator.removeCallControlMucAccount(
+                (String) requestJSONObject.get("id"));
+
+            response.setStatus(HttpServletResponse.SC_OK);
+        }
+        else
+        {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
     }
 }
