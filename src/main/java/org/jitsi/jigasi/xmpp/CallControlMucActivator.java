@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.Base64;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
@@ -398,6 +399,101 @@ public class CallControlMucActivator
     private void updatePresenceStatusForXmppProviders()
     {
         Statistics.updatePresenceStatusForXmppProviders();
+    }
+
+    /**
+     * Adds new call control MUC xmpp account using the provided props.
+     *
+     * @param id the id to use for this account(should not contain .).
+     * @param propertiesSet the properties.
+     * @throws OperationFailedException if failed loading account.
+     */
+    public static void addCallControlMucAccount(
+            String id,
+            Set<Map.Entry<String, String>> propertiesSet)
+        throws OperationFailedException
+    {
+        ConfigurationService config
+            = JigasiBundleActivator.getConfigurationService();
+        ProtocolProviderFactory xmppProviderFactory
+            = ProtocolProviderFactory.getProtocolProviderFactory(
+                JigasiBundleActivator.osgiContext,
+                ProtocolNames.JABBER);
+        AccountManager accountManager
+            = ProtocolProviderActivator.getAccountManager();
+
+        // extract the properties, make sure we decode the password
+        HashMap<String, String> properties = new HashMap<>();
+        propertiesSet.stream().forEach(e ->
+        {
+            String property = e.getKey();
+            String value = e.getValue();
+            if (ProtocolProviderFactory.PASSWORD.equals(property))
+            {
+                value = new String(Base64.decode(value));
+            }
+
+            properties.put(property, value);
+        });
+
+        AccountID xmppAccount
+            = xmppProviderFactory.createAccount(properties);
+
+        // A small workaround to make sure we use the id for the
+        // account that is provided, this is in case we want to
+        // delete the account by the same id.
+        // We use the fact that account manager will reuse the id if found
+        // to store the properties (like edit of an account).
+        {
+            String accountConfigPrefix = accountManager
+                .getFactoryImplPackageName(xmppProviderFactory) + "." + id;
+
+            config.setProperty(accountConfigPrefix, id);
+            config.setProperty(
+                accountConfigPrefix
+                    + "." + ProtocolProviderFactory.ACCOUNT_UID,
+                xmppAccount.getAccountUniqueID());
+        }
+
+        accountManager.loadAccount(xmppAccount);
+
+        logger.info("Added new control muc account:" + id);
+    }
+
+    /**
+     * Removes call control MUC xmmpp account identified by the passed id.
+     * @param id the id of the account to delete.
+     */
+    public static void removeCallControlMucAccount(String id)
+    {
+        ConfigurationService config
+            = JigasiBundleActivator.getConfigurationService();
+        ProtocolProviderFactory xmppProviderFactory
+            = ProtocolProviderFactory.getProtocolProviderFactory(
+                JigasiBundleActivator.osgiContext,
+                ProtocolNames.JABBER);
+        AccountManager accountManager
+            = ProtocolProviderActivator.getAccountManager();
+
+        String accountIDStr = config.getString(
+            accountManager.getFactoryImplPackageName(xmppProviderFactory)
+                + "." + id + "." + ProtocolProviderFactory.ACCOUNT_UID);
+
+        AccountID accountID = accountManager.getStoredAccounts().stream()
+            .filter(a -> a.getAccountUniqueID().equals(accountIDStr))
+            .findFirst().orElse(null);
+
+        if (accountID != null)
+        {
+            boolean result
+                = xmppProviderFactory.uninstallAccount(accountID);
+            logger.info("Removing muc control account: "
+                + id + ", successful:" + result);
+        }
+        else
+        {
+            logger.warn("No muc control account found for removing");
+        }
     }
 
     /**
