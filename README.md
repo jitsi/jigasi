@@ -176,3 +176,99 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
             spammed.</td>
     </tr>
 </table>
+
+Call control MUCs (brewery)
+=======================================
+
+For outgoing calls jigasi by default configures using callcontrol XMPP component 
+(when installing using Debian package). Jicofo discovers jigasi components and 
+uses them.
+Instead of component and for multiple jigasi instances and better load balancing 
+jigasi can disable component (by passing startup parameter `--nocomponent=true`)
+and can use XMPP MUCs called a brewery to join and be discovered.
+To configure using MUCs you need to add an XMPP account that will be used to 
+connect to the XMPP server and add the property 
+`org.jitsi.jigasi.BREWERY_ENABLED=true`.
+Here are example XMPP account properties:
+```
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1=acc-xmpp-1
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ACCOUNT_UID=Jabber:jigasi@auth.meet.jit.si@meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.USER_ID=jigasi@auth.meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_SERVER_OVERRIDDEN=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_ADDRESS=<xmpp_server_ip_address>
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_PORT=5222
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BOSH_URL=https://xmpp_server_ip_address/http-bind
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ALLOW_NON_SECURE=true
+#base64
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.PASSWORD=<xmpp_account_password>
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.RESOURCE_PRIORITY=30
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.KEEP_ALIVE_METHOD=XEP-0199
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.KEEP_ALIVE_INTERVAL=30
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CALLING_DISABLED=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.JINGLE_NODES_ENABLED=false
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_CARBON_DISABLED=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_USE_ICE=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_ACCOUNT_DISABLED=false
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_PREFERRED_PROTOCOL=false
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.AUTO_DISCOVER_JINGLE_NODES=false
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.PROTOCOL=Jabber
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_USE_UPNP=false
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IM_DISABLED=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_STORED_INFO_DISABLED=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_FILE_TRANSFER_DISABLED=true
+
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BOSH_URL_PATTERN=https://{host}{subdomain}/http-bind?room={roomName}
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.DOMAIN_BASE=meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BREWERY=JigasiBreweryRoom@internal.muc.meet.jit.si
+
+```
+The property `BOSH_URL_PATTERN` is the bosh URL that will be used from jigasi 
+when a call on this account is received.
+
+The value of `BREWERY` is the name of the brewery room where jigasi will connect.
+That room needs to be configured in jicofo with the following property:
+`org.jitsi.jicofo.jigasi.BREWERY=JigasiBreweryRoom@internal.muc.meet.jit.si`
+Where prosody needs to have a registered muc component: `internal.muc.meet.jit.si`.
+
+You can configure and per XMPP account callstats account, a jigasi instance can 
+serve several deployments/domains:
+```
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.appId=...
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyId=...
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyPath=/etc/jitsi/jigasi/ecpriv.jwk
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.conferenceIDPrefix=meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.jigasiId=<id-of-this-instance-visible-in-callstats>
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.STATISTICS_INTERVAL=60000
+``` 
+
+The configuration for the XMPP control MUCs that jigasi uses can be modified at 
+run time using REST calls to `/configure/`.
+
+# Adding an XMPP control MUC
+A new XMPP control MUC can be added by posting a JSON which contains its configuration to `/configure/call-control-muc/add`:
+```
+{
+  "id": "acc-xmpp-1",
+  "ACCOUNT_UID":"Jabber:jigasi@auth.meet.jit.si@meet.jit.si",
+  "USER_ID":"jigasi@auth.meet.jit.si",
+  "IS_SERVER_OVERRIDDEN":"true",
+  .....
+}
+```
+
+If a configuration with the specified ID already exists, the request will 
+succeed (return 200), but the configuration will NOT be updated. If you need to 
+update an existing configuration, you need to remove it first and then re-add it.
+
+# Removing an XMPP control MUC.
+An XMPP control MUC can be removed by posting a JSON which contains its ID 
+to `/configure/call-control-muc/remove`:
+```
+{
+  "id": "acc-xmpp-1"
+}
+```
+
+The request will be successful (return 200) as long as the format of the JSON is 
+as expected, regardless of whether a connection was found and removed or it 
+wasn't found.
