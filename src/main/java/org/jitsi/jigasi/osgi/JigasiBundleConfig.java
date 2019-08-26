@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.impl.osgi.framework.launch.*;
 import org.jitsi.meet.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.stats.media.*;
 
 import java.util.*;
@@ -204,6 +205,13 @@ public class JigasiBundleConfig
                 .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
             true_);
         defaults.put(SRTPCryptoContext.CHECK_REPLAY_PNAME, false_);
+
+        // override defaults with passed to the Main
+        defaults.put(
+            ConfigurationService.PNAME_CONFIGURATION_FILE_IS_READ_ONLY,
+            System.getProperty(
+                ConfigurationService.PNAME_CONFIGURATION_FILE_IS_READ_ONLY,
+                true_));
 
         // java-stats(stats-java-sdk)
         Utils.getCallStatsJavaSDKSystemPropertyDefaults(defaults);
