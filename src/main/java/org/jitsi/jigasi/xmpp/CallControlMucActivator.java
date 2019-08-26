@@ -260,6 +260,10 @@ public class CallControlMucActivator
         {
             joinCommonRoom(evt.getProvider());
         }
+        else if (evt.getNewState() == RegistrationState.UNREGISTERING)
+        {
+            leaveCommonRoom(evt.getProvider());
+        }
     }
 
     /**
@@ -268,15 +272,13 @@ public class CallControlMucActivator
      */
     private void joinCommonRoom(ProtocolProviderService pps)
     {
-        OperationSetMultiUserChat muc
-            = pps.getOperationSet(OperationSetMultiUserChat.class);
-
         String roomName = pps.getAccountID()
             .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
 
         if (roomName == null)
         {
-            logger.warn("No brewery name specified for:" + pps);
+            // this is the common account for connecting which is configured
+            // to use authorization
             return;
         }
 
@@ -302,6 +304,8 @@ public class CallControlMucActivator
                 connectionResource = conn.getUser().getResourceOrNull();
             }
 
+            OperationSetMultiUserChat muc
+                = pps.getOperationSet(OperationSetMultiUserChat.class);
 
             ChatRoom mucRoom = muc.findRoom(roomName);
             if (connectionResource != null)
@@ -317,6 +321,42 @@ public class CallControlMucActivator
             // so jicofo can recognize us as real jigasi and load balance us
             Statistics.updatePresenceStatusForXmppProviders(
                 Collections.singletonList(pps));
+        }
+        catch (Exception e)
+        {
+            logger.error(e, e);
+        }
+    }
+
+    /**
+     * Leaves the common control room.
+     * @param pps the provider to leave.
+     */
+    private void leaveCommonRoom(ProtocolProviderService pps)
+    {
+        String roomName = pps.getAccountID()
+            .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
+
+        if (roomName == null)
+        {
+            // this is the common account for connecting which is configured
+            // to use authorization
+            return;
+        }
+
+        try
+        {
+            logger.info(
+                "Leaving call control room: " + roomName + " pps:" + pps);
+
+            OperationSetMultiUserChat muc
+                = pps.getOperationSet(OperationSetMultiUserChat.class);
+
+            ChatRoom mucRoom = muc.findRoom(roomName);
+            if (mucRoom != null)
+            {
+                mucRoom.leave();
+            }
         }
         catch (Exception e)
         {
