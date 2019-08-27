@@ -225,14 +225,11 @@ public class CallControlMucActivator
      */
     private void initializeNewProvider(ProtocolProviderService pps)
     {
+        // we are interested only in XMPP accounts with BREWERY property
         if (!ProtocolNames.JABBER.equals(pps.getProtocolName())
-            || (pps.getAccountID() instanceof JabberAccountID
-                    && ((JabberAccountID)pps.getAccountID())
-                        .isAnonymousAuthUsed()))
+            || pps.getAccountID()
+                .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) == null)
         {
-            // we do not care for anonymous logins, these are normally the xmpp
-            // sessions in a call
-            // while the call control xmpp accounts are authorized
             return;
         }
 
@@ -275,13 +272,6 @@ public class CallControlMucActivator
     {
         String roomName = pps.getAccountID()
             .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
-
-        if (roomName == null)
-        {
-            // this is the common account for connecting which is configured
-            // to use authorization
-            return;
-        }
 
         try
         {
