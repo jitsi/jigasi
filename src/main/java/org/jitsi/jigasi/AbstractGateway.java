@@ -125,7 +125,8 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
             fireGatewaySessionRemoved(session);
         }
 
-        logger.info(callContext + " Removed session for call.");
+        logger.info(callContext
+            + " Removed session for call. Sessions:" + sessions.size());
     }
 
     /**

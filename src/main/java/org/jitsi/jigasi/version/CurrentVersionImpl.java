@@ -47,7 +47,7 @@ public class CurrentVersionImpl
      */
     public static final String NIGHTLY_BUILD_ID = "build.SVN";
 
-    static final Version VERSION
+    public static final Version VERSION
             = new VersionImpl(
             "Jigasi",
             VERSION_MAJOR,
