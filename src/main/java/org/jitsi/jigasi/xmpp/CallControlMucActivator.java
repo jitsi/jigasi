@@ -411,16 +411,6 @@ public class CallControlMucActivator
                 ProtocolNames.JABBER);
         AccountManager accountManager
             = ProtocolProviderActivator.getAccountManager();
-
-        // decode the password in the format expected
-        String pass = properties.get(ProtocolProviderFactory.PASSWORD);
-        if (pass == null)
-            throw new OperationFailedException(
-                "No password provided",
-                OperationFailedException.INVALID_ACCOUNT_PROPERTIES);
-        properties.put(ProtocolProviderFactory.PASSWORD,
-            new String(Base64.decode(pass)));
-
         AccountID xmppAccount
             = xmppProviderFactory.createAccount(properties);
 
