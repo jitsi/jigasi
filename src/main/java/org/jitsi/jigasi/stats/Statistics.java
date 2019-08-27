@@ -58,6 +58,14 @@ public class Statistics
         = Logger.getLogger(Statistics.class);
 
     /**
+     * The name of the number of conferences for which XMPP connection
+     * had failed.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_CONNECTION_FAILED
+        = "total_calls_with_connection_failed";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -71,6 +79,12 @@ public class Statistics
      * Total number of calls with dropped media since started.
      */
     private static AtomicLong totalCallsWithMediaDroppedCount
+        = new AtomicLong();
+
+    /**
+     * Total number of calls with xmpp connection failed since started.
+     */
+    private static AtomicLong totalCallsWithConnectionFailedCount
         = new AtomicLong();
 
     /**
@@ -127,6 +141,8 @@ public class Statistics
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
         stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
             totalCallsWithMediaDroppedCount.get());
+        stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED,
+            totalCallsWithConnectionFailedCount.get());
 
 
         stats.put(SHUTDOWN_IN_PROGRESS,
@@ -223,6 +239,14 @@ public class Statistics
     public static void incrementTotalCallsWithMediaDropped()
     {
         totalCallsWithMediaDroppedCount.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of calls with XMPP connection failed.
+     */
+    public static void incrementTotalCallsWithConnectionFailed()
+    {
+        totalCallsWithConnectionFailedCount.incrementAndGet();
     }
 
     /**

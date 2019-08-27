@@ -296,7 +296,7 @@ public class CallContext
      * Updates call resource based on timestamp, domain and if available and
      * the subdomain.
      */
-    private void updateCallResource()
+    void updateCallResource()
     {
         if (this.domain != null)
         {

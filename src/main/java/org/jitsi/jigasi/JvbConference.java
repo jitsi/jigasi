@@ -272,6 +272,12 @@ public class JvbConference
     private StatsHandler statsHandler = null;
 
     /**
+     * Whether we had send indication that connection had failed
+     * for this conference.
+     */
+    private boolean connFailedStatsSent = false;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -558,10 +564,32 @@ public class JvbConference
         {
             logger.error(this.callContext + " Unregistered XMPP.");
         }
+        else if (evt.getNewState() == RegistrationState.REGISTERING)
+        {
+            logger.info(this.callContext + " Registering XMPP.");
+        }
         else if (evt.getNewState() == RegistrationState.CONNECTION_FAILED)
         {
             logger.error(this.callContext + " XMPP Connection failed.");
-            stop();
+
+            if (!connFailedStatsSent)
+            {
+                Statistics.incrementTotalCallsWithConnectionFailed();
+                connFailedStatsSent = true;
+            }
+
+            leaveConferenceRoom();
+
+            // as this is connection failed and provider will reconnect
+            // we want to update local resource after leaving the room
+            // so we can eventually join second time before the previous
+            // participant been removed due to inactivity (bosh-timeout)
+            callContext.updateCallResource();
+
+            // let's hangup this call, a new one will be established
+            // once we are back in the room
+            CallManager.hangupCall(jvbCall,
+                502, "Connection failed");
         }
         else
         {
