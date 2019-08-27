@@ -407,11 +407,13 @@ public class HandlerImpl
             requestJSONObject = null;
         }
 
-        if (requestJSONObject == null)
+        if (requestJSONObject == null
+            || !(requestJSONObject.get("id") instanceof String))
         {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        String id = (String) requestJSONObject.get("id");
 
         if (!JigasiBundleActivator.getConfigurationService()
                 .getBoolean(
@@ -424,18 +426,10 @@ public class HandlerImpl
 
         if ("add".equals(target))
         {
-            if (requestJSONObject == null
-                || !(requestJSONObject.get("id") instanceof String))
-            {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-            String id = (String) requestJSONObject.get("id");
-
             try
             {
                 CallControlMucActivator.addCallControlMucAccount(
-                    id, requestJSONObject.entrySet());
+                    id, requestJSONObject);
             }
             catch(OperationFailedException e)
             {
@@ -449,17 +443,14 @@ public class HandlerImpl
         }
         else if ("remove".equals(target))
         {
-            if (requestJSONObject == null
-                || !(requestJSONObject.get("id") instanceof String))
+            if (CallControlMucActivator.removeCallControlMucAccount(id))
+            {
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+            else
             {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
             }
-
-            CallControlMucActivator.removeCallControlMucAccount(
-                (String) requestJSONObject.get("id"));
-
-            response.setStatus(HttpServletResponse.SC_OK);
         }
         else
         {

@@ -395,12 +395,12 @@ public class CallControlMucActivator
      * Adds new call control MUC xmpp account using the provided props.
      *
      * @param id the id to use for this account(should not contain .).
-     * @param propertiesSet the properties.
+     * @param properties the properties.
      * @throws OperationFailedException if failed loading account.
      */
     public static void addCallControlMucAccount(
             String id,
-            Set<Map.Entry<String, String>> propertiesSet)
+            Map<String, String> properties)
         throws OperationFailedException
     {
         ConfigurationService config
@@ -412,19 +412,14 @@ public class CallControlMucActivator
         AccountManager accountManager
             = ProtocolProviderActivator.getAccountManager();
 
-        // extract the properties, make sure we decode the password
-        HashMap<String, String> properties = new HashMap<>();
-        propertiesSet.stream().forEach(e ->
-        {
-            String property = e.getKey();
-            String value = e.getValue();
-            if (ProtocolProviderFactory.PASSWORD.equals(property))
-            {
-                value = new String(Base64.decode(value));
-            }
-
-            properties.put(property, value);
-        });
+        // decode the password in the format expected
+        String pass = properties.get(ProtocolProviderFactory.PASSWORD);
+        if (pass == null)
+            throw new OperationFailedException(
+                "No password provided",
+                OperationFailedException.INVALID_ACCOUNT_PROPERTIES);
+        properties.put(ProtocolProviderFactory.PASSWORD,
+            new String(Base64.decode(pass)));
 
         AccountID xmppAccount
             = xmppProviderFactory.createAccount(properties);
@@ -453,8 +448,10 @@ public class CallControlMucActivator
     /**
      * Removes call control MUC xmmpp account identified by the passed id.
      * @param id the id of the account to delete.
+     * @return {@code true} if the account with the specified ID was removed.
+     * Otherwise returns {@code false}.
      */
-    public static void removeCallControlMucAccount(String id)
+    public static boolean removeCallControlMucAccount(String id)
     {
         ConfigurationService config
             = JigasiBundleActivator.getConfigurationService();
@@ -479,10 +476,12 @@ public class CallControlMucActivator
                 = xmppProviderFactory.uninstallAccount(accountID);
             logger.info("Removing muc control account: "
                 + id + ", successful:" + result);
+            return result;
         }
         else
         {
             logger.warn("No muc control account found for removing");
+            return false;
         }
     }
 
