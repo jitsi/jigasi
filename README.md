@@ -270,5 +270,4 @@ to `/configure/call-control-muc/remove`:
 ```
 
 The request will be successful (return 200) as long as the format of the JSON is 
-as expected, regardless of whether a connection was found and removed or it 
-wasn't found.
+as expected, and the connection was found and removed.
