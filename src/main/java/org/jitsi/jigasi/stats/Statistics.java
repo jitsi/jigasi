@@ -33,6 +33,8 @@ import org.osgi.framework.*;
 import org.json.simple.*;
 
 import org.jitsi.xmpp.extensions.colibri.*;
+import static org.jitsi.xmpp.extensions.colibri.ColibriStatsExtension.*;
+
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
@@ -54,93 +56,6 @@ public class Statistics
      */
     private final static Logger logger
         = Logger.getLogger(Statistics.class);
-
-    /**
-     * The name of the number of conferences statistic. Its runtime type is
-     * {@code Integer}.
-     */
-    public static final String CONFERENCES = "conferences";
-
-    /**
-     * The name of the conference sizes statistic.
-     */
-    public static final String CONFERENCE_SIZES = "conference_sizes";
-
-    /**
-     * The name of the number of participants statistic. Its runtime type is
-     * {@code Integer}.
-     */
-    public static final String NUMBEROFPARTICIPANTS = "participants";
-
-    /**
-     * The name of the number of threads statistic. Its runtime type is
-     * {@code Integer}.
-     */
-    public static final String NUMBEROFTHREADS = "threads";
-
-    /**
-     * The name of the "region" statistic.
-     */
-    public static final String REGION = "region";
-
-    /**
-     * The name of the stat that indicates jigasi has entered graceful
-     * shutdown mode. Its runtime type is {@code Boolean}.
-     */
-    public static final String SHUTDOWN_IN_PROGRESS = "graceful_shutdown";
-
-    /**
-     * The name of the "sipgw" statistic.
-     */
-    public static final String SIPGW = "sipgw";
-
-    /**
-     * The name of the piece of statistic which specifies the date and time at
-     * which the associated set of statistics was generated. Its runtime type is
-     * {@code String} and the value represents a {@code Date} value.
-     */
-    public static final String TIMESTAMP = "current_timestamp";
-
-    /**
-     * The name of the "transcriber" statistic.
-     */
-    public static final String TRANSCRIBER = "transcriber";
-
-    /**
-     * The name of the stat that indicates total number of
-     * completed conferences.
-     * {@code Integer}.
-     */
-    public static final String TOTAL_CONFERENCES
-        = "total_conferences_completed";
-
-    /**
-     * The name of the stat that indicated the total number of participants
-     * in completed conferences.
-     * {@code Integer}.
-     */
-    public static final String TOTAL_NUMBEROFPARTICIPANTS
-        = "total_participants";
-
-    /**
-     * The name of the stat indicating the total number of conference-seconds
-     * (i.e. the sum of the lengths is seconds).
-     */
-    public static final String TOTAL_CONFERENCE_SECONDS
-        = "total_conference_seconds";
-
-    /**
-     * The name of the number of conferences which do not receive media from
-     * the gateway side.
-     * {@code Integer}.
-     */
-    public static final String TOTAL_CALLS_WITH_DROPPED_MEDIA
-        = "total_calls_with_dropped_media";
-
-    /**
-     * The name of the "version" statistic.
-     */
-    public static final String VERSION = "version";
 
     /**
      * Total number of participants since started.
@@ -200,16 +115,15 @@ public class Statistics
 
         stats.putAll(getSessionStats());
 
-        // NUMBEROFTHREADS
-        stats.put(NUMBEROFTHREADS,
+        stats.put(THREADS,
             ManagementFactory.getThreadMXBean().getThreadCount());
 
         // TIMESTAMP
         stats.put(TIMESTAMP, currentTimeMillis());
 
         // TOTAL stats
-        stats.put(TOTAL_CONFERENCES, totalConferencesCount);
-        stats.put(TOTAL_NUMBEROFPARTICIPANTS, totalParticipantsCount);
+        stats.put(TOTAL_CONFERENCES_COMPLETED, totalConferencesCount);
+        stats.put(TOTAL_PARTICIPANTS, totalParticipantsCount);
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
         stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
             totalCallsWithMediaDroppedCount.get());
@@ -263,17 +177,14 @@ public class Statistics
             conferences++;
         }
 
-        // CONFERENCES
         stats.put(CONFERENCES, conferences);
 
-        // CONFERENCE_SIZES
         JSONArray conferenceSizesJson = new JSONArray();
         for (int size : conferenceSizes)
             conferenceSizesJson.add(size);
         stats.put(CONFERENCE_SIZES, conferenceSizesJson);
 
-        // NUMBEROFPARTICIPANTS
-        stats.put(NUMBEROFPARTICIPANTS, participants);
+        stats.put(PARTICIPANTS, participants);
 
         return stats;
     }
@@ -358,7 +269,7 @@ public class Statistics
         ppss.forEach(pps ->
             updatePresenceStatusForXmppProvider(
                 pps,
-                (int)stats.get(NUMBEROFPARTICIPANTS),
+                (int)stats.get(PARTICIPANTS),
                 (int)stats.get(CONFERENCES),
                 JigasiBundleActivator.isShutdownInProgress()));
     }
@@ -408,7 +319,7 @@ public class Statistics
                     CONFERENCES,
                     conferences));
                 stats.addStat(new ColibriStatsExtension.Stat(
-                    NUMBEROFPARTICIPANTS,
+                    PARTICIPANTS,
                     participants));
                 stats.addStat(new ColibriStatsExtension.Stat(
                     SHUTDOWN_IN_PROGRESS,
@@ -428,9 +339,10 @@ public class Statistics
                     CurrentVersionImpl.VERSION));
 
                 ColibriStatsExtension.Stat transcriberStat =
-                    new ColibriStatsExtension.Stat(TRANSCRIBER, false);
+                    new ColibriStatsExtension.Stat(
+                        SUPPORTS_TRANSCRIPTION, false);
                 ColibriStatsExtension.Stat sipgwStat =
-                    new ColibriStatsExtension.Stat(SIPGW, false);
+                    new ColibriStatsExtension.Stat(SUPPORTS_SIP, false);
 
                 JigasiBundleActivator.getAvailableGateways().forEach(gw ->
                     {

@@ -320,7 +320,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-20190605.124131-5</version>
+      <version>1.0-2-g6624b3a</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
