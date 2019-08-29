@@ -641,7 +641,7 @@ public class JvbConference
                 ((ChatRoomJabberImpl)mucRoom)
                     .addPresencePacketExtensions(
                         new ColibriStatsExtension.Stat(
-                            Statistics.VERSION,
+                            ColibriStatsExtension.VERSION,
                             CurrentVersionImpl.VERSION.getApplicationName()
                                 + " " + CurrentVersionImpl.VERSION));
             }
