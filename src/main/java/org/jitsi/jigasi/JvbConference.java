@@ -26,6 +26,8 @@ import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.jigasi.version.*;
+import org.jitsi.xmpp.extensions.colibri.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
@@ -635,6 +637,13 @@ public class JvbConference
                     ((ChatRoomJabberImpl)mucRoom)
                         .addPresencePacketExtensions(rpe);
                 }
+
+                ((ChatRoomJabberImpl)mucRoom)
+                    .addPresencePacketExtensions(
+                        new ColibriStatsExtension.Stat(
+                            Statistics.VERSION,
+                            CurrentVersionImpl.VERSION.getApplicationName()
+                                + " " + CurrentVersionImpl.VERSION));
             }
             else
             {
