@@ -246,6 +246,12 @@ public class SipGatewaySession
     private SipCallKeepAliveTransformer transformerMonitor;
 
     /**
+     * Whether we had send indication that XMPP connection terminated and
+     * the gateway session was connected to a new XMPP call.
+     */
+    private boolean callReconnectedStatsSent = false;
+
+    /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -464,6 +470,12 @@ public class SipGatewaySession
                 jvbConferenceCall.setConference(sipCall.getConference());
 
                 CallManager.acceptCall(jvbConferenceCall);
+
+                if (!callReconnectedStatsSent)
+                {
+                    Statistics.incrementTotalCallsWithSipCallReconnected();
+                    callReconnectedStatsSent = true;
+                }
 
                 return null;
             }

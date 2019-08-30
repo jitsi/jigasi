@@ -66,6 +66,23 @@ public class Statistics
         = "total_calls_with_connection_failed";
 
     /**
+     * The name of the number of conferences for which XMPP call was ended
+     * and the gateway part is waiting for new connection.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_SIP_CALL_WAITING
+        = "total_calls_with_sip_call_waiting";
+
+    /**
+     * The name of the number of conferences for which XMPP call was ended
+     * and the gateway part was waiting for new connection and the call was
+     * connected to new XMPP calls.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED
+        = "total_calls_with_sip_call_reconnected";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -85,6 +102,21 @@ public class Statistics
      * Total number of calls with xmpp connection failed since started.
      */
     private static AtomicLong totalCallsWithConnectionFailedCount
+        = new AtomicLong();
+
+    /**
+     * Total number of calls with xmpp call terminated and sip call waiting
+     * for new xmpp call.
+     */
+    private static AtomicLong totalCallsWithSipCallWaiting
+        = new AtomicLong();
+
+    /**
+     * Total number of calls with xmpp call terminated and sip call waiting
+     * for new xmpp call and new xmpp call and both calls were connected
+     * and operational.
+     */
+    private static AtomicLong totalCallsWithSipCalReconnected
         = new AtomicLong();
 
     /**
@@ -143,7 +175,10 @@ public class Statistics
             totalCallsWithMediaDroppedCount.get());
         stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED,
             totalCallsWithConnectionFailedCount.get());
-
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING,
+            totalCallsWithSipCallWaiting.get());
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
+            totalCallsWithSipCalReconnected.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -247,6 +282,24 @@ public class Statistics
     public static void incrementTotalCallsWithConnectionFailed()
     {
         totalCallsWithConnectionFailedCount.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of calls with XMPP calls terminated
+     * and sip call waiting for new xmpp call to be connected.
+     */
+    public static void incrementTotalCallsWithSipCallWaiting()
+    {
+        totalCallsWithSipCallWaiting.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of calls with XMPP calls terminated
+     * and new XMPP call been connected again with the SIP call
+     */
+    public static void incrementTotalCallsWithSipCallReconnected()
+    {
+        totalCallsWithSipCalReconnected.incrementAndGet();
     }
 
     /**
