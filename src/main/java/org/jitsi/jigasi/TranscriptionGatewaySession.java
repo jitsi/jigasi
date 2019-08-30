@@ -159,9 +159,15 @@ public class TranscriptionGatewaySession
             }
         });
 
-        logger.debug("Invited for conference");
+        logger.info("JVB conference call IN_PROGRESS "
+            + callContext.getRoomName());
 
-        CallManager.acceptCall(incomingCall);
+        Exception error = this.onConferenceCallStarted(incomingCall);
+
+        if (error != null)
+        {
+            logger.error(error, error);
+        }
     }
 
     @Override
@@ -219,6 +225,8 @@ public class TranscriptionGatewaySession
         {
             sendMessageToRoom(welcomeMessage.toString());
         }
+
+        CallManager.acceptCall(jvbConferenceCall);
 
         logger.debug("TranscriptionGatewaySession started transcribing");
 
