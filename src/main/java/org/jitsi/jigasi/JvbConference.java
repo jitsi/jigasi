@@ -278,6 +278,12 @@ public class JvbConference
     private boolean connFailedStatsSent = false;
 
     /**
+     * Whether we had send indication that XMPP connection terminated and
+     * the gateway session waiting for new XMPP call to be connected.
+     */
+    private boolean gwSesisonWaitingStatsSent = false;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -766,6 +772,12 @@ public class JvbConference
             {
                 logger.info(this.callContext
                     + " Proceed with gwSession call on xmpp call hangup.");
+
+                if (!gwSesisonWaitingStatsSent)
+                {
+                    Statistics.incrementTotalCallsWithSipCallWaiting();
+                    gwSesisonWaitingStatsSent = true;
+                }
             }
         }
     }
