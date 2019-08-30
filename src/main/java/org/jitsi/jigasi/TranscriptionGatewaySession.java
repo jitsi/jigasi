@@ -159,9 +159,6 @@ public class TranscriptionGatewaySession
             }
         });
 
-        logger.info("JVB conference call IN_PROGRESS "
-            + callContext.getRoomName());
-
         Exception error = this.onConferenceCallStarted(incomingCall);
 
         if (error != null)
