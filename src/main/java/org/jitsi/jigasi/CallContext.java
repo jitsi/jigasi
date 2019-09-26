@@ -132,6 +132,12 @@ public class CallContext
     private final String ctxId;
 
     /**
+     * Call extra headers. Information coming with the rayo messages.
+     * We use this information to pass it to both legs of the calls initiated.
+     */
+    private final Map<String, String> extraHeaders = new HashMap<>();
+
+    /**
      * Constructs new CallContext saving the timestamp at which it was created.
      */
     public CallContext(Object source)
@@ -422,5 +428,27 @@ public class CallContext
     public String toString()
     {
         return "[ctx=" + ctxId + ']';
+    }
+
+    /**
+     * Adds extra headers to use for this call context.
+     * @param name the name of the header.
+     * @param value the value of the header.
+     */
+    public synchronized void addExtraHeader(String name, String value)
+    {
+        if (!this.extraHeaders.containsKey(name))
+        {
+            this.extraHeaders.put(name, value);
+        }
+    }
+
+    /**
+     * Returns the extra headers.
+     * @return the extra headers.
+     */
+    public Map<String, String> getExtraHeaders()
+    {
+        return this.extraHeaders;
     }
 }
