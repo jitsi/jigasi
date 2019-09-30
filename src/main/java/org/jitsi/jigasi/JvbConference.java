@@ -27,12 +27,14 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
+import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
@@ -678,6 +680,29 @@ public class JvbConference
                             ColibriStatsExtension.VERSION,
                             CurrentVersionImpl.VERSION.getApplicationName()
                                 + " " + CurrentVersionImpl.VERSION));
+
+                // creates an extension to hold all headers, as when using
+                // addPresencePacketExtensions it requires unique extensions
+                // otherwise overrides them
+                AbstractPacketExtension initiator
+                    = new AbstractPacketExtension(
+                        SIP_GATEWAY_FEATURE_NAME, "initiator"){};
+
+                // let's add all extra headers from the context
+                callContext.getExtraHeaders().forEach(
+                    (key, value) ->
+                    {
+                        HeaderExtension he = new HeaderExtension();
+                        he.setName(key);
+                        he.setValue(value);
+
+                        initiator.addChildExtension(he);
+                    });
+                if (initiator.getChildExtensions().size() > 0)
+                {
+                    ((ChatRoomJabberImpl)mucRoom)
+                        .addPresencePacketExtensions(initiator);
+                }
             }
             else
             {

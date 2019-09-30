@@ -28,11 +28,11 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.utils.*;
-import org.jivesoftware.smack.packet.*;
 
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Class represents gateway session which manages single SIP call instance
@@ -509,12 +509,30 @@ public class SipGatewaySession
                     if(roomName != null)
                     {
                         Call call = callEvent.getSourceCall();
-                        call.setData("EXTRA_HEADER_NAME.1",
+                        AtomicInteger headerCount = new AtomicInteger(0);
+                        call.setData(
+                            "EXTRA_HEADER_NAME." + headerCount.addAndGet(1),
                             sipProvider.getAccountID()
                                 .getAccountPropertyString(
                                     JITSI_MEET_ROOM_HEADER_PROPERTY,
                                     "Jitsi-Conference-Room"));
-                        call.setData("EXTRA_HEADER_VALUE.1", roomName);
+                        call.setData(
+                            "EXTRA_HEADER_VALUE." + headerCount.get(),
+                            roomName);
+
+                        // passes all extra headers to the outgoing call
+                        callContext.getExtraHeaders().forEach(
+                            (key, value) ->
+                            {
+                                call.setData(
+                                    "EXTRA_HEADER_NAME."
+                                        + headerCount.addAndGet(1),
+                                    key);
+                                call.setData(
+                                    "EXTRA_HEADER_VALUE."
+                                        + headerCount.get(),
+                                    value);
+                            });
                     }
 
                     tele.removeCallListener(this);
@@ -577,20 +595,6 @@ public class SipGatewaySession
     void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
         String reason)
     {}
-
-    private void sendPresenceExtension(ExtensionElement extension)
-    {
-        if (jvbConference != null)
-        {
-            jvbConference.sendPresenceExtension(extension);
-        }
-        else
-        {
-            logger.error(this.callContext +
-                " JVB conference unavailable. Failed to send: "
-                    + extension.toXML());
-        }
-    }
 
     private void sipCallEnded()
     {

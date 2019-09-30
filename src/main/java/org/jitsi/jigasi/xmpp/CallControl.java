@@ -19,6 +19,7 @@ package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
@@ -177,11 +178,33 @@ public class CallControl
 
         ctx.setDestination(to);
 
-        String roomName = iq.getHeader(ROOM_NAME_HEADER);
-        ctx.setRoomName(roomName);
+        String roomName = null;
 
-        String roomPassword = iq.getHeader(ROOM_PASSWORD_HEADER);
-        ctx.setRoomPassword(roomPassword);
+        // extract the headers and pass them to context
+        for(ExtensionElement ext: iq.getExtensions())
+        {
+            if (ext instanceof HeaderExtension)
+            {
+                HeaderExtension header = (HeaderExtension) ext;
+                String name = header.getName();
+                String value = header.getValue();
+
+                if(ROOM_NAME_HEADER.equals(name))
+                {
+                    roomName = value;
+                    ctx.setRoomName(roomName);
+                }
+                else if(ROOM_PASSWORD_HEADER.equals(name))
+                {
+                    ctx.setRoomPassword(value);
+                }
+                else
+                {
+                    ctx.addExtraHeader(name, value);
+                }
+            }
+        }
+
         if (roomName == null)
             throw new RuntimeException("No JvbRoomName header found");
 
