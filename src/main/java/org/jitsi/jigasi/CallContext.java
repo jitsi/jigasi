@@ -449,6 +449,6 @@ public class CallContext
      */
     public Map<String, String> getExtraHeaders()
     {
-        return this.extraHeaders;
+        return Collections.unmodifiableMap(this.extraHeaders);
     }
 }
