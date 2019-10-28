@@ -121,9 +121,9 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
                     callContext + " Call resource not exists for session.");
                 return;
             }
-
-            fireGatewaySessionRemoved(session);
         }
+
+        fireGatewaySessionRemoved(session);
 
         logger.info(callContext
             + " Removed session for call. Sessions:" + sessions.size());
@@ -149,7 +149,10 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     @Override
     public void onJvbRoomJoined(T source)
     {
-        sessions.put(source.getCallContext(), source);
+        synchronized(sessions)
+        {
+            sessions.put(source.getCallContext(), source);
+        }
 
         fireGatewaySessionAdded(source);
     }
