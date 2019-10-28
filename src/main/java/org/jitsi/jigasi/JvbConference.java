@@ -525,8 +525,6 @@ public class JvbConference
         if(this.xmppProvider != null)
             throw new IllegalStateException("unexpected");
 
-        Jid callResource = callContext.getCallResource();
-
         if (!xmppProvider.getAccountID().getAccountUniqueID()
                 .equals(xmppAccount.getAccountUniqueID()))
         {

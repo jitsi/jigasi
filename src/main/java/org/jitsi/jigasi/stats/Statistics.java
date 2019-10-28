@@ -21,6 +21,7 @@ import java.io.*;
 import java.lang.management.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.stream.*;
 
@@ -140,6 +141,14 @@ public class Statistics
      * The number of buckets to use for conference sizes.
      */
     private static final int CONFERENCE_SIZE_BUCKETS = 22;
+
+    /**
+     * We want to send the stats in a separate thread to not block
+     * join/leave rooms process and we want to send those stats to all servers
+     * even when some maybe blocked because of lack of connectivity to the
+     * server/
+     */
+    private static ExecutorService threadPool = Executors.newFixedThreadPool(3);
 
     /**
      * Gets a JSON representation of the statistics of a specific
@@ -384,6 +393,8 @@ public class Statistics
 
                 OperationSetMultiUserChat muc
                     = pps.getOperationSet(OperationSetMultiUserChat.class);
+                // this should be getting the room from the cache,
+                // no network operations
                 ChatRoom mucRoom = muc.findRoom(roomName);
 
                 if (mucRoom == null)
@@ -435,8 +446,9 @@ public class Statistics
                 stats.addStat(transcriberStat);
                 stats.addStat(sipgwStat);
 
-                pps.getOperationSet(OperationSetJitsiMeetTools.class)
-                    .sendPresenceExtension(mucRoom, stats);
+                threadPool.submit(
+                    () -> pps.getOperationSet(OperationSetJitsiMeetTools.class)
+                            .sendPresenceExtension(mucRoom, stats));
             }
             catch (Exception e)
             {
