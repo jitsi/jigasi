@@ -20,9 +20,7 @@ package org.jitsi.jigasi.xmpp;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.util.*;
-import net.java.sip.communicator.util.Base64;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
@@ -37,6 +35,7 @@ import org.osgi.framework.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.*;
 
 /**
  * Call control that is capable of utilizing Rayo XMPP protocol for the purpose
@@ -436,7 +435,7 @@ public class CallControlMucActivator
     }
 
     /**
-     * Removes call control MUC xmmpp account identified by the passed id.
+     * Removes call control MUC xmpp account identified by the passed id.
      * @param id the id of the account to delete.
      * @return {@code true} if the account with the specified ID was removed.
      * Otherwise returns {@code false}.
@@ -473,6 +472,34 @@ public class CallControlMucActivator
             logger.warn("No muc control account found for removing");
             return false;
         }
+    }
+
+    /**
+     * Returns call control MUC xmpp accounts that are currently configured.
+     * @return lst of ids of call control MUC xmpp accounts.
+     */
+    public static List<String> listCallControlMucAccounts()
+    {
+        ConfigurationService config
+            = JigasiBundleActivator.getConfigurationService();
+        ProtocolProviderFactory xmppProviderFactory
+            = ProtocolProviderFactory.getProtocolProviderFactory(
+            JigasiBundleActivator.osgiContext,
+            ProtocolNames.JABBER);
+        AccountManager accountManager
+            = ProtocolProviderActivator.getAccountManager();
+
+        String propPrefix
+            = accountManager.getFactoryImplPackageName(xmppProviderFactory);
+
+        return
+            config.getPropertyNamesByPrefix(propPrefix, false)
+            .stream()
+            .filter(p -> p.endsWith(ROOM_NAME_ACCOUNT_PROP))
+            .map(p -> p.substring(
+                propPrefix.length() + 1, // the prefix and '.'
+                p.indexOf(ROOM_NAME_ACCOUNT_PROP) - 1)) // property and the '.'
+            .collect(Collectors.toList());
     }
 
     /**

@@ -96,7 +96,6 @@ import org.osgi.framework.*;
  *         200 OK if adding an XMPP call control MUC was successful.
  *       </td>
  *     </tr>
- *     </tr>
  *     <tr>
  *       <td>POST</td>
  *       <td>/configure/call-control-muc/remove</td>
@@ -104,6 +103,12 @@ import org.osgi.framework.*;
  *         200 OK if removing an XMPP call control MUC was successful.
  *       </td>
  *     </tr>
+ *     <tr>
+ *       <td>GET</td>
+ *       <td>/configure/call-control-muc/list</td>
+ *       <td>
+ *         Returns an array of ids of configured XMPP call control MUC accounts.
+ *       </td>
  *     </tr>
  *   </tbody>
  * </table>
@@ -377,6 +382,16 @@ public class HandlerImpl
         HttpServletResponse response)
         throws IOException
     {
+        if (GET_HTTP_METHOD.equals(request.getMethod())
+            && "list".equals(target))
+        {
+            response.setStatus(HttpServletResponse.SC_OK);
+            JSONArray.writeJSONString(
+                CallControlMucActivator.listCallControlMucAccounts(),
+                response.getWriter());
+            return;
+        }
+
         if (!POST_HTTP_METHOD.equals(request.getMethod()))
         {
             response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
