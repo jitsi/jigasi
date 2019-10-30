@@ -46,6 +46,8 @@ import org.osgi.framework.*;
 
 import java.util.*;
 
+import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
+
 /**
  * Class takes care of handling Jitsi Videobridge conference. Currently it waits
  * for the first XMPP provider service to be registered and uses it to join the
@@ -746,6 +748,15 @@ public class JvbConference
         }
         catch (Exception e)
         {
+            if (e.getCause() instanceof XMPPException.XMPPErrorException)
+            {
+                if (((XMPPException.XMPPErrorException)e.getCause())
+                        .getXMPPError().getCondition() == service_unavailable)
+                {
+                    gatewaySession.handleMaxOccupantsLimitReached();
+                }
+            }
+
             logger.error(this.callContext.toString() + e, e);
 
             // inform that this session had failed

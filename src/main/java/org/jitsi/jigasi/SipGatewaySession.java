@@ -32,6 +32,7 @@ import org.jitsi.utils.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
@@ -163,6 +164,24 @@ public class SipGatewaySession
         = "sounds/LiveStreamingOff.opus";
 
     /**
+     * The sound file to use when the max occupants limit is reached.
+     */
+    private static final String MAX_OCCUPANTS_SOUND
+        = "sounds/MaxOccupants.opus";
+
+    /**
+     * Approximate duration of the file to be played, we need it as to know
+     * when to hangup the call. The actual file is 10 seconds but we give a
+     * little longer for the file to be played.
+     */
+    private static final int MAX_OCCUPANTS_SOUND_DURATION_SEC = 15;
+
+    /**
+     * In certain scenarios (max occupants) we wait till we hangup the call.
+     */
+    private CountDownLatch hangupWait = null;
+
+    /**
      * The runnable responsible for checking sip call incoming RTP and detecting
      * if media stop.
      */
@@ -250,6 +269,12 @@ public class SipGatewaySession
      * the gateway session was connected to a new XMPP call.
      */
     private boolean callReconnectedStatsSent = false;
+
+    /**
+     * When set will indicate that we only need to play announcement to the
+     * sip side and hangup the call.
+     */
+    private boolean callMaxOccupantsLimitReached = false;
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -873,7 +898,7 @@ public class SipGatewaySession
         {
             mucDisplayName = sipDestination;
         }
-        else if (sipCall != null)
+        else if (sipCall != null && sipCall.getCallPeers().hasNext())
         {
             CallPeer firstPeer = sipCall.getCallPeers().next();
             if (firstPeer != null)
@@ -924,6 +949,31 @@ public class SipGatewaySession
         else if(JibriIq.Status.OFF.equals(status))
         {
             Util.injectSoundFile(this.sipCall, offSound);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    void handleMaxOccupantsLimitReached()
+    {
+        callMaxOccupantsLimitReached = true;
+
+        // will wait for the hangup before returning
+        hangupWait = new CountDownLatch(1);
+
+        // answer play and hangup
+        CallManager.acceptCall(sipCall);
+
+        try
+        {
+            hangupWait.await(
+                MAX_OCCUPANTS_SOUND_DURATION_SEC, TimeUnit.SECONDS);
+        }
+        catch(InterruptedException e)
+        {
+            logger.warn("Didn't finish waiting for hangup on max occupants");
         }
     }
 
@@ -1156,27 +1206,13 @@ public class SipGatewaySession
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
+            long delayedHangupSeconds = -1;
+
             if (CallPeerState.BUSY.equals(callPeerState))
             {
                 // Hangup the call with 5 sec delay, so that we can see BUSY
                 // status in jitsi-meet
-                new Thread(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        try
-                        {
-                            Thread.sleep(5000);
-                        }
-                        catch (InterruptedException e)
-                        {
-                            throw new RuntimeException(e);
-                        }
-                        CallManager.hangupCall(
-                                evt.getSourceCallPeer().getCall());
-                    }
-                }).start();
+                delayedHangupSeconds = 5 * 1000;
             }
 
             // when someone connects and recording is on, play notification
@@ -1186,6 +1222,34 @@ public class SipGatewaySession
                 {
                     Util.injectSoundFile(sipCall, currentJibriOnSound);
                 }
+
+                if (callMaxOccupantsLimitReached)
+                {
+                    Util.injectSoundFile(sipCall, MAX_OCCUPANTS_SOUND);
+
+                    delayedHangupSeconds
+                        = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
+                }
+            }
+
+            if (delayedHangupSeconds != -1)
+            {
+                final long mills = delayedHangupSeconds;
+                new Thread(() -> {
+                    try
+                    {
+                        Thread.sleep(mills);
+                    }
+                    catch(InterruptedException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                    CallManager.hangupCall(
+                        evt.getSourceCallPeer().getCall());
+
+                    if (hangupWait != null)
+                        hangupWait.countDown();
+                }).start();
             }
         }
 

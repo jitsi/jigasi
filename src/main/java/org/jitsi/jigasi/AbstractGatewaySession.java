@@ -259,6 +259,14 @@ public abstract class AbstractGatewaySession
     {}
 
     /**
+     *  Method called by {@link JvbConference} that it has reached
+     *  the maximum number of occupants and gives a chance to the session to
+     *  handle it.
+     */
+    void handleMaxOccupantsLimitReached()
+    {}
+
+    /**
      * Method called by {@link JvbConference} to notify session that a member
      * has joined the room
      *
