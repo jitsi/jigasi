@@ -177,7 +177,7 @@ public class SipGatewaySession
     private static final int MAX_OCCUPANTS_SOUND_DURATION_SEC = 15;
 
     /**
-     * In certain scenarios (mac occupants) we wait till we hangup the call.
+     * In certain scenarios (max occupants) we wait till we hangup the call.
      */
     private CountDownLatch hangupWait = null;
 
@@ -956,7 +956,7 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
-    void notifyMaxOccupantsLimitReached()
+    void handleMaxOccupantsLimitReached()
     {
         callMaxOccupantsLimitReached = true;
 

@@ -753,7 +753,7 @@ public class JvbConference
                 if (((XMPPException.XMPPErrorException)e.getCause())
                         .getXMPPError().getCondition() == service_unavailable)
                 {
-                    gatewaySession.notifyMaxOccupantsLimitReached();
+                    gatewaySession.handleMaxOccupantsLimitReached();
                 }
             }
 
