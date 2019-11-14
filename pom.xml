@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.13.3239308</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.be3b3d5</jitsi-desktop.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.26</slf4j.version>
     <smack.version>4.2.4-47d17fc</smack.version>
@@ -303,7 +303,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-reconnect</artifactId>
       <version>${jitsi-desktop.version}</version>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

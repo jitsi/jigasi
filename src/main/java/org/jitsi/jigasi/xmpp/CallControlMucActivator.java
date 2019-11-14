@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.plugin.reconnectplugin.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
@@ -253,13 +254,24 @@ public class CallControlMucActivator
     @Override
     public void registrationStateChanged(RegistrationStateChangeEvent evt)
     {
+        ProtocolProviderService provider = evt.getProvider();
+
+        if (logger.isDebugEnabled()
+            && provider instanceof ProtocolProviderServiceJabberImpl
+            && provider.getAccountID()
+                .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) != null)
+        {
+            logger.debug("Got control muc provider " + provider
+                + " new state -> " + evt.getNewState() );
+        }
+
         if (evt.getNewState() == RegistrationState.REGISTERED)
         {
-            joinCommonRoom(evt.getProvider());
+            joinCommonRoom(provider);
         }
         else if (evt.getNewState() == RegistrationState.UNREGISTERING)
         {
-            leaveCommonRoom(evt.getProvider());
+            leaveCommonRoom(provider);
         }
     }
 
@@ -397,11 +409,17 @@ public class CallControlMucActivator
      * @param properties the properties.
      * @throws OperationFailedException if failed loading account.
      */
-    public static void addCallControlMucAccount(
+    public synchronized static void addCallControlMucAccount(
             String id,
             Map<String, String> properties)
         throws OperationFailedException
     {
+        if (listCallControlMucAccounts().contains(id))
+        {
+            logger.warn("Account already exists id:" + id);
+            return;
+        }
+
         ConfigurationService config
             = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
@@ -429,9 +447,18 @@ public class CallControlMucActivator
                 xmppAccount.getAccountUniqueID());
         }
 
+        // we force the provider to stick and try reconnecting
+        // it may happen that the server is in the process of spinning up
+        // and we need to be patient
+        config.setProperty(
+            ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "."
+                + xmppAccount.getAccountUniqueID(),
+            Boolean.TRUE.toString());
+
         accountManager.loadAccount(xmppAccount);
 
-        logger.info("Added new control muc account:" + id);
+        logger.info("Added new control muc account:" + id
+            + " -> " + xmppAccount);
     }
 
     /**
@@ -440,7 +467,7 @@ public class CallControlMucActivator
      * @return {@code true} if the account with the specified ID was removed.
      * Otherwise returns {@code false}.
      */
-    public static boolean removeCallControlMucAccount(String id)
+    public synchronized static boolean removeCallControlMucAccount(String id)
     {
         ConfigurationService config
             = JigasiBundleActivator.getConfigurationService();
@@ -464,12 +491,18 @@ public class CallControlMucActivator
             boolean result
                 = xmppProviderFactory.uninstallAccount(accountID);
             logger.info("Removing muc control account: "
-                + id + ", successful:" + result);
+                + id + ", " + accountID + ", successful:" + result);
+
+            // cleanup
+            config.removeProperty(
+                ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "."
+                    + accountID.getAccountUniqueID());
+
             return result;
         }
         else
         {
-            logger.warn("No muc control account found for removing");
+            logger.warn("No muc control account found for removing id: " + id);
             return false;
         }
     }
@@ -478,7 +511,7 @@ public class CallControlMucActivator
      * Returns call control MUC xmpp accounts that are currently configured.
      * @return lst of ids of call control MUC xmpp accounts.
      */
-    public static List<String> listCallControlMucAccounts()
+    public synchronized static List<String> listCallControlMucAccounts()
     {
         ConfigurationService config
             = JigasiBundleActivator.getConfigurationService();
