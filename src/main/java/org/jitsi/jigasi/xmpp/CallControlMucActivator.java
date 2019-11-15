@@ -237,8 +237,7 @@ public class CallControlMucActivator
 
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
-                JigasiBundleActivator.osgiContext,
-                ProtocolNames.JABBER);
+                osgiContext, ProtocolNames.JABBER);
 
         new RegisterThread(
             pps, xmppProviderFactory.loadPassword(pps.getAccountID()))
@@ -424,8 +423,7 @@ public class CallControlMucActivator
             = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
-                JigasiBundleActivator.osgiContext,
-                ProtocolNames.JABBER);
+                osgiContext, ProtocolNames.JABBER);
         AccountManager accountManager
             = ProtocolProviderActivator.getAccountManager();
         AccountID xmppAccount
@@ -473,8 +471,7 @@ public class CallControlMucActivator
             = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
-                JigasiBundleActivator.osgiContext,
-                ProtocolNames.JABBER);
+                osgiContext, ProtocolNames.JABBER);
         AccountManager accountManager
             = ProtocolProviderActivator.getAccountManager();
 
@@ -488,6 +485,21 @@ public class CallControlMucActivator
 
         if (accountID != null)
         {
+            ServiceReference<ProtocolProviderService> serRef
+                = xmppProviderFactory.getProviderForAccount(accountID);
+            if (serRef != null)
+            {
+                try
+                {
+                    osgiContext.getService(serRef).unregister(true);
+                }
+                catch(OperationFailedException e)
+                {
+                    logger.error("Error unregistering provider "
+                        + id + " / " + accountID);
+                }
+            }
+
             boolean result
                 = xmppProviderFactory.uninstallAccount(accountID);
             logger.info("Removing muc control account: "
@@ -517,8 +529,7 @@ public class CallControlMucActivator
             = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(
-            JigasiBundleActivator.osgiContext,
-            ProtocolNames.JABBER);
+            osgiContext, ProtocolNames.JABBER);
         AccountManager accountManager
             = ProtocolProviderActivator.getAccountManager();
 
