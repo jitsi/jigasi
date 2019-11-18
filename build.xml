@@ -224,7 +224,7 @@
         <echo message="Try installing the 'dpkg-dev' and 'debhelper' packages"/>
     </target>
 
-    <target name="deb" depends="make,deb-copy-jigasi,deb-32,deb-64"/>
+    <target name="deb" depends="make,deb-copy-jigasi,deb-64"/>
     <target name="deb-32">
         <antcall target="make-deb">
             <param name="deb-arch" value="i386"/>
