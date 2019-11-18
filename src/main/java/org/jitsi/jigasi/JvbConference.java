@@ -1459,23 +1459,23 @@ public class JvbConference
                 try
                 {
                     syncRoot.wait(timeout);
-
-                    if (willCauseTimeout)
-                    {
-                        logger.error(callContext + " "
-                            + errorLog + " (" + timeout + " ms)");
-
-                        JvbConference.this.endReason = this.endReason;
-                        JvbConference.this.endReasonCode
-                            = OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT;
-
-                        stop();
-                    }
                 }
                 catch (InterruptedException e)
                 {
                     Thread.currentThread().interrupt();
                 }
+            }
+
+            if (willCauseTimeout)
+            {
+                logger.error(callContext + " "
+                    + errorLog + " (" + timeout + " ms)");
+
+                JvbConference.this.endReason = this.endReason;
+                JvbConference.this.endReasonCode
+                    = OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT;
+
+                stop();
             }
         }
 
