@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.13.c920e8c</jitsi-desktop.version>
+    <jitsi-desktop.version>2.13.41a063d</jitsi-desktop.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.26</slf4j.version>
     <smack.version>4.2.4-47d17fc</smack.version>
