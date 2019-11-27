@@ -408,6 +408,8 @@ public class JvbConference
             logger.error(this.callContext + " Already started !");
             return;
         }
+        logger.info(this.callContext + " Starting JVB conference room: "
+            + this.callContext.getRoomName());
 
         Localpart resourceIdentifier = getResourceIdentifier();
 

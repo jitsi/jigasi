@@ -39,7 +39,7 @@ public class SipGateway
      * The logger
      */
     private final static Logger logger = Logger.getLogger(SipGateway.class);
-    
+
     /**
      * SIP protocol provider instance.
      */
@@ -185,8 +185,6 @@ public class SipGateway
 
                 Call call = event.getSourceCall();
 
-                logger.info("Incoming call received...");
-
                 // create a call context reusing the domain stored in
                 // sip account properties if any
                 CallContext ctx = new CallContext(call.getProtocolProvider());
@@ -194,6 +192,8 @@ public class SipGateway
                     .getAccountPropertyString(
                         CallContext.DOMAIN_BASE_ACCOUNT_PROP));
                 call.setData(CallContext.class, ctx);
+
+                logger.info(ctx + " Incoming call received...");
 
                 SipGatewaySession incomingSession
                     = new SipGatewaySession(
