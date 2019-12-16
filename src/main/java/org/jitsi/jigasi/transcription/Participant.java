@@ -657,9 +657,12 @@ public class Participant
         ChatRoomMemberJabberImpl memberJabber
             = ((ChatRoomMemberJabberImpl) this.chatMember);
 
-        TranscriptionRequestExtension ext
-            = getTranscriptionRequestExtensionOrNull(
-                memberJabber.getLastPresence());
+        TranscriptionRequestExtension ext = null;
+        Presence presence = memberJabber.getLastPresence();
+        if (presence != null)
+        {
+            ext = getTranscriptionRequestExtensionOrNull(presence);
+        }
 
         return ext != null && Boolean.valueOf(ext.getText());
     }
