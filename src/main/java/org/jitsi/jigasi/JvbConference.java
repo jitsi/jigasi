@@ -719,6 +719,12 @@ public class JvbConference
 
             Localpart resourceIdentifier = getResourceIdentifier();
 
+            // let's schedule the timeout before joining, before been able
+            // to receive any incoming call, will cancel it if we need to
+            // jvbCall will be null (no need on any sync as we are still not in
+            // the room)
+            inviteTimeout.scheduleTimeout();
+
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
@@ -745,8 +751,6 @@ public class JvbConference
             }
 
             gatewaySession.notifyJvbRoomJoined();
-
-            inviteTimeout.maybeScheduleInviteTimeout();
         }
         catch (Exception e)
         {
@@ -1414,6 +1418,17 @@ public class JvbConference
         }
 
         /**
+         * Schedules a new timeout thread if not already scheduled
+         * using default timeout value.
+         * If invite timeout setting is 0 or less will do nothing.
+         */
+        void scheduleTimeout()
+        {
+            if (AbstractGateway.getJvbInviteTimeout() > 0)
+                this.scheduleTimeout(AbstractGateway.getJvbInviteTimeout());
+        }
+
+        /**
          * Schedules a new timeout thread if not already scheduled.
          *
          * @param timeout the milliseconds to wait before we stop the conference
@@ -1499,16 +1514,16 @@ public class JvbConference
             synchronized(jvbCallWriteSync)
             {
                 if (JvbConference.this.jvbCall == null
-                        && JvbConference.this.started)
+                        && JvbConference.this.started
+                        && AbstractGateway.getJvbInviteTimeout() > 0)
                 {
                     // if no invite comes back we want to hangup the sip call
                     // and disconnect from the conference
-                    inviteTimeout.scheduleTimeout(
-                        AbstractGateway.getJvbInviteTimeout());
+                    this.scheduleTimeout(AbstractGateway.getJvbInviteTimeout());
                 }
                 else
                 {
-                    inviteTimeout.cancel();
+                    this.cancel();
                 }
             }
         }
