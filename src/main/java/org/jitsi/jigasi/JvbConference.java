@@ -928,23 +928,6 @@ public class JvbConference
 
             return;
         }
-
-        // if it is us and the focus
-        if (evt.getChatRoom().getMembersCount() == 2)
-        {
-            long inviteTime = AbstractGateway.getJvbInviteTimeout();
-            if (inviteTime > 0)
-            {
-                // We want to be safe and schedule a timeout just in case jicofo
-                // mess something and does not send us a session-terminate.
-                // On session-terminate we will schedule another timeout
-                inviteTimeout.scheduleTimeout(inviteTime);
-            }
-            else
-            {
-                stop();
-            }
-        }
     }
 
     /**
