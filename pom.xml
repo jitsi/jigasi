@@ -29,12 +29,12 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-speech</artifactId>
-      <version>0.68.0-beta</version>
+      <version>1.22.1</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-translate</artifactId>
-      <version>1.50.0</version>
+      <version>1.94.1</version>
     </dependency>
     <dependency>
       <groupId>dom4j</groupId>
