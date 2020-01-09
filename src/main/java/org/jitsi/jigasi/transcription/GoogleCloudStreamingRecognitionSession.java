@@ -273,9 +273,7 @@ class GoogleCloudStreamingRecognitionSession
             // to get an unique ID
             ResponseApiStreamingObserver<StreamingRecognizeResponse>
                 responseObserver =
-                    new ResponseApiStreamingObserver<>(
-                            this,
-                            config.getLanguageCode());
+                    new ResponseApiStreamingObserver<>(config.getLanguageCode());
 
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
@@ -507,13 +505,6 @@ class GoogleCloudStreamingRecognitionSession
             implements ApiStreamObserver<T>
     {
         /**
-         * The manager which is used to send new audio requests. Should be
-         * notified when a final result comes in to be able to start a new
-         * session
-         */
-        private RequestApiStreamObserverManager requestManager;
-
-        /**
          * The language of the speech being provided in the current session
          */
         private String languageTag;
@@ -528,12 +519,10 @@ class GoogleCloudStreamingRecognitionSession
          * Create a ResponseApiStreamingObserver which listens for transcription
          * results
          *
-         * @param manager the manager of requests
+         * @param languageTag
          */
-        ResponseApiStreamingObserver(RequestApiStreamObserverManager manager,
-                                     String languageTag)
+        ResponseApiStreamingObserver(String languageTag)
         {
-            this.requestManager = manager;
             this.languageTag = languageTag;
 
             messageID = UUID.randomUUID();
