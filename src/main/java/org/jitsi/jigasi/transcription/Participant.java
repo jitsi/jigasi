@@ -158,6 +158,29 @@ public class Participant
     }
 
     /**
+     * A debug name that can be used in the logs related to this participant
+     * instance.
+     *
+     * @return a {@code String} or {@code null} if this instance has not been
+     * initialized enough to get a proper debug name(not joined any room yet).
+     */
+    String getDebugName() {
+        ChatRoomMember _chatMember = this.chatMember;
+
+        if (_chatMember == null) {
+            return null;
+        }
+
+        String roomId = chatMember.getChatRoom().getIdentifier();
+
+        if (roomId.contains("@")) {
+            roomId = roomId.substring(0, roomId.indexOf("@"));
+        }
+
+        return roomId + "/" + _chatMember.getName();
+    }
+
+    /**
      * @return the string to uses when identifying this participant in the
      * transcript (if a display name wasn't specifically set we use the id or
      * a default string).
