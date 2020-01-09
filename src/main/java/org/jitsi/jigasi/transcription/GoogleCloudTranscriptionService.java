@@ -366,7 +366,7 @@ public class GoogleCloudTranscriptionService
             Participant participant)
         throws UnsupportedOperationException
     {
-        return new GoogleCloudStreamingRecognitionSession();
+        return new GoogleCloudStreamingRecognitionSession(participant.getDebugName());
     }
 
     @Override
@@ -415,6 +415,11 @@ public class GoogleCloudTranscriptionService
         private SpeechClient client;
 
         /**
+         * Extra string added to every log.
+         */
+        private final String debugName;
+
+        /**
          * A manager which acts as a ApiStreamObserver which will send new audio
          * request to be transcribed
          */
@@ -429,17 +434,19 @@ public class GoogleCloudTranscriptionService
         /**
          * Create a new session with the Google Cloud API
          */
-        private GoogleCloudStreamingRecognitionSession()
+        private GoogleCloudStreamingRecognitionSession(String debugName)
         {
+            this.debugName = debugName;
+
             try
             {
                 this.client = SpeechClient.create();
                 this.requestManager
-                    = new RequestApiStreamObserverManager(client);
+                    = new RequestApiStreamObserverManager(client, debugName);
             }
             catch(Exception e)
             {
-                logger.error("Error creating stream obesrver", e);
+                logger.error(debugName + ": error creating stream observer", e);
             }
         }
 
@@ -453,10 +460,10 @@ public class GoogleCloudTranscriptionService
                 }
                 catch(Exception e)
                 {
-                    logger.warn("Not able to send request", e);
+                    logger.warn(debugName + ": not able to send request", e);
                 }
             });
-            logger.trace("queued request");
+            logger.trace(debugName + ": queued request");
         }
 
         @Override
@@ -478,7 +485,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
-                logger.error("Error ending session", e);
+                logger.error(debugName + ": error ending session", e);
             }
         }
 
@@ -510,12 +517,27 @@ public class GoogleCloudTranscriptionService
         /**
          * The client to send statistics to
          */
-        private StatsDClient client = JigasiBundleActivator.getDataDogClient();
+        private final StatsDClient client = JigasiBundleActivator.getDataDogClient();
+
+        /**
+         * Extra string added to every log.
+         */
+        private final String debugName;
 
         /**
          * Keep track of the time already send
          */
         private long summedTime = 0;
+
+        /**
+         * Creates new  {@link GoogleCloudCostLogger}.
+         *
+         * @param debugName a {@code String} that will be added to log messages.
+         */
+        GoogleCloudCostLogger(String debugName)
+        {
+            this.debugName = debugName;
+        }
 
         /**
          * Tell the {@link GoogleCloudCostLogger} that a certain length of audio
@@ -547,7 +569,7 @@ public class GoogleCloudTranscriptionService
                 client.count(ASPECT_INTERVAL, intervals15s);
             }
 
-            logger.info("sent " + summedTime + "ms to speech API, " +
+            logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
                             "for a total of " + intervals15s + " intervals");
 
             summedTime = 0;
@@ -566,6 +588,11 @@ public class GoogleCloudTranscriptionService
          * The SpeechClient which will be used to initiate the session
          */
         private SpeechClient client;
+
+        /**
+         * Extra string added to every log.
+         */
+        private final String debugName;
 
         /**
          * List of TranscriptionListeners which will be notified when a
@@ -599,17 +626,20 @@ public class GoogleCloudTranscriptionService
         /**
          * Used to log the cost of every request which is send
          */
-        private GoogleCloudCostLogger costLogger = new GoogleCloudCostLogger();
+        private final GoogleCloudCostLogger costLogger;
 
         /**
          * Create a new RequestApiStreamObserverManager, which will try
          * to mimic a streaming session of indefinite lenth
          *
          * @param client the SpeechClient with which to open new sessions
+         * @param debugName extra text which will be added to logs
          */
-        RequestApiStreamObserverManager(SpeechClient client)
+        RequestApiStreamObserverManager(SpeechClient client, String debugName)
         {
             this.client = client;
+            this.debugName = debugName;
+            this.costLogger = new GoogleCloudCostLogger(debugName);
         }
 
         /**
@@ -628,7 +658,8 @@ public class GoogleCloudTranscriptionService
                 responseObserver =
                 new ResponseApiStreamingObserver<StreamingRecognizeResponse>(
                     this,
-                    config.getLanguageCode());
+                    config.getLanguageCode(),
+                    debugName);
 
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
@@ -678,7 +709,7 @@ public class GoogleCloudTranscriptionService
         {
             if(stopped)
             {
-                logger.warn("not able to send request because" +
+                logger.warn(debugName + ": not able to send request because" +
                     " manager was already stopped");
                 return;
             }
@@ -694,7 +725,7 @@ public class GoogleCloudTranscriptionService
                 if(currentRequestObserver == null)
                 {
                     if (logger.isDebugEnabled())
-                        logger.debug("Created a new session");
+                        logger.debug(debugName + ": created a new session");
 
                     currentRequestObserver
                         = createObserver(getRecognitionConfig(request));
@@ -709,7 +740,7 @@ public class GoogleCloudTranscriptionService
 
                 terminatingSessionThread.interrupt();
             }
-            logger.trace("Sent a request");
+            logger.trace(debugName + ": sent a request");
         }
 
         /**
@@ -753,7 +784,7 @@ public class GoogleCloudTranscriptionService
                 if(currentRequestObserver != null)
                 {
                     if (logger.isDebugEnabled())
-                        logger.debug("Terminated current session");
+                        logger.debug(debugName + ": terminated current session");
 
                     currentRequestObserver.onCompleted();
                     currentRequestObserver = null;
@@ -786,6 +817,11 @@ public class GoogleCloudTranscriptionService
         implements ApiStreamObserver<T>
     {
         /**
+         * Extra text added to logs.
+         */
+        private String debugName;
+
+        /**
          * The manager which is used to send new audio requests. Should be
          * notified when a final result comes in to be able to start a new
          * session
@@ -808,12 +844,15 @@ public class GoogleCloudTranscriptionService
          * results
          *
          * @param manager the manager of requests
+         * @param debugName extra text to be added to log messages
          */
         ResponseApiStreamingObserver(RequestApiStreamObserverManager manager,
-                                     String languageTag)
+                                     String languageTag,
+                                     String debugName)
         {
             this.requestManager = manager;
             this.languageTag = languageTag;
+            this.debugName = debugName;
 
             messageID = UUID.randomUUID();
         }
@@ -822,7 +861,7 @@ public class GoogleCloudTranscriptionService
         public void onNext(StreamingRecognizeResponse message)
         {
             if (logger.isDebugEnabled())
-                logger.debug("Received a StreamingRecognizeResponse");
+                logger.debug(debugName + ": received a StreamingRecognizeResponse");
             if(message.hasError())
             {
                 // it is expected to get an error if the 60 seconds are exceeded
@@ -832,7 +871,7 @@ public class GoogleCloudTranscriptionService
                 // when new audio comes in
                 if (logger.isDebugEnabled())
                     logger.debug(
-                        "Received error from StreamingRecognizeResponse: "
+                        debugName + ": received error from StreamingRecognizeResponse: "
                         + message.getError().getMessage());
                 requestManager.terminateCurrentSession();
                 return;
@@ -846,7 +885,7 @@ public class GoogleCloudTranscriptionService
             {
                 if (logger.isDebugEnabled())
                     logger.debug(
-                        "Received a message with an empty results list");
+                        debugName + ": received a message with an empty results list");
 
                 requestManager.terminateCurrentSession();
                 return;
@@ -877,7 +916,7 @@ public class GoogleCloudTranscriptionService
             // so this is never supposed to happen
             if(alternatives.isEmpty())
             {
-                logger.warn("Received a list of alternatives which" +
+                logger.warn(debugName + ": received a list of alternatives which" +
                     " was empty");
                 requestManager.terminateCurrentSession();
                 return;
@@ -945,7 +984,7 @@ public class GoogleCloudTranscriptionService
         @Override
         public void onError(Throwable t)
         {
-            logger.warn("Received an error from the Google Cloud API", t);
+            logger.warn(debugName + ": received an error from the Google Cloud API", t);
             requestManager.terminateCurrentSession();
         }
 
