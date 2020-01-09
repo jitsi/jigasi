@@ -342,8 +342,10 @@ public class Participant
     private TranscriptionRequestExtension
                 getTranscriptionRequestExtensionOrNull(Presence p)
     {
-        return p.getExtension(TranscriptionRequestExtension.ELEMENT_NAME,
-                              TranscriptionRequestExtension.NAMESPACE);
+        return p != null
+                ? p.getExtension(TranscriptionRequestExtension.ELEMENT_NAME,
+                              TranscriptionRequestExtension.NAMESPACE)
+                : null;
     }
 
     /**
@@ -654,16 +656,16 @@ public class Participant
      */
     public boolean isRequestingTranscription()
     {
+        // FIXME inconsistent ChatRoomMemberJabberImpl type usage: in some
+        //  places it checks instanceof and in other doesn't. Why bother
+        //  allowing generic type if transcriptions would crash anyway on
+        //  other type.
         ChatRoomMemberJabberImpl memberJabber
             = ((ChatRoomMemberJabberImpl) this.chatMember);
+        TranscriptionRequestExtension ext
+            = getTranscriptionRequestExtensionOrNull(
+                memberJabber != null ? memberJabber.getLastPresence() : null);
 
-        TranscriptionRequestExtension ext = null;
-        Presence presence = memberJabber.getLastPresence();
-        if (presence != null)
-        {
-            ext = getTranscriptionRequestExtensionOrNull(presence);
-        }
-
-        return ext != null && Boolean.valueOf(ext.getText());
+        return ext != null && Boolean.parseBoolean(ext.getText());
     }
 }
