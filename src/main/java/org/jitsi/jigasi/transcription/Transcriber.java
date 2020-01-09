@@ -218,6 +218,15 @@ public class Transcriber
     }
 
     /**
+     * A debug name added to every log message printed by this instance.
+     *
+     * @return a {@code String}
+     */
+    private String getDebugName() {
+        return roomName;
+    }
+
+    /**
      * Add a participant to the list of participants being transcribed
      *
      * @param identifier the identifier of the participant
@@ -238,13 +247,15 @@ public class Transcriber
 
             if (logger.isDebugEnabled())
                 logger.debug(
-                    "Added participant with identifier " + identifier);
+                    getDebugName()
+                        + ": added participant with identifier " + identifier);
 
             return;
         }
 
-        logger.warn("Participant with identifier " + identifier
-            +  " joined while it did not exist");
+        logger.warn(
+            getDebugName() + ": participant with identifier " + identifier
+                +  " joined while it did not exist");
 
     }
 
@@ -283,8 +294,10 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Asked to set chatroom member of participant with "+
-                "identifier "+ identifier+ "while it wasn't added before");
+            logger.warn(
+                getDebugName() + ": asked to set chatroom member of participant"
+                    + " with identifier " + identifier
+                    + " while it wasn't added before");
         }
     }
 
@@ -371,14 +384,16 @@ public class Transcriber
             if (logger.isDebugEnabled())
             {
                 logger.debug(
-                    "Removed participant with identifier " + identifier);
+                    getDebugName() + ": removed participant with identifier "
+                        + identifier);
             }
 
             return;
         }
 
-        logger.warn("Participant with identifier " + identifier
-            +  " left while it did not exist");
+        logger.warn(
+            getDebugName() + ": participant with identifier "
+                + identifier +  " left while it did not exist");
     }
 
     /**
@@ -389,7 +404,7 @@ public class Transcriber
         if (State.NOT_STARTED.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug("Transcriber is now transcribing");
+                logger.debug(getDebugName() + ": transcriber is now transcribing");
 
             updateDDClient(DD_ASPECT_START);
 
@@ -405,8 +420,9 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Trying to start Transcriber while it is" +
-                            "already started");
+            logger.warn(
+                getDebugName() + ": trying to start Transcriber while it is"
+                    + " already started");
         }
     }
 
@@ -418,7 +434,8 @@ public class Transcriber
         if (State.TRANSCRIBING.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug("Transcriber is now finishing up");
+                logger.debug(
+                    getDebugName() + ": transcriber is now finishing up");
 
             updateDDClient(DD_ASPECT_STOP);
 
@@ -434,8 +451,9 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Trying to stop Transcriber while it is " +
-                            "already stopped");
+            logger.warn(
+                getDebugName() + ": trying to stop Transcriber while it is "
+                    + " already stopped");
         }
     }
 
@@ -452,7 +470,7 @@ public class Transcriber
             dClient.increment(ddAspectStop);
             if(logger.isDebugEnabled())
             {
-                logger.debug("thrown stat: " + ddAspectStop);
+                logger.debug(getDebugName() + " thrown stat: " + ddAspectStop);
             }
         }
     }
@@ -471,8 +489,9 @@ public class Transcriber
         }
         else
         {
-            logger.warn("Trying to notify Transcriber for a while it is " +
-                "already stopped");
+            logger.warn(
+                getDebugName() + ": trying to notify Transcriber for a while"
+                    + " it is already stopped");
         }
     }
 
@@ -599,7 +618,8 @@ public class Transcriber
     {
         if (!isTranscribing())
         {
-            logger.trace("Receiving audio while not transcribing");
+            logger.trace(
+                getDebugName() + ": receiving audio while not transcribing");
             return;
         }
 
@@ -611,14 +631,15 @@ public class Transcriber
         {
             if (p.hasValidSourceLanguage())
             {
-                logger.trace("Gave audio to buffer");
+                logger.trace(getDebugName() + ": gave audio to buffer");
                 p.giveBuffer(buffer);
             }
         }
         else
         {
-            logger.warn("Reading from SSRC " + ssrc + " while it is " +
-                            "not known as a participant");
+            logger.warn(
+                getDebugName() + ": reading from SSRC " + ssrc
+                    + " while it is not known as a participant");
         }
     }
 
@@ -720,7 +741,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug("Transcriber is now finished");
+                logger.debug(getDebugName() + ": transcriber is now finished");
 
             this.state = State.FINISHED;
             for (TranscriptionListener listener : listeners)
