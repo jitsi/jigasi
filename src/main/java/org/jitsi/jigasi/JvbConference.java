@@ -1448,6 +1448,7 @@ public class JvbConference
                 timeoutThread = new Thread(this, name);
                 willCauseTimeout = true;
                 timeoutThread.start();
+                logger.debug("Scheduled new " + this);
             }
         }
 
@@ -1488,6 +1489,8 @@ public class JvbConference
                 if (timeoutThread == null)
                     return;
 
+                logger.debug("Trying to cancel " + this);
+
                 syncRoot.notifyAll();
             }
 
@@ -1501,6 +1504,8 @@ public class JvbConference
             {
                 Thread.currentThread().interrupt();
             }
+
+            logger.debug("Canceled " + this);
         }
 
         /**
@@ -1526,6 +1531,19 @@ public class JvbConference
                     this.cancel();
                 }
             }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString()
+        {
+            return "JvbConferenceStopTimeout["
+                + callContext + ","
+                + endReason + ","
+                + errorLog + "]@"
+                + hashCode();
         }
     }
 }
