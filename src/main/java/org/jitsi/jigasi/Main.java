@@ -274,6 +274,8 @@ public class Main
                 ".SKIP_REINVITE_ON_FOCUS_CHANGE_PROP",
             "true");
 
+        SmackConfiguration.setDefaultReplyTimeout(15000);
+
         // disable smack packages before loading smack
         disableSmackProviders();
 
