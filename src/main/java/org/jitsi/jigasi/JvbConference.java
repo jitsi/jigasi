@@ -1221,7 +1221,7 @@ public class JvbConference
                 //     ProtocolProviderFactory#loadAccount()
                 //
                 // method can't (and doesn't) work, at least not without
-                // changing the implementation of the loadAccount method..
+                // changing the implementation of the loadAccount method.
                 //
                 // To avoid to have to store the dynamic accounts in the
                 // configuration and, consequently, to have to manage them, to
@@ -1239,6 +1239,10 @@ public class JvbConference
                 // account and there we can alter the connection credentials.
 
                 this.xmppPassword = value;
+                // add password in props so it is available
+                // for the UIServiceStub and getAccountID().getPassword()
+                // used on reconnect
+                properties.put(ProtocolProviderFactory.PASSWORD, value);
             }
             else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
                         .equals(overridenProp))
