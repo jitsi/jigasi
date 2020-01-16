@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -431,13 +431,18 @@ public class CallManager
 
     public synchronized static void hangupCall(Call call)
     {
+        hangupCall(call, false);
+    }
+
+    public synchronized static void hangupCall(Call call, boolean unloadAccount)
+    {
         if (logger.isDebugEnabled())
         {
             logger.debug("Hanging up :" + call, new Throwable());
         }
 
         threadPool.submit(
-            new HangupCallThread(call));
+            new HangupCallThread(call, unloadAccount));
     }
 
     public synchronized static void hangupCall(Call   call,
@@ -449,7 +454,7 @@ public class CallManager
             logger.debug("Hanging up :" + call, new Throwable());
         }
 
-        HangupCallThread hangupCallThread = new HangupCallThread(call);
+        HangupCallThread hangupCallThread = new HangupCallThread(call, false);
 
         hangupCallThread.reasonCode = reasonCode;
         hangupCallThread.reason = reason;
@@ -478,6 +483,8 @@ public class CallManager
 
         private final CallPeer peer;
 
+        private final boolean unloadAccount;
+
         private int reasonCode
             = OperationSetBasicTelephony.HANGUP_REASON_NORMAL_CLEARING;
 
@@ -490,34 +497,12 @@ public class CallManager
          *
          * @param call the <tt>Call</tt> whose associated <tt>CallPeer</tt>s are
          * to be hanged up
+         * @param unloadAccount whether we need to unregister and unload account
+         * after hangup.
          */
-        public HangupCallThread(Call call)
+        public HangupCallThread(Call call, boolean unloadAccount)
         {
-            this(call, null, null);
-        }
-
-        /**
-         * Initializes a new <tt>HangupCallThread</tt> instance which is to hang
-         * up a specific <tt>CallConference</tt> i.e. all <tt>Call</tt>s
-         * participating in the <tt>CallConference</tt>.
-         *
-         * @param conference the <tt>CallConference</tt> whose participating
-         * <tt>Call</tt>s re to be hanged up
-         */
-        public HangupCallThread(CallConference conference)
-        {
-            this(null, conference, null);
-        }
-
-        /**
-         * Initializes a new <tt>HangupCallThread</tt> instance which is to hang
-         * up a specific <tt>CallPeer</tt>.
-         *
-         * @param peer the <tt>CallPeer</tt> to hang up
-         */
-        public HangupCallThread(CallPeer peer)
-        {
-            this(null, null, peer);
+            this(call, null, null, unloadAccount);
         }
 
         /**
@@ -530,15 +515,19 @@ public class CallManager
          * @param conference the <tt>CallConference</tt> whose participating
          * <tt>Call</tt>s re to be hanged up
          * @param peer the <tt>CallPeer</tt> to hang up
+         * @param unloadAccount whether we need to unregister and unload account
+         * after hangup.
          */
         private HangupCallThread(
             Call call,
             CallConference conference,
-            CallPeer peer)
+            CallPeer peer,
+            boolean unloadAccount)
         {
             this.call = call;
             this.conference = conference;
             this.peer = peer;
+            this.unloadAccount = unloadAccount;
         }
 
         @Override
@@ -577,6 +566,39 @@ public class CallManager
                 catch (Exception ofe)
                 {
                     logger.error("Could not hang up: " + peer, ofe);
+                }
+            }
+
+            // we are unloading the account after hangup, just to avoid some
+            // exceptions on hangup, where the provider manages first to
+            // close the connection before the hangup thread manages to hangup
+            if (this.unloadAccount)
+            {
+                ProtocolProviderService pp = call.getProtocolProvider();
+
+                // unregister with user request true to indicate we just want
+                // to remove it and no reconnection is needed.
+                try
+                {
+                    pp.unregister(true);
+                }
+                catch(OperationFailedException e)
+                {
+                    logger.error("Cannot unregister");
+                }
+
+                ProtocolProviderFactory factory
+                    = ProtocolProviderFactory.getProtocolProviderFactory(
+                        JigasiBundleActivator.osgiContext,
+                        pp.getProtocolName());
+
+                if (factory != null)
+                {
+                    logger.info(
+                        call.getData(CallContext.class)
+                            + " Removing account " + pp.getAccountID());
+
+                    factory.unloadAccount(pp.getAccountID());
                 }
             }
         }
