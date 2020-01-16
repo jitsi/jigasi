@@ -268,6 +268,12 @@ public class Main
         System.setProperty(ConfigurationActivator.PNAME_USE_PROPFILE_CONFIG,
             "true");
 
+        // reported to drop calls on asterisk, as it does not reply
+        // to our re-invites
+        System.setProperty("net.java.sip.communicator.impl.protocol.sip" +
+                ".SKIP_REINVITE_ON_FOCUS_CHANGE_PROP",
+            "true");
+
         // disable smack packages before loading smack
         disableSmackProviders();
 
