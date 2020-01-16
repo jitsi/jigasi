@@ -494,17 +494,12 @@ public class JvbConference
 
         if (jvbCall != null)
         {
-            CallManager.hangupCall(jvbCall);
+            CallManager.hangupCall(jvbCall, true);
         }
 
         if (xmppProvider != null)
         {
             xmppProvider.removeRegistrationStateChangeListener(this);
-
-            logger.info(
-                callContext + " Removing account " + xmppAccount);
-
-            xmppProviderFactory.unloadAccount(xmppAccount);
 
             xmppProviderFactory = null;
 
