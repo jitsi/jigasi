@@ -588,7 +588,7 @@ public class JvbConference
         }
         else if (evt.getNewState() == RegistrationState.UNREGISTERED)
         {
-            logger.error(this.callContext + " Unregistered XMPP.");
+            logger.error(this.callContext + " Unregistered XMPP:" + evt);
         }
         else if (evt.getNewState() == RegistrationState.REGISTERING)
         {
