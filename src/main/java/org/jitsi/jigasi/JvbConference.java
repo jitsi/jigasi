@@ -250,6 +250,11 @@ public class JvbConference
         );
 
     /**
+     * The last status we sent in the conference using setPresenceStatus.
+     */
+    private String jvbParticipantStatus = null;
+
+    /**
      * Call hang up reason string that will be sent to the SIP peer.
      */
     private String endReason;
@@ -784,8 +789,13 @@ public class JvbConference
         }
     }
 
-    void setPresenceStatus(String statusMsg)
+    synchronized void setPresenceStatus(String statusMsg)
     {
+        if (statusMsg.equals(jvbParticipantStatus))
+        {
+            return;
+        }
+
         if (mucRoom != null)
         {
             // Send presence status update
@@ -794,6 +804,8 @@ public class JvbConference
                     OperationSetJitsiMeetTools.class);
 
             jitsiMeetTools.setPresenceStatus(mucRoom, statusMsg);
+
+            jvbParticipantStatus = statusMsg;
         }
     }
 
@@ -1057,24 +1069,30 @@ public class JvbConference
             setJvbCall(jvbCall);
             jvbCall.setData(CallContext.class, callContext);
 
-            if(jvbCall != null)
+            if (peer != null)
             {
-                CallPeer peerToAdd = jvbCall.getCallPeers().next();
-                if (peerToAdd != null)
+                peer.addCallPeerConferenceListener(JvbConference.this);
+
+                peer.addCallPeerListener(new CallPeerAdapter()
                 {
-                    peerToAdd.addCallPeerConferenceListener(JvbConference.this);
-                }
-                else
-                {
-                    logger.warn(callContext + " Could not add JvbConference as "
-                        + "CallPeerConferenceListener because CallPeer is null"
-                    );
-                }
+                    @Override
+                    public void peerStateChanged(CallPeerChangeEvent evt)
+                    {
+                        CallPeer p = evt.getSourceCallPeer();
+                        CallPeerState peerState = p.getState();
+
+                        if (CallPeerState.CONNECTED.equals(peerState))
+                        {
+                            p.removeCallPeerListener(this);
+                            setPresenceStatus(peerState.getStateString());
+                        }
+                    }
+                });
             }
             else
             {
                 logger.warn(callContext + " Could not add JvbConference as "
-                    + "CallPeerConferenceListener because jvbCall is null");
+                    + "CallPeerConferenceListener because CallPeer is null");
             }
 
             // disable hole punching jvb
