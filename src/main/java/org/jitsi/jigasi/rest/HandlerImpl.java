@@ -354,6 +354,8 @@ public class HandlerImpl
         {
             status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
             reason = e.getMessage();
+
+            logger.error("Health check failed", e);
         }
 
         if (reason != null)
