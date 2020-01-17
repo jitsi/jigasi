@@ -255,6 +255,11 @@ public class JvbConference
     private String jvbParticipantStatus = null;
 
     /**
+     * Synchronizes the write access to {@code jvbParticipantStatus}.
+     */
+    private final Object statusSync = new Object();
+
+    /**
      * Call hang up reason string that will be sent to the SIP peer.
      */
     private String endReason;
@@ -789,11 +794,16 @@ public class JvbConference
         }
     }
 
-    synchronized void setPresenceStatus(String statusMsg)
+    void setPresenceStatus(String statusMsg)
     {
-        if (statusMsg.equals(jvbParticipantStatus))
+        synchronized(statusSync)
         {
-            return;
+            if (statusMsg.equals(jvbParticipantStatus))
+            {
+                return;
+            }
+
+            jvbParticipantStatus = statusMsg;
         }
 
         if (mucRoom != null)
@@ -804,8 +814,6 @@ public class JvbConference
                     OperationSetJitsiMeetTools.class);
 
             jitsiMeetTools.setPresenceStatus(mucRoom, statusMsg);
-
-            jvbParticipantStatus = statusMsg;
         }
     }
 
