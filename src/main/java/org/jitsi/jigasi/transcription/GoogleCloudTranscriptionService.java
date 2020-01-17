@@ -898,11 +898,26 @@ public class GoogleCloudTranscriptionService
             }
 
             List<StreamingRecognitionResult> results = message.getResultsList();
-
-            // If there is a result with is_final=true, it's always the first
-            // and there is only ever 1
             StreamingRecognitionResult result = results.get(0);
-            if(!result.getIsFinal())
+
+            // If empty, the session has reached it's time limit and
+            // nothing new was said, but there should be an error in the message
+            // so this is never supposed to happen
+            if(result.getAlternativesList().isEmpty())
+            {
+                logger.warn(
+                    debugName + ": received a list of alternatives which"
+                              + " was empty");
+                requestManager.terminateCurrentSession();
+                return;
+            }
+
+            if(result.getIsFinal())
+            {
+                handleResult(result);
+                requestManager.terminateCurrentSession();
+            }
+            else
             {
                 // Handle the interim results. Only process the first one as
                 // it's the most stable part of the current stream and Google
@@ -916,31 +931,10 @@ public class GoogleCloudTranscriptionService
                 else if (logger.isDebugEnabled())
                 {
                     logger.debug(
-                        debugName + " dropping unstable results: "
-                            + result.getStability());
+                            debugName + " dropping unstable results: "
+                                    + result.getStability());
                 }
-
-                return;
             }
-
-            // should always contains one result
-            List<SpeechRecognitionAlternative> alternatives
-                = result.getAlternativesList();
-
-            // If empty, the session has reached it's time limit and
-            // nothing new was said, but there should be an error in the message
-            // so this is never supposed to happen
-            if(alternatives.isEmpty())
-            {
-                logger.warn(debugName + ": received a list of alternatives which" +
-                    " was empty");
-                requestManager.terminateCurrentSession();
-                return;
-            }
-
-            handleResult(result);
-
-            requestManager.terminateCurrentSession();
         }
 
         /**
@@ -971,15 +965,13 @@ public class GoogleCloudTranscriptionService
          */
         private void handleResult(StreamingRecognitionResult result)
         {
-            List<SpeechRecognitionAlternative> alternatives
-                = result.getAlternativesList();
-
-            if(alternatives.isEmpty())
+            if (result.getAlternativesList().isEmpty())
             {
-                return;
+                throw new IllegalArgumentException(
+                        "The alternatives list must not be empty");
             }
 
-            SpeechRecognitionAlternative alternative = alternatives.get(0);
+            SpeechRecognitionAlternative alternative = result.getAlternatives(0);
             String newStablePart = alternative.getTranscript();
 
             if (this.stableText.equals(newStablePart)) {
