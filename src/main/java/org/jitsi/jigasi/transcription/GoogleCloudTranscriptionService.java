@@ -840,10 +840,14 @@ public class GoogleCloudTranscriptionService
         private UUID messageID;
 
         /**
-         * Tracks the latest stable part in order to reduce the number of
-         * updates sent to the client.
+         * Google provides multiple results per API response where the first one
+         * contains the most stable part of the sentence and freshly transcribed
+         * text is included in subsequent result structures marked as unstable.
+         * This field stores the stable part and is used to drop any updates
+         * which change only unstable parts to reduce the number of updates
+         * sent to the client.
          */
-        private String stableText = "";
+        private String latestTranscript = "";
 
         /**
          * Create a ResponseApiStreamingObserver which listens for transcription
@@ -972,9 +976,9 @@ public class GoogleCloudTranscriptionService
             }
 
             SpeechRecognitionAlternative alternative = result.getAlternatives(0);
-            String newStablePart = alternative.getTranscript();
+            String newTranscript = alternative.getTranscript();
 
-            if (this.stableText.equals(newStablePart)) {
+            if (this.latestTranscript.equals(newTranscript)) {
                 if  (logger.isDebugEnabled())
                 {
                     logger.debug(
@@ -985,7 +989,7 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            this.stableText = newStablePart;
+            this.latestTranscript = newTranscript;
 
             TranscriptionResult transcriptionResult = new TranscriptionResult(
                 null,
@@ -994,7 +998,7 @@ public class GoogleCloudTranscriptionService
                 this.languageTag,
                 result.getStability(),
                 new TranscriptionAlternative(
-                        newStablePart,
+                        newTranscript,
                         alternative.getConfidence()
                 ));
 
