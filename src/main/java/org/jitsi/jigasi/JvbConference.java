@@ -1518,6 +1518,9 @@ public class JvbConference
                     = OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT;
 
                 stop();
+
+                timeoutThread = null;
+                logger.debug("Timeout thread is done " + this);
             }
         }
 
@@ -1533,17 +1536,6 @@ public class JvbConference
                 logger.debug("Trying to cancel " + this);
 
                 syncRoot.notifyAll();
-            }
-
-            try
-            {
-                timeoutThread.join();
-
-                timeoutThread = null;
-            }
-            catch (InterruptedException e)
-            {
-                Thread.currentThread().interrupt();
             }
 
             logger.debug("Canceled " + this);
