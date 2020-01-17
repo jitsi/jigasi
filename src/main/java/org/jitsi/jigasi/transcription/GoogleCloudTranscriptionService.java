@@ -898,12 +898,10 @@ public class GoogleCloudTranscriptionService
             StreamingRecognitionResult finalResult = results.get(0);
             if(!finalResult.getIsFinal())
             {
-                // handle the interim results and continue waiting for
-                // final result
-                for(StreamingRecognitionResult interimResult : results)
-                {
-                    handleResult(interimResult);
-                }
+                // Handle the interim results. Only process the first one as
+                // it's the most stable part of the current stream and Google
+                // updates it fast enough to be useful for the user.
+                handleResult(finalResult);
                 return;
             }
 
