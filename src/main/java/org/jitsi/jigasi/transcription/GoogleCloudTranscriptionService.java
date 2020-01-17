@@ -840,6 +840,12 @@ public class GoogleCloudTranscriptionService
         private UUID messageID;
 
         /**
+         * Tracks the latest stable part in order to reduce the number of
+         * updates sent to the client.
+         */
+        private String stableText = "";
+
+        /**
          * Create a ResponseApiStreamingObserver which listens for transcription
          * results
          *
@@ -973,20 +979,32 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
+            SpeechRecognitionAlternative alternative = alternatives.get(0);
+            String newStablePart = alternative.getTranscript();
+
+            if (this.stableText.equals(newStablePart)) {
+                if  (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                            debugName + ": dropping result without any change to"
+                                    + " the stable part");
+                }
+
+                return;
+            }
+
+            this.stableText = newStablePart;
+
             TranscriptionResult transcriptionResult = new TranscriptionResult(
                 null,
                 this.messageID,
                 !result.getIsFinal(),
                 this.languageTag,
-                result.getStability());
-
-            for(SpeechRecognitionAlternative alternative : alternatives)
-            {
-                transcriptionResult.addAlternative(
-                    new TranscriptionAlternative(
-                        alternative.getTranscript(),
-                        alternative.getConfidence()));
-            }
+                result.getStability(),
+                new TranscriptionAlternative(
+                        newStablePart,
+                        alternative.getConfidence()
+                ));
 
             sent(transcriptionResult);
         }
