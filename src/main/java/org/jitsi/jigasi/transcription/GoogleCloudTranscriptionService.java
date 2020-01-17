@@ -895,19 +895,31 @@ public class GoogleCloudTranscriptionService
 
             // If there is a result with is_final=true, it's always the first
             // and there is only ever 1
-            StreamingRecognitionResult finalResult = results.get(0);
-            if(!finalResult.getIsFinal())
+            StreamingRecognitionResult result = results.get(0);
+            if(!result.getIsFinal())
             {
                 // Handle the interim results. Only process the first one as
                 // it's the most stable part of the current stream and Google
                 // updates it fast enough to be useful for the user.
-                handleResult(finalResult);
+                // The stability check is to not display even the first part if
+                // it is not stable enough yet.
+                if (result.getStability() > 0.8)
+                {
+                    handleResult(result);
+                }
+                else if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        debugName + " dropping unstable results: "
+                            + result.getStability());
+                }
+
                 return;
             }
 
             // should always contains one result
             List<SpeechRecognitionAlternative> alternatives
-                = finalResult.getAlternativesList();
+                = result.getAlternativesList();
 
             // If empty, the session has reached it's time limit and
             // nothing new was said, but there should be an error in the message
@@ -920,7 +932,7 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            handleResult(finalResult);
+            handleResult(result);
 
             requestManager.terminateCurrentSession();
         }
