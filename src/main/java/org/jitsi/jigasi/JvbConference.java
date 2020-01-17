@@ -576,7 +576,7 @@ public class JvbConference
                 ((ProtocolProviderServiceJabberImpl) xmppProvider)
                     .getConnection() instanceof XMPPBOSHConnection)
             {
-                Object sessionId = getConnSessionId(
+                Object sessionId = Util.getConnSessionId(
                     ((ProtocolProviderServiceJabberImpl) xmppProvider)
                         .getConnection());
                 if (sessionId != null)
@@ -1577,59 +1577,6 @@ public class JvbConference
                 + endReason + ","
                 + errorLog + "]@"
                 + hashCode();
-        }
-    }
-
-    /**
-     * Extracts bosh connection sessionId, we just print it for debug
-     * purposes.
-     * @param connection the bosh connection which sessionId we will try to
-     * extract.
-     * @return the sessionId if extracted or null.
-     */
-    private static Object getConnSessionId(Object connection)
-    {
-        Field myField = getField(XMPPBOSHConnection.class, "sessionID");
-
-        if (myField != null)
-        {
-            myField.setAccessible(true);
-            try
-            {
-                return myField.get(connection);
-            }
-            catch( Exception e)
-            {
-                logger.error("cannot read it", e);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Utility method to get the field from a class.
-     * @param clazz the class.
-     * @param fieldName the field men.
-     * @return the field or null.
-     */
-    private static Field getField(Class clazz, String fieldName)
-    {
-        try
-        {
-            return clazz.getDeclaredField(fieldName);
-        }
-        catch (NoSuchFieldException e)
-        {
-            Class superClass = clazz.getSuperclass();
-            if (superClass == null)
-            {
-                return null;
-            }
-            else
-            {
-                return getField(superClass, fieldName);
-            }
         }
     }
 }
