@@ -1581,11 +1581,10 @@ public class JvbConference
         @Override
         public String toString()
         {
-            return "JvbConferenceStopTimeout["
-                + callContext + ","
-                + endReason + ","
-                + errorLog + "]@"
-                + hashCode();
+            return "JvbConferenceStopTimeout[ctx=" + callContext
+                + ", willCauseTimeout:" + willCauseTimeout
+                + (willCauseTimeout ? endReason + "," + errorLog: "")
+                + "]@"+ hashCode();
         }
     }
 }
