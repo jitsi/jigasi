@@ -835,10 +835,6 @@ public class JvbConference
             return;
         }
 
-        jvbCall.removeCallChangeListener(callChangeListener);
-        jvbCall.removeCallChangeListener(statsHandler);
-        statsHandler = null;
-
         setJvbCall(null);
 
         if (started)
@@ -1435,6 +1431,14 @@ public class JvbConference
     {
         synchronized(jvbCallWriteSync)
         {
+            if (newJvbCall == null)
+            {
+                // cleanup
+                this.jvbCall.removeCallChangeListener(callChangeListener);
+                this.jvbCall.removeCallChangeListener(statsHandler);
+                statsHandler = null;
+            }
+
             this.jvbCall = newJvbCall;
 
             inviteTimeout.maybeScheduleInviteTimeout();
