@@ -586,9 +586,10 @@ public class JvbConference
             // Join the MUC
             joinConferenceRoom();
 
-            if (xmppProvider != null &&
-                ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                    .getConnection() instanceof XMPPBOSHConnection)
+            if (xmppProvider != null
+                && xmppProvider instanceof ProtocolProviderServiceJabberImpl
+                && ((ProtocolProviderServiceJabberImpl) xmppProvider)
+                        .getConnection() instanceof XMPPBOSHConnection)
             {
                 Object sessionId = Util.getConnSessionId(
                     ((ProtocolProviderServiceJabberImpl) xmppProvider)
