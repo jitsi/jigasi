@@ -511,6 +511,15 @@ public class JvbConference
         {
             xmppProvider.removeRegistrationStateChangeListener(this);
 
+            // in case we were not able to create jvb call, unit tests case
+            if (jvbCall == null)
+            {
+                logger.info(
+                    callContext + " Removing account " + xmppAccount);
+
+                xmppProviderFactory.unloadAccount(xmppAccount);
+            }
+
             xmppProviderFactory = null;
 
             xmppAccount = null;
