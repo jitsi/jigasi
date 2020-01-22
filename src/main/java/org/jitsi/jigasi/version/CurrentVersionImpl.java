@@ -17,6 +17,8 @@ package org.jitsi.jigasi.version;
 
 import org.jitsi.utils.version.*;
 
+import java.util.regex.*;
+
 /**
  * Keeps constants for the application version.
  *
@@ -28,14 +30,48 @@ import org.jitsi.utils.version.*;
 public class CurrentVersionImpl
 {
     /**
+     * Default version values can be overwritten by the manifest Implementation
+     * Version in the format 2.1-build-id.
+     */
+    private static int parsedMajor = 0;
+    private static int parsedMinor = 1;
+    private static String parsedBuildId = null;
+
+    static {
+        String version = CurrentVersionImpl.class.getPackage()
+            .getImplementationVersion();
+        if (version != null)
+        {
+            Matcher m
+                = Pattern.compile("(\\d*)\\.(\\d*)-(.*)").matcher(version);
+            if (m.find())
+            {
+                try
+                {
+                    parsedMajor = Integer.parseInt(m.group(1));
+                }
+                catch (NumberFormatException nfe) {}
+
+                try
+                {
+                    parsedMajor = Integer.parseInt(m.group(2));
+                }
+                catch (NumberFormatException nfe) {}
+
+                parsedBuildId = m.group(3);
+            }
+        }
+    }
+
+    /**
      * The major version.
      */
-    public static final int VERSION_MAJOR = 1;
+    public static final int VERSION_MAJOR = parsedMajor;
 
     /**
      * The minor version.
      */
-    public static final int VERSION_MINOR = 0;
+    public static final int VERSION_MINOR = parsedMinor;
 
     /**
      * The version prerelease ID of the current application version.
@@ -43,9 +79,10 @@ public class CurrentVersionImpl
     public static final String PRE_RELEASE_ID = null;
 
     /**
-     * The nightly build ID. This file is auto-updated by build.xml.
+     * The nightly build ID. This file is auto-updated on compile time.
      */
-    public static final String NIGHTLY_BUILD_ID = "build.SVN";
+    public static final String NIGHTLY_BUILD_ID
+        = parsedBuildId != null ? parsedBuildId : "build.git";
 
     public static final Version VERSION
             = new VersionImpl(

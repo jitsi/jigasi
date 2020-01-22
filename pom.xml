@@ -386,23 +386,6 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
           <execution>
-            <id>assembly-native-libraries</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <appendAssemblyId>true</appendAssemblyId>
-              <descriptors>
-                <!-- The slightly odd artifact names help with backwards compatibility with the checkNatives() implementation. -->
-                <descriptor>src/assembly/native-linux-32.xml</descriptor>
-                <descriptor>src/assembly/native-linux-64.xml</descriptor>
-                <descriptor>src/assembly/native-macosx.xml</descriptor>
-              </descriptors>
-              <skipAssembly>false</skipAssembly>
-            </configuration>
-          </execution>
-          <execution>
             <id>assembly-linux-x64-bin-archive</id>
             <phase>package</phase>
             <goals>
@@ -414,40 +397,6 @@
               </descriptor>
               <finalName>
                 ${project.artifactId}-linux-x64-${project.version}
-              </finalName>
-              <skipAssembly>${assembly.skipAssembly}
-              </skipAssembly>
-            </configuration>
-          </execution>
-          <execution>
-            <id>assembly-linux-x86-bin-archive</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptor>src/assembly/linux-x86-bin-archive.xml
-              </descriptor>
-              <finalName>
-                ${project.artifactId}-linux-x86-${project.version}
-              </finalName>
-              <skipAssembly>${assembly.skipAssembly}
-              </skipAssembly>
-            </configuration>
-          </execution>
-          <execution>
-            <id>assembly-macosx-bin-archive</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptor>src/assembly/macosx-bin-archive.xml
-              </descriptor>
-              <finalName>
-                ${project.artifactId}-macosx-${project.version}
               </finalName>
               <skipAssembly>${assembly.skipAssembly}
               </skipAssembly>
@@ -471,6 +420,21 @@
         <version>1.4.0</version>
         <configuration>
           <mainClass>org.jitsi.jicofo.Main</mainClass>
+        </configuration>
+      </plugin>
+      <plugin>
+        <!-- Instructs the plugin to add the current package version in the jar manifest
+        So we can access it runtime with: .class.getPackage().getImplementationVersion()
+         -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+          </archive>
         </configuration>
       </plugin>
     </plugins>

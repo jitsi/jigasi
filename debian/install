@@ -1,9 +1,11 @@
-lib/*.jar usr/share/jigasi/lib
-lib/logging.properties etc/jitsi/jigasi
-jigasi-home/sip-communicator.properties etc/jitsi/jigasi
-jigasi-home/callstats-java-sdk.properties etc/jitsi/jigasi
-jigasi-home/log4j2.xml etc/jitsi/jigasi
-jigasi.jar usr/share/jigasi
-jigasi.sh usr/share/jigasi
-graceful_shutdown.sh usr/share/jigasi
-collect-dump-logs.sh usr/share/jigasi
+target/dependency/*                         usr/share/jigasi/lib
+lib/logging.properties                      etc/jitsi/jigasi
+jigasi-home/sip-communicator.properties     etc/jitsi/jigasi
+jigasi.jar                                  usr/share/jigasi
+jigasi.sh                                   usr/share/jigasi
+script/graceful_shutdown.sh                 usr/share/jigasi
+script/collect-dump-logs.sh                 usr/share/jigasi
+
+# callstats-java-sdk
+jigasi-home/callstats-java-sdk.properties   etc/jitsi/jigasi
+log4j2.xml                                  etc/jitsi/jigasi
