@@ -1,32 +1,37 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
+#export DEB_VERBOSE_ALL=true
+
+# Disable debug package
+DEB_BUILD_OPTIONS=noddebs
 
 %:
-	dh $@ --with javahelper --with systemd
+	dh $@
+
+override_dh_auto_clean:
+	mvn -Dmaven.repo.local=${HOME}/.m2/repository clean
+
+override_dh_auto_configure:
+	# do nothing
+
+override_dh_auto_test:
+	# do nothing
+
+override_dh_auto_build:
+	mvn -Dmaven.repo.local=${HOME}/.m2/repository -DskipTests -Dassembly.skipAssembly=true package
+	mvn -Dmaven.repo.local=${HOME}/.m2/repository dependency:copy-dependencies -DincludeScope=runtime
+
+override_dh_install:
+	mkdir debian/tmp
+	cp jigasi-home/log4j2.xml debian/tmp/
+	sed -i "s/logs/\/var\/log\/jitsi/g" debian/tmp/log4j2.xml
+	cp target/jigasi*.jar debian/tmp/jigasi.jar
+	dh_install
 
 override_dh_installinit:
 	dh_installinit --noscripts
 
 override_dh_auto_install:
-	dh_auto_install
-	dh_systemd_enable || true
-	dh_systemd_start || true
-
-override_dh_auto_clean:
-
-override_dh_install-arch:
-ifeq ($(DEB_HOST_ARCH),amd64)
-	dh_install -pjigasi lib/native/linux-64/*.so usr/share/jigasi/lib/native/linux-64/
-	dh_install -pjigasi lib/libunix-java.so usr/share/jigasi/lib/native/linux-64/
-else
-	dh_install -pjigasi lib/native/linux/*.so usr/share/jigasi/lib/native/linux/
-	dh_install -pjigasi lib/libunix-java.so usr/share/jigasi/lib/native/linux/
-endif
+	# do nothing

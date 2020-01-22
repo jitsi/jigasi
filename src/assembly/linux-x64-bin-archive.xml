@@ -16,25 +16,19 @@
       <unpack>false</unpack>
     </dependencySet>
   </dependencySets>
-  <fileSets>
-    <fileSet>
-      <directory>${project.build.directory}</directory>
+  <files>
+    <file>
+      <source>${project.basedir}/target/${project.artifactId}-${project.version}.jar</source>
       <outputDirectory>${file.separator}</outputDirectory>
-      <includes>
-        <include>*.jar</include>
-      </includes>
-    </fileSet>
+      <destName>jigasi.jar</destName>
+    </file>
+  </files>
+  <fileSets>
     <fileSet>
       <directory>${project.basedir}/lib</directory>
       <outputDirectory>lib</outputDirectory>
       <excludes>
         <exclude>**/*.jar</exclude>
-        <exclude>native/linux/**</exclude>
-        <exclude>native/linux-64/libjn*.so</exclude>
-        <exclude>native/macosx/**</exclude>
-        <exclude>native/windows/**</exclude>
-        <exclude>native/windows-64/**</exclude>
-        <exclude>README</exclude>
       </excludes>
     </fileSet>
     <fileSet>
