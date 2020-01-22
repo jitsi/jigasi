@@ -1586,7 +1586,7 @@ public class JvbConference
         @Override
         public String toString()
         {
-            return "JvbConferenceStopTimeout[ctx=" + callContext
+            return "JvbConferenceStopTimeout[" + callContext
                 + ", willCauseTimeout:" + willCauseTimeout
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
