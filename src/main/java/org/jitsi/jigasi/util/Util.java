@@ -116,6 +116,7 @@ public class Util
         CallPeer peer;
         if (call != null
             && call.getCallPeers() != null
+            && call.getCallPeers().hasNext()
             && (peer = call.getCallPeers().next()) != null
             && peer instanceof MediaAwareCallPeer)
         {
