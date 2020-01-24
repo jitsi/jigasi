@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -262,17 +262,6 @@ public abstract class AbstractGatewaySession
             listener.onJvbRoomJoined(this);
         }
     }
-
-    /**
-     *  Method called by {@link JvbConference} to notify session that it has
-     *  detected a recording status change.
-     *
-     * @param mode the recording mode.
-     * @param status the recording status.
-     */
-    void notifyRecordingStatusChanged(
-        JibriIq.RecordingMode mode, JibriIq.Status status)
-    {}
 
     /**
      *  Method called by {@link JvbConference} that it has reached
