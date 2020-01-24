@@ -67,6 +67,19 @@ public abstract class AbstractGatewaySession
     protected boolean gatewayMediaDropped = false;
 
     /**
+     * Configuration property to change the resource used by focus.
+     */
+    private static final String FOCUSE_RESOURCE_PROP
+        = "org.jitsi.jigasi.FOCUS_RESOURCE";
+
+    /**
+     * Address of the focus member that has invited us to the conference.
+     * Used to identify the focus user and dispose the session when it leaves
+     * the room.
+     */
+    protected final String focusResourceAddr;
+
+    /**
      * Creates new <tt>AbstractGatewaySession</tt> that can be used to
      * join a conference by using the {@link #createOutgoingCall()} method.
      *
@@ -79,6 +92,9 @@ public abstract class AbstractGatewaySession
     {
         this.gateway = gateway;
         this.callContext = callContext;
+        this.focusResourceAddr = JigasiBundleActivator.getConfigurationService()
+            .getString(FOCUSE_RESOURCE_PROP, "focus");
+
     }
 
     /**
