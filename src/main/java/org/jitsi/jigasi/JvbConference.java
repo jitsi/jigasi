@@ -918,21 +918,7 @@ public class JvbConference
                         = ((ChatRoomMemberJabberImpl) member).getLastPresence();
 
                     gatewaySession.notifyChatRoomMemberUpdated(member, presence);
-
-                    RecordingStatus rs = presence.getExtension(
-                        RecordingStatus.ELEMENT_NAME,
-                        RecordingStatus.NAMESPACE);
-
-                    if (rs != null
-                        && gatewaySession.focusResourceAddr.equals(
-                            presence.getFrom().getResourceOrEmpty().toString()))
-                    {
-                        gatewaySession.notifyRecordingStatusChanged(
-                            rs.getRecordingMode(), rs.getStatus());
-                    }
                 }
-
-
             }
 
             return;
