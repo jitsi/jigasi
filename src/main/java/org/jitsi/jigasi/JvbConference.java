@@ -1434,8 +1434,11 @@ public class JvbConference
             if (newJvbCall == null)
             {
                 // cleanup
-                this.jvbCall.removeCallChangeListener(callChangeListener);
-                this.jvbCall.removeCallChangeListener(statsHandler);
+                if (this.jvbCall != null)
+                {
+                    this.jvbCall.removeCallChangeListener(callChangeListener);
+                    this.jvbCall.removeCallChangeListener(statsHandler);
+                }
                 statsHandler = null;
             }
 
