@@ -333,6 +333,19 @@ public class StatsHandler
     }
 
     /**
+     * Disposes this stats handler and any left processors are cleared.
+     */
+    public void dispose()
+    {
+        statisticsProcessors.values().stream()
+            .forEach(cpr ->
+                {
+                    cpr.stop();
+                    statisticsExecutor.deRegisterRecurringRunnable(cpr);
+                });
+    }
+
+    /**
      * Waits for <tt>StatsService</tt> to registered to OSGi.
      */
     private class StatsServiceListener
