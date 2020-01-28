@@ -1439,7 +1439,11 @@ public class JvbConference
                     this.jvbCall.removeCallChangeListener(callChangeListener);
                     this.jvbCall.removeCallChangeListener(statsHandler);
                 }
-                statsHandler = null;
+                if (statsHandler != null)
+                {
+                    statsHandler.dispose();
+                    statsHandler = null;
+                }
             }
 
             this.jvbCall = newJvbCall;
