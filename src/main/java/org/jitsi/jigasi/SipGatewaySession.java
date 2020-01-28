@@ -631,6 +631,16 @@ public class SipGatewaySession
 
         sipCall.removeCallChangeListener(callStateListener);
 
+        if (statsHandler != null)
+        {
+            sipCall.removeCallChangeListener(statsHandler);
+            statsHandler.dispose();
+            statsHandler = null;
+        }
+
+        if (peerStateListener != null)
+            peerStateListener.unregister();
+
         if (this.transformerMonitor != null)
         {
             this.transformerMonitor.dispose();
