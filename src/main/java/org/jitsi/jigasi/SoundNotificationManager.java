@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
@@ -39,6 +40,7 @@ import java.util.concurrent.*;
  * @author Damian Minkov
  */
 public class SoundNotificationManager
+    extends GatewaySessionAdapter
 {
     /**
      * The logger.
@@ -115,14 +117,24 @@ public class SoundNotificationManager
     public SoundNotificationManager(SipGatewaySession gatewaySession)
     {
         this.gatewaySession = gatewaySession;
+        this.gatewaySession.addListener(this);
     }
 
     /**
      * Processes a member presence change.
-     * @param presence the presence to process.
+     * @param member the member who was updated in the room.
      */
-    public void process(Presence presence)
+    @Override
+    public void onChatRoomMemberUpdated(ChatRoomMember member)
     {
+        if (!(member instanceof ChatRoomMemberJabberImpl))
+        {
+            return;
+        }
+
+        Presence presence
+            = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+
         RecordingStatus rs = presence.getExtension(
             RecordingStatus.ELEMENT_NAME,
             RecordingStatus.NAMESPACE);
@@ -359,7 +371,8 @@ public class SoundNotificationManager
      * need to answer the call once connected, play the sound and then wait for
      * the hangup before returning.
      */
-    public void indicateMaxOccupantsLimitReached()
+    @Override
+    public void onMaxOccupantsLimitReached()
     {
         callMaxOccupantsLimitReached = true;
 

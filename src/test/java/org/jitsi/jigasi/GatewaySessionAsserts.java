@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
  * @author Nik Vaessen
  */
 public class GatewaySessionAsserts
-    implements GatewaySessionListener
+    extends GatewaySessionAdapter
 {
     @Override
     public void onJvbRoomJoined(AbstractGatewaySession source)

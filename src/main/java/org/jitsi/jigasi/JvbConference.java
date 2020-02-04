@@ -29,7 +29,6 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
-import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
@@ -45,7 +44,6 @@ import org.jxmpp.jid.parts.*;
 import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
-import java.lang.reflect.*;
 import java.util.*;
 
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
@@ -479,7 +477,8 @@ public class JvbConference
             telephony = null;
         }
 
-        gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
+        gatewaySession.notifyJvbConferenceWillStop(
+            this, endReasonCode, endReason);
 
         if(mucRoom != null)
         {
@@ -511,7 +510,8 @@ public class JvbConference
             xmppProvider = null;
         }
 
-        gatewaySession.onJvbConferenceStopped(this, endReasonCode, endReason);
+        gatewaySession.notifyJvbConferenceStopped(
+            this, endReasonCode, endReason);
 
         setJvbCall(null);
     }
@@ -774,15 +774,14 @@ public class JvbConference
                 if (((XMPPException.XMPPErrorException)e.getCause())
                         .getXMPPError().getCondition() == service_unavailable)
                 {
-                    gatewaySession.handleMaxOccupantsLimitReached();
+                    gatewaySession.notifyMaxOccupantsLimitReached();
                 }
             }
 
             logger.error(this.callContext.toString() + e, e);
 
             // inform that this session had failed
-            gatewaySession.getGateway()
-                .fireGatewaySessionFailed(gatewaySession);
+            gatewaySession.notifyGatewaySessionFailed();
 
             stop();
         }
@@ -819,6 +818,7 @@ public class JvbConference
             return;
         }
 
+        Call oldCall = this.jvbCall;
         setJvbCall(null);
 
         if (started)
@@ -839,6 +839,8 @@ public class JvbConference
                     Statistics.incrementTotalCallsWithSipCallWaiting();
                     gwSesisonWaitingStatsSent = true;
                 }
+
+                gatewaySession.notifyConferenceCallEnded(oldCall);
             }
         }
     }
@@ -912,13 +914,7 @@ public class JvbConference
             else if(ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
                     .equals(eventType))
             {
-                if (member instanceof ChatRoomMemberJabberImpl)
-                {
-                    Presence presence
-                        = ((ChatRoomMemberJabberImpl) member).getLastPresence();
-
-                    gatewaySession.notifyChatRoomMemberUpdated(member, presence);
-                }
+                gatewaySession.notifyChatRoomMemberUpdated(member);
             }
 
             return;
@@ -1096,7 +1092,7 @@ public class JvbConference
             }
             jvbCall.addCallChangeListener(statsHandler);
 
-            gatewaySession.onConferenceCallInvited(jvbCall);
+            gatewaySession.notifyConferenceCallInvited(jvbCall);
         }
 
         @Override

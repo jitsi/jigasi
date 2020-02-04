@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import java.util.*;
  * @author Nik Vaessen
  */
 public abstract class AbstractGateway<T extends AbstractGatewaySession>
-    implements GatewaySessionListener<T>
 {
     /**
      * The logger
@@ -146,7 +145,6 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      * @param source the {@link AbstractGatewaySession} on which the event takes
      *               place.
      */
-    @Override
     public void onJvbRoomJoined(T source)
     {
         synchronized(sessions)

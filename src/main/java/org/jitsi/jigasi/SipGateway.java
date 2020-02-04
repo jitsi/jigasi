@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,7 +168,6 @@ public class SipGateway
     public SipGatewaySession createOutgoingCall(CallContext ctx)
     {
         SipGatewaySession outgoingSession = new SipGatewaySession(this, ctx);
-        outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 
         return outgoingSession;
@@ -198,7 +197,6 @@ public class SipGateway
                 SipGatewaySession incomingSession
                     = new SipGatewaySession(
                             SipGateway.this, ctx, call);
-                incomingSession.addListener(SipGateway.this);
 
                 incomingSession.initIncomingCall();
             }

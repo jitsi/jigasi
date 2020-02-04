@@ -17,10 +17,8 @@
  */
 package org.jitsi.jigasi;
 
-import org.jitsi.xmpp.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
 
@@ -60,11 +58,6 @@ public abstract class AbstractGatewaySession
      * Global participant count during this session including the focus.
      */
     private int participantsCount = 0;
-
-    /**
-     * Whether media had stopped being received from the gateway side.
-     */
-    protected boolean gatewayMediaDropped = false;
 
     /**
      * Configuration property to change the resource used by focus.
@@ -163,22 +156,16 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * Method called by <tt>JvbConference</tt> to notify that JVB conference
-     * call has been received and is about to be answered.
-     *
-     * @param incomingCall JVB call instance.
+     * Returns a copy the current list of listeners.
+     * @return a copy the current list of listeners.
      */
-    abstract void onConferenceCallInvited(Call incomingCall);
-
-    /**
-     * Method called by <tt>JvbConference</tt> to notify that JVB conference
-     * call has started.
-     *
-     * @param jvbConferenceCall JVB call instance.
-     * @return any <tt>Exception</tt> that might occurred during handling of the
-     *         event. FIXME: is this still needed ?
-     */
-    abstract Exception onConferenceCallStarted(Call jvbConferenceCall);
+    private Iterable<GatewaySessionListener> getGatewaySessionListeners()
+    {
+        synchronized (listeners)
+        {
+            return new ArrayList<>(listeners);
+        }
+    }
 
     /**
      * Method called by <tt>JvbConference</tt> to notify that JVB call has
@@ -188,18 +175,45 @@ public abstract class AbstractGatewaySession
      * @param reasonCode the reason code, timeout or nothing if normal hangup
      * @param reason the reason text, timeout or nothing if normal hangup
      */
-    abstract void onJvbConferenceStopped(JvbConference jvbConference,
-                                         int reasonCode, String reason);
+    void notifyJvbConferenceStopped(
+        JvbConference jvbConference,int reasonCode, String reason)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onJvbConferenceStopped(jvbConference, reasonCode, reason);
+        }
+    }
 
     /**
-     * Method called by <tt>JvbConference</tt> to notify that JVB call will end.
+     * Method called by <tt>JvbConference</tt> to notify that JvbConference
+     * will end.
      *
      * @param jvbConference <tt>JvbConference</tt> instance.
      * @param reasonCode the reason code, timeout or nothing if normal hangup
      * @param reason the reason text, timeout or nothing if normal hangup
      */
-    abstract void onJvbConferenceWillStop(JvbConference jvbConference,
-        int reasonCode, String reason);
+    void notifyJvbConferenceWillStop(
+        JvbConference jvbConference, int reasonCode, String reason)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onJvbConferenceWillStop(jvbConference, reasonCode, reason);
+        }
+    }
+
+    /**
+     * Method called to notify that <tt>JvbConference</tt> was resumed after
+     * the conference call was ended and then reestablished again.
+     *
+     * @param jvbConference <tt>JvbConference</tt> instance.
+     */
+    void notifyJvbConferenceResumed(JvbConference jvbConference)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onJvbConferenceResumed(jvbConference);
+        }
+    }
 
     /**
      * Cancels current session by leaving the muc room
@@ -251,50 +265,65 @@ public abstract class AbstractGatewaySession
         // set initial participant count
         participantsCount += getJvbChatRoom().getMembersCount();
 
-        Iterable<GatewaySessionListener> gwListeners;
-        synchronized (listeners)
-        {
-            gwListeners = new ArrayList<>(listeners);
-        }
+        this.gateway.onJvbRoomJoined(this);
 
-        for (GatewaySessionListener listener : gwListeners)
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
         {
             listener.onJvbRoomJoined(this);
         }
     }
 
     /**
-     *  Method called by {@link JvbConference} that it has reached
+     * Delivers event that a GatewaySession had failed establishing.
+     * Typically this happens when room joining failed.
+     */
+    void notifyGatewaySessionFailed()
+    {
+        this.gateway.fireGatewaySessionFailed(this);
+
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onGatewaySessionFailed();
+        }
+    }
+
+    /**
+     *  Method called by {@link JvbConference} to notify that it has reached
      *  the maximum number of occupants and gives a chance to the session to
      *  handle it.
      */
-    void handleMaxOccupantsLimitReached()
-    {}
+    void notifyMaxOccupantsLimitReached()
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onMaxOccupantsLimitReached();
+        }
+    }
 
     /**
      * Method called by {@link JvbConference} to notify session that a member
      * has joined the room
      *
-     * Notifies {@link GatewaySessionListener} that member just joined
+     * Notifies this {@link AbstractGatewaySession} that member just joined
      * the conference room(MUC) and increments the participant counter
      *
-     * @param member the member who joined the JVB conference
+     * @param member the member who joined the room
      */
-    // FIXME: 17/07/17 original documentation is wrong. the listener does not
-    // even contain such a method
     void notifyChatRoomMemberJoined(ChatRoomMember member)
     {
         participantsCount++;
+
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onChatRoomMemberJoined(member);
+        }
     }
 
     /**
      * Method called by {@link JvbConference} to notify session that a member
      * has left the room.
      *
-     * Nothing needs to done in abstract class, but
-     * implementation might not actually care; thus not abstract.
-     *
-     * @param member the member who left the JVB conference
+     * @param member the member who left the room
      */
     void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
@@ -302,18 +331,68 @@ public abstract class AbstractGatewaySession
          * Note that we do NOT update {@link this#participantsCount} because
          * it is the cumulative count of the participants over the whole session
          */
+
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onChatRoomMemberLeft(member);
+        }
     }
 
     /**
      * Method called by {@link JvbConference} to notify session that a member
-     * has sent an updated presence packet.
+     * has sent an updated presence packet and we received that update.
      *
-     * @param member the member who left the JVB conference
-     * @param presence the updated presence of the member
+     * @param member the member who got updated in the room
      */
-    void notifyChatRoomMemberUpdated(ChatRoomMember member, Presence presence)
+    void notifyChatRoomMemberUpdated(ChatRoomMember member)
     {
-        // We don't need to do anything here.
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onChatRoomMemberUpdated(member);
+        }
+    }
+
+    /**
+     * Method called by {@link JvbConference} to notify that
+     * a gateway call (sip) has been created/invited.
+     *
+     * @param sipCall the sip call created.
+     */
+    void notifyGatewayCallInvited(Call sipCall)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onGatewayCallInvited(sipCall);
+        }
+    }
+
+    /**
+     * Method called by {@link JvbConference} to notify that
+     * an invite (session-initiate) was received for the xmpp call.
+     * This means there are more than 1 participants in the room.
+     *
+     * @param xmppCall the xmpp call.
+     */
+    void notifyConferenceCallInvited(Call xmppCall)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onConferenceCallInvited(xmppCall);
+        }
+    }
+
+    /**
+     * Method called by {@link JvbConference} to notify that
+     * the call has been terminated (session-terminate).
+     *
+     * @param xmppCall the xmpp call.
+     */
+    void notifyConferenceCallEnded(Call xmppCall)
+    {
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onConferenceCallEnded(xmppCall);
+        }
     }
 
     /**
@@ -369,7 +448,10 @@ public abstract class AbstractGatewaySession
      */
     void notifyConferenceMemberJoined(ConferenceMember conferenceMember)
     {
-        // we don't have anything to do here
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onConferenceMemberJoined(conferenceMember);
+        }
     }
 
     /**
@@ -380,16 +462,9 @@ public abstract class AbstractGatewaySession
      */
     void notifyConferenceMemberLeft(ConferenceMember conferenceMember)
     {
-        // we don't have anything to do here
-    }
-
-    /**
-     * Returns whether current gateway is up and running and media is being
-     * received or it was dropped.
-     * @return current gateway media status.
-     */
-    public boolean isGatewayMediaDropped()
-    {
-        return gatewayMediaDropped;
+        for (GatewaySessionListener listener : getGatewaySessionListeners())
+        {
+            listener.onConferenceMemberLeft(conferenceMember);
+        }
     }
 }

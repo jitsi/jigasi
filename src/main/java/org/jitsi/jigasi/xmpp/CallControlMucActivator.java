@@ -49,6 +49,7 @@ import java.util.stream.*;
  * @author Nik Vaessen
  */
 public class CallControlMucActivator
+    extends GatewaySessionAdapter
     implements BundleActivator,
                ServiceListener,
                RegistrationStateChangeListener,
@@ -640,7 +641,7 @@ public class CallControlMucActivator
      * Listener which waits to join a room or timeouts.
      */
     private class WaitToJoinRoom
-        implements GatewaySessionListener
+        extends GatewaySessionAdapter
     {
         /**
          * The countdown we wait.

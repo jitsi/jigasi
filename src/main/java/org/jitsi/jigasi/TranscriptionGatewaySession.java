@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2017 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,8 +130,10 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    void onConferenceCallInvited(Call incomingCall)
+    void notifyConferenceCallInvited(Call incomingCall)
     {
+        super.notifyConferenceCallInvited(incomingCall);
+
         // We got invited to a room, we can tell the transcriber
         // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
@@ -167,8 +169,7 @@ public class TranscriptionGatewaySession
         }
     }
 
-    @Override
-    Exception onConferenceCallStarted(Call jvbConferenceCall)
+    private Exception onConferenceCallStarted(Call jvbConferenceCall)
     {
         // We can now safely set the Call connecting to the muc room
         // and the ChatRoom of the muc room
@@ -231,9 +232,11 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    void onJvbConferenceStopped(JvbConference jvbConference,
+    void notifyJvbConferenceStopped(JvbConference jvbConference,
                                 int reasonCode, String reason)
     {
+        super.notifyJvbConferenceStopped(jvbConference, reasonCode, reason);
+
         // FIXME: 22/07/17 this actually happens only when every user leaves
         // instead of when transcription is over.
         // Need a solution for stopping the transcription earlier
@@ -255,9 +258,11 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
+    void notifyJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
         String reason)
     {
+        super.notifyJvbConferenceWillStop(jvbConference, reasonCode, reason);
+
         if(!transcriber.finished())
         {
             transcriber.willStop();
@@ -285,11 +290,19 @@ public class TranscriptionGatewaySession
     }
 
     @Override
-    void notifyChatRoomMemberUpdated(ChatRoomMember chatMember, Presence presence)
+    void notifyChatRoomMemberUpdated(ChatRoomMember member)
     {
-        super.notifyChatRoomMemberUpdated(chatMember, presence);
+        super.notifyChatRoomMemberUpdated(member);
 
-        String identifier = getParticipantIdentifier(chatMember);
+        if (!(member instanceof ChatRoomMemberJabberImpl))
+        {
+            return;
+        }
+
+        Presence presence
+            = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+
+        String identifier = getParticipantIdentifier(member);
         TranscriptionLanguageExtension transcriptionLanguageExtension
             = presence.getExtension(
                 TranscriptionLanguageExtension.ELEMENT_NAME,

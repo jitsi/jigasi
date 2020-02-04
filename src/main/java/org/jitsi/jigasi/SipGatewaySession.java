@@ -27,7 +27,6 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
-import org.jivesoftware.smack.packet.*;
 
 import java.io.*;
 import java.text.*;
@@ -151,6 +150,11 @@ public class SipGatewaySession
      * if media stop.
      */
     private ExpireMediaStream expireMediaStream;
+
+    /**
+     * Whether media had stopped being received from the gateway side.
+     */
+    private boolean gatewayMediaDropped = false;
 
     /**
      * The {@link OperationSetJitsiMeetTools} for SIP leg.
@@ -311,6 +315,8 @@ public class SipGatewaySession
 
         // connect to muc
         super.createOutgoingCall();
+
+        notifyGatewayCallInvited(sipCall);
     }
 
     /**
@@ -352,6 +358,8 @@ public class SipGatewaySession
 
     /**
      * Starts a JvbConference with the call context identifying this session.
+     * This is executed only for incoming calls.
+     *
      * @param ctx the call context of current session.
      */
     private void joinJvbConference(CallContext ctx)
@@ -361,27 +369,18 @@ public class SipGatewaySession
         jvbConference = new JvbConference(this, ctx);
 
         jvbConference.start();
+
+        notifyGatewayCallInvited(sipCall);
     }
 
-    /*private void joinSipWithJvbCalls()
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    void notifyConferenceCallInvited(Call incomingCall)
     {
-        List<Call> calls = new ArrayList<Call>();
-        calls.add(call);
-        calls.add(jvbConferenceCall);
+        super.notifyConferenceCallInvited(incomingCall);
 
-        CallManager.mergeExistingCalls(
-            jvbConferenceCall.getConference(), calls);
-
-        sendPresenceExtension(
-            createPresenceExtension(
-                SipGatewayExtension.STATE_IN_PROGRESS, null));
-
-        jvbConference.setPresenceStatus(
-            SipGatewayExtension.STATE_IN_PROGRESS);
-    }*/
-
-    void onConferenceCallInvited(Call incomingCall)
-    {
         // Incoming SIP connection mode sets common conference here
         if (destination == null)
         {
@@ -421,10 +420,7 @@ public class SipGatewaySession
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    Exception onConferenceCallStarted(Call jvbConferenceCall)
+    private Exception onConferenceCallStarted(Call jvbConferenceCall)
     {
         this.jvbConferenceCall = jvbConferenceCall;
 
@@ -451,18 +447,11 @@ public class SipGatewaySession
                     callReconnectedStatsSent = true;
                 }
 
+                // fire event that we resumed xmpp call
+                notifyJvbConferenceResumed(jvbConference);
+
                 return null;
             }
-
-            //sendPresenceExtension(
-              //  createPresenceExtension(
-                //    SipGatewayExtension.STATE_RINGING, null));
-
-            //if (jvbConference != null)
-            //{
-              //  jvbConference.setPresenceStatus(
-                //    SipGatewayExtension.STATE_RINGING);
-            //}
 
             // Make an outgoing call
             final OperationSetBasicTelephony tele
@@ -550,9 +539,12 @@ public class SipGatewaySession
     /**
      * {@inheritDoc}
      */
-    void onJvbConferenceStopped(JvbConference jvbConference,
+    @Override
+    void notifyJvbConferenceStopped(JvbConference jvbConference,
                                 int reasonCode, String reason)
     {
+        super.notifyJvbConferenceStopped(jvbConference, reasonCode, reason);
+
         this.jvbConference = null;
 
         if (sipCall != null)
@@ -564,11 +556,6 @@ public class SipGatewaySession
             allCallsEnded();
         }
     }
-
-    @Override
-    void onJvbConferenceWillStop(JvbConference jvbConference, int reasonCode,
-        String reason)
-    {}
 
     private void sipCallEnded()
     {
@@ -867,26 +854,6 @@ public class SipGatewaySession
         }
 
         return mucDisplayName;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    void notifyChatRoomMemberUpdated(
-        ChatRoomMember chatMember, Presence presence)
-    {
-        // sound manager process
-        soundNotificationManager.process(presence);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    void handleMaxOccupantsLimitReached()
-    {
-        soundNotificationManager.indicateMaxOccupantsLimitReached();
     }
 
     /**
