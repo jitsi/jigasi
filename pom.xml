@@ -86,7 +86,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jicoco</artifactId>
-      <version>1.1-1-ge7184ab</version>
+      <version>1.1-18-g086dfb4</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -151,12 +151,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-2-g27c4398</version>
+      <version>1.0-39-gd481c98</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-0-gb3296cf</version>
+      <version>1.0-25-g836ce9e7</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
