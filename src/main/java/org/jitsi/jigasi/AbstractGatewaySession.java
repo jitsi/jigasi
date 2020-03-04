@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,6 +67,19 @@ public abstract class AbstractGatewaySession
     protected boolean gatewayMediaDropped = false;
 
     /**
+     * Configuration property to change the resource used by focus.
+     */
+    private static final String FOCUSE_RESOURCE_PROP
+        = "org.jitsi.jigasi.FOCUS_RESOURCE";
+
+    /**
+     * Address of the focus member that has invited us to the conference.
+     * Used to identify the focus user and dispose the session when it leaves
+     * the room.
+     */
+    private final String focusResourceAddr;
+
+    /**
      * Creates new <tt>AbstractGatewaySession</tt> that can be used to
      * join a conference by using the {@link #createOutgoingCall()} method.
      *
@@ -79,6 +92,9 @@ public abstract class AbstractGatewaySession
     {
         this.gateway = gateway;
         this.callContext = callContext;
+        this.focusResourceAddr = JigasiBundleActivator.getConfigurationService()
+            .getString(FOCUSE_RESOURCE_PROP, "focus");
+
     }
 
     /**
@@ -248,17 +264,6 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     *  Method called by {@link JvbConference} to notify session that it has
-     *  detected a recording status change.
-     *
-     * @param mode the recording mode.
-     * @param status the recording status.
-     */
-    void notifyRecordingStatusChanged(
-        JibriIq.RecordingMode mode, JibriIq.Status status)
-    {}
-
-    /**
      *  Method called by {@link JvbConference} that it has reached
      *  the maximum number of occupants and gives a chance to the session to
      *  handle it.
@@ -386,5 +391,16 @@ public abstract class AbstractGatewaySession
     public boolean isGatewayMediaDropped()
     {
         return gatewayMediaDropped;
+    }
+
+    /**
+     * Used to identify the focus user and dispose the session when it leaves
+     * the room.
+     * @return Address of the focus member that has invited us
+     * to the conference.
+     */
+    public String getFocusResourceAddr()
+    {
+        return focusResourceAddr;
     }
 }

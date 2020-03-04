@@ -270,19 +270,6 @@ public class JvbConference
     private int endReasonCode;
 
     /**
-     * Address of the focus member that has invited us to the conference.
-     * Used to identify the focus user and dispose the session when it leaves
-     * the room.
-     */
-    private final String focusResourceAddr;
-
-    /**
-     * Configuration property to change the resource used by focus.
-     */
-    private static final String FOCUSE_RESOURCE_PROP
-        = "org.jitsi.jigasi.FOCUS_RESOURCE";
-
-    /**
      * The stats handler that handles statistics on the jvb side.
      */
     private StatsHandler statsHandler = null;
@@ -309,9 +296,6 @@ public class JvbConference
     {
         this.gatewaySession = gatewaySession;
         this.callContext = ctx;
-
-        focusResourceAddr = JigasiBundleActivator.getConfigurationService()
-            .getString(FOCUSE_RESOURCE_PROP, "focus");
     }
 
     private Localpart getResourceIdentifier()
@@ -934,21 +918,7 @@ public class JvbConference
                         = ((ChatRoomMemberJabberImpl) member).getLastPresence();
 
                     gatewaySession.notifyChatRoomMemberUpdated(member, presence);
-
-                    RecordingStatus rs = presence.getExtension(
-                        RecordingStatus.ELEMENT_NAME,
-                        RecordingStatus.NAMESPACE);
-
-                    if (rs != null
-                        && focusResourceAddr.equals(
-                            presence.getFrom().getResourceOrEmpty().toString()))
-                    {
-                        gatewaySession.notifyRecordingStatusChanged(
-                            rs.getRecordingMode(), rs.getStatus());
-                    }
                 }
-
-
             }
 
             return;
@@ -962,7 +932,7 @@ public class JvbConference
         }
 
         // if it is the focus leaving
-        if (member.getName().equals(focusResourceAddr))
+        if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
             logger.info(this.callContext + " Focus left! - stopping");
             stop();
@@ -1051,7 +1021,8 @@ public class JvbConference
                     + " Got invite from " + peerAddress);
             }
 
-            if (peerAddress == null || !peerAddress.equals(focusResourceAddr))
+            if (peerAddress == null
+                || !peerAddress.equals(gatewaySession.getFocusResourceAddr()))
             {
                 if (logger.isTraceEnabled())
                 {
@@ -1385,7 +1356,8 @@ public class JvbConference
         {
             focusInviteIQ.setType(IQ.Type.set);
             focusInviteIQ.setTo(JidCreate.domainBareFrom(
-                focusResourceAddr + "." + callContext.getDomain()));
+                gatewaySession.getFocusResourceAddr()
+                    + "." + callContext.getDomain()));
         }
         catch (XmppStringprepException e)
         {

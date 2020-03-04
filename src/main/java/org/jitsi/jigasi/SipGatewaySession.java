@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,13 +26,12 @@ import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.concurrent.*;
-import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.utils.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.io.*;
 import java.text.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
@@ -142,44 +141,10 @@ public class SipGatewaySession
         = new RecurringRunnableExecutor(ExpireMediaStream.class.getName());
 
     /**
-     * The sound file to use when recording is ON.
+     * Manages all sound notifications that are sent to the sip side.
      */
-    private static final String REC_ON_SOUND = "sounds/RecordingOn.opus";
-
-    /**
-     * The sound file to use when recording is OFF.
-     */
-    private static final String REC_OFF_SOUND = "sounds/RecordingStopped.opus";
-
-    /**
-     * The sound file to use when live streaming is ON.
-     */
-    private static final String LIVE_STREAMING_ON_SOUND
-        = "sounds/LiveStreamingOn.opus";
-
-    /**
-     * The sound file to use when live streaming is OFF.
-     */
-    private static final String LIVE_STREAMING_OFF_SOUND
-        = "sounds/LiveStreamingOff.opus";
-
-    /**
-     * The sound file to use when the max occupants limit is reached.
-     */
-    private static final String MAX_OCCUPANTS_SOUND
-        = "sounds/MaxOccupants.opus";
-
-    /**
-     * Approximate duration of the file to be played, we need it as to know
-     * when to hangup the call. The actual file is 10 seconds but we give a
-     * little longer for the file to be played.
-     */
-    private static final int MAX_OCCUPANTS_SOUND_DURATION_SEC = 15;
-
-    /**
-     * In certain scenarios (max occupants) we wait till we hangup the call.
-     */
-    private CountDownLatch hangupWait = null;
+    private final SoundNotificationManager soundNotificationManager
+        = new SoundNotificationManager(this);
 
     /**
      * The runnable responsible for checking sip call incoming RTP and detecting
@@ -247,16 +212,6 @@ public class SipGatewaySession
     public static final String DEFAULT_STATS_REMOTE_ID = "sip";
 
     /**
-     * The current Jibri status in the conference.
-     */
-    private JibriIq.Status currentJibriStatus = JibriIq.Status.OFF;
-
-    /**
-     * The current jibri On sound to use, recording or live streaming.
-     */
-    private String currentJibriOnSound = null;
-
-    /**
      * A transformer that monitors RTP and RTCP traffic going and coming
      * from the sip direction. Skips forwarding RTCP traffic which is not
      * intended for that direction (particularly we had seen RTCP.BYE for
@@ -269,12 +224,6 @@ public class SipGatewaySession
      * the gateway session was connected to a new XMPP call.
      */
     private boolean callReconnectedStatsSent = false;
-
-    /**
-     * When set will indicate that we only need to play announcement to the
-     * sip side and hangup the call.
-     */
-    private boolean callMaxOccupantsLimitReached = false;
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -924,42 +873,11 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
-    public void notifyRecordingStatusChanged(
-        JibriIq.RecordingMode mode, JibriIq.Status status)
+    void notifyChatRoomMemberUpdated(
+        ChatRoomMember chatMember, Presence presence)
     {
-        // not a change, ignore
-        if (currentJibriStatus.equals(status))
-        {
-            return;
-        }
-        currentJibriStatus = status;
-
-        String offSound;
-        if (mode.equals(JibriIq.RecordingMode.FILE))
-        {
-            currentJibriOnSound = REC_ON_SOUND;
-            offSound = REC_OFF_SOUND;
-        }
-        else if (mode.equals(JibriIq.RecordingMode.STREAM))
-        {
-            currentJibriOnSound = LIVE_STREAMING_ON_SOUND;
-            offSound = LIVE_STREAMING_OFF_SOUND;
-        }
-        else
-        {
-            return;
-        }
-
-        if(JibriIq.Status.ON.equals(status))
-        {
-            // if call is still not established this will be ignored in
-            // injectSoundFile and nothing will be played
-            Util.injectSoundFile(this.sipCall, currentJibriOnSound);
-        }
-        else if(JibriIq.Status.OFF.equals(status))
-        {
-            Util.injectSoundFile(this.sipCall, offSound);
-        }
+        // sound manager process
+        soundNotificationManager.process(presence);
     }
 
     /**
@@ -968,23 +886,7 @@ public class SipGatewaySession
     @Override
     void handleMaxOccupantsLimitReached()
     {
-        callMaxOccupantsLimitReached = true;
-
-        // will wait for the hangup before returning
-        hangupWait = new CountDownLatch(1);
-
-        // answer play and hangup
-        CallManager.acceptCall(sipCall);
-
-        try
-        {
-            hangupWait.await(
-                MAX_OCCUPANTS_SOUND_DURATION_SEC, TimeUnit.SECONDS);
-        }
-        catch(InterruptedException e)
-        {
-            logger.warn("Didn't finish waiting for hangup on max occupants");
-        }
+        soundNotificationManager.indicateMaxOccupantsLimitReached();
     }
 
     /**
@@ -1216,51 +1118,7 @@ public class SipGatewaySession
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
-            long delayedHangupSeconds = -1;
-
-            if (CallPeerState.BUSY.equals(callPeerState))
-            {
-                // Hangup the call with 5 sec delay, so that we can see BUSY
-                // status in jitsi-meet
-                delayedHangupSeconds = 5 * 1000;
-            }
-
-            // when someone connects and recording is on, play notification
-            if (CallPeerState.CONNECTED.equals(callPeerState))
-            {
-                if (currentJibriStatus.equals(JibriIq.Status.ON))
-                {
-                    Util.injectSoundFile(sipCall, currentJibriOnSound);
-                }
-
-                if (callMaxOccupantsLimitReached)
-                {
-                    Util.injectSoundFile(sipCall, MAX_OCCUPANTS_SOUND);
-
-                    delayedHangupSeconds
-                        = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
-                }
-            }
-
-            if (delayedHangupSeconds != -1)
-            {
-                final long mills = delayedHangupSeconds;
-                new Thread(() -> {
-                    try
-                    {
-                        Thread.sleep(mills);
-                    }
-                    catch(InterruptedException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                    CallManager.hangupCall(
-                        evt.getSourceCallPeer().getCall());
-
-                    if (hangupWait != null)
-                        hangupWait.countDown();
-                }).start();
-            }
+            soundNotificationManager.process(callPeerState);
         }
 
         void unregister()
