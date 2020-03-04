@@ -932,7 +932,7 @@ public class JvbConference
         }
 
         // if it is the focus leaving
-        if (member.getName().equals(gatewaySession.focusResourceAddr))
+        if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
             logger.info(this.callContext + " Focus left! - stopping");
             stop();
@@ -1022,7 +1022,7 @@ public class JvbConference
             }
 
             if (peerAddress == null
-                || !peerAddress.equals(gatewaySession.focusResourceAddr))
+                || !peerAddress.equals(gatewaySession.getFocusResourceAddr()))
             {
                 if (logger.isTraceEnabled())
                 {
@@ -1356,7 +1356,7 @@ public class JvbConference
         {
             focusInviteIQ.setType(IQ.Type.set);
             focusInviteIQ.setTo(JidCreate.domainBareFrom(
-                gatewaySession.focusResourceAddr
+                gatewaySession.getFocusResourceAddr()
                     + "." + callContext.getDomain()));
         }
         catch (XmppStringprepException e)

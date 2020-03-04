@@ -128,7 +128,7 @@ public class SoundNotificationManager
             RecordingStatus.NAMESPACE);
 
         if (rs != null
-            && gatewaySession.focusResourceAddr.equals(
+            && gatewaySession.getFocusResourceAddr().equals(
                 presence.getFrom().getResourceOrEmpty().toString()))
         {
             notifyRecordingStatusChanged(rs.getRecordingMode(), rs.getStatus());

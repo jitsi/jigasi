@@ -77,7 +77,7 @@ public abstract class AbstractGatewaySession
      * Used to identify the focus user and dispose the session when it leaves
      * the room.
      */
-    protected final String focusResourceAddr;
+    private final String focusResourceAddr;
 
     /**
      * Creates new <tt>AbstractGatewaySession</tt> that can be used to
@@ -391,5 +391,16 @@ public abstract class AbstractGatewaySession
     public boolean isGatewayMediaDropped()
     {
         return gatewayMediaDropped;
+    }
+
+    /**
+     * Used to identify the focus user and dispose the session when it leaves
+     * the room.
+     * @return Address of the focus member that has invited us
+     * to the conference.
+     */
+    public String getFocusResourceAddr()
+    {
+        return focusResourceAddr;
     }
 }
