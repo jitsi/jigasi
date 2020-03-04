@@ -928,6 +928,14 @@ public class SipGatewaySession
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public boolean hasCallResumeSupport()
+    {
+        return true;
+    }
+
+    /**
      * PeriodicRunnable that will check incoming RTP and if needed to hangup.
      */
     private class ExpireMediaStream

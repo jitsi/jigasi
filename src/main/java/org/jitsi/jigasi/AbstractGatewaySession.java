@@ -403,4 +403,13 @@ public abstract class AbstractGatewaySession
     {
         return focusResourceAddr;
     }
+
+    /**
+     * Whether the gateway implementation supports call resuming. Where we can
+     * keep the gateway session while the xmpp call is been disconnected or
+     * reconnected and the gateway can wait.
+     *
+     * @return whether gateway supports call resume.
+     */
+    public abstract boolean hasCallResumeSupport();
 }

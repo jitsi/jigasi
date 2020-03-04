@@ -29,7 +29,6 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
-import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
@@ -45,7 +44,6 @@ import org.jxmpp.jid.parts.*;
 import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
-import java.lang.reflect.*;
 import java.util.*;
 
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
@@ -825,7 +823,8 @@ public class JvbConference
         {
             // if leave timeout is 0 or less we will not wait for new invite
             // and let's stop the call
-            if(AbstractGateway.getJvbInviteTimeout() <= 0)
+            if(AbstractGateway.getJvbInviteTimeout() <= 0
+                || !gatewaySession.hasCallResumeSupport())
             {
                 stop();
             }

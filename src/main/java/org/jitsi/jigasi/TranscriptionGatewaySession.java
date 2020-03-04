@@ -668,4 +668,11 @@ public class TranscriptionGatewaySession
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public boolean hasCallResumeSupport()
+    {
+        return false;
+    }
 }
