@@ -368,7 +368,11 @@ public class Transcriber
      */
     public void participantLeft(String identifier)
     {
-        Participant participant = getParticipant(identifier);
+        Participant participant;
+        synchronized (this.participants)
+        {
+            participant = this.participants.remove(identifier);
+        }
 
         if (participant != null)
         {
