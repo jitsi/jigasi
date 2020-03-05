@@ -76,6 +76,8 @@
       <artifactId>vorbis-java-core</artifactId>
       <version>0.8</version>
     </dependency>
+
+    <!-- We need jetty-server definitions as whack brings jetty v7.0 and breaks compilation -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
