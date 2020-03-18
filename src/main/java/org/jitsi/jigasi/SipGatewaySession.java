@@ -28,6 +28,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
+import org.json.simple.*;
 
 import java.io.*;
 import java.text.*;
@@ -626,6 +627,31 @@ public class SipGatewaySession
                 joinJvbConference(callContext);
             }
         }
+    }
+
+    /**
+     * Received if StartMutedExtension is handled.
+     *
+     * @param startMutedFlags [0] represents audio stream should be muted,
+     * [1] represents video stream should be muted.
+     */
+    @Override
+    public void onSessionStartMuted(boolean[] startMutedFlags)
+    {
+    }
+
+    /**
+     * Received JSON over SIP from callPeer.
+     *
+     * @param callPeer callPeer that sent the JSON.
+     * @param jsonObject JSON that was sent.
+     * @param params Implementation specific parameters.
+     */
+    @Override
+    public void onJSONReceived(CallPeer callPeer,
+                               JSONObject jsonObject,
+                               Map<String, Object> params)
+    {
     }
 
     /**

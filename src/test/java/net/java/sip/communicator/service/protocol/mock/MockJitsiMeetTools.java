@@ -20,6 +20,7 @@ package net.java.sip.communicator.service.protocol.mock;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jivesoftware.smack.packet.*;
+import org.json.simple.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -128,5 +129,11 @@ public class MockJitsiMeetTools
                 "Unhandled join Jitsi Meet request R:" + jitsiMeetRoom
                     + " C: " + call);
         }
+    }
+
+    @Override
+    public void sendJSON(CallPeer callPeer, JSONObject jsonObject, Map<String, Object> map)
+        throws OperationFailedException
+    {
     }
 }
