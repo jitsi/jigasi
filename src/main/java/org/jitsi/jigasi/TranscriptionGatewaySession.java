@@ -28,6 +28,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.Presence;
+import org.json.simple.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -418,6 +419,20 @@ public class TranscriptionGatewaySession
     {
         throw new UnsupportedOperationException("Incoming calls are " +
                 "not supported by TranscriptionGatewaySession");
+    }
+
+    @Override
+    public void onSessionStartMuted(boolean[] startMutedFlags)
+    {
+        // Not used.
+    }
+
+    @Override
+    public void onJSONReceived(CallPeer callPeer,
+                               JSONObject jsonObject,
+                               Map<String, Object> params)
+    {
+        // Not used.
     }
 
     @Override
