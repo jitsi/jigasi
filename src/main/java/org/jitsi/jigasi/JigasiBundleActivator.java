@@ -73,6 +73,13 @@ public class JigasiBundleActivator
         = "org.jitsi.jigasi.ENABLE_SIP";
 
     /**
+     * The property name for the boolean value that enabled or disables
+     * startmuted for sip calls.
+     */
+    public final static String P_NAME_ENABLE_SIP_STARTMUTED
+        = "org.jitsi.jigasi.ENABLE_SIP_STARTMUTED";
+
+    /**
      * The default value for enabling transcription
      */
     public final static boolean ENABLE_TRANSCRIPTION_DEFAULT_VALUE = false;
@@ -81,6 +88,11 @@ public class JigasiBundleActivator
      * The default value for enabling sip
      */
     public final static boolean ENABLE_SIP_DEFAULT_VALUE = true;
+
+    /**
+     * The default value for enabling StartMuted over SIP.
+     */
+    public final static boolean ENABLE_SIP_STARTMUTED_DEFAULT_VALUE = false;
 
     /**
      * The Gateway which will manage bridging between a jvb conference and a sip
@@ -138,6 +150,17 @@ public class JigasiBundleActivator
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_SIP, ENABLE_SIP_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get wether starmuted is enabled over sip.
+     *
+     * @return true if startmuted is enabled, false, otherwise.
+     */
+    public static boolean isSipStartMutedEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_SIP_STARTMUTED, ENABLE_SIP_STARTMUTED_DEFAULT_VALUE);
     }
 
     /**
