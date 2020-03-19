@@ -217,6 +217,11 @@ public class JvbConference
     private OperationSetBasicTelephony telephony;
 
     /**
+     * Operation set Jitsi Meet.
+     */
+    private OperationSetJitsiMeetTools jitsiMeetTools = null;
+
+    /**
      * Object listens for incoming calls.
      */
     private final JvbCallListener callListener
@@ -479,10 +484,7 @@ public class JvbConference
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
-        if(mucRoom != null)
-        {
-            leaveConferenceRoom();
-        }
+        leaveConferenceRoom();
 
         if (jvbCall != null)
         {
@@ -644,8 +646,16 @@ public class JvbConference
         if (opSet != null)
             opSet.addDTMFListener(gatewaySession);
 
+        this.jitsiMeetTools = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
+
+        if (this.jitsiMeetTools != null)
+        {
+            this.jitsiMeetTools.addRequestListener(this.gatewaySession);
+        }
+
         try
         {
+
             String roomName = callContext.getRoomName();
             if (!roomName.contains("@"))
             {
@@ -844,6 +854,13 @@ public class JvbConference
 
     private void leaveConferenceRoom()
     {
+        if (this.jitsiMeetTools != null)
+        {
+            this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
+
+            this.jitsiMeetTools = null;
+        }
+
         if (mucRoom == null)
         {
             logger.warn(this.callContext + " MUC room is null");
@@ -1569,5 +1586,85 @@ public class JvbConference
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
         }
+    }
+
+    /**
+     * Sets the chatroom presence for the participant.
+     *
+     * @param muted <tt>true</tt> for presence as muted,
+     * false otherwise
+     */
+    void setChatRoomAudioMuted(boolean muted)
+    {
+        if (mucRoom != null)
+        {
+            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
+
+            audioMutedExtension.setAudioMuted(muted);
+
+            OperationSetJitsiMeetTools jitsiMeetTools
+                = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
+
+            jitsiMeetTools
+                .sendPresenceExtension(mucRoom, audioMutedExtension);
+
+        }
+    }
+
+    /**
+     * Request Jicofo on behalf of Jigasi to mute a participant.
+     *
+     * @param bMuted <tt>true</tt> if request is to mute audio,
+     * false otherwise
+     * @return <tt>true</tt> if request succeeded, false
+     * otherwise
+     */
+    public boolean requestAudioMute(boolean bMuted)
+    {
+        StanzaCollector collector = null;
+        try
+        {
+            String roomName = mucRoom.getIdentifier();
+
+            String jidString = roomName  + "/" + getResourceIdentifier().toString();
+            Jid memberJid = JidCreate.from(jidString);
+            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
+            Jid roomJid = JidCreate.from(roomJidString);
+
+            MuteIq muteIq = new MuteIq();
+            muteIq.setJid(memberJid);
+            muteIq.setMute(bMuted);
+            muteIq.setType(IQ.Type.set);
+            muteIq.setTo(roomJid);;
+
+            collector = getConnection()
+                .createStanzaCollectorAndSend(muteIq);
+
+            Stanza result = collector.nextResultOrThrow();
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
+            return false;
+        }
+        finally
+        {
+            if (collector != null)
+            {
+                collector.cancel();
+            }
+        }
+
+        return true;
+    }
+
+    private XMPPConnection getConnection()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            return ((ProtocolProviderServiceJabberImpl) this.xmppProvider).getConnection();    
+        }
+
+        return null;
     }
 }

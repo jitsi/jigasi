@@ -22,6 +22,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -225,6 +226,11 @@ public class SipGatewaySession
      * the gateway session was connected to a new XMPP call.
      */
     private boolean callReconnectedStatsSent = false;
+
+    /**
+     * True if call should start muted, false otherwise.
+     */
+    private boolean startAudioMuted = false;
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -638,6 +644,7 @@ public class SipGatewaySession
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
+        this.startAudioMuted = startMutedFlags[0];
     }
 
     /**
@@ -652,7 +659,180 @@ public class SipGatewaySession
                                JSONObject jsonObject,
                                Map<String, Object> params)
     {
+        try
+        {
+
+            if (callPeer.getCall() != this.sipCall)
+            {
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("Ignoring event for non session call.");
+                }
+                return;
+            }
+
+            if (jsonObject.containsKey("type") == false)
+            {
+                logger.error("Unknown json object type!");
+                return;
+            }
+
+            if (jsonObject.containsKey("id") == false)
+            {
+                logger.error("Unknown json object id!");
+                return;
+            }
+
+            String id = (String)jsonObject.get("id");
+            String type = (String)jsonObject.get("type");
+
+            if (type.equalsIgnoreCase("muteResponse") == true)
+            {
+                if (jsonObject.containsKey("status") == false)
+                {
+                    logger.error("muteResponse without status!");
+                    return;
+                }
+
+                if ( ((String)jsonObject.get("status"))
+                        .equalsIgnoreCase("OK") == true)
+                {
+                    JSONObject data = (JSONObject) jsonObject.get("data");
+
+                    boolean bMute = (boolean)data.get("audio");
+
+                    // Send presence audio muted
+                    this.jvbConference.setChatRoomAudioMuted(bMute);
+                }
+            }
+            else if (type.equalsIgnoreCase("muteRequest") == true)
+            {
+                JSONObject data = (JSONObject) jsonObject.get("data");
+
+                boolean bAudioMute = (boolean)data.get("audio");
+
+                // Send request to jicofo
+                if (jvbConference.requestAudioMute(bAudioMute) == true)
+                {
+                    // Send response through sip
+                    respondRemoteAudioMute(bAudioMute,
+                                            true,
+                                            callPeer,
+                                            id);
+
+                    // Send presence if response succeeded
+                    this.jvbConference.setChatRoomAudioMuted(bAudioMute);
+                }
+                else
+                {
+                    respondRemoteAudioMute(bAudioMute,
+                                            false,
+                                            callPeer,
+                                            id);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
     }
+
+    /**
+     * Creates a basic JSONObject to be sent over SIP.
+     *
+     * @param type Used to identify the JSON.
+     * @param data Used for JSON additional attributed.
+     * @param id Used for identification.
+     * @return Formed JSONObject.
+     */
+    private JSONObject createSIPJSON(String type, JSONObject data, String id)
+    {
+        JSONObject req = new JSONObject();
+        req.put("type", type);
+        req.put("data", data);
+        req.put("id", id == null ? UUID.randomUUID().toString() : id);
+        return req;
+    }
+
+    /**
+     * Creates a JSONObject to request audio to be muted over SIP.
+     *
+     * @param bMuted <tt>true</tt> if audio is to be muted, <tt>false</tt> otherwise.
+     * @return Formed JSONObject.
+     */
+    private JSONObject createSIPJSONAudioMuteRequest(boolean bMuted)
+    {
+        JSONObject muteSettingsJson = new JSONObject();
+        muteSettingsJson.put("audio", bMuted);
+        JSONObject muteRequestJson = createSIPJSON("muteRequest", muteSettingsJson, null);
+        return muteRequestJson;
+    }
+
+    /**
+     * Creates a JSONObject as response to a muteRequest.
+     *
+     * @param bMuted <tt>true</tt> if audio was muted, <tt>false</tt> otherwise.
+     * @param bSucceeded <tt>true</tt> if muteRequest succeeded, <tt>false</tt> otherwise.
+     * @param id Represents id of muteRequest.
+     * @return Formed JSONObject.
+     */
+    private JSONObject createSIPJSONAudioMuteResponse(boolean bMuted,
+                                                        boolean bSucceeded,
+                                                        String id)
+    {
+        JSONObject muteSettingsJson = new JSONObject();
+        muteSettingsJson.put("audio", bMuted);
+        JSONObject muteResponseJson = createSIPJSON("muteResponse", muteSettingsJson, id);
+        muteResponseJson.put("status", bSucceeded == true ? "OK" : "FAILED");
+        return muteResponseJson;
+    }
+
+    /**
+     * Sends a JSON request over SIP to mute callPeer with bMuted flag.
+     *
+     * @param bMuted true if audio should be muted, false otherwise.
+     * @param callPeer CallPeer to send JSON to.
+     * @throws OperationFailedException
+     */
+    private void requestRemoteAudioMute(boolean bMuted,
+                                        CallPeer callPeer)
+                                        throws OperationFailedException
+    {
+        // Mute audio
+        JSONObject muteRequestJson = createSIPJSONAudioMuteRequest(bMuted);
+
+        jitsiMeetTools.sendJSON(callPeer,
+                                muteRequestJson,
+                                new HashMap<String, Object>(){{
+                                    put("VIA", (Object)("SIP.INFO"));
+                                }});
+    }
+
+    /**
+     * Sends a JSON muteResponse over SIP to callPeer with specified flag.
+     *
+     * @param bMuted true if audio was muted, false otherwise.
+     * @param bSucceeded <tt>true</tt> if request succeeded, <tt>false</tt> otherwise.
+     * @param callPeer CallPeer to send response to.
+     * @param id Set as muteRequest id.
+     * @throws OperationFailedException
+     */
+    private void respondRemoteAudioMute(boolean bMuted,
+                                        boolean bSucceeded,
+                                        CallPeer callPeer,
+                                        String id)
+                                        throws OperationFailedException
+    {
+        JSONObject muteResponseJson
+            = createSIPJSONAudioMuteResponse(bMuted, bSucceeded, id);
+
+        jitsiMeetTools.sendJSON(callPeer,
+                                muteResponseJson,
+                                new HashMap<String, Object>() {{
+                                    put("VIA", (Object)("SIP.INFO"));
+                                }});
+    }    
 
     /**
      * Initializes the sip call listeners.
@@ -1151,6 +1331,39 @@ public class SipGatewaySession
 
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
+
+            if (JigasiBundleActivator.isSipStartMutedEnabled() == true)
+            {
+                if (CallPeerState.CONNECTED.equals(callPeerState) == true)
+                {
+                    // After CallPeer is in CONNECTED state handle startmuted flags
+                    jitsiMeetTools.addRequestListener(SipGatewaySession.this);
+
+                    if (SipGatewaySession.this.startAudioMuted == true)
+                    {
+                        // Send request to jicofo
+                        if (jvbConference.requestAudioMute(startAudioMuted) == true)
+                        {
+                            // Notify peer
+                            CallPeer callPeer = evt.getSourceCallPeer();
+
+                            try
+                            {
+                                requestRemoteAudioMute(startAudioMuted, callPeer);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.error(ex.getMessage());
+                            }
+                        }
+                    }
+                }
+
+                if (CallPeerState.DISCONNECTED.equals(callPeerState) == true)
+                {
+                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
+                }
+            }
 
             soundNotificationManager.process(callPeerState);
         }
