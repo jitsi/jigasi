@@ -848,6 +848,11 @@ public class JvbConference
                     Statistics.incrementTotalCallsWithSipCallWaiting();
                     gwSesisonWaitingStatsSent = true;
                 }
+
+                if (this.gatewaySession != null)
+                {
+                    this.gatewaySession.onJvbCallEnded();
+                }
             }
         }
     }

@@ -202,6 +202,12 @@ public abstract class AbstractGatewaySession
         int reasonCode, String reason);
 
     /**
+     * Method called by <tt>JvbConference</tt> to notify JVB call ended
+     * but conference may still be online.
+     */
+    public void onJvbCallEnded() {}
+
+    /**
      * Cancels current session by leaving the muc room
      */
     public void hangUp()

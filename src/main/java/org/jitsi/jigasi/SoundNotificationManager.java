@@ -30,8 +30,10 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jivesoftware.smack.packet.*;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Manages all sounds notifications that are send to a SIP session side.
@@ -75,6 +77,12 @@ public class SoundNotificationManager
         = "sounds/MaxOccupants.opus";
 
     /**
+     * The sound file to use to notify sip partitipant that a
+     * new participant has joined.
+     */
+    private static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
+
+    /**
      * Approximate duration of the file to be played, we need it as to know
      * when to hangup the call. The actual file is 10 seconds but we give a
      * little longer for the file to be played and call to be answered.
@@ -106,6 +114,16 @@ public class SoundNotificationManager
      * In certain scenarios (max occupants) we wait till we hangup the call.
      */
     private CountDownLatch hangupWait = null;
+
+    /**
+     * Rate limiter of participant joined sound notification.
+     */
+    private RateLimiter participantJoinedRateLimiterLazy = null;
+
+    /**
+     * Timeout of rate limiter for participant joined notification.
+     */
+    private static final long PARTICIPANT_JOINED_RATE_TIMEOUT_MS = 30000;
 
     /**
      * Constructs new <tt>SoundNotificationManager</tt>.
@@ -332,6 +350,10 @@ public class SoundNotificationManager
 
                 delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
             }
+            else
+            {
+                playParticipantJoinedNotification();
+            }
         }
 
         if (delayedHangupSeconds != -1)
@@ -377,6 +399,179 @@ public class SoundNotificationManager
         catch(InterruptedException e)
         {
             logger.warn("Didn't finish waiting for hangup on max occupants");
+        }
+    }
+
+    /**
+     * Called when no other participant is left in the conference.
+     */
+    public void onJvbCallEnded()
+    {
+        if (this.participantJoinedRateLimiterLazy != null)
+        {
+            this.participantJoinedRateLimiterLazy.reset();
+        }
+    }
+
+    /**
+     * Called when a new participant has joined the conference.
+     *
+     * @param member the member who joined the JVB conference.
+     * @param call sip participant that joined the JVB conference.
+     */
+    public void notifyChatRoomMemberJoined(ChatRoomMember member)
+    {
+        boolean sendNotification = false;
+
+        Call sipCall = gatewaySession.getSipCall();
+        Call jvbCall = gatewaySession.getJvbCall();
+
+        if (sipCall != null)
+        {
+            sendNotification
+                = (sendNotification ||
+                    sipCall.getCallState() == CallState.CALL_IN_PROGRESS);
+        }
+
+        if (jvbCall != null)
+        {
+            sendNotification
+                = (sendNotification ||
+                    jvbCall.getCallState() == CallState.CALL_IN_PROGRESS);
+        }
+
+        if (sendNotification == true)
+        {
+            playParticipantJoinedNotification();
+        }
+    }
+
+    /**
+     * Sends sound notification for sip participant if
+     * rate limiter allows.
+     */
+    private void playParticipantJoinedNotification()
+    {
+        try
+        {
+            if (getParticipantJoinedRateLimiter().on() == false)
+            {
+                Call sipCall = gatewaySession.getSipCall();
+    
+                if (sipCall != null)
+                {
+                    injectSoundFile(sipCall, PARTICIPANT_JOINED);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
+    }
+
+    /**
+     * Returns new SoundRateLimiter to be used for participant joined
+     * if not created already.
+     *
+     * @return participantJoinedRateLimiterLazy
+     */
+    private RateLimiter getParticipantJoinedRateLimiter()
+    {
+        if (this.participantJoinedRateLimiterLazy == null)
+        {
+            this.participantJoinedRateLimiterLazy
+                = new SoundRateLimiter(PARTICIPANT_JOINED_RATE_TIMEOUT_MS);
+        }
+
+        return this.participantJoinedRateLimiterLazy;
+    }
+
+    /**
+     * RateLimiter interface.
+     */
+    private interface RateLimiter
+    {
+        /**
+         * Used to get state of the rate limiter.
+         *
+         * @return true if enabled, false otherwise.
+         */
+        public boolean on();
+
+        /**
+         * Reset timeout.
+         */
+        public void reset();
+    }
+
+    /**
+     * Implements RateLimiter for sound notifications.
+     */
+    private class SoundRateLimiter implements RateLimiter
+    {
+        /**
+         * Initial time point.
+         */
+        private final AtomicReference<Instant> startTimePoint
+            = new AtomicReference<>(null);
+
+        /**
+         * Timeout in milliseconds.
+         */
+        private long limiterTimeout;
+
+        /**
+         * SoundRateLimiter constructor.
+         *
+         * @param timePoint Initial start timepoint.
+         * @param maxTimeout Timeout in milliseconds to block notification.
+         */
+        SoundRateLimiter(long maxTimeout)
+        {
+            this.limiterTimeout = maxTimeout;
+        }
+
+        /**
+         * Checks if timeout since last notification has passed.
+         * When it returns false, sound notification can be played.
+         *
+         * @return true of enabled, false otherwise.
+         */
+        public boolean on()
+        {
+            if (this.startTimePoint
+                    .compareAndSet(null, Instant.now()) == true)
+            {
+                return false;
+            }
+
+            Instant prevTimePoint = this.startTimePoint.get();
+
+            if (prevTimePoint == null)
+            {
+                return false;
+            }
+
+            long elapsedMs =
+                Instant.now().toEpochMilli()
+                    - prevTimePoint.toEpochMilli();
+
+            if (elapsedMs >= this.limiterTimeout)
+            {
+                this.startTimePoint.set(Instant.now());
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public void reset()
+        {
+            this.startTimePoint.set(null);
         }
     }
 }

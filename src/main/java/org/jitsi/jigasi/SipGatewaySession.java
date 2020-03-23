@@ -1076,6 +1076,18 @@ public class SipGatewaySession
     }
 
     /**
+     * Called by JvbConference when jvb session ended.
+     */
+    @Override
+    public void onJvbCallEnded()
+    {
+        if (this.soundNotificationManager != null)
+        {
+            this.soundNotificationManager.onJvbCallEnded();
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -1084,6 +1096,20 @@ public class SipGatewaySession
     {
         // sound manager process
         soundNotificationManager.process(presence);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    void notifyChatRoomMemberJoined(ChatRoomMember member)
+    {
+        super.notifyChatRoomMemberJoined(member);
+
+        if (soundNotificationManager != null)
+        {
+            soundNotificationManager.notifyChatRoomMemberJoined(member);
+        }
     }
 
     /**
