@@ -77,6 +77,18 @@ public class SoundNotificationManager
         = "sounds/MaxOccupants.opus";
 
     /**
+     * The sound file to use to notify sip participant that
+     * nobody is in the conference.
+     */
+    private static final String PARTICIPANT_ALONE = "sounds/Alone.opus";
+
+    /**
+     * The sound file to use to notify sip participant that a
+     * participant has left.
+     */
+    private static final String PARTICIPANT_LEFT = "sounds/ParticipantLeft.opus";
+
+    /**
      * The sound file to use to notify sip partitipant that a
      * new participant has joined.
      */
@@ -116,14 +128,41 @@ public class SoundNotificationManager
     private CountDownLatch hangupWait = null;
 
     /**
+     * Rate limiter of participant left sound notification.
+     */
+    private RateLimiter participantLeftRateLimiterLazy = null;
+
+    /**
      * Rate limiter of participant joined sound notification.
      */
     private RateLimiter participantJoinedRateLimiterLazy = null;
 
     /**
+     * Timeout of rate limiter for participant alone notification.
+     */
+    private static final long PARTICIPANT_ALONE_TIMEOUT_MS = 15000;
+
+    /**
+     * Timeout of rate limiter for participant left notification.
+     */
+    private static final long PARTICIPANT_LEFT_RATE_TIMEOUT_MS = 30000;
+
+    /**
      * Timeout of rate limiter for participant joined notification.
      */
     private static final long PARTICIPANT_JOINED_RATE_TIMEOUT_MS = 30000;
+
+    /**
+     * Timer trigger notification when participant is the only one
+     * in the conference for a certain amount of time.
+     */
+    private Timer participantAloneNotificationTimerLazy = null;
+
+    /**
+     * Task to trigger notification when participant is the only one
+     * in the conference from a certain amount of time.
+     */
+    private TimerTask participantAloneNotificationTask = null;
 
     /**
      * Constructs new <tt>SoundNotificationManager</tt>.
@@ -403,13 +442,53 @@ public class SoundNotificationManager
     }
 
     /**
+     * Schedules a sound notification playback to notify
+     * the participant is the only one in the conference.
+     */
+    private void scheduleAloneNotification(long timeout)
+    {
+        if (this.participantAloneNotificationTask != null)
+        {
+            this.participantAloneNotificationTask.cancel();
+        }
+
+        this.participantAloneNotificationTask
+            = new TimerTask()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        playParticipantAloneNotification();
+                    }
+                    catch(Exception ex)
+                    {
+                        logger.error(ex.getMessage());
+                    }
+                }
+            };
+
+        getParticipantAloneNotificationTimer()
+            .schedule(this.participantAloneNotificationTask,
+                        timeout);
+    }
+
+    /**
      * Called when no other participant is left in the conference.
      */
     public void onJvbCallEnded()
     {
+        scheduleAloneNotification(0);
+
         if (this.participantJoinedRateLimiterLazy != null)
         {
             this.participantJoinedRateLimiterLazy.reset();
+        }
+
+        if (this.participantLeftRateLimiterLazy != null)
+        {
+            participantLeftRateLimiterLazy.reset();
         }
     }
 
@@ -417,7 +496,6 @@ public class SoundNotificationManager
      * Called when a new participant has joined the conference.
      *
      * @param member the member who joined the JVB conference.
-     * @param call sip participant that joined the JVB conference.
      */
     public void notifyChatRoomMemberJoined(ChatRoomMember member)
     {
@@ -442,7 +520,75 @@ public class SoundNotificationManager
 
         if (sendNotification == true)
         {
+            if (this.participantAloneNotificationTask != null)
+            {
+                this.participantAloneNotificationTask.cancel();
+            }
+
             playParticipantJoinedNotification();
+        }
+    }
+
+    /**
+     * Called when a new participant has left the conference.
+     *
+     * @param member the member who joined the JVB conference.
+     */
+    public void notifyChatRoomMemberLeft(ChatRoomMember member)
+    {
+        playParticipantLeftNotification();
+    }
+
+    /**
+     * Called when JVB conference was joined.
+     */
+    public void notifyJvbRoomJoined()
+    {
+        scheduleAloneNotification(PARTICIPANT_ALONE_TIMEOUT_MS);
+    }
+
+    /**
+     * Sends sound notification that tells the user
+     * is alone in the conference.
+     */
+    private void playParticipantAloneNotification()
+    {
+        try
+        {
+            Call sipCall = gatewaySession.getSipCall();
+
+            if (sipCall != null)
+            {
+                injectSoundFile(sipCall, PARTICIPANT_ALONE);
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
+    }
+
+    /**
+     * Sends sound notification for sip participants if
+     * rate limiter allows.
+     */
+    private void playParticipantLeftNotification()
+    {
+        try
+        {
+            if (getParticipantLeftRateLimiter().on() == false)
+            {
+                Call sipCall = gatewaySession.getSipCall();
+
+                if (sipCall != null)
+                {
+                    injectSoundFile(sipCall, PARTICIPANT_LEFT);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
         }
     }
 
@@ -468,6 +614,40 @@ public class SoundNotificationManager
         {
             logger.error(ex.getMessage());
         }
+    }
+
+    /**
+     * Returns new Timer that will trigger playback for
+     * PARTICIPANT_ALONE notification.
+     *
+     * @return participantAloneNotificationTimerLazy
+     */
+    private Timer getParticipantAloneNotificationTimer()
+    {
+        if (this.participantAloneNotificationTimerLazy == null)
+        {
+            this.participantAloneNotificationTimerLazy
+                = new Timer();
+        }
+
+        return participantAloneNotificationTimerLazy;
+    }
+
+    /**
+     * Returns new SoundRateLimiter to be used for participant left
+     * if not created already.
+     *
+     * @return participantLeftRateLimiterLazy
+     */
+    private RateLimiter getParticipantLeftRateLimiter()
+    {
+        if (this.participantLeftRateLimiterLazy == null)
+        {
+            this.participantLeftRateLimiterLazy
+                = new SoundRateLimiter(PARTICIPANT_LEFT_RATE_TIMEOUT_MS);
+        }
+
+        return this.participantLeftRateLimiterLazy;
     }
 
     /**
