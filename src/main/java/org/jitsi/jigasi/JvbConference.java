@@ -78,6 +78,13 @@ public class JvbConference
         = "http://jitsi.org/protocol/jigasi";
 
     /**
+     * The name of XMPP feature which states this Jigasi SIP Gateway can be
+     * muted.
+     */
+    public static final String MUTED_FEATURE_NAME
+        = "http://jitsi.org/protocol/audio-mute";
+
+    /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
      */
     public static final String DTMF_FEATURE_NAME
@@ -161,6 +168,11 @@ public class JvbConference
                     "urn:xmpp:jingle:transports:ice-udp:1");
 
             logger.info("ICE feature will not be advertised");
+        }
+
+        if (JigasiBundleActivator.isSipStartMutedEnabled())
+        {
+            meetTools.addSupportedFeature(MUTED_FEATURE_NAME);
         }
     }
 
@@ -1667,7 +1679,8 @@ public class JvbConference
     {
         if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
         {
-            return ((ProtocolProviderServiceJabberImpl) this.xmppProvider).getConnection();    
+            return ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                .getConnection();
         }
 
         return null;
