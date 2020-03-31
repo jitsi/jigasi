@@ -1116,6 +1116,34 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
+    void notifyChatRoomMemberLeft(ChatRoomMember member)
+    {
+        super.notifyChatRoomMemberLeft(member);
+
+        if (soundNotificationManager != null)
+        {
+            soundNotificationManager.notifyChatRoomMemberLeft(member);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    void notifyJvbRoomJoined()
+    {
+        super.notifyJvbRoomJoined();
+
+        if (soundNotificationManager != null)
+        {
+            soundNotificationManager.notifyJvbRoomJoined();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     void handleMaxOccupantsLimitReached()
     {
         soundNotificationManager.indicateMaxOccupantsLimitReached();
