@@ -144,6 +144,12 @@ public class Transcript
         // nothing do to
     }
 
+    @Override
+    public void failed(FailureReason reason)
+    {
+        // whatever
+    }
+
     /**
      * Notify the transcript that the conference started at this exact moment
      * Will be ignored if already told the conference started

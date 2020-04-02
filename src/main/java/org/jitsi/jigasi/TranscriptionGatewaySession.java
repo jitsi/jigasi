@@ -242,7 +242,7 @@ public class TranscriptionGatewaySession
         // The conference is over, make sure the transcriber stops
         if(!transcriber.finished())
         {
-            transcriber.stop();
+            transcriber.stop(null);
 
             for(TranscriptPublisher.Promise promise : finalTranscriptPromises)
             {
@@ -411,6 +411,13 @@ public class TranscriptionGatewaySession
         // to stop transcription before jigasi leaves conference
 //        sendMessageToRoom("The complete transcription can be " +
 //                "found at <insert_link_here>");
+    }
+
+    @Override
+    public void failed(FailureReason reason)
+    {
+        // Leave the conference room
+        this.jvbConference.stop();
     }
 
     @Override

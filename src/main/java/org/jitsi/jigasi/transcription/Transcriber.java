@@ -45,6 +45,11 @@ public class Transcriber
     private final static Logger logger = Logger.getLogger(Transcriber.class);
 
     /**
+     * Datadog aspect for failing the transcription process.
+     */
+    private final static String DD_ASPECT_FAILED = "failed_transcriber";
+
+    /**
      * Datadog aspect for starting transcribing
      */
     private final static String DD_ASPECT_START = "start_transcriber";
@@ -159,7 +164,7 @@ public class Transcriber
      * with all packets, which only has 20 ms before new packets come in.
      * <p>
      * Will be created in {@link Transcriber#start()} and shutdown in
-     * {@link Transcriber#stop()}
+     * {@link Transcriber#stop(FailureReason)}
      */
     ExecutorService executorService;
 
@@ -432,8 +437,9 @@ public class Transcriber
 
     /**
      * Stop transcribing all participants added to the list
+     * @param reason failure reason.
      */
-    public void stop()
+    public void stop(TranscriptionListener.FailureReason reason)
     {
         if (State.TRANSCRIBING.equals(this.state))
         {
@@ -441,9 +447,9 @@ public class Transcriber
                 logger.debug(
                     getDebugName() + ": transcriber is now finishing up");
 
-            updateDDClient(DD_ASPECT_STOP);
+            updateDDClient(reason == null ? DD_ASPECT_STOP : DD_ASPECT_FAILED);
 
-            this.state = State.FINISHING_UP;
+            this.state = reason == null ? State.FINISHING_UP : State.FINISHED;
             this.executorService.shutdown();
 
             TranscriptEvent event = this.transcript.ended();
@@ -451,7 +457,17 @@ public class Transcriber
             ActionServicesHandler.getInstance()
                 .notifyActionServices(this, event);
 
-            checkIfFinishedUp();
+            if (reason == null)
+            {
+                checkIfFinishedUp();
+            }
+            else
+            {
+                for (TranscriptionListener listener : listeners)
+                {
+                    listener.failed(reason);
+                }
+            }
         }
         else
         {
@@ -739,6 +755,9 @@ public class Transcriber
                 {
                     if (!participant.isCompleted())
                     {
+                        logger.debug(
+                            participant.getDebugName()
+                                + " is still not finished");
                         return;
                     }
                 }
