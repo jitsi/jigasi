@@ -186,4 +186,10 @@ public class TranslationManager
     {
         languages.clear();
     }
+
+    @Override
+    public void failed(FailureReason reason)
+    {
+        completed();
+    }
 }

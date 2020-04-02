@@ -1009,7 +1009,20 @@ public class GoogleCloudTranscriptionService
         public void onError(Throwable t)
         {
             logger.warn(debugName + ": received an error from the Google Cloud API", t);
-            requestManager.terminateCurrentSession();
+
+            if (t instanceof ResourceExhaustedException)
+            {
+                for (TranscriptionListener l : requestManager.getListeners())
+                {
+                    l.failed(TranscriptionListener.FailureReason.RESOURCES_EXHAUSTED);
+                }
+
+                requestManager.stop();
+            }
+            else
+            {
+                requestManager.terminateCurrentSession();
+            }
         }
 
         @Override

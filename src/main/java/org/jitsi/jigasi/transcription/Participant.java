@@ -559,6 +559,14 @@ public class Participant
         transcriber.checkIfFinishedUp();
     }
 
+    @Override
+    public void failed(FailureReason reason)
+    {
+        isCompleted = true;
+        logger.error(getDebugName() + " transcription failed: " + reason);
+        transcriber.stop(reason);
+    }
+
     /**
      * Get whether everything this participant said has been transcribed
      *

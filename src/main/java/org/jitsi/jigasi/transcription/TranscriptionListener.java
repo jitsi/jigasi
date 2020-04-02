@@ -38,4 +38,23 @@ public interface TranscriptionListener
      * the transcription has been completed
      */
     void completed();
+
+    /**
+     * Notify this listener that the transcriptions has failed and no new
+     * results will come in.
+     * @param reason the failure reason
+     */
+    void failed(FailureReason reason);
+
+    /**
+     * Passed as an argument to {@link #failed(FailureReason)}.
+     */
+    enum FailureReason
+    {
+        /**
+         * The request quota limit set by the transcription service provider
+         * has been exhausted.
+         */
+        RESOURCES_EXHAUSTED
+    }
 }
