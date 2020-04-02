@@ -893,9 +893,11 @@ public class JvbConference
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
 
-        mucRoom.removeMemberPresenceListener(this);
-
         mucRoom.leave();
+
+        // remove listener needs to be after leave,
+        // to catch all member left events
+        mucRoom.removeMemberPresenceListener(this);
 
         mucRoom = null;
     }
