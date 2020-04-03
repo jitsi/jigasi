@@ -69,7 +69,7 @@ public class TranscriptHandler
     /**
      * Whether to publish final transcripts by locally saving them in txt format
      */
-    private final static boolean SAVE_TXT = true;
+    private final static boolean SAVE_TXT = false;
 
     /**
      * Whether to send results in json to
