@@ -31,6 +31,7 @@ import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smack.tcp.*;
 import org.jxmpp.jid.parts.*;
 import org.osgi.framework.*;
 
@@ -74,6 +75,14 @@ public class CallControlMucActivator
      */
     public static final String BREWERY_ENABLED_PROP
         = "org.jitsi.jigasi.BREWERY_ENABLED";
+
+    // Disable stream management as it could lead to unexpected behaviour,
+    // because we do not account for that to happen.
+    static
+    {
+        XMPPTCPConnection.setUseStreamManagementDefault(false);
+        XMPPTCPConnection.setUseStreamManagementResumptionDefault(false);
+    }
 
     /**
      * The call controlling logic.
