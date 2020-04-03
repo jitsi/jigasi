@@ -509,10 +509,18 @@ public class GoogleCloudTranscriptionService
         private final static int INTERVAL_LENGTH_MS = 15000;
 
         /**
-         * The aspect to log the information to.
+         * The aspect to log the information to about the total number of
+         * 15 second intervals submitted to the Google API for transcription.
          */
         private final static String ASPECT_INTERVAL
             = "google_cloud_speech_15s_intervals";
+
+        /**
+         * The aspect to log the information to about the total number of
+         * requests submitted to the Google Cloud Speec API.
+         */
+        private final static String ASPECT_TOTAL_REQUESTS
+            = "google_cloud_speech_requests";
 
         /**
          * The client to send statistics to
@@ -523,6 +531,11 @@ public class GoogleCloudTranscriptionService
          * Extra string added to every log.
          */
         private final String debugName;
+
+        /**
+         * Keep track of how many requests have been sent.
+         */
+        private long requestsCount = 0;
 
         /**
          * Keep track of the time already send
@@ -556,6 +569,14 @@ public class GoogleCloudTranscriptionService
         }
 
         /**
+         * Increments the Google Cloud Speech API requests counter.
+         */
+        synchronized void incrementRequestsCounter()
+        {
+            requestsCount += 1;
+        }
+
+        /**
          * Tell the logger a session has closed, meaning the total interval
          * length can now be computed
          */
@@ -567,12 +588,15 @@ public class GoogleCloudTranscriptionService
             if(client != null)
             {
                 client.count(ASPECT_INTERVAL, intervals15s);
+                client.count(ASPECT_TOTAL_REQUESTS, requestsCount);
             }
 
             logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
-                            "for a total of " + intervals15s + " intervals");
+                            "for a total of " + intervals15s + " intervals " +
+                            "with a total of " + requestsCount + " requests.");
 
             summedTime = 0;
+            requestsCount = 0;
         }
 
     }
@@ -732,6 +756,7 @@ public class GoogleCloudTranscriptionService
                 }
 
                 costLogger.increment(request.getDurationInMs());
+                costLogger.incrementRequestsCounter();
 
                 currentRequestObserver.onNext(
                     StreamingRecognizeRequest.newBuilder()
