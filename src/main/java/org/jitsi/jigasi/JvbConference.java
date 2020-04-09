@@ -36,6 +36,7 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jxmpp.jid.*;
@@ -754,6 +755,11 @@ public class JvbConference
                     "is not an instance of ChatRoomJabberImpl");
             }
 
+            if (JigasiBundleActivator.isSipStartMutedEnabled())
+            {
+                getConnection().registerIQRequestHandler(new MuteIqHandler());
+            }
+
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
             // first to join, mimic the web behaviour
@@ -1165,6 +1171,7 @@ public class JvbConference
             if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
+                gatewaySession.onJvbCallEstablished();
             }
             else if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
@@ -1692,5 +1699,53 @@ public class JvbConference
         }
 
         return null;
+    }
+
+    /**
+     * Handles mute requests received by jicofo if enabled.
+     */
+    private class MuteIqHandler
+        extends AbstractIqRequestHandler
+    {
+        MuteIqHandler()
+        {
+            super(
+                MuteIq.ELEMENT_NAME,
+                MuteIq.NAMESPACE,
+                IQ.Type.set,
+                Mode.sync);
+        }
+
+        @Override
+        public IQ handleIQRequest(IQ iqRequest)
+        {
+            return handleMuteIq((MuteIq) iqRequest);
+        }
+
+        /**
+         * Handles the incoming mute request only if it is from the focus.
+         * @param muteIq the incoming iq.
+         * @return the result iq.
+         */
+        private IQ handleMuteIq(MuteIq muteIq)
+        {
+            Boolean doMute = muteIq.getMute();
+            Jid from = muteIq.getFrom();
+
+            if (doMute == null
+                || !from.getResourceOrEmpty().equals(
+                        gatewaySession.getFocusResourceAddr()))
+            {
+                return IQ.createErrorResponse(muteIq, XMPPError.getBuilder(
+                    XMPPError.Condition.item_not_found));
+            }
+
+            if (doMute)
+            {
+                gatewaySession.mute();
+            }
+
+            return IQ.createResultIQ(muteIq);
+        }
     }
 }

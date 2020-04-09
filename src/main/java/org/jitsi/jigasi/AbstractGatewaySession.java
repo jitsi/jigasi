@@ -208,6 +208,12 @@ public abstract class AbstractGatewaySession
     public void onJvbCallEnded() {}
 
     /**
+     * Method called by <tt>JvbConference</tt> to notify JVB call has been
+     * established.
+     */
+    public void onJvbCallEstablished() {}
+
+    /**
      * Cancels current session by leaving the muc room
      */
     public void hangUp()
@@ -409,6 +415,11 @@ public abstract class AbstractGatewaySession
     {
         return focusResourceAddr;
     }
+
+    /**
+     * If muting is supported will mute the participant.
+     */
+    public abstract void mute();
 
     /**
      * Whether the gateway implementation supports call resuming. Where we can

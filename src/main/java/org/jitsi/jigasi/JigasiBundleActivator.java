@@ -279,6 +279,8 @@ public class JigasiBundleActivator
         // Register Rayo IQs
         new RayoIqProvider().registerRayoIQs();
 
+        MuteIqProvider.registerMuteIqProvider();
+
         // recording status, to detect recording start/stop
         ProviderManager.addExtensionProvider(
             RecordingStatus.ELEMENT_NAME,

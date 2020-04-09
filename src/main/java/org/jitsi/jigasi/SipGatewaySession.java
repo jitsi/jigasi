@@ -22,7 +22,6 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -644,7 +643,10 @@ public class SipGatewaySession
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
-        this.startAudioMuted = startMutedFlags[0];
+        if (isMutingSupported())
+        {
+            this.startAudioMuted = startMutedFlags[0];
+        }
     }
 
     /**
@@ -832,7 +834,7 @@ public class SipGatewaySession
                                 new HashMap<String, Object>() {{
                                     put("VIA", (Object)("SIP.INFO"));
                                 }});
-    }    
+    }
 
     /**
      * Initializes the sip call listeners.
@@ -1196,6 +1198,59 @@ public class SipGatewaySession
     }
 
     /**
+     * When
+     */
+    @Override
+    public void onJvbCallEstablished()
+    {
+        if (this.startAudioMuted && isMutingSupported())
+        {
+            if (jvbConference.requestAudioMute(startAudioMuted))
+            {
+                mute();
+            }
+
+            // in case we reconnect start muted maybe no-longer set
+            this.startAudioMuted = false;
+        }
+    }
+
+    /**
+     * Sends mute request to be remotely muted.
+     * This is a SIP Info message to the IVR so the user will be notified of it
+     * When we receive confirmation for the announcement we will update
+     * our presence status in the conference.
+     */
+    public void mute()
+    {
+        if (!isMutingSupported())
+            return;
+
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            logger.info(
+                SipGatewaySession.this.callContext + " Sending mute request ", new Exception());
+            requestRemoteAudioMute(startAudioMuted, callPeer);
+        }
+        catch (Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
+    }
+
+    /**
+     * Muting is supported when it is enabled by configuration.
+     * @return <tt>true</tt> if mute support is enabled.
+     */
+    public boolean isMutingSupported()
+    {
+        return JigasiBundleActivator.isSipStartMutedEnabled();
+    }
+
+    /**
      * PeriodicRunnable that will check incoming RTP and if needed to hangup.
      */
     private class ExpireMediaStream
@@ -1386,34 +1441,16 @@ public class SipGatewaySession
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
-            if (JigasiBundleActivator.isSipStartMutedEnabled() == true)
+            if (isMutingSupported())
             {
-                if (CallPeerState.CONNECTED.equals(callPeerState) == true)
+                if (CallPeerState.CONNECTED.equals(callPeerState))
                 {
-                    // After CallPeer is in CONNECTED state handle startmuted flags
+                    // After CallPeer is in CONNECTED state handle
+                    // startmuted flags
                     jitsiMeetTools.addRequestListener(SipGatewaySession.this);
-
-                    if (SipGatewaySession.this.startAudioMuted == true)
-                    {
-                        // Send request to jicofo
-                        if (jvbConference.requestAudioMute(startAudioMuted) == true)
-                        {
-                            // Notify peer
-                            CallPeer callPeer = evt.getSourceCallPeer();
-
-                            try
-                            {
-                                requestRemoteAudioMute(startAudioMuted, callPeer);
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.error(ex.getMessage());
-                            }
-                        }
-                    }
                 }
 
-                if (CallPeerState.DISCONNECTED.equals(callPeerState) == true)
+                if (CallPeerState.DISCONNECTED.equals(callPeerState))
                 {
                     jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
                 }
