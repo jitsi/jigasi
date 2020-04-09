@@ -520,11 +520,6 @@ public class SoundNotificationManager
 
         if (sendNotification == true)
         {
-            if (this.participantAloneNotificationTask != null)
-            {
-                this.participantAloneNotificationTask.cancel();
-            }
-
             playParticipantJoinedNotification();
         }
     }
@@ -600,6 +595,11 @@ public class SoundNotificationManager
     {
         try
         {
+            if (this.participantAloneNotificationTask != null)
+            {
+                this.participantAloneNotificationTask.cancel();
+            }
+
             if (getParticipantJoinedRateLimiter().on() == false)
             {
                 Call sipCall = gatewaySession.getSipCall();
