@@ -582,14 +582,12 @@ public class JvbConference
             // Join the MUC
             joinConferenceRoom();
 
+            XMPPConnection connection = getConnection();
             if (xmppProvider != null
-                && xmppProvider instanceof ProtocolProviderServiceJabberImpl
-                && ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                        .getConnection() instanceof XMPPBOSHConnection)
+                && connection != null
+                && connection instanceof XMPPBOSHConnection)
             {
-                Object sessionId = Util.getConnSessionId(
-                    ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                        .getConnection());
+                Object sessionId = Util.getConnSessionId(connection);
                 if (sessionId != null)
                 {
                     logger.error(this.callContext + " Registered bosh sid: "
@@ -1416,8 +1414,7 @@ public class JvbConference
             StanzaCollector collector = null;
             try
             {
-                collector = ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                    .getConnection()
+                collector = getConnection()
                     .createStanzaCollectorAndSend(focusInviteIQ);
                 collector.nextResultOrThrow();
             }
