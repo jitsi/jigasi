@@ -531,7 +531,12 @@ public class SoundNotificationManager
      */
     public void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
-        playParticipantLeftNotification();
+        // if this is the sip hanging up (stopping) skip playing
+        if (gatewaySession.jvbConference.isStarted()
+            && gatewaySession.getSipCall() != null)
+        {
+            playParticipantLeftNotification();
+        }
     }
 
     /**
@@ -603,7 +608,7 @@ public class SoundNotificationManager
             if (getParticipantJoinedRateLimiter().on() == false)
             {
                 Call sipCall = gatewaySession.getSipCall();
-    
+
                 if (sipCall != null)
                 {
                     injectSoundFile(sipCall, PARTICIPANT_JOINED);
@@ -704,7 +709,6 @@ public class SoundNotificationManager
         /**
          * SoundRateLimiter constructor.
          *
-         * @param timePoint Initial start timepoint.
          * @param maxTimeout Timeout in milliseconds to block notification.
          */
         SoundRateLimiter(long maxTimeout)
@@ -720,8 +724,7 @@ public class SoundNotificationManager
          */
         public boolean on()
         {
-            if (this.startTimePoint
-                    .compareAndSet(null, Instant.now()) == true)
+            if (this.startTimePoint.compareAndSet(null, Instant.now()))
             {
                 return false;
             }

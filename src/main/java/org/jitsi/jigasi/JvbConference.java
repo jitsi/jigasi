@@ -643,6 +643,15 @@ public class JvbConference
         return mucRoom != null && mucRoom.isJoined();
     }
 
+    /**
+     * Indicates whether this conference has been started.
+     * @return <tt>true</tt> is this conference is started, false otherwise.
+     */
+    public boolean isStarted()
+    {
+        return started;
+    }
+
     private void joinConferenceRoom()
     {
         // Advertise gateway feature before joining
