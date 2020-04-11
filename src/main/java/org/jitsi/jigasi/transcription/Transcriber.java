@@ -72,6 +72,19 @@ public class Transcriber
     public final static boolean ENABLE_TRANSLATION_DEFAULT_VALUE = false;
 
     /**
+     * The property name for the boolean value whether the translated transcripts
+     * should be saved
+     */
+    public final static String P_NAME_SAVE_TRANSLATED_TRANSCRIPTS
+        = "org.jitsi.jigasi.transcription.SAVE_TRANSLATED_TRANSCRIPTS";
+
+    /**
+     * Whether to save the transcripts in translated languages.
+     */
+    public final static boolean SAVE_TRANSLATED_TRANSCRIPTS_DEFAULT_VALUE
+        = false;
+
+    /**
      * The states the transcriber can be in. The Transcriber
      * can only go through one cycle. So once it is started it can never
      * be started, and once is is stopped it can never be stopped and once
@@ -204,6 +217,11 @@ public class Transcriber
         if(isTranslationEnabled())
         {
             addTranscriptionListener(this.translationManager);
+            if(isSaveTranslatedTranscriptsEnabled())
+            {
+                addTranslationListener(this.transcript);
+                transcript.setTranslationManager(this.translationManager);
+            }
         }
         this.roomName = roomName;
         this.roomUrl = roomUrl;
@@ -346,7 +364,8 @@ public class Transcriber
     /**
      * Update the {@link Participant} with the given identifier by setting the
      * <tt>translationLanguage</tt> of the participant and update the count for
-     * languages in the @link {@link TranslationManager}
+     * languages in the @link {@link TranslationManager} and adds the language
+     * for the storing the final translated {@link Transcript}.
      *
      * @param identifier the identifier of the participant
      * @param language the language tag to be updated for the participant
@@ -363,6 +382,10 @@ public class Transcriber
             translationManager.addLanguage(language);
             translationManager.removeLanguage(previousLanguage);
             participant.setTranslationLanguage(language);
+            if(isSaveTranslatedTranscriptsEnabled())
+            {
+                transcript.addTranslationLanguage(language);
+            }
         }
     }
 
@@ -858,5 +881,17 @@ public class Transcriber
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_TRANSLATION,
                     ENABLE_TRANSLATION_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether to store the final transcript in the requested languages.
+     *
+     * @return true if enabled, otherwise returns false.
+     */
+    private boolean isSaveTranslatedTranscriptsEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_SAVE_TRANSLATED_TRANSCRIPTS,
+                    SAVE_TRANSLATED_TRANSCRIPTS_DEFAULT_VALUE);
     }
 }
