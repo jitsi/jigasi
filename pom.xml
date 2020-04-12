@@ -253,7 +253,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.54</version>
+      <version>1.70</version>
       <scope>runtime</scope>
     </dependency>
     <!-- org.jitsi runtime-->
