@@ -1231,8 +1231,8 @@ public class SipGatewaySession
         try
         {
             logger.info(
-                SipGatewaySession.this.callContext + " Sending mute request ", new Exception());
-            requestRemoteAudioMute(startAudioMuted, callPeer);
+                SipGatewaySession.this.callContext + " Sending mute request ");
+            requestRemoteAudioMute(true, callPeer);
         }
         catch (Exception ex)
         {
