@@ -663,7 +663,6 @@ public class SipGatewaySession
     {
         try
         {
-
             if (callPeer.getCall() != this.sipCall)
             {
                 if (logger.isTraceEnabled())
@@ -673,13 +672,13 @@ public class SipGatewaySession
                 return;
             }
 
-            if (jsonObject.containsKey("type") == false)
+            if (!jsonObject.containsKey("type"))
             {
                 logger.error("Unknown json object type!");
                 return;
             }
 
-            if (jsonObject.containsKey("id") == false)
+            if (!jsonObject.containsKey("id"))
             {
                 logger.error("Unknown json object id!");
                 return;
@@ -688,16 +687,15 @@ public class SipGatewaySession
             String id = (String)jsonObject.get("id");
             String type = (String)jsonObject.get("type");
 
-            if (type.equalsIgnoreCase("muteResponse") == true)
+            if (type.equalsIgnoreCase("muteResponse"))
             {
-                if (jsonObject.containsKey("status") == false)
+                if (!jsonObject.containsKey("status"))
                 {
                     logger.error("muteResponse without status!");
                     return;
                 }
 
-                if ( ((String)jsonObject.get("status"))
-                        .equalsIgnoreCase("OK") == true)
+                if (((String) jsonObject.get("status")).equalsIgnoreCase("OK"))
                 {
                     JSONObject data = (JSONObject) jsonObject.get("data");
 
@@ -707,14 +705,14 @@ public class SipGatewaySession
                     this.jvbConference.setChatRoomAudioMuted(bMute);
                 }
             }
-            else if (type.equalsIgnoreCase("muteRequest") == true)
+            else if (type.equalsIgnoreCase("muteRequest"))
             {
                 JSONObject data = (JSONObject) jsonObject.get("data");
 
                 boolean bAudioMute = (boolean)data.get("audio");
 
                 // Send request to jicofo
-                if (jvbConference.requestAudioMute(bAudioMute) == true)
+                if (jvbConference.requestAudioMute(bAudioMute))
                 {
                     // Send response through sip
                     respondRemoteAudioMute(bAudioMute,
@@ -767,8 +765,8 @@ public class SipGatewaySession
     {
         JSONObject muteSettingsJson = new JSONObject();
         muteSettingsJson.put("audio", bMuted);
-        JSONObject muteRequestJson = createSIPJSON("muteRequest", muteSettingsJson, null);
-        return muteRequestJson;
+
+        return createSIPJSON("muteRequest", muteSettingsJson, null);
     }
 
     /**
@@ -785,8 +783,9 @@ public class SipGatewaySession
     {
         JSONObject muteSettingsJson = new JSONObject();
         muteSettingsJson.put("audio", bMuted);
-        JSONObject muteResponseJson = createSIPJSON("muteResponse", muteSettingsJson, id);
-        muteResponseJson.put("status", bSucceeded == true ? "OK" : "FAILED");
+        JSONObject muteResponseJson
+            = createSIPJSON("muteResponse", muteSettingsJson, id);
+        muteResponseJson.put("status", bSucceeded ? "OK" : "FAILED");
         return muteResponseJson;
     }
 
@@ -797,9 +796,8 @@ public class SipGatewaySession
      * @param callPeer CallPeer to send JSON to.
      * @throws OperationFailedException
      */
-    private void requestRemoteAudioMute(boolean bMuted,
-                                        CallPeer callPeer)
-                                        throws OperationFailedException
+    private void requestRemoteAudioMute(boolean bMuted, CallPeer callPeer)
+        throws OperationFailedException
     {
         // Mute audio
         JSONObject muteRequestJson = createSIPJSONAudioMuteRequest(bMuted);
@@ -824,7 +822,7 @@ public class SipGatewaySession
                                         boolean bSucceeded,
                                         CallPeer callPeer,
                                         String id)
-                                        throws OperationFailedException
+        throws OperationFailedException
     {
         JSONObject muteResponseJson
             = createSIPJSONAudioMuteResponse(bMuted, bSucceeded, id);
@@ -832,7 +830,7 @@ public class SipGatewaySession
         jitsiMeetTools.sendJSON(callPeer,
                                 muteResponseJson,
                                 new HashMap<String, Object>() {{
-                                    put("VIA", (Object)("SIP.INFO"));
+                                    put("VIA", "SIP.INFO");
                                 }});
     }
 
