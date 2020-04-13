@@ -1202,7 +1202,24 @@ public class SipGatewaySession
     @Override
     public void onJvbCallEstablished()
     {
-        if (this.startAudioMuted && isMutingSupported())
+        maybeProcessStartMuted();
+    }
+
+    /**
+     * Processes start muted in case:
+     * - we had received that flag
+     * - start muted is enabled through the flag
+     * - jvb call is in progress as we will be muting the channels
+     * - sip call is in progress we will be sending SIP Info messages
+     */
+    private void maybeProcessStartMuted()
+    {
+        if (this.startAudioMuted
+            && isMutingSupported()
+            && jvbConferenceCall != null
+            && jvbConferenceCall.getCallState() == CallState.CALL_IN_PROGRESS
+            && sipCall != null
+            && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
         {
             if (jvbConference.requestAudioMute(startAudioMuted))
             {
@@ -1366,6 +1383,8 @@ public class SipGatewaySession
                 logger.info(SipGatewaySession.this.callContext
                     + " SIP call format used: "
                     + Util.getFirstPeerMediaFormat(call));
+
+                maybeProcessStartMuted();
             }
             else if(call.getCallState() == CallState.CALL_ENDED)
             {
