@@ -593,6 +593,8 @@ public class SipGatewaySession
             statsHandler = null;
         }
 
+        jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
+
         if (peerStateListener != null)
             peerStateListener.unregister();
 
@@ -851,6 +853,7 @@ public class SipGatewaySession
                 DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
         }
         sipCall.addCallChangeListener(statsHandler);
+        jitsiMeetTools.addRequestListener(this);
 
         if (mediaDroppedThresholdMs != -1)
         {
@@ -930,8 +933,6 @@ public class SipGatewaySession
         }
 
         waitThread = new WaitForJvbRoomNameThread();
-
-        jitsiMeetTools.addRequestListener(this);
 
         waitThread.start();
     }
@@ -1439,21 +1440,6 @@ public class SipGatewaySession
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
-            if (isMutingSupported())
-            {
-                if (CallPeerState.CONNECTED.equals(callPeerState))
-                {
-                    // After CallPeer is in CONNECTED state handle
-                    // startmuted flags
-                    jitsiMeetTools.addRequestListener(SipGatewaySession.this);
-                }
-
-                if (CallPeerState.DISCONNECTED.equals(callPeerState))
-                {
-                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
-                }
-            }
-
             soundNotificationManager.process(callPeerState);
         }
 
@@ -1521,10 +1507,6 @@ public class SipGatewaySession
                 catch (InterruptedException e)
                 {
                     Thread.currentThread().interrupt();
-                }
-                finally
-                {
-                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
                 }
             }
         }
