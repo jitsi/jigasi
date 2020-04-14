@@ -22,7 +22,6 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -594,6 +593,8 @@ public class SipGatewaySession
             statsHandler = null;
         }
 
+        jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
+
         if (peerStateListener != null)
             peerStateListener.unregister();
 
@@ -644,7 +645,10 @@ public class SipGatewaySession
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
-        this.startAudioMuted = startMutedFlags[0];
+        if (isMutingSupported())
+        {
+            this.startAudioMuted = startMutedFlags[0];
+        }
     }
 
     /**
@@ -661,7 +665,6 @@ public class SipGatewaySession
     {
         try
         {
-
             if (callPeer.getCall() != this.sipCall)
             {
                 if (logger.isTraceEnabled())
@@ -671,13 +674,13 @@ public class SipGatewaySession
                 return;
             }
 
-            if (jsonObject.containsKey("type") == false)
+            if (!jsonObject.containsKey("type"))
             {
                 logger.error("Unknown json object type!");
                 return;
             }
 
-            if (jsonObject.containsKey("id") == false)
+            if (!jsonObject.containsKey("id"))
             {
                 logger.error("Unknown json object id!");
                 return;
@@ -686,16 +689,15 @@ public class SipGatewaySession
             String id = (String)jsonObject.get("id");
             String type = (String)jsonObject.get("type");
 
-            if (type.equalsIgnoreCase("muteResponse") == true)
+            if (type.equalsIgnoreCase("muteResponse"))
             {
-                if (jsonObject.containsKey("status") == false)
+                if (!jsonObject.containsKey("status"))
                 {
                     logger.error("muteResponse without status!");
                     return;
                 }
 
-                if ( ((String)jsonObject.get("status"))
-                        .equalsIgnoreCase("OK") == true)
+                if (((String) jsonObject.get("status")).equalsIgnoreCase("OK"))
                 {
                     JSONObject data = (JSONObject) jsonObject.get("data");
 
@@ -705,14 +707,14 @@ public class SipGatewaySession
                     this.jvbConference.setChatRoomAudioMuted(bMute);
                 }
             }
-            else if (type.equalsIgnoreCase("muteRequest") == true)
+            else if (type.equalsIgnoreCase("muteRequest"))
             {
                 JSONObject data = (JSONObject) jsonObject.get("data");
 
                 boolean bAudioMute = (boolean)data.get("audio");
 
                 // Send request to jicofo
-                if (jvbConference.requestAudioMute(bAudioMute) == true)
+                if (jvbConference.requestAudioMute(bAudioMute))
                 {
                     // Send response through sip
                     respondRemoteAudioMute(bAudioMute,
@@ -765,8 +767,8 @@ public class SipGatewaySession
     {
         JSONObject muteSettingsJson = new JSONObject();
         muteSettingsJson.put("audio", bMuted);
-        JSONObject muteRequestJson = createSIPJSON("muteRequest", muteSettingsJson, null);
-        return muteRequestJson;
+
+        return createSIPJSON("muteRequest", muteSettingsJson, null);
     }
 
     /**
@@ -783,8 +785,9 @@ public class SipGatewaySession
     {
         JSONObject muteSettingsJson = new JSONObject();
         muteSettingsJson.put("audio", bMuted);
-        JSONObject muteResponseJson = createSIPJSON("muteResponse", muteSettingsJson, id);
-        muteResponseJson.put("status", bSucceeded == true ? "OK" : "FAILED");
+        JSONObject muteResponseJson
+            = createSIPJSON("muteResponse", muteSettingsJson, id);
+        muteResponseJson.put("status", bSucceeded ? "OK" : "FAILED");
         return muteResponseJson;
     }
 
@@ -795,9 +798,8 @@ public class SipGatewaySession
      * @param callPeer CallPeer to send JSON to.
      * @throws OperationFailedException
      */
-    private void requestRemoteAudioMute(boolean bMuted,
-                                        CallPeer callPeer)
-                                        throws OperationFailedException
+    private void requestRemoteAudioMute(boolean bMuted, CallPeer callPeer)
+        throws OperationFailedException
     {
         // Mute audio
         JSONObject muteRequestJson = createSIPJSONAudioMuteRequest(bMuted);
@@ -822,7 +824,7 @@ public class SipGatewaySession
                                         boolean bSucceeded,
                                         CallPeer callPeer,
                                         String id)
-                                        throws OperationFailedException
+        throws OperationFailedException
     {
         JSONObject muteResponseJson
             = createSIPJSONAudioMuteResponse(bMuted, bSucceeded, id);
@@ -830,9 +832,9 @@ public class SipGatewaySession
         jitsiMeetTools.sendJSON(callPeer,
                                 muteResponseJson,
                                 new HashMap<String, Object>() {{
-                                    put("VIA", (Object)("SIP.INFO"));
+                                    put("VIA", "SIP.INFO");
                                 }});
-    }    
+    }
 
     /**
      * Initializes the sip call listeners.
@@ -851,6 +853,7 @@ public class SipGatewaySession
                 DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
         }
         sipCall.addCallChangeListener(statsHandler);
+        jitsiMeetTools.addRequestListener(this);
 
         if (mediaDroppedThresholdMs != -1)
         {
@@ -930,8 +933,6 @@ public class SipGatewaySession
         }
 
         waitThread = new WaitForJvbRoomNameThread();
-
-        jitsiMeetTools.addRequestListener(this);
 
         waitThread.start();
     }
@@ -1196,6 +1197,76 @@ public class SipGatewaySession
     }
 
     /**
+     * When
+     */
+    @Override
+    public void onJvbCallEstablished()
+    {
+        maybeProcessStartMuted();
+    }
+
+    /**
+     * Processes start muted in case:
+     * - we had received that flag
+     * - start muted is enabled through the flag
+     * - jvb call is in progress as we will be muting the channels
+     * - sip call is in progress we will be sending SIP Info messages
+     */
+    private void maybeProcessStartMuted()
+    {
+        if (this.startAudioMuted
+            && isMutingSupported()
+            && jvbConferenceCall != null
+            && jvbConferenceCall.getCallState() == CallState.CALL_IN_PROGRESS
+            && sipCall != null
+            && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
+        {
+            if (jvbConference.requestAudioMute(startAudioMuted))
+            {
+                mute();
+            }
+
+            // in case we reconnect start muted maybe no-longer set
+            this.startAudioMuted = false;
+        }
+    }
+
+    /**
+     * Sends mute request to be remotely muted.
+     * This is a SIP Info message to the IVR so the user will be notified of it
+     * When we receive confirmation for the announcement we will update
+     * our presence status in the conference.
+     */
+    public void mute()
+    {
+        if (!isMutingSupported())
+            return;
+
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            logger.info(
+                SipGatewaySession.this.callContext + " Sending mute request ");
+            requestRemoteAudioMute(true, callPeer);
+        }
+        catch (Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
+    }
+
+    /**
+     * Muting is supported when it is enabled by configuration.
+     * @return <tt>true</tt> if mute support is enabled.
+     */
+    public boolean isMutingSupported()
+    {
+        return JigasiBundleActivator.isSipStartMutedEnabled();
+    }
+
+    /**
      * PeriodicRunnable that will check incoming RTP and if needed to hangup.
      */
     private class ExpireMediaStream
@@ -1312,6 +1383,8 @@ public class SipGatewaySession
                 logger.info(SipGatewaySession.this.callContext
                     + " SIP call format used: "
                     + Util.getFirstPeerMediaFormat(call));
+
+                maybeProcessStartMuted();
             }
             else if(call.getCallState() == CallState.CALL_ENDED)
             {
@@ -1386,39 +1459,6 @@ public class SipGatewaySession
             if (jvbConference != null)
                 jvbConference.setPresenceStatus(stateString);
 
-            if (JigasiBundleActivator.isSipStartMutedEnabled() == true)
-            {
-                if (CallPeerState.CONNECTED.equals(callPeerState) == true)
-                {
-                    // After CallPeer is in CONNECTED state handle startmuted flags
-                    jitsiMeetTools.addRequestListener(SipGatewaySession.this);
-
-                    if (SipGatewaySession.this.startAudioMuted == true)
-                    {
-                        // Send request to jicofo
-                        if (jvbConference.requestAudioMute(startAudioMuted) == true)
-                        {
-                            // Notify peer
-                            CallPeer callPeer = evt.getSourceCallPeer();
-
-                            try
-                            {
-                                requestRemoteAudioMute(startAudioMuted, callPeer);
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.error(ex.getMessage());
-                            }
-                        }
-                    }
-                }
-
-                if (CallPeerState.DISCONNECTED.equals(callPeerState) == true)
-                {
-                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
-                }
-            }
-
             soundNotificationManager.process(callPeerState);
         }
 
@@ -1486,10 +1526,6 @@ public class SipGatewaySession
                 catch (InterruptedException e)
                 {
                     Thread.currentThread().interrupt();
-                }
-                finally
-                {
-                    jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
                 }
             }
         }

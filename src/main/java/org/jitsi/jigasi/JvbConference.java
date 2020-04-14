@@ -36,6 +36,7 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jxmpp.jid.*;
@@ -582,14 +583,12 @@ public class JvbConference
             // Join the MUC
             joinConferenceRoom();
 
+            XMPPConnection connection = getConnection();
             if (xmppProvider != null
-                && xmppProvider instanceof ProtocolProviderServiceJabberImpl
-                && ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                        .getConnection() instanceof XMPPBOSHConnection)
+                && connection != null
+                && connection instanceof XMPPBOSHConnection)
             {
-                Object sessionId = Util.getConnSessionId(
-                    ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                        .getConnection());
+                Object sessionId = Util.getConnSessionId(connection);
                 if (sessionId != null)
                 {
                     logger.error(this.callContext + " Registered bosh sid: "
@@ -641,6 +640,15 @@ public class JvbConference
     public boolean isInTheRoom()
     {
         return mucRoom != null && mucRoom.isJoined();
+    }
+
+    /**
+     * Indicates whether this conference has been started.
+     * @return <tt>true</tt> is this conference is started, false otherwise.
+     */
+    public boolean isStarted()
+    {
+        return started;
     }
 
     private void joinConferenceRoom()
@@ -745,6 +753,11 @@ public class JvbConference
             {
                 logger.error("Cannot set presence extensions as chatRoom " +
                     "is not an instance of ChatRoomJabberImpl");
+            }
+
+            if (JigasiBundleActivator.isSipStartMutedEnabled())
+            {
+                getConnection().registerIQRequestHandler(new MuteIqHandler());
             }
 
             // we invite focus and wait for its response
@@ -1158,6 +1171,7 @@ public class JvbConference
             if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
+                gatewaySession.onJvbCallEstablished();
             }
             else if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
@@ -1407,8 +1421,7 @@ public class JvbConference
             StanzaCollector collector = null;
             try
             {
-                collector = ((ProtocolProviderServiceJabberImpl) xmppProvider)
-                    .getConnection()
+                collector = getConnection()
                     .createStanzaCollectorAndSend(focusInviteIQ);
                 collector.nextResultOrThrow();
             }
@@ -1686,5 +1699,53 @@ public class JvbConference
         }
 
         return null;
+    }
+
+    /**
+     * Handles mute requests received by jicofo if enabled.
+     */
+    private class MuteIqHandler
+        extends AbstractIqRequestHandler
+    {
+        MuteIqHandler()
+        {
+            super(
+                MuteIq.ELEMENT_NAME,
+                MuteIq.NAMESPACE,
+                IQ.Type.set,
+                Mode.sync);
+        }
+
+        @Override
+        public IQ handleIQRequest(IQ iqRequest)
+        {
+            return handleMuteIq((MuteIq) iqRequest);
+        }
+
+        /**
+         * Handles the incoming mute request only if it is from the focus.
+         * @param muteIq the incoming iq.
+         * @return the result iq.
+         */
+        private IQ handleMuteIq(MuteIq muteIq)
+        {
+            Boolean doMute = muteIq.getMute();
+            Jid from = muteIq.getFrom();
+
+            if (doMute == null
+                || !from.getResourceOrEmpty().equals(
+                        gatewaySession.getFocusResourceAddr()))
+            {
+                return IQ.createErrorResponse(muteIq, XMPPError.getBuilder(
+                    XMPPError.Condition.item_not_found));
+            }
+
+            if (doMute)
+            {
+                gatewaySession.mute();
+            }
+
+            return IQ.createResultIQ(muteIq);
+        }
     }
 }

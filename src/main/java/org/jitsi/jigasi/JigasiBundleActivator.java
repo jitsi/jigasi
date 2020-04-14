@@ -183,6 +183,15 @@ public class JigasiBundleActivator
 
         if(isSipEnabled())
         {
+            MuteIqProvider.registerMuteIqProvider();
+
+            // recording status, to detect recording start/stop
+            ProviderManager.addExtensionProvider(
+                RecordingStatus.ELEMENT_NAME,
+                RecordingStatus.NAMESPACE,
+                new DefaultPacketExtensionProvider<>(RecordingStatus.class)
+            );
+
             logger.info("initialized SipGateway");
             sipGateway = new SipGateway(bundleContext)
             {
@@ -222,8 +231,13 @@ public class JigasiBundleActivator
         else
         {
             logger.info("skipped initialization of TranscriptionGateway");
-
         }
+
+        // Register Jitsi Meet media presence extension.
+        MediaPresenceExtension.registerExtensions();
+
+        // Register Rayo IQs
+        new RayoIqProvider().registerRayoIQs();
 
         bundleContext.addServiceListener(this);
 
@@ -272,19 +286,6 @@ public class JigasiBundleActivator
         {
             return;
         }
-
-        // Register Jitsi Meet media presence extension.
-        MediaPresenceExtension.registerExtensions();
-
-        // Register Rayo IQs
-        new RayoIqProvider().registerRayoIQs();
-
-        // recording status, to detect recording start/stop
-        ProviderManager.addExtensionProvider(
-            RecordingStatus.ELEMENT_NAME,
-            RecordingStatus.NAMESPACE,
-            new DefaultPacketExtensionProvider<>(RecordingStatus.class)
-        );
 
         ProtocolProviderService pps = (ProtocolProviderService) service;
         if (sipGateway != null && sipGateway.getSipProvider() == null &&

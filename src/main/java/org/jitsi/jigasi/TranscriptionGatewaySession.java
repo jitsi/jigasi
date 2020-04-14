@@ -697,4 +697,9 @@ public class TranscriptionGatewaySession
     {
         return false;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void mute(){}
 }
