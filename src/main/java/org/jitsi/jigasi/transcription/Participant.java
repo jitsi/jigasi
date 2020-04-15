@@ -624,11 +624,11 @@ public class Participant
                    silenceFilter.giveSegment(audio);
                    if(silenceFilter.shouldFilter())
                    {
+                       buffer.clear();
                        return;
                    }
                    else if(silenceFilter.newSpeech())
                    {
-                       buffer.clear();
                        toBuffer = silenceFilter.getSpeechWindow();
                    }
                    else
@@ -647,7 +647,9 @@ public class Participant
                }
                catch (BufferOverflowException | ReadOnlyBufferException e)
                {
-                   sendRequest(audio);
+                   sendRequest(buffer.array());
+                   sendRequest(toBuffer);
+                   buffer.clear();
                }
 
                int spaceLeft = buffer.limit() - buffer.position();
