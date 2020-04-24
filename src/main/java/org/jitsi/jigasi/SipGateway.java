@@ -36,6 +36,21 @@ public class SipGateway
     implements RegistrationStateChangeListener
 {
     /**
+     * Name of 'header' attribute that hold the call direction.
+     */
+    public static final String CALL_DIRECTION_HEADER = "JigasiCallDirection";
+
+    /**
+     * Outgoing call direction header value.
+     */
+    public static final String CALL_DIRECTION_OUTGOING = "out";
+
+    /**
+     * Incoming call direction header value.
+     */
+    public static final String CALL_DIRECTION_INCOMING = "in";
+
+    /**
      * The logger
      */
     private final static Logger logger = Logger.getLogger(SipGateway.class);
@@ -167,6 +182,8 @@ public class SipGateway
      */
     public SipGatewaySession createOutgoingCall(CallContext ctx)
     {
+        ctx.addExtraHeader(CALL_DIRECTION_HEADER, CALL_DIRECTION_OUTGOING);
+
         SipGatewaySession outgoingSession = new SipGatewaySession(this, ctx);
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
@@ -188,6 +205,9 @@ public class SipGateway
                 // create a call context reusing the domain stored in
                 // sip account properties if any
                 CallContext ctx = new CallContext(call.getProtocolProvider());
+
+                ctx.addExtraHeader(CALL_DIRECTION_HEADER, CALL_DIRECTION_INCOMING);
+
                 ctx.setDomain(sipProvider.getAccountID()
                     .getAccountPropertyString(
                         CallContext.DOMAIN_BASE_ACCOUNT_PROP));
