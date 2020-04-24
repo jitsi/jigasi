@@ -28,6 +28,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.tcp.*;
 
 /**
  * The gateway for Jitsi Videobridge conferences. Requires one SIP
@@ -275,6 +276,11 @@ public class Main
             "true");
 
         SmackConfiguration.setDefaultReplyTimeout(15000);
+
+        // Disable stream management as it could lead to unexpected behaviour,
+        // because we do not account for that to happen.
+        XMPPTCPConnection.setUseStreamManagementDefault(false);
+        XMPPTCPConnection.setUseStreamManagementResumptionDefault(false);
 
         // disable smack packages before loading smack
         disableSmackProviders();

@@ -76,14 +76,6 @@ public class CallControlMucActivator
     public static final String BREWERY_ENABLED_PROP
         = "org.jitsi.jigasi.BREWERY_ENABLED";
 
-    // Disable stream management as it could lead to unexpected behaviour,
-    // because we do not account for that to happen.
-    static
-    {
-        XMPPTCPConnection.setUseStreamManagementDefault(false);
-        XMPPTCPConnection.setUseStreamManagementResumptionDefault(false);
-    }
-
     /**
      * The call controlling logic.
      */
