@@ -131,6 +131,13 @@ public class JvbConference
         = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
 
     /**
+     * The name of the property that is used to define whether the
+     * max occupant limit reach is notified or not.
+     */
+    private static final String P_NAME_NOTIFY_MAX_OCCUPANTS
+        = "org.jitsi.jigasi.NOTIFY_MAX_OCCUPANTS";
+
+    /**
      * The default bridge id to use.
      */
     public static final String DEFAULT_BRIDGE_ID = "jitsi";
@@ -804,7 +811,9 @@ public class JvbConference
         {
             if (e.getCause() instanceof XMPPException.XMPPErrorException)
             {
-                if (((XMPPException.XMPPErrorException)e.getCause())
+                if (JigasiBundleActivator.getConfigurationService()
+                        .getBoolean(P_NAME_NOTIFY_MAX_OCCUPANTS, true)
+                    && ((XMPPException.XMPPErrorException)e.getCause())
                         .getXMPPError().getCondition() == service_unavailable)
                 {
                     gatewaySession.handleMaxOccupantsLimitReached();
