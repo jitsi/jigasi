@@ -123,11 +123,6 @@ public class SoundNotificationManager
     private boolean callMaxOccupantsLimitReached = false;
 
     /**
-     * In certain scenarios (max occupants) we wait till we hangup the call.
-     */
-    private CountDownLatch hangupWait = null;
-
-    /**
      * Rate limiter of participant left sound notification.
      */
     private RateLimiter participantLeftRateLimiterLazy = null;
@@ -386,8 +381,6 @@ public class SoundNotificationManager
             {
                 injectSoundFile(
                     gatewaySession.getSipCall(), MAX_OCCUPANTS_SOUND);
-
-                delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
             }
             else
             {
@@ -408,9 +401,6 @@ public class SoundNotificationManager
                     throw new RuntimeException(e);
                 }
                 CallManager.hangupCall(gatewaySession.getSipCall());
-
-                if (hangupWait != null)
-                    hangupWait.countDown();
             }).start();
         }
     }
@@ -424,20 +414,19 @@ public class SoundNotificationManager
     {
         callMaxOccupantsLimitReached = true;
 
-        // will wait for answering and then the hangup before returning
-        hangupWait = new CountDownLatch(1);
-
-        // answer play and hangup
-        CallManager.acceptCall(gatewaySession.getSipCall());
+        // answer if needed then play sound and wait for it to ends
+        if (gatewaySession.getSipCall().getCallState() == CallState.CALL_INITIALIZATION)
+        {
+            CallManager.acceptCall(gatewaySession.getSipCall());
+        }
 
         try
         {
-            hangupWait.await(
-                MAX_OCCUPANTS_SOUND_DURATION_SEC, TimeUnit.SECONDS);
+            Thread.sleep(MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000);
         }
         catch(InterruptedException e)
         {
-            logger.warn("Didn't finish waiting for hangup on max occupants");
+            logger.warn("Didn't finish waiting for notification on max occupants");
         }
     }
 

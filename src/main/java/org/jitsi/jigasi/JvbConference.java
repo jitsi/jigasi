@@ -138,6 +138,16 @@ public class JvbConference
         = "org.jitsi.jigasi.NOTIFY_MAX_OCCUPANTS";
 
     /**
+     * The seconds to wait before retrying a join conference after a failure.
+     */
+    private static final long JOIN_CONFERENCE_RETRY_INTERVAL = 500;
+
+    /**
+     * The join conference retries limit.
+     */
+    private static final int JOIN_CONFERENCE_RETRY_LIMIT = 50;
+
+    /**
      * The default bridge id to use.
      */
     public static final String DEFAULT_BRIDGE_ID = "jitsi";
@@ -680,153 +690,178 @@ public class JvbConference
             this.jitsiMeetTools.addRequestListener(this.gatewaySession);
         }
 
-        try
-        {
-
-            String roomName = callContext.getRoomName();
-            if (!roomName.contains("@"))
+        int tries = 0;
+        int maxTries = JOIN_CONFERENCE_RETRY_LIMIT;
+        boolean retry = true;
+        while(retry) {
+            try
             {
-                // we check for optional muc service
-                String mucService
-                    = JigasiBundleActivator.getConfigurationService()
-                        .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
-                if (!StringUtils.isNullOrEmpty(mucService))
+                String roomName = callContext.getRoomName();
+                if (!roomName.contains("@"))
                 {
-                    roomName = roomName + "@" + mucService;
+                    // we check for optional muc service
+                    String mucService
+                        = JigasiBundleActivator.getConfigurationService()
+                            .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
+                    if (!StringUtils.isNullOrEmpty(mucService))
+                    {
+                        roomName = roomName + "@" + mucService;
+                    }
                 }
-            }
-            String roomPassword = callContext.getRoomPassword();
+                String roomPassword = callContext.getRoomPassword();
 
-            logger.info(this.callContext + " Joining JVB conference room: " + roomName);
+                logger.info(this.callContext + " Joining JVB conference room: " + roomName);
 
-            ChatRoom mucRoom = muc.findRoom(roomName);
+                ChatRoom mucRoom = muc.findRoom(roomName);
 
-            if (mucRoom instanceof ChatRoomJabberImpl)
-            {
-                String displayName = gatewaySession.getMucDisplayName();
-                if (displayName != null)
+                if (mucRoom instanceof ChatRoomJabberImpl)
                 {
-                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(
-                        new Nick(displayName));
+                    String displayName = gatewaySession.getMucDisplayName();
+
+                    if (displayName != null)
+                    {
+                        ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(
+                            new Nick(displayName));
+                    }
+                    else
+                    {
+                        logger.error(this.callContext
+                            + " No display name to use...");
+                    }
+
+                    String region = JigasiBundleActivator.getConfigurationService()
+                        .getString(LOCAL_REGION_PNAME);
+                    if(!StringUtils.isNullOrEmpty(region))
+                    {
+                        RegionPacketExtension rpe = new RegionPacketExtension();
+                        rpe.setRegionId(region);
+
+                        ((ChatRoomJabberImpl)mucRoom)
+                            .addPresencePacketExtensions(rpe);
+                    }
+
+                    ((ChatRoomJabberImpl)mucRoom)
+                        .addPresencePacketExtensions(
+                            new ColibriStatsExtension.Stat(
+                                ColibriStatsExtension.VERSION,
+                                CurrentVersionImpl.VERSION.getApplicationName()
+                                    + " " + CurrentVersionImpl.VERSION));
+
+                    // creates an extension to hold all headers, as when using
+                    // addPresencePacketExtensions it requires unique extensions
+                    // otherwise overrides them
+                    AbstractPacketExtension initiator
+                        = new AbstractPacketExtension(
+                            SIP_GATEWAY_FEATURE_NAME, "initiator"){};
+
+                    // let's add all extra headers from the context
+                    callContext.getExtraHeaders().forEach(
+                        (key, value) ->
+                        {
+                            HeaderExtension he = new HeaderExtension();
+                            he.setName(key);
+                            he.setValue(value);
+
+                            initiator.addChildExtension(he);
+                        });
+                    if (initiator.getChildExtensions().size() > 0)
+                    {
+                        ((ChatRoomJabberImpl)mucRoom)
+                            .addPresencePacketExtensions(initiator);
+                    }
                 }
                 else
                 {
-                    logger.error(this.callContext
-                        + " No display name to use...");
+                    logger.error("Cannot set presence extensions as chatRoom " +
+                        "is not an instance of ChatRoomJabberImpl");
                 }
 
-                String region = JigasiBundleActivator.getConfigurationService()
-                    .getString(LOCAL_REGION_PNAME);
-                if(!StringUtils.isNullOrEmpty(region))
+                if (JigasiBundleActivator.isSipStartMutedEnabled())
                 {
-                    RegionPacketExtension rpe = new RegionPacketExtension();
-                    rpe.setRegionId(region);
-
-                    ((ChatRoomJabberImpl)mucRoom)
-                        .addPresencePacketExtensions(rpe);
+                    getConnection().registerIQRequestHandler(new MuteIqHandler());
                 }
 
-                ((ChatRoomJabberImpl)mucRoom)
-                    .addPresencePacketExtensions(
-                        new ColibriStatsExtension.Stat(
-                            ColibriStatsExtension.VERSION,
-                            CurrentVersionImpl.VERSION.getApplicationName()
-                                + " " + CurrentVersionImpl.VERSION));
+                // we invite focus and wait for its response
+                // to be sure that if it is not in the room, the focus will be the
+                // first to join, mimic the web behaviour
+                inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
 
-                // creates an extension to hold all headers, as when using
-                // addPresencePacketExtensions it requires unique extensions
-                // otherwise overrides them
-                AbstractPacketExtension initiator
-                    = new AbstractPacketExtension(
-                        SIP_GATEWAY_FEATURE_NAME, "initiator"){};
+                // let's schedule the timeout before joining, before been able
+                // to receive any incoming call, will cancel it if we need to
+                // jvbCall will be null (no need on any sync as we are still not in
+                // the room)
+                inviteTimeout.scheduleTimeout();
 
-                // let's add all extra headers from the context
-                callContext.getExtraHeaders().forEach(
-                    (key, value) ->
+                Localpart resourceIdentifier = getResourceIdentifier();
+
+                if (StringUtils.isNullOrEmpty(roomPassword))
+                {
+                    mucRoom.joinAs(resourceIdentifier.toString());
+                }
+                else
+                {
+                    mucRoom.joinAs(resourceIdentifier.toString(),
+                        roomPassword.getBytes());
+                }
+
+                this.mucRoom = mucRoom;
+
+                mucRoom.addMemberPresenceListener(this);
+
+                // Announce that we're connecting to JVB conference
+                // (waiting for invite)
+                //sendPresenceExtension(
+                  //  gatewaySession.createPresenceExtension(
+                    //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
+
+                if(gatewaySession.getDefaultInitStatus() != null)
+                {
+                    setPresenceStatus(gatewaySession.getDefaultInitStatus());
+                }
+
+                gatewaySession.notifyJvbRoomJoined();
+
+                retry = false;
+            }
+            catch (Exception e)
+            {
+                // cancel the invite timeout, it'll be re-scheduled at next try
+                inviteTimeout.cancel();
+
+                if (e.getCause() instanceof XMPPException.XMPPErrorException)
+                {
+                    if (JigasiBundleActivator.getConfigurationService()
+                            .getBoolean(P_NAME_NOTIFY_MAX_OCCUPANTS, true)
+                        && ((XMPPException.XMPPErrorException)e.getCause())
+                            .getXMPPError().getCondition() == service_unavailable)
                     {
-                        HeaderExtension he = new HeaderExtension();
-                        he.setName(key);
-                        he.setValue(value);
+                        gatewaySession.handleMaxOccupantsLimitReached();
+                    }
+                    else
+                    {
+                        try
+                        {
+                            Thread.sleep(JOIN_CONFERENCE_RETRY_INTERVAL);
+                        }
+                        catch(InterruptedException ex)
+                        {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
 
-                        initiator.addChildExtension(he);
-                    });
-                if (initiator.getChildExtensions().size() > 0)
+                logger.error(this.callContext.toString() + e, e);
+
+                if (++tries == maxTries)
                 {
-                    ((ChatRoomJabberImpl)mucRoom)
-                        .addPresencePacketExtensions(initiator);
+                    // inform that this session had failed
+                    gatewaySession.getGateway()
+                        .fireGatewaySessionFailed(gatewaySession);
+
+                    stop();
+                    retry = false;
                 }
             }
-            else
-            {
-                logger.error("Cannot set presence extensions as chatRoom " +
-                    "is not an instance of ChatRoomJabberImpl");
-            }
-
-            if (JigasiBundleActivator.isSipStartMutedEnabled())
-            {
-                getConnection().registerIQRequestHandler(new MuteIqHandler());
-            }
-
-            // we invite focus and wait for its response
-            // to be sure that if it is not in the room, the focus will be the
-            // first to join, mimic the web behaviour
-            inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
-
-            Localpart resourceIdentifier = getResourceIdentifier();
-
-            // let's schedule the timeout before joining, before been able
-            // to receive any incoming call, will cancel it if we need to
-            // jvbCall will be null (no need on any sync as we are still not in
-            // the room)
-            inviteTimeout.scheduleTimeout();
-
-            if (StringUtils.isNullOrEmpty(roomPassword))
-            {
-                mucRoom.joinAs(resourceIdentifier.toString());
-            }
-            else
-            {
-                mucRoom.joinAs(resourceIdentifier.toString(),
-                    roomPassword.getBytes());
-            }
-
-            this.mucRoom = mucRoom;
-
-            mucRoom.addMemberPresenceListener(this);
-
-            // Announce that we're connecting to JVB conference
-            // (waiting for invite)
-            //sendPresenceExtension(
-              //  gatewaySession.createPresenceExtension(
-                //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
-
-            if(gatewaySession.getDefaultInitStatus() != null)
-            {
-                setPresenceStatus(gatewaySession.getDefaultInitStatus());
-            }
-
-            gatewaySession.notifyJvbRoomJoined();
-        }
-        catch (Exception e)
-        {
-            if (e.getCause() instanceof XMPPException.XMPPErrorException)
-            {
-                if (JigasiBundleActivator.getConfigurationService()
-                        .getBoolean(P_NAME_NOTIFY_MAX_OCCUPANTS, true)
-                    && ((XMPPException.XMPPErrorException)e.getCause())
-                        .getXMPPError().getCondition() == service_unavailable)
-                {
-                    gatewaySession.handleMaxOccupantsLimitReached();
-                }
-            }
-
-            logger.error(this.callContext.toString() + e, e);
-
-            // inform that this session had failed
-            gatewaySession.getGateway()
-                .fireGatewaySessionFailed(gatewaySession);
-
-            stop();
         }
     }
 
@@ -1587,6 +1622,8 @@ public class JvbConference
 
                 syncRoot.notifyAll();
             }
+
+            timeoutThread = null;
 
             logger.debug("Canceled " + this);
         }
