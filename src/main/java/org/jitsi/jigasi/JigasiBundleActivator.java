@@ -59,6 +59,13 @@ public class JigasiBundleActivator
     public static BundleContext osgiContext;
 
     /**
+     * The property name for the timeout value that is used to wait for room
+     * join.
+     */
+    public final static String P_NAME_MUC_JOIN_TIMEOUT
+        = "org.jitsi.jigasi.MUC_JOIN_TIMEOUT";
+
+    /**
      * The property name for the boolean value whether transcription should be
      * enabled.
      */
@@ -78,6 +85,11 @@ public class JigasiBundleActivator
      */
     public final static String P_NAME_ENABLE_SIP_STARTMUTED
         = "org.jitsi.jigasi.ENABLE_SIP_STARTMUTED";
+
+    /**
+     * The default value for room join timeout.
+     */
+    public final static long MUC_JOIN_TIMEOUT_DEFAULT_VALUE = 5;
 
     /**
      * The default value for enabling transcription
