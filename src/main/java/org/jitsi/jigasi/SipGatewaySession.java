@@ -722,6 +722,14 @@ public class SipGatewaySession
                                             callPeer,
                                             id);
 
+                    if (bAudioMute)
+                    {
+                        if (soundNotificationManager != null)
+                        {
+                            soundNotificationManager.playAudioMutedNotification();
+                        }    
+                    }
+
                     // Send presence if response succeeded
                     this.jvbConference.setChatRoomAudioMuted(bAudioMute);
                 }

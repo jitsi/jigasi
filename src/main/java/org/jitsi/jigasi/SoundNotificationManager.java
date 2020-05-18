@@ -78,6 +78,12 @@ public class SoundNotificationManager
 
     /**
      * The sound file to use to notify sip participant that
+     * audio is muted.
+     */
+    private static final String AUDIO_MUTED = "sounds/AudioMuted.opus";
+
+    /**
+     * The sound file to use to notify sip participant that
      * nobody is in the conference.
      */
     private static final String PARTICIPANT_ALONE = "sounds/Alone.opus";
@@ -545,6 +551,27 @@ public class SoundNotificationManager
     public void notifyJvbRoomJoined()
     {
         scheduleAloneNotification(PARTICIPANT_ALONE_TIMEOUT_MS);
+    }
+
+    /**
+     * Sends sound notification that tells the user
+     * audio is now muted.
+     */
+    public void playAudioMutedNotification()
+    {
+        try
+        {
+            Call sipCall = gatewaySession.getSipCall();
+
+            if (sipCall != null)
+            {
+                injectSoundFile(sipCall, AUDIO_MUTED);
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getMessage());
+        }
     }
 
     /**
