@@ -22,7 +22,6 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
-import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.impl.osgi.framework.launch.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
@@ -204,7 +203,6 @@ public class JigasiBundleConfig
             SsrcTransformEngine
                 .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
             true_);
-        defaults.put(SRTPCryptoContext.CHECK_REPLAY_PNAME, false_);
 
         // override defaults with passed to the Main
         defaults.put(
