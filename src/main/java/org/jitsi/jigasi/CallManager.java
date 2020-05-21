@@ -20,6 +20,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.utils.concurrent.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -55,7 +56,7 @@ public class CallManager
             1, POOL_MAX_SIZE,
             60L, TimeUnit.SECONDS, // time to wait before clearing threads
             new SynchronousQueue<>(),
-            new DaemonThreadFactory("Jigasi CallManager"));
+            new CustomizableThreadFactory("jigasi-callManager", true));
     }
 
     /**
@@ -698,61 +699,5 @@ public class CallManager
             throw new TimeoutException();
 
         threadPool = createNewThreadPool();
-    }
-
-    /**
-     * A thread factory that creates daemon threads.
-     *
-     * @author Pawel Domas
-     */
-    private static class DaemonThreadFactory
-        implements ThreadFactory
-    {
-        private final String threadName;
-
-        public DaemonThreadFactory(String threadName)
-        {
-            this.threadName = threadName;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public Thread newThread(Runnable r)
-        {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            if (!t.isDaemon())
-            {
-                t.setDaemon(true);
-
-                if (threadName != null)
-                {
-                    t.setName(threadName + "-" + t.getId());
-                }
-            }
-            return t;
-        }
-    }
-
-    private static class DummyCallThread
-        implements Runnable
-    {
-
-        @Override
-        public void run()
-        {
-            try
-            {
-                Object o = new Object();
-                synchronized(o) {
-                    o.wait();
-                }
-            }
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
     }
 }
