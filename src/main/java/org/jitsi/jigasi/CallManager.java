@@ -35,20 +35,28 @@ public class CallManager
 {
     private final static Logger logger = Logger.getLogger(CallManager.class);
 
-    private static final int POOL_SIZE = 5;
+    private static final int POOL_MAX_SIZE = 20;
 
     /**
      * The thread pool to serve all call operations like answer and hangup.
-     * We initialize it with the 5 threads and can grow up to 4 time that size.
+     * We initialize it with the 1 thread and can grow up to POOL_MAX_SIZE.
      */
-    private static ExecutorService threadPool
-        = new ThreadPoolExecutor(
-                POOL_SIZE, POOL_SIZE * 4,
-                60L, TimeUnit.SECONDS, // time to wait before clearing threads
-                new SynchronousQueue<>(),
-                new DaemonThreadFactory("Jigasi CallManager"));
+    private static ExecutorService threadPool = createNewThreadPool();
 
     private static boolean healthy = true;
+
+    /**
+     * Creates new thread pool.
+     * @return the newly created pool.
+     */
+    private static ExecutorService createNewThreadPool()
+    {
+        return new ThreadPoolExecutor(
+            1, POOL_MAX_SIZE,
+            60L, TimeUnit.SECONDS, // time to wait before clearing threads
+            new SynchronousQueue<>(),
+            new DaemonThreadFactory("Jigasi CallManager"));
+    }
 
     /**
      * Returns whether or not we consider this CallManager as healthy.
@@ -518,8 +526,9 @@ public class CallManager
         hangupCallThread.reasonCode = reasonCode;
         hangupCallThread.reason = reason;
 
-        // if we are unhealthy, let's process error hangups
-        if (!healthy && reasonCode > 400)
+        // if we are unhealthy, let's process the hangups with new threads
+        // so we can clean failed or ongoing calls
+        if (!healthy)
         {
             new Thread(hangupCallThread).start();
         }
@@ -688,7 +697,7 @@ public class CallManager
         if (!threadPool.isTerminated())
             throw new TimeoutException();
 
-        threadPool = Executors.newFixedThreadPool(POOL_SIZE);
+        threadPool = createNewThreadPool();
     }
 
     /**
