@@ -20,26 +20,97 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.utils.concurrent.*;
 
 import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * FIXME: copied from Jitsi
+ * CallManager responsible for processing call operations like answer or hangup
+ * in new thread using a manged pool of threads.
+ *
+ * @author Pawel Domas
+ * @author Damian Minkov
  */
 public class CallManager
 {
-
     private final static Logger logger = Logger.getLogger(CallManager.class);
 
-    private static final int POOL_SIZE = 5;
+    private static final int POOL_MAX_SIZE = 20;
 
-    private static ExecutorService threadPool
-        = Executors.newFixedThreadPool(POOL_SIZE);
+    /**
+     * The thread pool to serve all call operations like answer and hangup.
+     * We initialize it with the 1 thread and can grow up to POOL_MAX_SIZE.
+     */
+    private static ExecutorService threadPool = createNewThreadPool();
 
-    public synchronized static void acceptCall(Call incomingCall)
+    private static boolean healthy = true;
+
+    /**
+     * Creates new thread pool.
+     * @return the newly created pool.
+     */
+    private static ExecutorService createNewThreadPool()
     {
-        threadPool.submit(new AnswerCallThread(incomingCall, false));
+        return new ThreadPoolExecutor(
+            1, POOL_MAX_SIZE,
+            60L, TimeUnit.SECONDS, // time to wait before clearing threads
+            new SynchronousQueue<>(),
+            new CustomizableThreadFactory("jigasi-callManager", true));
+    }
+
+    /**
+     * Returns whether or not we consider this CallManager as healthy.
+     * @see #submit(Runnable)
+     * @return whether CallManager is healthy.
+     */
+    public static boolean isHealthy()
+    {
+        return healthy;
+    }
+
+    /**
+     * Submits a task to the pool of threads. If a task throws an exception
+     * (RejectedExecutionException) this means we are over the limit or
+     * we have blocked tasks in the queue and we cannot schedule tasks any more
+     * and we will mark CallManager as failing, to allow reporting this.
+     * @param task
+     * @return
+     */
+    private static Future<?> submit(Runnable task)
+    {
+        try
+        {
+            return threadPool.submit(task);
+        }
+        catch(RejectedExecutionException e)
+        {
+            logger.error("Failed to submit task for execution:" + task, e);
+
+            CallManager.healthy = false;
+
+            return null;
+        }
+    }
+
+    /**
+     * Answers a call in new thread or throws an exception if we fail to
+     * schedule the task for that.
+     * @param incomingCall The call to answer.
+     * @throws OperationFailedException in case of failed to start task to do it
+     */
+    public synchronized static void acceptCall(Call incomingCall)
+        throws OperationFailedException
+    {
+        Future result = submit(new AnswerCallThread(incomingCall, false));
+
+        if (result == null)
+        {
+            // there was no task scheduled to answer the call, throw an error
+            throw new OperationFailedException(
+                "Failed to answer",
+                OperationFailedException.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -53,8 +124,7 @@ public class CallManager
         Map<ProtocolProviderService, List<String>> callees,
         Call call)
     {
-        threadPool.submit(
-            new InviteToConferenceCallThread(callees, call));
+        submit(new InviteToConferenceCallThread(callees, call));
     }
 
     /**
@@ -320,8 +390,7 @@ public class CallManager
         CallConference conference,
         Collection<Call> calls)
     {
-        threadPool.submit(
-            new MergeExistingCalls(conference, calls));
+        submit(new MergeExistingCalls(conference, calls));
     }
 
     /**
@@ -441,8 +510,7 @@ public class CallManager
             logger.debug("Hanging up :" + call, new Throwable());
         }
 
-        threadPool.submit(
-            new HangupCallThread(call, unloadAccount));
+        submit(new HangupCallThread(call, unloadAccount));
     }
 
     public synchronized static void hangupCall(Call   call,
@@ -459,7 +527,16 @@ public class CallManager
         hangupCallThread.reasonCode = reasonCode;
         hangupCallThread.reason = reason;
 
-        threadPool.submit(hangupCallThread);
+        // if we are unhealthy, let's process the hangups with new threads
+        // so we can clean failed or ongoing calls
+        if (!healthy)
+        {
+            new Thread(hangupCallThread).start();
+        }
+        else
+        {
+            submit(hangupCallThread);
+        }
     }
 
     /**
@@ -621,6 +698,6 @@ public class CallManager
         if (!threadPool.isTerminated())
             throw new TimeoutException();
 
-        threadPool = Executors.newFixedThreadPool(POOL_SIZE);
+        threadPool = createNewThreadPool();
     }
 }

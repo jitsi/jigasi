@@ -110,6 +110,11 @@ public class Health
     public static void check()
         throws Exception
     {
+        if (!CallManager.isHealthy())
+        {
+            throw new Exception("CallManager is not healthy.");
+        }
+
         if (sipChecker != null)
         {
             sipChecker.check();

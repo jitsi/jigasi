@@ -224,7 +224,14 @@ public class TranscriptionGatewaySession
             sendMessageToRoom(welcomeMessage.toString());
         }
 
-        CallManager.acceptCall(jvbConferenceCall);
+        try
+        {
+            CallManager.acceptCall(jvbConferenceCall);
+        }
+        catch(OperationFailedException e)
+        {
+            return e;
+        }
 
         logger.debug("TranscriptionGatewaySession started transcribing");
 

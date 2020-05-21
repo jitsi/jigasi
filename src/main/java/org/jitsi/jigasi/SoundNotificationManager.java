@@ -428,7 +428,15 @@ public class SoundNotificationManager
         hangupWait = new CountDownLatch(1);
 
         // answer play and hangup
-        CallManager.acceptCall(gatewaySession.getSipCall());
+        try
+        {
+            CallManager.acceptCall(gatewaySession.getSipCall());
+        }
+        catch(OperationFailedException e)
+        {
+            logger.error("Cannot answer call to play max occupants sound", e);
+            return;
+        }
 
         try
         {
