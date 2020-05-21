@@ -424,6 +424,15 @@ public class SipGatewaySession
         if (error != null)
         {
             logger.error(this.callContext + " " + error, error);
+
+            if (error instanceof OperationFailedException
+                && !CallManager.isHealthy())
+            {
+                OperationFailedException ex = (OperationFailedException)error;
+                // call manager is not healthy so call will not succeed
+                // let's drop it
+                hangUpSipCall(ex.getErrorCode(), ex.getMessage());
+            }
         }
     }
 
@@ -436,7 +445,16 @@ public class SipGatewaySession
 
         if (destination == null)
         {
-            CallManager.acceptCall(sipCall);
+            try
+            {
+                CallManager.acceptCall(sipCall);
+            }
+            catch(OperationFailedException e)
+            {
+                hangUpSipCall(e.getErrorCode(), "Cannot answer call");
+
+                return e;
+            }
         }
         else
         {
@@ -449,7 +467,14 @@ public class SipGatewaySession
 
                 jvbConferenceCall.setConference(sipCall.getConference());
 
-                CallManager.acceptCall(jvbConferenceCall);
+                try
+                {
+                    CallManager.acceptCall(jvbConferenceCall);
+                }
+                catch(OperationFailedException e)
+                {
+                    return e;
+                }
 
                 if (!callReconnectedStatsSent)
                 {
@@ -548,7 +573,14 @@ public class SipGatewaySession
             }
         }
 
-        CallManager.acceptCall(jvbConferenceCall);
+        try
+        {
+            CallManager.acceptCall(jvbConferenceCall);
+        }
+        catch(OperationFailedException e)
+        {
+            return e;
+        }
 
         return null;
     }

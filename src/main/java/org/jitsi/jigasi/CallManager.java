@@ -25,21 +25,83 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * FIXME: copied from Jitsi
+ * CallManager responsible for processing call operations like answer or hangup
+ * in new thread using a manged pool of threads.
+ *
+ * @author Pawel Domas
+ * @author Damian Minkov
  */
 public class CallManager
 {
-
     private final static Logger logger = Logger.getLogger(CallManager.class);
 
     private static final int POOL_SIZE = 5;
 
+    /**
+     * The thread pool to serve all call operations like answer and hangup.
+     * We initialize it with the 5 threads and can grow up to 4 time that size.
+     */
     private static ExecutorService threadPool
-        = Executors.newFixedThreadPool(POOL_SIZE);
+        = new ThreadPoolExecutor(
+                POOL_SIZE, POOL_SIZE * 4,
+                60L, TimeUnit.SECONDS, // time to wait before clearing threads
+                new SynchronousQueue<>(),
+                new DaemonThreadFactory("Jigasi CallManager"));
 
-    public synchronized static void acceptCall(Call incomingCall)
+    private static boolean healthy = true;
+
+    /**
+     * Returns whether or not we consider this CallManager as healthy.
+     * @see #submit(Runnable)
+     * @return whether CallManager is healthy.
+     */
+    public static boolean isHealthy()
     {
-        threadPool.submit(new AnswerCallThread(incomingCall, false));
+        return healthy;
+    }
+
+    /**
+     * Submits a task to the pool of threads. If a task throws an exception
+     * (RejectedExecutionException) this means we are over the limit or
+     * we have blocked tasks in the queue and we cannot schedule tasks any more
+     * and we will mark CallManager as failing, to allow reporting this.
+     * @param task
+     * @return
+     */
+    private static Future<?> submit(Runnable task)
+    {
+        try
+        {
+            return threadPool.submit(task);
+        }
+        catch(RejectedExecutionException e)
+        {
+            logger.error("Failed to submit task for execution:" + task, e);
+
+            CallManager.healthy = false;
+
+            return null;
+        }
+    }
+
+    /**
+     * Answers a call in new thread or throws an exception if we fail to
+     * schedule the task for that.
+     * @param incomingCall The call to answer.
+     * @throws OperationFailedException in case of failed to start task to do it
+     */
+    public synchronized static void acceptCall(Call incomingCall)
+        throws OperationFailedException
+    {
+        Future result = submit(new AnswerCallThread(incomingCall, false));
+
+        if (result == null)
+        {
+            // there was no task scheduled to answer the call, throw an error
+            throw new OperationFailedException(
+                "Failed to answer",
+                OperationFailedException.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -53,8 +115,7 @@ public class CallManager
         Map<ProtocolProviderService, List<String>> callees,
         Call call)
     {
-        threadPool.submit(
-            new InviteToConferenceCallThread(callees, call));
+        submit(new InviteToConferenceCallThread(callees, call));
     }
 
     /**
@@ -320,8 +381,7 @@ public class CallManager
         CallConference conference,
         Collection<Call> calls)
     {
-        threadPool.submit(
-            new MergeExistingCalls(conference, calls));
+        submit(new MergeExistingCalls(conference, calls));
     }
 
     /**
@@ -441,8 +501,7 @@ public class CallManager
             logger.debug("Hanging up :" + call, new Throwable());
         }
 
-        threadPool.submit(
-            new HangupCallThread(call, unloadAccount));
+        submit(new HangupCallThread(call, unloadAccount));
     }
 
     public synchronized static void hangupCall(Call   call,
@@ -459,7 +518,15 @@ public class CallManager
         hangupCallThread.reasonCode = reasonCode;
         hangupCallThread.reason = reason;
 
-        threadPool.submit(hangupCallThread);
+        // if we are unhealthy, let's process error hangups
+        if (!healthy && reasonCode > 400)
+        {
+            new Thread(hangupCallThread).start();
+        }
+        else
+        {
+            submit(hangupCallThread);
+        }
     }
 
     /**
@@ -622,5 +689,61 @@ public class CallManager
             throw new TimeoutException();
 
         threadPool = Executors.newFixedThreadPool(POOL_SIZE);
+    }
+
+    /**
+     * A thread factory that creates daemon threads.
+     *
+     * @author Pawel Domas
+     */
+    private static class DaemonThreadFactory
+        implements ThreadFactory
+    {
+        private final String threadName;
+
+        public DaemonThreadFactory(String threadName)
+        {
+            this.threadName = threadName;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Thread newThread(Runnable r)
+        {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            if (!t.isDaemon())
+            {
+                t.setDaemon(true);
+
+                if (threadName != null)
+                {
+                    t.setName(threadName + "-" + t.getId());
+                }
+            }
+            return t;
+        }
+    }
+
+    private static class DummyCallThread
+        implements Runnable
+    {
+
+        @Override
+        public void run()
+        {
+            try
+            {
+                Object o = new Object();
+                synchronized(o) {
+                    o.wait();
+                }
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
     }
 }

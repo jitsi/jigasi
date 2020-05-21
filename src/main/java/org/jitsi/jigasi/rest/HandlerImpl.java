@@ -27,7 +27,7 @@ import javax.servlet.http.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.jigasi.health.*;
+import org.jitsi.jigasi.health.Health;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.rest.*;
