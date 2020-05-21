@@ -310,6 +310,11 @@ public class JvbConference
     private boolean gwSesisonWaitingStatsSent = false;
 
     /**
+     * The mute IQ handler if enabled.
+     */
+    private MuteIqHandler muteIqHandler = null;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -502,6 +507,14 @@ public class JvbConference
             telephony = null;
         }
 
+        if (muteIqHandler != null)
+        {
+            // we need to remove it from the connection, or we break some Smack
+            // weak references map where the key is connection and the value
+            // holds a connection and we leak connection/conferences.
+            getConnection().unregisterIQRequestHandler(muteIqHandler);
+        }
+
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
         leaveConferenceRoom();
@@ -682,7 +695,6 @@ public class JvbConference
 
         try
         {
-
             String roomName = callContext.getRoomName();
             if (!roomName.contains("@"))
             {
@@ -764,7 +776,12 @@ public class JvbConference
 
             if (JigasiBundleActivator.isSipStartMutedEnabled())
             {
-                getConnection().registerIQRequestHandler(new MuteIqHandler());
+                if (muteIqHandler == null)
+                {
+                    muteIqHandler = new MuteIqHandler();
+                }
+
+                getConnection().registerIQRequestHandler(muteIqHandler);
             }
 
             // we invite focus and wait for its response
