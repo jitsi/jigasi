@@ -112,8 +112,7 @@ public class Health
     {
         if (!CallManager.isHealthy())
         {
-            throw new Exception(
-                "CallManager blocked to answer or hangup calls.");
+            throw new Exception("CallManager is not healthy.");
         }
 
         if (sipChecker != null)
