@@ -917,12 +917,6 @@ public class JvbConference
             this.jitsiMeetTools = null;
         }
 
-        if (mucRoom == null)
-        {
-            logger.warn(this.callContext + " MUC room is null");
-            return;
-        }
-
         OperationSetIncomingDTMF opSet
             = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
         if (opSet != null)
@@ -931,6 +925,12 @@ public class JvbConference
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
+
+        if (mucRoom == null)
+        {
+            logger.warn(this.callContext + " MUC room is null");
+            return;
+        }
 
         mucRoom.leave();
 
