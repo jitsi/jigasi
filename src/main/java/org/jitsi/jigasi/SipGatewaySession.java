@@ -701,20 +701,21 @@ public class SipGatewaySession
             {
                 if (logger.isTraceEnabled())
                 {
-                    logger.trace("Ignoring event for non session call.");
+                    logger.trace(this.callContext
+                        + " Ignoring event for non session call.");
                 }
                 return;
             }
 
             if (!jsonObject.containsKey("type"))
             {
-                logger.error("Unknown json object type!");
+                logger.error(this.callContext + " Unknown json object type!");
                 return;
             }
 
             if (!jsonObject.containsKey("id"))
             {
-                logger.error("Unknown json object id!");
+                logger.error(this.callContext + " Unknown json object id!");
                 return;
             }
 
@@ -725,7 +726,8 @@ public class SipGatewaySession
             {
                 if (!jsonObject.containsKey("status"))
                 {
-                    logger.error("muteResponse without status!");
+                    logger.error(this.callContext
+                        + " muteResponse without status!");
                     return;
                 }
 
@@ -768,7 +770,7 @@ public class SipGatewaySession
         }
         catch(Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(this.callContext + " " + ex.getMessage());
         }
     }
 
@@ -1285,7 +1287,7 @@ public class SipGatewaySession
         }
         catch (Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(this.callContext + " " + ex.getMessage());
         }
     }
 
