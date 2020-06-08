@@ -204,6 +204,15 @@ public class CallContext
     }
 
     /**
+     * Returns sub domain that this call instance is handling.
+     * @return sub domain that this call instance is handling.
+     */
+    public String getSubDomain()
+    {
+        return subDomain;
+    }
+
+    /**
      * Password required to enter MUC room, optional.
      * @return the muc room password or null.
      */
