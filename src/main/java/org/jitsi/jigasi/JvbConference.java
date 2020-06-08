@@ -370,14 +370,14 @@ public class JvbConference
                 catch (XmppStringprepException e)
                 {
                     logger.error(this.callContext
-                        + "The SIP URI is invalid to use an XMPP"
+                        + " The SIP URI is invalid to use an XMPP"
                         + " resource, identifier will be a random string", e);
                 }
             }
             else
             {
                 logger.info(this.callContext
-                    + "The SIP URI is empty! The XMPP resource "
+                    + " The SIP URI is empty! The XMPP resource "
                     + "identifier will be a random string.");
             }
         }
@@ -1337,13 +1337,8 @@ public class JvbConference
         String boshUrl = ctx.getBoshURL();
         if (!StringUtils.isNullOrEmpty(boshUrl))
         {
-            String roomName = callContext.getRoomName();
             boshUrl = boshUrl.replace(
-                "{roomName}",
-                // if room name contains @ part, make sure we remove it
-                roomName.contains("@") ?
-                    Util.extractCallIdFromResource(roomName)
-                    : roomName);
+                "{roomName}", callContext.getConferenceName());
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
         }
 

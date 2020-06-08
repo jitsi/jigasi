@@ -311,12 +311,6 @@ public class StatsHandler
         int interval = accountID.getAccountPropertyInt(
             CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
 
-        String conferenceName = callContext.getRoomName();
-        if (conferenceName.contains("@"))
-        {
-            conferenceName = Util.extractCallIdFromResource(conferenceName);
-        }
-
         String subDomain = callContext.getSubDomain();
 
         // Add subdomain if available
@@ -334,7 +328,7 @@ public class StatsHandler
                 call,
                 interval,
                 statsService,
-                conferenceName,
+                callContext.getConferenceName(),
                 conferenceIDPrefix,
                 DEFAULT_JIGASI_ID + "-" + originID,
                 this.remoteEndpointID);

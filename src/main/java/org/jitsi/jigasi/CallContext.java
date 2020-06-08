@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -164,6 +165,20 @@ public class CallContext
     {
         this.roomName = roomName;
         update();
+    }
+
+    /**
+     * Returns the conference name.
+     * @return the conference name.
+     */
+    public String getConferenceName()
+    {
+        if (this.roomName.contains("@"))
+        {
+            return Util.extractCallIdFromResource(this.roomName);
+        }
+
+        return this.roomName;
     }
 
     /**
