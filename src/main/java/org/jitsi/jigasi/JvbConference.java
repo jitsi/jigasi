@@ -369,14 +369,16 @@ public class JvbConference
                 }
                 catch (XmppStringprepException e)
                 {
-                    logger.error("The SIP URI is invalid to use an XMPP"
+                    logger.error(this.callContext
+                        + " The SIP URI is invalid to use an XMPP"
                         + " resource, identifier will be a random string", e);
                 }
             }
             else
             {
-                logger.info("The SIP URI is empty! The XMPP resource " +
-                    "identifier will be a random string.");
+                logger.info(this.callContext
+                    + " The SIP URI is empty! The XMPP resource "
+                    + "identifier will be a random string.");
             }
         }
 
@@ -770,8 +772,9 @@ public class JvbConference
             }
             else
             {
-                logger.error("Cannot set presence extensions as chatRoom " +
-                    "is not an instance of ChatRoomJabberImpl");
+                logger.error(this.callContext
+                    + " Cannot set presence extensions as chatRoom "
+                    + "is not an instance of ChatRoomJabberImpl");
             }
 
             if (JigasiBundleActivator.isSipStartMutedEnabled())
@@ -1334,13 +1337,8 @@ public class JvbConference
         String boshUrl = ctx.getBoshURL();
         if (!StringUtils.isNullOrEmpty(boshUrl))
         {
-            String roomName = callContext.getRoomName();
             boshUrl = boshUrl.replace(
-                "{roomName}",
-                // if room name contains @ part, make sure we remove it
-                roomName.contains("@") ?
-                    Util.extractCallIdFromResource(roomName)
-                    : roomName);
+                "{roomName}", callContext.getConferenceName());
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
         }
 
@@ -1556,7 +1554,7 @@ public class JvbConference
                 timeoutThread = new Thread(this, name);
                 willCauseTimeout = true;
                 timeoutThread.start();
-                logger.debug("Scheduled new " + this);
+                logger.debug(callContext + " Scheduled new " + this);
             }
         }
 
@@ -1702,7 +1700,7 @@ public class JvbConference
         }
         catch(Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(this.callContext + " " + ex.getMessage());
             return false;
         }
         finally

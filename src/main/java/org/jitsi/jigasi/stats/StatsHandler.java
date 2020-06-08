@@ -23,6 +23,7 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.stats.media.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
 import org.osgi.framework.*;
 
@@ -248,12 +249,6 @@ public class StatsHandler
         String jigasiId = targetAccountID.getAccountPropertyString(
             CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
 
-        String roomName = callContext.getRoomName();
-        if (roomName.contains("@"))
-        {
-            roomName = Util.extractCallIdFromResource(roomName);
-        }
-
         StatsService statsService
             = StatsServiceFactory.getInstance()
                 .getStatsService(appId, bundleContext);
@@ -263,7 +258,7 @@ public class StatsHandler
             // no service will create it, and listen for its registration
             // in OSGi
             StatsServiceListener serviceListener = new StatsServiceListener(
-                bundleContext, roomName, call, targetAccountID);
+                bundleContext, callContext, call, targetAccountID);
             bundleContext.addServiceListener(serviceListener);
 
             final String targetAccountIDDescription
@@ -295,19 +290,19 @@ public class StatsHandler
         }
 
         createAndStartCallPeriodicRunnable(
-            statsService, roomName, call, targetAccountID);
+            statsService, callContext, call, targetAccountID);
     }
 
     /**
      * Creates and starts <tt>CallPeriodicRunnable</tt>.
      * @param statsService the <tt>StatsService</tt> to use for reporting.
-     * @param conferenceName the conference name.
+     * @param callContext the call context.
      * @param call the call.
      * @param accountID the account.
      */
     private void createAndStartCallPeriodicRunnable(
         StatsService statsService,
-        String conferenceName,
+        CallContext callContext,
         Call call,
         AccountID accountID)
     {
@@ -316,12 +311,24 @@ public class StatsHandler
         int interval = accountID.getAccountPropertyInt(
             CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
 
+        String subDomain = callContext.getSubDomain();
+
+        // Add subdomain if available
+        if (!StringUtils.isNullOrEmpty(subDomain) && conferenceIDPrefix != null)
+        {
+            if (!conferenceIDPrefix.endsWith("/"))
+            {
+                conferenceIDPrefix += "/";
+            }
+            conferenceIDPrefix += subDomain;
+        }
+
         CallPeriodicRunnable cpr
             = new CallPeriodicRunnable(
                 call,
                 interval,
                 statsService,
-                conferenceName,
+                callContext.getConferenceName(),
                 conferenceIDPrefix,
                 DEFAULT_JIGASI_ID + "-" + originID,
                 this.remoteEndpointID);
@@ -357,9 +364,9 @@ public class StatsHandler
         private BundleContext context;
 
         /**
-         * The conference name.
+         * The call context.
          */
-        private String conferenceName;
+        private CallContext callContext;
 
         /**
          * The call.
@@ -374,18 +381,18 @@ public class StatsHandler
         /**
          * Constructs <tt>StatsServiceListener</tt>.
          * @param context the OSGi context.
-         * @param conferenceName the conference name.
+         * @param callContext the call context.
          * @param call the call.
          * @param accountID the accountID.
          */
         StatsServiceListener(
             BundleContext context,
-            String conferenceName,
+            CallContext callContext,
             Call call,
             AccountID accountID)
         {
             this.context = context;
-            this.conferenceName = conferenceName;
+            this.callContext = callContext;
             this.call = call;
             this.accountID = accountID;
         }
@@ -396,7 +403,7 @@ public class StatsHandler
         private void clean()
         {
             this.context = null;
-            this.conferenceName = null;
+            this.callContext = null;
             this.call = null;
             this.accountID = null;
         }
@@ -405,7 +412,7 @@ public class StatsHandler
         public void serviceChanged(ServiceEvent ev)
         {
             if (this.context == null
-                || this.conferenceName == null
+                || this.callContext == null
                 || this.call == null
                 || this.accountID == null)
             {
@@ -437,7 +444,7 @@ public class StatsHandler
 
                 createAndStartCallPeriodicRunnable(
                     (StatsService) service,
-                    this.conferenceName,
+                    this.callContext,
                     call,
                     accountID);
 

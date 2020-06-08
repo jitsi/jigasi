@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -167,6 +168,20 @@ public class CallContext
     }
 
     /**
+     * Returns the conference name.
+     * @return the conference name.
+     */
+    public String getConferenceName()
+    {
+        if (this.roomName.contains("@"))
+        {
+            return Util.extractCallIdFromResource(this.roomName);
+        }
+
+        return this.roomName;
+    }
+
+    /**
      * Domain that this call instance is handling.
      * @return domain that this call instance is handling.
      */
@@ -201,6 +216,15 @@ public class CallContext
     {
         this.subDomain = subDomain;
         updateCallResource();
+    }
+
+    /**
+     * Returns sub domain that this call instance is handling.
+     * @return sub domain that this call instance is handling.
+     */
+    public String getSubDomain()
+    {
+        return subDomain;
     }
 
     /**
