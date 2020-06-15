@@ -102,9 +102,12 @@ Jitsi Meet will provide subtitles in the left corner of the video, while plain t
 will just be posted in the chat. Jigasi will also provide a link to where the final, 
 complete transcript will be served when it enters the room.
 
+Google configuration
+====================
+
 For jigasi to act as a transcriber, it sends the audio of all participants in the
-room to an external speech-to-text service. Currently only the [Google Cloud speech-to-text API](https://cloud.google.com/speech/) is supported.
-It is required to install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/)
+room to an external speech-to-text service. To use [Google Cloud speech-to-text API](https://cloud.google.com/speech/)
+it is required to install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/)
 on the machine running Jigasi. To install on a regular debian/ubuntu environment:
 
 ```
@@ -115,6 +118,26 @@ sudo apt-get update && sudo apt-get install google-cloud-sdk google-cloud-sdk-ap
 gcloud init
 gcloud auth application-default login
 ```
+
+Vosk configuration
+==================
+
+To use [Vosk speech recognition server](https://github.com/alphacep/vosk-server)
+start the server with a docker:
+
+```
+docker run -d -p 2700:2700 alphacep/kaldi-en:latest
+```
+
+Then configure the transcription class with the following properly in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+```
+org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.VoskTranscriptionService
+```
+
+Transcription options
+=====================
+
 There are several configuration options regarding transcription. These should
 be placed in `~/jigasi/jigasi-home/sip-communicator.properties`. The default 
 value will be used when the property is not set in the property file. A valid 
