@@ -245,9 +245,6 @@ public class JigasiBundleActivator
             logger.info("skipped initialization of TranscriptionGateway");
         }
 
-        // Register Jitsi Meet media presence extension.
-        MediaPresenceExtension.registerExtensions();
-
         // Register Rayo IQs
         new RayoIqProvider().registerRayoIQs();
 

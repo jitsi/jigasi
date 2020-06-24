@@ -342,7 +342,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-8-g340be56</version>
+      <version>1.0-12-gd6044ff</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
@@ -475,7 +475,7 @@
         <enabled>false</enabled>
       </snapshots>
       <url>
-        https://github.com/jitsi/jitsi-maven-repository/raw/master/releases/
+        https://raw.github.com/jitsi/jitsi-maven-repository/master/releases/
       </url>
     </repository>
     <repository>
@@ -489,7 +489,7 @@
         <enabled>true</enabled>
       </snapshots>
       <url>
-        https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/
+        https://raw.github.com/jitsi/jitsi-maven-repository/master/snapshots/
       </url>
     </repository>
   </repositories>
