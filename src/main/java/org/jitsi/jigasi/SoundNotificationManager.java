@@ -95,6 +95,28 @@ public class SoundNotificationManager
     private static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
 
     /**
+     * The sound file to use to notify the participant that access was granted to join the
+     * main room.
+     */
+    private static final String LOBBY_ACCESS_GRANTED = "sounds/LobbyAccessGranted.opus";
+
+    /**
+     * The sound file to use to notify the participant that access was denied to join the
+     * main room.
+     */
+    private static final String LOBBY_ACCESS_DENIED = "sounds/LobbyAccessDenied.opus";
+
+    /**
+     * The sound file to use to notify the participant that the lobby has been disabled.
+     */
+    private static final String LOBBY_DISABLED = "sounds/LobbyDisabled.opus";
+
+    /**
+     * The sound file to use to notify the participant that the conference has ended.
+     */
+    private static final String CONFERENCE_ENDED = "sounds/ConferenceEnded.opus";
+
+    /**
      * Approximate duration of the file to be played, we need it as to know
      * when to hangup the call. The actual file is 10 seconds but we give a
      * little longer for the file to be played and call to be answered.
@@ -487,6 +509,8 @@ public class SoundNotificationManager
      */
     public void onJvbCallEnded()
     {
+        notifyJvbConferenceEnded();
+
         scheduleAloneNotification(0);
 
         if (this.participantJoinedRateLimiterLazy != null)
@@ -553,6 +577,50 @@ public class SoundNotificationManager
     public void notifyJvbRoomJoined()
     {
         scheduleAloneNotification(PARTICIPANT_ALONE_TIMEOUT_MS);
+    }
+
+    /**
+     * Called when the user was granted access to JVB conference.
+     */
+    public void notifyAccessGranted()
+    {
+        if (gatewaySession.getSipCall() != null)
+        {
+            injectSoundFile(gatewaySession.getSipCall(), LOBBY_ACCESS_GRANTED);
+        }
+    }
+
+    /**
+     * Called when the user was denied access to JVB conference.
+     */
+    public void notifyAccessDenied()
+    {
+        if (gatewaySession.getSipCall() != null)
+        {
+            injectSoundFile(gatewaySession.getSipCall(), LOBBY_ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * Called when the lobby has been disabled.
+     */
+    public void notifyLobbyDisabled()
+    {
+        if (gatewaySession.getSipCall() != null)
+        {
+            injectSoundFile(gatewaySession.getSipCall(), LOBBY_DISABLED);
+        }
+    }
+
+    /**
+     * Used to notify the user that the JVB call has ended.
+     */
+    public void notifyJvbConferenceEnded()
+    {
+        if (this.gatewaySession.getSipCall() != null)
+        {
+            injectSoundFile(gatewaySession.getSipCall(), CONFERENCE_ENDED);
+        }
     }
 
     /**

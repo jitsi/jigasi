@@ -29,6 +29,7 @@ import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
+import org.jxmpp.jid.*;
 
 import java.io.*;
 import java.text.*;
@@ -1298,6 +1299,16 @@ public class SipGatewaySession
     public boolean isMutingSupported()
     {
         return JigasiBundleActivator.isSipStartMutedEnabled();
+    }
+
+    /**
+     * Returns the SipGatewaySession sound notification manager.
+     *
+     * @return <tt>SoundNotificationManager</tt>
+     */
+    public SoundNotificationManager getSoundNotificationManager()
+    {
+        return this.soundNotificationManager;
     }
 
     /**

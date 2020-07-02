@@ -24,6 +24,7 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
@@ -673,7 +674,7 @@ public class JvbConference
         return started;
     }
 
-    private void joinConferenceRoom()
+    public void joinConferenceRoom()
     {
         // Advertise gateway feature before joining
         addSupportedFeatures(
@@ -695,9 +696,13 @@ public class JvbConference
             this.jitsiMeetTools.addRequestListener(this.gatewaySession);
         }
 
+        Localpart lobbyLocalpart = null;
+
+        String roomName = null;
+
         try
         {
-            String roomName = callContext.getRoomName();
+            roomName = callContext.getRoomName();
             if (!roomName.contains("@"))
             {
                 // we check for optional muc service
@@ -794,6 +799,8 @@ public class JvbConference
 
             Localpart resourceIdentifier = getResourceIdentifier();
 
+            lobbyLocalpart = resourceIdentifier;
+
             // let's schedule the timeout before joining, before been able
             // to receive any incoming call, will cancel it if we need to
             // jvbCall will be null (no need on any sync as we are still not in
@@ -829,6 +836,104 @@ public class JvbConference
         }
         catch (Exception e)
         {
+            if (e instanceof OperationFailedException)
+            {
+                OperationFailedException opex = (OperationFailedException)e;
+
+                switch(opex.getErrorCode())
+                {
+                    /**
+                     * Thrown when lobby is enabled.
+                     */
+                    case OperationFailedException.REGISTRATION_REQUIRED:
+                    {
+                        /**
+                         * Lobby functionality is only supported for <tt>SipGatewaySession</tt>.
+                         */
+                        if (this.gatewaySession != null && this.gatewaySession instanceof SipGatewaySession)
+                        {
+                            try
+                            {
+                                if (JigasiBundleActivator.isSipStartMutedEnabled())
+                                {
+                                    if (this.muteIqHandler != null)
+                                    {
+                                        getConnection().unregisterIQRequestHandler(this.muteIqHandler);
+                                    }
+                                }
+
+                                if (this.mucRoom != null)
+                                {
+                                    this.mucRoom.removeMemberPresenceListener(this);
+                                }
+
+                                if (muc != null)
+                                {
+                                    muc.removePresenceListener(this);
+                                }
+
+                                if (opSet != null)
+                                {
+                                    opSet.removeDTMFListener(this.gatewaySession);
+                                }
+
+                                if (this.jitsiMeetTools != null)
+                                {
+                                    this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
+                                }
+
+                                DataObject dataObject = opex.getDataObject();
+
+                                if (dataObject != null)
+                                {
+                                    Jid lobbyJid = (Jid)dataObject.getData("lobbyroomjid");
+
+                                    if (lobbyJid != null)
+                                    {
+                                        EntityFullJid lobbyFullJid =
+                                                JidCreate.fullFrom(lobbyJid.asEntityBareJidOrThrow(),
+                                                        Resourcepart.from(lobbyLocalpart.toString()));
+
+                                        Jid mainRoomJid = null;
+
+                                        if (roomName != null)
+                                        {
+                                            mainRoomJid = JidCreate.entityBareFrom(roomName);
+                                        }
+
+                                        Lobby lobbyRoom = new Lobby(this.xmppProvider,
+                                                this.callContext,
+                                                lobbyFullJid,
+                                                mainRoomJid,
+                                                this,
+                                                (SipGatewaySession)this.gatewaySession);
+
+                                        logger.info("Lobby enabled by moderator! Will try to join lobby!");
+
+                                        lobbyRoom.join();
+
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        logger.error("No required lobby jid!");
+                                    }
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                logger.error("Failed to join lobby room!");
+                                logger.error(ex.toString());
+                            }
+                        }
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+
             if (e.getCause() instanceof XMPPException.XMPPErrorException)
             {
                 if (JigasiBundleActivator.getConfigurationService()
