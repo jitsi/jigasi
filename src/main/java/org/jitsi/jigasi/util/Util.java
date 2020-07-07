@@ -157,7 +157,8 @@ public class Util
             transformer.transform(xmlInput, xmlOutput);
             return xmlOutput.getWriter().toString();
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }

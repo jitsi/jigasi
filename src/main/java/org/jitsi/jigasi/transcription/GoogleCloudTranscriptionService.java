@@ -1003,7 +1003,8 @@ public class GoogleCloudTranscriptionService
             SpeechRecognitionAlternative alternative = result.getAlternatives(0);
             String newTranscript = alternative.getTranscript();
 
-            if (this.latestTranscript.equals(newTranscript)) {
+            if (this.latestTranscript.equals(newTranscript))
+            {
                 if  (logger.isDebugEnabled())
                 {
                     logger.debug(

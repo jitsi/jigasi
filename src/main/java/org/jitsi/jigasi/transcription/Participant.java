@@ -190,13 +190,15 @@ public class Participant
     String getDebugName() {
         ChatRoomMember _chatMember = this.chatMember;
 
-        if (_chatMember == null) {
+        if (_chatMember == null)
+        {
             return null;
         }
 
         String roomId = chatMember.getChatRoom().getIdentifier();
 
-        if (roomId.contains("@")) {
+        if (roomId.contains("@"))
+        {
             roomId = roomId.substring(0, roomId.indexOf("@"));
         }
 
