@@ -55,7 +55,8 @@ public class Util
             os.write(json.toString().getBytes());
             os.flush();
 
-            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK)
+            {
                 logger.error("Error for action post received: "
                     + conn.getResponseCode()
                     + "(" + conn.getResponseMessage() + ")");

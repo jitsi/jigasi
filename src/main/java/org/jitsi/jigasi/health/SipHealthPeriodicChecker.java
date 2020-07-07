@@ -390,7 +390,8 @@ class SipHealthPeriodicChecker
                 for (MonitorInfo mi
                     : threadInfo.getLockedMonitors())
                 {
-                    if (mi.getLockedStackDepth() == i) {
+                    if (mi.getLockedStackDepth() == i)
+                    {
                         dbg.append("\t-  locked " + mi);
                         dbg.append('\n');
                     }
