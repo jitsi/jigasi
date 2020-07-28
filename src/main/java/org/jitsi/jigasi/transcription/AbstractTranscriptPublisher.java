@@ -105,6 +105,16 @@ public abstract class AbstractTranscriptPublisher<T>
         = "org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST";
 
     /**
+     * The property name for Default google cloud speech to text model to use
+     * Set config value in format org.jitsi.jigasi.transcription.LANG_CODE=en-US 
+     * inside config file sip-communicator.properties 
+     * {@link this#P_TRANSCRIPTION_LANGUAGE_VALUE}
+     */
+    public final static String P_TRANSCRIPTION_LANGUAGE_VALUE
+        = "org.jitsi.jigasi.transcription.LANG_CODE";
+
+
+    /**
      * The default for the url
      */
     public final static String TRANSCRIPT_BASE_URL_DEFAULT_VALUE
@@ -116,6 +126,7 @@ public abstract class AbstractTranscriptPublisher<T>
      */
     public final static String TRANSCRIPT_DIRECTORY_DEFAULT_VALUE
         = "/var/lib/jigasi/transcripts";
+
 
     /**
      * By default do not advertise the URL
@@ -131,6 +142,13 @@ public abstract class AbstractTranscriptPublisher<T>
      * By default when recording audio the format to store it as is WAV
      */
     public final static String RECORD_AUDIO_FORMAT_DEFAULT_VALUE = "wav";
+    
+    /**
+     * By default Google Speech to text will use this language model if not
+     * no value set in sip-communicator.properties config file
+     */
+    public final static String TRANSCRIPTION_LANGUAGE_DEFAULT_VALUE = "en-US";
+
 
     /**
      * By default do not execute scripts
@@ -393,6 +411,18 @@ public abstract class AbstractTranscriptPublisher<T>
         return JigasiBundleActivator.getConfigurationService()
             .getString(P_NAME_RECORD_AUDIO_FORMAT,
                 RECORD_AUDIO_FORMAT_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get in default transcription language model to use for speech to text
+     *
+     * @return language model to use e.g. en-US 
+     */
+    public static String getTranscriptionLanguageValue()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getString(P_TRANSCRIPTION_LANGUAGE_VALUE,
+            TRANSCRIPTION_LANGUAGE_DEFAULT_VALUE);
     }
 
     /**

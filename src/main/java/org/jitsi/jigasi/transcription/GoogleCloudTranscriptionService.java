@@ -166,6 +166,11 @@ public class GoogleCloudTranscriptionService
     private final static boolean RETRIEVE_INTERIM_RESULTS = true;
 
     /**
+     * Whether the Google cloud API automatic punctuation option is set 
+     */
+    private final static boolean AUTOMATIC_PUNCTUATION_OPTION = true;
+
+    /**
      * Whether the Google Cloud API only listens for a single utterance
      * or continuous to listen once an utterance is over
      */
@@ -267,9 +272,12 @@ public class GoogleCloudTranscriptionService
         }
 
         // set the Language tag
-        String languageTag = request.getLocale().toLanguageTag();
+        String languageTag =  AbstractTranscriptPublisher.getTranscriptionLanguageValue() ;
         validateLanguageTag(languageTag);
         builder.setLanguageCode(languageTag);
+
+        // Add Automatic Punctuation option in Google cloud speech to text api
+        builder.setEnableAutomaticPunctuation(AUTOMATIC_PUNCTUATION_OPTION);
 
         addSpeechContexts(builder);
 
