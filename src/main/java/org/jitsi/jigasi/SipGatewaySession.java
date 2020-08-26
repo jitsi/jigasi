@@ -666,6 +666,11 @@ public class SipGatewaySession
 
                 joinJvbConference(callContext);
             }
+            else
+            {
+                logger.warn("No JVB room name provided in INVITE header.");
+                logger.info("Count of headers received:" + (data != null ? data.size() : 0));
+            }
         }
     }
 
@@ -1557,14 +1562,12 @@ public class SipGatewaySession
                         }
                         else
                         {
-                            logger.info(
+                            logger.warn(
                                 SipGatewaySession.this.callContext
                                 + " No JVB room name provided in INVITE header"
                             );
 
-                            hangUp(
-                            OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE,
-                            "No JVB room name provided");
+                            hangUp(OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE, "No JVB room name provided");
                         }
                     }
                 }
