@@ -311,24 +311,12 @@ public class StatsHandler
         int interval = accountID.getAccountPropertyInt(
             CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
 
-        String subDomain = callContext.getSubDomain();
-
-        // Add subdomain if available
-        if (!StringUtils.isNullOrEmpty(subDomain) && conferenceIDPrefix != null)
-        {
-            if (!conferenceIDPrefix.endsWith("/"))
-            {
-                conferenceIDPrefix += "/";
-            }
-            conferenceIDPrefix += subDomain;
-        }
-
         CallPeriodicRunnable cpr
             = new CallPeriodicRunnable(
                 call,
                 interval,
                 statsService,
-                callContext.getConferenceName(),
+                callContext.getRoomName(),
                 conferenceIDPrefix,
                 DEFAULT_JIGASI_ID + "-" + originID,
                 this.remoteEndpointID);
