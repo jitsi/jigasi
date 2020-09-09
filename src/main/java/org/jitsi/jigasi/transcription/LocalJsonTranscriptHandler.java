@@ -97,7 +97,7 @@ public class LocalJsonTranscriptHandler
     // "event" JSON object fields
 
     /**
-     * This fields stores the the type of event. Can be
+     * This fields stores the type of event. Can be
      * {@link Transcript.TranscriptEventType#JOIN},
      * {@link Transcript.TranscriptEventType#LEAVE},
      * {@link Transcript.TranscriptEventType#RAISE_HAND} or
@@ -111,7 +111,7 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_EVENT_TIMESTAMP = "timestamp";
 
     /**
-     * This field stores the  the participant who caused the event as
+     * This field stores the participant who caused the event as
      * a Participant object
      */
     public final static String JSON_KEY_EVENT_PARTICIPANT = "participant";
