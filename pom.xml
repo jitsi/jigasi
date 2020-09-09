@@ -208,7 +208,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
-      <version>1.0-3-gd5cc199</version>
+      <version>1.0-4-g6d906b2</version>
     </dependency>
     <dependency>
       <!--
@@ -342,7 +342,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-12-gd6044ff</version>
+      <version>1.0-15-g813e4c4</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
