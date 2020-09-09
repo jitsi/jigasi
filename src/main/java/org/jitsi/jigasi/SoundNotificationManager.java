@@ -114,7 +114,7 @@ public class SoundNotificationManager
     /**
      * The sound file to use to notify the participant that the conference has ended.
      */
-    private static final String CONFERENCE_ENDED = "sounds/ConferenceEnded.opus";
+    private static final String LOBBY_CONFERENCE_ENDED = "sounds/ConferenceEnded.opus";
 
     /**
      * Approximate duration of the file to be played, we need it as to know
@@ -582,7 +582,7 @@ public class SoundNotificationManager
     /**
      * Called when the user was granted access to JVB conference.
      */
-    public void notifyAccessGranted()
+    public void notifyLobbyAccessGranted()
     {
         if (gatewaySession.getSipCall() != null)
         {
@@ -593,7 +593,7 @@ public class SoundNotificationManager
     /**
      * Called when the user was denied access to JVB conference.
      */
-    public void notifyAccessDenied()
+    public void notifyLobbyAccessDenied()
     {
         if (gatewaySession.getSipCall() != null)
         {
@@ -617,9 +617,10 @@ public class SoundNotificationManager
      */
     public void notifyJvbConferenceEnded()
     {
+        // TODO check if lobby
         if (this.gatewaySession.getSipCall() != null)
         {
-            injectSoundFile(gatewaySession.getSipCall(), CONFERENCE_ENDED);
+            injectSoundFile(gatewaySession.getSipCall(), LOBBY_CONFERENCE_ENDED);
         }
     }
 

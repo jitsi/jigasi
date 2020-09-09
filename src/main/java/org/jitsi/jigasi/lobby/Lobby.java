@@ -227,6 +227,7 @@ public class Lobby
         {
             if (localUserChatRoomPresenceChangeEvent.getChatRoom().equals(this.mucRoom))
             {
+
                 if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED)
                 {
@@ -244,9 +245,8 @@ public class Lobby
 
                     leave();
                 }
-
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == localUserChatRoomPresenceChangeEvent.LOCAL_USER_LEFT)
+                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_LEFT)
                 {
                     /**
                      * Lobby access granted.
@@ -282,6 +282,24 @@ public class Lobby
                             logger.error("No JVB conference!!!");
                         }
                     }
+                }
+                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOINED)
+                {
+                    /**
+                     * After lobby is joined playback the waiting notification.
+                     */
+                    
+
+                }
+                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOIN_FAILED)
+                {
+                    /**
+                     * If join has failed playback the meeting ended notification.
+                     */
+
+
                 }
             }
         }
