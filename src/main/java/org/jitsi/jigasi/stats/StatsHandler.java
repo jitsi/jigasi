@@ -25,6 +25,9 @@ import org.jitsi.stats.media.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.version.*;
 import org.jitsi.utils.version.Version;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -256,6 +259,17 @@ public class StatsHandler
         VersionService versionService = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
         Version version = versionService != null ? versionService.getCurrentVersion() : null;
 
+        EntityBareJid roomJid;
+        try
+        {
+            roomJid = JidCreate.entityBareFrom(callContext.getRoomName());
+        }
+        catch(XmppStringprepException e)
+        {
+            logger.warn("Not stating stats handler as provided roomName is not a jid:" + callContext.getRoomName(), e);
+            return;
+        }
+
         StatsServiceFactory.getInstance().createStatsService(
             version,
             appId,
@@ -264,7 +278,7 @@ public class StatsHandler
             keyPath,
             jigasiId,
             true,
-            new StatsServiceInitListener(callContext, call, targetAccountID));
+            new StatsServiceInitListener(roomJid, callContext, call, targetAccountID));
     }
 
     /**
@@ -287,6 +301,11 @@ public class StatsHandler
         implements StatsServiceFactory.InitCallback
     {
         /**
+         *
+         */
+        private EntityBareJid roomJid;
+
+        /**
          * The call context.
          */
         private CallContext callContext;
@@ -308,10 +327,12 @@ public class StatsHandler
          * @param accountID the accountID.
          */
         StatsServiceInitListener(
+            EntityBareJid roomJid,
             CallContext callContext,
             Call call,
             AccountID accountID)
         {
+            this.roomJid = roomJid;
             this.callContext = callContext;
             this.call = call;
             this.accountID = accountID;
@@ -351,7 +372,7 @@ public class StatsHandler
                 call,
                 interval,
                 statsService,
-                callContext.getRoomName(),
+                roomJid,
                 conferenceIDPrefix,
                 DEFAULT_JIGASI_ID + "-" + originID,
                 remoteEndpointID);
