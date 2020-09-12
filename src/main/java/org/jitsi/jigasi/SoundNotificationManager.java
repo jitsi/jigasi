@@ -22,18 +22,24 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
+import org.glassfish.hk2.api.Operation;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.jibri.*;
+import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.packet.*;
 
+import javax.print.attribute.standard.Media;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Manages all sounds notifications that are send to a SIP session side.
@@ -107,14 +113,14 @@ public class SoundNotificationManager
     private static final String LOBBY_ACCESS_DENIED = "sounds/LobbyAccessDenied.opus";
 
     /**
-     * The sound file to use to notify the participant that the lobby has been disabled.
-     */
-    private static final String LOBBY_DISABLED = "sounds/LobbyDisabled.opus";
-
-    /**
      * The sound file to use to notify the participant that the conference has ended.
      */
-    private static final String LOBBY_CONFERENCE_ENDED = "sounds/ConferenceEnded.opus";
+    private static final String LOBBY_MEETING_END = "sounds/LobbyMeetingEnd.opus";
+
+    /**
+     * The sound file to use to notify the participant that request to join is being reviewed.
+     */
+    private static final String LOBBY_JOIN_REVIEW = "sounds/LobbyWait.opus";
 
     /**
      * Approximate duration of the file to be played, we need it as to know
@@ -185,6 +191,26 @@ public class SoundNotificationManager
      * in the conference from a certain amount of time.
      */
     private TimerTask participantAloneNotificationTask = null;
+
+    /**
+     *
+     */
+    private PlaybackQueue playbackQueue = new PlaybackQueue();
+
+    /**
+     *
+     */
+    private static final Map<String, Integer> playbackFileDuration = new HashMap<>();
+
+    /**
+     *
+     */
+    static {
+        playbackFileDuration.put(LOBBY_MEETING_END, new Integer(8));
+        playbackFileDuration.put(LOBBY_JOIN_REVIEW, new Integer(7));
+        playbackFileDuration.put(LOBBY_ACCESS_GRANTED, new Integer(5));
+        playbackFileDuration.put(LOBBY_ACCESS_DENIED, new Integer(11));
+    }
 
     /**
      * Constructs new <tt>SoundNotificationManager</tt>.
@@ -306,6 +332,7 @@ public class SoundNotificationManager
         }
 
         final MediaStream streamToPass = stream;
+
         new Thread(() -> {
             try
             {
@@ -413,8 +440,18 @@ public class SoundNotificationManager
             }
             else
             {
+                /**
+                 *
+                 */
+                playbackQueue.start();
+
                 playParticipantJoinedNotification();
             }
+        }
+        else if (CallPeerState.DISCONNECTED.equals(callPeerState))
+        {
+            logger.error("CALL DISCONNECTED!!!!");
+            playbackQueue.stopAtNextPlayback();
         }
 
         if (delayedHangupSeconds != -1)
@@ -477,6 +514,8 @@ public class SoundNotificationManager
      */
     private void scheduleAloneNotification(long timeout)
     {
+        logger.error("SCHEDULE ALONE NOTIFICATION!!!");
+
         if (this.participantAloneNotificationTask != null)
         {
             this.participantAloneNotificationTask.cancel();
@@ -580,14 +619,66 @@ public class SoundNotificationManager
     }
 
     /**
+     * Tries to play a sound file if connected if not it will be queued.
+     *
+     * @param fileName The sound file to be played.
+     */
+    private void playSoundFileIfPossible(String fileName)
+    {
+        try
+        {
+            if (gatewaySession.getSipCall() != null)
+            {
+                if (gatewaySession.getSipCall().getCallState()
+                        != CallState.CALL_IN_PROGRESS)
+                {
+                    // Queue playback of file
+                    CallManager.acceptCall(gatewaySession.getSipCall());
+                }
+
+                // Hangup in these two cases
+                if (fileName == LOBBY_ACCESS_DENIED || fileName == LOBBY_MEETING_END)
+                {
+                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
+
+                        playbackQueue.queueNext(gatewaySession.getSipCall(),
+                                                fileName,
+                                                new PlaybackQueue.PlaybackDelegate()
+                                                {
+                                                    @Override
+                                                    public void onPlaybackFinished() {
+                                                        // Hangup
+                                                        CallManager.hangupCall(gatewaySession.getSipCall());
+                                                    }
+                                                },
+                                                playbackDuration);
+                }
+                else
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), fileName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(ex.toString());
+        }
+    }
+
+    /**
+     * Called when the user waits for approval to join.
+     */
+    public void notifyLobbyWaitReview()
+    {
+        playSoundFileIfPossible(LOBBY_JOIN_REVIEW);
+    }
+
+    /**
      * Called when the user was granted access to JVB conference.
      */
     public void notifyLobbyAccessGranted()
     {
-        if (gatewaySession.getSipCall() != null)
-        {
-            injectSoundFile(gatewaySession.getSipCall(), LOBBY_ACCESS_GRANTED);
-        }
+        playSoundFileIfPossible(LOBBY_ACCESS_GRANTED);
     }
 
     /**
@@ -595,21 +686,7 @@ public class SoundNotificationManager
      */
     public void notifyLobbyAccessDenied()
     {
-        if (gatewaySession.getSipCall() != null)
-        {
-            injectSoundFile(gatewaySession.getSipCall(), LOBBY_ACCESS_DENIED);
-        }
-    }
-
-    /**
-     * Called when the lobby has been disabled.
-     */
-    public void notifyLobbyDisabled()
-    {
-        if (gatewaySession.getSipCall() != null)
-        {
-            injectSoundFile(gatewaySession.getSipCall(), LOBBY_DISABLED);
-        }
+        playSoundFileIfPossible(LOBBY_ACCESS_DENIED);
     }
 
     /**
@@ -617,11 +694,15 @@ public class SoundNotificationManager
      */
     public void notifyJvbConferenceEnded()
     {
-        // TODO check if lobby
-        if (this.gatewaySession.getSipCall() != null)
-        {
-            injectSoundFile(gatewaySession.getSipCall(), LOBBY_CONFERENCE_ENDED);
-        }
+
+    }
+
+    /**
+     * Used to notify the user that the main room was destroyed - meetings has ended.
+     */
+    public void notifyLobbyRoomDestroyed()
+    {
+        playSoundFileIfPossible(LOBBY_MEETING_END);
     }
 
     /**
@@ -632,6 +713,8 @@ public class SoundNotificationManager
     {
         try
         {
+            logger.error("PLAY ALONE NOTIFICATION!!!!");
+
             Call sipCall = gatewaySession.getSipCall();
 
             if (sipCall != null)
@@ -832,6 +915,254 @@ public class SoundNotificationManager
         public void reset()
         {
             this.startTimePoint.set(null);
+        }
+    }
+
+    /**
+     * Used to queue audio files for playback. This is used for the IVR.
+     */
+    private static class PlaybackQueue extends Thread
+    {
+        /**
+         * Interface to use to execute specific code.
+         */
+        public interface PlaybackDelegate
+        {
+            public void onPlaybackFinished();
+        }
+
+        /**
+         * Used internally. This holds information of the file that is to be played and additional code.
+         */
+        private static class PlaybackData
+        {
+            /**
+             * File to be played, relative path.
+             */
+            private String playbackFileName;
+
+            /**
+             * Used to delegate code.
+             */
+            private PlaybackDelegate playbackDelegate;
+
+            /**
+             * Playback duration of the file in seconds.
+             */
+            private long playbackDurationSeconds;
+
+            /**
+             * The call to send audio to.
+             */
+            private Call playbackCall;
+
+            /**
+             * Constructor of <tt>PlaybackData</tt>
+             *
+             * @param fileName File to play.
+             * @param delegate Delegate code.
+             * @param durationSeconds Playback duration in seconds.
+             * @param call Call to send audio to.
+             */
+            public PlaybackData(String fileName,
+                                PlaybackDelegate delegate,
+                                long durationSeconds,
+                                Call call)
+            {
+                playbackFileName = fileName;
+                playbackDelegate = delegate;
+                playbackDurationSeconds = durationSeconds;
+                playbackCall = call;
+            }
+
+            /**
+             * Returns the relative path of the file to be played.
+             *
+             * @return File to play.
+             */
+            String getPlaybackFileName() { return playbackFileName; }
+
+            /**
+             * Used to run specific code.
+             *
+             * @return <tt>PlaybackDelegate</tt>
+             */
+            PlaybackDelegate getPlaybackDelegate() { return playbackDelegate; }
+
+            /**
+             * Returns the playback duration of the file.
+             *
+             * @return Length in seconds of the file.
+             */
+            long getPlaybackDurationSeconds() { return playbackDurationSeconds; }
+
+            /**
+             * Returns the caller.
+             *
+             * @return Call to send audio to.
+             */
+            Call getPlaybackCall() { return playbackCall; }
+        }
+
+        /**
+         * Queue used to schedule sound notifications.
+         */
+        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<PlaybackData>(20, true);
+
+        /**
+         * Flag used to stop the queue thread.
+         */
+        private AtomicBoolean playbackQueueStopFlag = new AtomicBoolean(false);
+
+        /**
+         * Constructor for <tt>PlaybackQueue</tt>
+         */
+        public PlaybackQueue() { }
+
+        /**
+         * Queues a file to be played to the caller.
+         *
+         * @param call The call used to send audio.
+         * @param fileName The file to be queued for playback.
+         * @throws InterruptedException
+         */
+        public void queueNext(Call call, String fileName) throws InterruptedException
+        {
+            playbackQueue.put(new PlaybackData(fileName, null, 0, call));
+        }
+
+        /**
+         * Queues a file to be played to the caller.
+         *
+         * @param call The call used to send audio.
+         * @param fileName The file to be queued for playback.
+         * @param delegate Used to delegate code when needed.
+         * @param lengthInSeconds Playback duration in seconds for the file.
+         * @throws InterruptedException
+         */
+        public void queueNext(Call call,
+                              String fileName,
+                              PlaybackDelegate delegate,
+                              long lengthInSeconds) throws InterruptedException
+        {
+            playbackQueue.put(new PlaybackData(fileName, delegate, lengthInSeconds, call));
+        }
+
+        /**
+         * Stops the playback queue after the current playback ends.
+         */
+        public void stopAtNextPlayback()
+        {
+            playbackQueueStopFlag.set(true);
+        }
+
+        /**
+         * Thread execution method that injects queued files into audio stream.
+         */
+        @Override
+        public void run()
+        {
+            while(playbackQueueStopFlag.get() == false)
+            {
+                try
+                {
+                    PlaybackData playbackData
+                            = playbackQueue.poll(1000, TimeUnit.MILLISECONDS);
+
+                    if (playbackData != null)
+                    {
+                        Call playbackCall = playbackData.getPlaybackCall();
+
+                        injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+
+                        final PlaybackDelegate playbackDelegate = playbackData.getPlaybackDelegate();
+                        if (playbackDelegate != null)
+                        {
+                            // Start new Timer
+                            new Thread( () -> {
+                                try
+                                {
+                                    Thread.sleep(playbackData.getPlaybackDurationSeconds() * 1000);
+                                    playbackDelegate.onPlaybackFinished();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.getLogger(PlaybackQueue.class)
+                                            .error(ex.toString());
+                                }
+                            }).start();
+                        }
+                    }
+                }
+                catch (InterruptedException e)
+                {
+                    Logger.getLogger(PlaybackQueue.class)
+                            .error(e.toString());
+                }
+            }
+        }
+
+        /**
+         * Copied from above.
+         * Injects sound file in a call's <tt>MediaStream</tt> using injectPacket
+         * method and constructing RTP packets for it.
+         * Supports opus only (when using translator mode calls from the jitsi-meet
+         * side are using opus and are just translated to the sip side).
+         *
+         * The file will be played if possible, if there is call passed and that
+         * call has call peers of type MediaAwareCallPeer with media handler that
+         * has MediaStream for Audio.
+         *
+         * @param call the call (sip one) to inject the sound as rtp.
+         * @param fileName the file name to play.
+         */
+        private void injectSoundFile(Call call, String fileName)
+        {
+            MediaStream stream = null;
+
+            CallPeer peer;
+            if (call != null
+                    && call.getCallPeers() != null
+                    && call.getCallPeers().hasNext()
+                    && (peer = call.getCallPeers().next()) != null
+                    && peer instanceof MediaAwareCallPeer)
+            {
+                MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+                CallPeerMediaHandler mediaHandler
+                        = peerMedia.getMediaHandler();
+                if (mediaHandler != null)
+                {
+                    stream = mediaHandler.getStream(MediaType.AUDIO);
+                }
+            }
+
+            // if there is no stream or the calling account is not using translator
+            // or the current call is not using opus
+            if (stream == null
+                    || !call.getProtocolProvider()
+                    .getAccountID().getAccountPropertyBoolean(
+                            ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
+                            false)
+                    || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
+                    || fileName == null)
+            {
+                Logger.getLogger(Util.class)
+                        .error("NO PLAYBACK!!!");
+                return;
+            }
+
+            final MediaStream streamToPass = stream;
+
+            try
+            {
+                injectSoundFileInStream(streamToPass, fileName);
+            }
+            catch (Throwable t)
+            {
+                Logger.getLogger(Util.class)
+                        .error("Error playing:" + fileName, t);
+            }
         }
     }
 }

@@ -118,6 +118,10 @@ public class Lobby
     public void join() throws OperationFailedException, OperationNotSupportedException
     {
         joinRoom(getRoomJid());
+
+        this.sipGatewaySession
+                .getSoundNotificationManager()
+                .notifyLobbyWaitReview();
     }
 
     /**
@@ -134,6 +138,8 @@ public class Lobby
 
         muc.addInvitationListener(this);
 
+        muc.addPresenceListener(this);
+
         ProtocolProviderService pps = getProtocolProvider();
 
         ChatRoom mucRoom = muc.findRoom(roomJid.toString());
@@ -143,8 +149,6 @@ public class Lobby
         Localpart resourceIdentifier = getResourceIdentifier();
 
         mucRoom.joinAs(resourceIdentifier.toString());
-
-        muc.addPresenceListener(this);
 
         this.mucRoom = mucRoom;
     }
@@ -195,7 +199,7 @@ public class Lobby
         {
             this.sipGatewaySession
                     .getSoundNotificationManager()
-                    .notifyAccessGranted();
+                    .notifyLobbyAccessGranted();
 
             if (this.jvbConference != null)
             {
@@ -227,7 +231,6 @@ public class Lobby
         {
             if (localUserChatRoomPresenceChangeEvent.getChatRoom().equals(this.mucRoom))
             {
-
                 if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED)
                 {
@@ -236,21 +239,18 @@ public class Lobby
                      */
                     this.sipGatewaySession
                             .getSoundNotificationManager()
-                            .notifyAccessDenied();
-
-                    if (this.jvbConference != null)
-                    {
-                        this.jvbConference.stop();
-                    }
+                            .notifyLobbyAccessDenied();
 
                     leave();
                 }
-                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+
+                if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_LEFT)
                 {
                     /**
                      * Lobby access granted.
                      */
+
                     String alternateAddress = localUserChatRoomPresenceChangeEvent.getAlternateAddress();
 
                     if (alternateAddress == null)
@@ -266,10 +266,6 @@ public class Lobby
                             logger.warn("Alternate Jid not the same as main room Jid!");
                         }
 
-                        this.sipGatewaySession
-                                .getSoundNotificationManager()
-                                .notifyLobbyDisabled();
-
                         /**
                          * The left event is used here in case the lobby is disabled.
                          */
@@ -283,23 +279,32 @@ public class Lobby
                         }
                     }
                 }
-                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+
+                if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOINED)
                 {
                     /**
                      * After lobby is joined playback the waiting notification.
+                     * Event is not working at the moment.
                      */
-                    
-
                 }
-                else if (localUserChatRoomPresenceChangeEvent.getEventType()
+
+                if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOIN_FAILED)
                 {
                     /**
                      * If join has failed playback the meeting ended notification.
                      */
 
+                    logger.error("Failed to join lobby!");
+                }
 
+                if (localUserChatRoomPresenceChangeEvent.getEventType()
+                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_ROOM_DESTROYED)
+                {
+                    this.sipGatewaySession
+                            .getSoundNotificationManager()
+                            .notifyLobbyRoomDestroyed();
                 }
             }
         }

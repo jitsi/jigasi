@@ -1819,7 +1819,7 @@ public class JvbConference
         return true;
     }
 
-    private XMPPConnection getConnection()
+    public XMPPConnection getConnection()
     {
         if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
         {
