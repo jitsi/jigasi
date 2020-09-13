@@ -450,7 +450,6 @@ public class SoundNotificationManager
         }
         else if (CallPeerState.DISCONNECTED.equals(callPeerState))
         {
-            logger.error("CALL DISCONNECTED!!!!");
             playbackQueue.stopAtNextPlayback();
         }
 
@@ -514,8 +513,6 @@ public class SoundNotificationManager
      */
     private void scheduleAloneNotification(long timeout)
     {
-        logger.error("SCHEDULE ALONE NOTIFICATION!!!");
-
         if (this.participantAloneNotificationTask != null)
         {
             this.participantAloneNotificationTask.cancel();
@@ -593,6 +590,12 @@ public class SoundNotificationManager
         {
             playParticipantJoinedNotification();
         }
+
+        // Cancel alone notification
+        if (this.participantAloneNotificationTask != null)
+        {
+            this.participantAloneNotificationTask.cancel();
+        }
     }
 
     /**
@@ -615,7 +618,12 @@ public class SoundNotificationManager
      */
     public void notifyJvbRoomJoined()
     {
-        scheduleAloneNotification(PARTICIPANT_ALONE_TIMEOUT_MS);
+        int participantCount = gatewaySession.getParticipantsCount();
+
+        if (participantCount <= 2)
+        {
+            scheduleAloneNotification(PARTICIPANT_ALONE_TIMEOUT_MS);
+        }
     }
 
     /**
@@ -713,13 +721,19 @@ public class SoundNotificationManager
     {
         try
         {
-            logger.error("PLAY ALONE NOTIFICATION!!!!");
-
             Call sipCall = gatewaySession.getSipCall();
 
             if (sipCall != null)
             {
-                injectSoundFile(sipCall, PARTICIPANT_ALONE);
+                if (sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
+                {
+                    injectSoundFile(sipCall, PARTICIPANT_ALONE);
+                }
+                else
+                {
+                    playbackQueue.queueNext(sipCall, PARTICIPANT_ALONE);
+                    CallManager.acceptCall(sipCall);
+                }
             }
         }
         catch(Exception ex)

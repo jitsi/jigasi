@@ -255,6 +255,10 @@ public class Lobby
 
                     if (alternateAddress == null)
                     {
+                        this.sipGatewaySession
+                                .getSoundNotificationManager()
+                                .notifyLobbyRoomDestroyed();
+
                         return;
                     }
                     else
@@ -265,6 +269,10 @@ public class Lobby
                         {
                             logger.warn("Alternate Jid not the same as main room Jid!");
                         }
+
+                        this.sipGatewaySession
+                                .getSoundNotificationManager()
+                                .notifyLobbyAccessGranted();
 
                         /**
                          * The left event is used here in case the lobby is disabled.
@@ -302,9 +310,7 @@ public class Lobby
                 if (localUserChatRoomPresenceChangeEvent.getEventType()
                         == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_ROOM_DESTROYED)
                 {
-                    this.sipGatewaySession
-                            .getSoundNotificationManager()
-                            .notifyLobbyRoomDestroyed();
+
                 }
             }
         }
