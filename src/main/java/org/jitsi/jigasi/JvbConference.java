@@ -908,7 +908,8 @@ public class JvbConference
                                                 this,
                                                 (SipGatewaySession)this.gatewaySession);
 
-                                        logger.info("Lobby enabled by moderator! Will try to join lobby!");
+                                        logger.info(
+                                            callContext + " Lobby enabled by moderator! Will try to join lobby!");
 
                                         lobbyRoom.join();
 
@@ -916,14 +917,13 @@ public class JvbConference
                                     }
                                     else
                                     {
-                                        logger.error("No required lobby jid!");
+                                        logger.error(callContext + " No required lobby jid!");
                                     }
                                 }
                             }
                             catch(Exception ex)
                             {
-                                logger.error("Failed to join lobby room!");
-                                logger.error(ex.toString());
+                                logger.error(callContext + " Failed to join lobby room!", ex);
                             }
                         }
                     }
@@ -945,7 +945,7 @@ public class JvbConference
                 }
             }
 
-            logger.error(this.callContext.toString() + e, e);
+            logger.error(this.callContext + " " + e.getMessage(), e);
 
             // inform that this session had failed
             gatewaySession.getGateway()

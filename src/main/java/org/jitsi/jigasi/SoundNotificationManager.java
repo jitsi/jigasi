@@ -22,24 +22,18 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
-import org.glassfish.hk2.api.Operation;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.jibri.*;
-import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.packet.*;
 
-import javax.print.attribute.standard.Media;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Manages all sounds notifications that are send to a SIP session side.
@@ -193,17 +187,19 @@ public class SoundNotificationManager
     private TimerTask participantAloneNotificationTask = null;
 
     /**
-     *
+     * A queue of files to be played when call is connected.
      */
     private PlaybackQueue playbackQueue = new PlaybackQueue();
 
     /**
-     *
+     * Map with different file durations to be played.
+     * As we will connect the sip side of the call just to play some notifications we need their diration
+     * in order to hangup the call after the playback.
      */
     private static final Map<String, Integer> playbackFileDuration = new HashMap<>();
 
     /**
-     *
+     * The sound files approximate durations.
      */
     static {
         playbackFileDuration.put(LOBBY_MEETING_END, new Integer(8));
@@ -220,6 +216,16 @@ public class SoundNotificationManager
     public SoundNotificationManager(SipGatewaySession gatewaySession)
     {
         this.gatewaySession = gatewaySession;
+    }
+
+    /**
+     * Returns the call context for the current session.
+
+     * @return the call context for the current session.
+     */
+    private CallContext getCallContext()
+    {
+        return this.gatewaySession.getCallContext();
     }
 
     /**
@@ -299,32 +305,13 @@ public class SoundNotificationManager
      */
     private static void injectSoundFile(Call call, String fileName)
     {
-        MediaStream stream = null;
-
-        CallPeer peer;
-        if (call != null
-            && call.getCallPeers() != null
-            && call.getCallPeers().hasNext()
-            && (peer = call.getCallPeers().next()) != null
-            && peer instanceof MediaAwareCallPeer)
-        {
-            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
-
-            CallPeerMediaHandler mediaHandler
-                = peerMedia.getMediaHandler();
-            if (mediaHandler != null)
-            {
-                stream = mediaHandler.getStream(MediaType.AUDIO);
-            }
-        }
+        MediaStream stream = getMediaStream(call);
 
         // if there is no stream or the calling account is not using translator
         // or the current call is not using opus
         if (stream == null
-            || !call.getProtocolProvider()
-            .getAccountID().getAccountPropertyBoolean(
-                ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
-                false)
+            || !call.getProtocolProvider().getAccountID().getAccountPropertyBoolean(
+                    ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, false)
             || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
             || fileName == null)
         {
@@ -340,8 +327,7 @@ public class SoundNotificationManager
             }
             catch (Throwable t)
             {
-                Logger.getLogger(Util.class)
-                    .error("Error playing:" + fileName, t);
+                logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
             }
         }).start();
     }
@@ -440,9 +426,6 @@ public class SoundNotificationManager
             }
             else
             {
-                /**
-                 *
-                 */
                 playbackQueue.start();
 
                 playParticipantJoinedNotification();
@@ -492,7 +475,7 @@ public class SoundNotificationManager
         }
         catch(OperationFailedException e)
         {
-            logger.error("Cannot answer call to play max occupants sound", e);
+            logger.error(getCallContext() + " Cannot answer call to play max occupants sound", e);
             return;
         }
 
@@ -503,7 +486,7 @@ public class SoundNotificationManager
         }
         catch(InterruptedException e)
         {
-            logger.warn("Didn't finish waiting for hangup on max occupants");
+            logger.warn(getCallContext() + " Didn't finish waiting for hangup on max occupants");
         }
     }
 
@@ -530,14 +513,12 @@ public class SoundNotificationManager
                     }
                     catch(Exception ex)
                     {
-                        logger.error(ex.getMessage());
+                        logger.error(getCallContext() + ex.getMessage(), ex);
                     }
                 }
             };
 
-        getParticipantAloneNotificationTimer()
-            .schedule(this.participantAloneNotificationTask,
-                        timeout);
+        getParticipantAloneNotificationTimer().schedule(this.participantAloneNotificationTask, timeout);
     }
 
     /**
@@ -586,7 +567,7 @@ public class SoundNotificationManager
                     jvbCall.getCallState() == CallState.CALL_IN_PROGRESS);
         }
 
-        if (sendNotification == true)
+        if (sendNotification)
         {
             playParticipantJoinedNotification();
         }
@@ -645,21 +626,18 @@ public class SoundNotificationManager
                 }
 
                 // Hangup in these two cases
-                if (fileName == LOBBY_ACCESS_DENIED || fileName == LOBBY_MEETING_END)
+                if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
                     long playbackDuration = playbackFileDuration.get(fileName).longValue();
 
-                        playbackQueue.queueNext(gatewaySession.getSipCall(),
-                                                fileName,
-                                                new PlaybackQueue.PlaybackDelegate()
-                                                {
-                                                    @Override
-                                                    public void onPlaybackFinished() {
-                                                        // Hangup
-                                                        CallManager.hangupCall(gatewaySession.getSipCall());
-                                                    }
-                                                },
-                                                playbackDuration);
+                        playbackQueue.queueNext(
+                            gatewaySession.getSipCall(),
+                            fileName,
+                            () -> {
+                                // Hangup
+                                CallManager.hangupCall(gatewaySession.getSipCall());
+                            },
+                            playbackDuration);
                 }
                 else
                 {
@@ -669,7 +647,7 @@ public class SoundNotificationManager
         }
         catch (Exception ex)
         {
-            logger.error(ex.toString());
+            logger.error(getCallContext() + " " + ex.toString(), ex);
         }
     }
 
@@ -738,7 +716,7 @@ public class SoundNotificationManager
         }
         catch(Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(getCallContext() + " " + ex.getMessage(), ex);
         }
     }
 
@@ -750,7 +728,7 @@ public class SoundNotificationManager
     {
         try
         {
-            if (getParticipantLeftRateLimiter().on() == false)
+            if (!getParticipantLeftRateLimiter().on())
             {
                 Call sipCall = gatewaySession.getSipCall();
 
@@ -762,7 +740,7 @@ public class SoundNotificationManager
         }
         catch(Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(getCallContext() + " " + ex.getMessage(), ex);
         }
     }
 
@@ -779,7 +757,7 @@ public class SoundNotificationManager
                 this.participantAloneNotificationTask.cancel();
             }
 
-            if (getParticipantJoinedRateLimiter().on() == false)
+            if (!getParticipantJoinedRateLimiter().on())
             {
                 Call sipCall = gatewaySession.getSipCall();
 
@@ -791,7 +769,7 @@ public class SoundNotificationManager
         }
         catch(Exception ex)
         {
-            logger.error(ex.getMessage());
+            logger.error(getCallContext() + " " + ex.getMessage());
         }
     }
 
@@ -856,12 +834,12 @@ public class SoundNotificationManager
          *
          * @return true if enabled, false otherwise.
          */
-        public boolean on();
+        boolean on();
 
         /**
          * Reset timeout.
          */
-        public void reset();
+        void reset();
     }
 
     /**
@@ -872,8 +850,7 @@ public class SoundNotificationManager
         /**
          * Initial time point.
          */
-        private final AtomicReference<Instant> startTimePoint
-            = new AtomicReference<>(null);
+        private final AtomicReference<Instant> startTimePoint = new AtomicReference<>(null);
 
         /**
          * Timeout in milliseconds.
@@ -933,6 +910,33 @@ public class SoundNotificationManager
     }
 
     /**
+     * Extracts MediaStream from call.
+     * @param call the call.
+     * @return null or <tt>MediaStream</tt> if available.
+     */
+    private static MediaStream getMediaStream(Call call)
+    {
+        CallPeer peer;
+        if (call != null
+            && call.getCallPeers() != null
+            && call.getCallPeers().hasNext()
+            && (peer = call.getCallPeers().next()) != null
+            && peer instanceof MediaAwareCallPeer)
+        {
+            MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+            CallPeerMediaHandler mediaHandler
+                = peerMedia.getMediaHandler();
+            if (mediaHandler != null)
+            {
+                return mediaHandler.getStream(MediaType.AUDIO);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Used to queue audio files for playback. This is used for the IVR.
      */
     private static class PlaybackQueue extends Thread
@@ -942,7 +946,7 @@ public class SoundNotificationManager
          */
         public interface PlaybackDelegate
         {
-            public void onPlaybackFinished();
+            void onPlaybackFinished();
         }
 
         /**
@@ -1101,8 +1105,7 @@ public class SoundNotificationManager
                                 }
                                 catch (Exception ex)
                                 {
-                                    Logger.getLogger(PlaybackQueue.class)
-                                            .error(ex.toString());
+                                    logger.error(playbackCall.getData(CallContext.class) + " " + ex.toString(), ex);
                                 }
                             }).start();
                         }
@@ -1110,8 +1113,7 @@ public class SoundNotificationManager
                 }
                 catch (InterruptedException e)
                 {
-                    Logger.getLogger(PlaybackQueue.class)
-                            .error(e.toString());
+                    logger.error(e.toString(), e);
                 }
             }
         }
@@ -1132,37 +1134,17 @@ public class SoundNotificationManager
          */
         private void injectSoundFile(Call call, String fileName)
         {
-            MediaStream stream = null;
-
-            CallPeer peer;
-            if (call != null
-                    && call.getCallPeers() != null
-                    && call.getCallPeers().hasNext()
-                    && (peer = call.getCallPeers().next()) != null
-                    && peer instanceof MediaAwareCallPeer)
-            {
-                MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
-
-                CallPeerMediaHandler mediaHandler
-                        = peerMedia.getMediaHandler();
-                if (mediaHandler != null)
-                {
-                    stream = mediaHandler.getStream(MediaType.AUDIO);
-                }
-            }
+            MediaStream stream = getMediaStream(call);
 
             // if there is no stream or the calling account is not using translator
             // or the current call is not using opus
             if (stream == null
-                    || !call.getProtocolProvider()
-                    .getAccountID().getAccountPropertyBoolean(
-                            ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
-                            false)
+                    || !call.getProtocolProvider().getAccountID().getAccountPropertyBoolean(
+                            ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, false)
                     || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
                     || fileName == null)
             {
-                Logger.getLogger(Util.class)
-                        .error("NO PLAYBACK!!!");
+                logger.error(call.getData(CallContext.class) + " No playback!");
                 return;
             }
 
@@ -1174,8 +1156,7 @@ public class SoundNotificationManager
             }
             catch (Throwable t)
             {
-                Logger.getLogger(Util.class)
-                        .error("Error playing:" + fileName, t);
+                logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
             }
         }
     }
