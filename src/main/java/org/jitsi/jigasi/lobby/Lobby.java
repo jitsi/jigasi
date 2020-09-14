@@ -17,8 +17,6 @@
  */
 package org.jitsi.jigasi.lobby;
 
-import java.util.concurrent.*;
-
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
 import org.jivesoftware.smackx.nick.packet.*;
@@ -30,15 +28,19 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.impl.*;
 
+import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
+
 /**
  * Class used to join and leave the lobby room and provides a way to handle lobby events.
  * If lobby is enabled JvbConference will fail join registration and Lobby will be used
  * to confirm join in the initial JvbConference.
  *
  * @author Cristian Florin Ghita
+ * @author Damian Minkov
  */
 public class Lobby
-        implements ChatRoomInvitationListener, LocalUserChatRoomPresenceListener
+    implements ChatRoomInvitationListener,
+               LocalUserChatRoomPresenceListener
 {
     /**
      * The logger.
@@ -85,7 +87,7 @@ public class Lobby
      *
      * @param protocolProviderService <tt>ProtocolProviderService</tt> registered protocol service to be used.
      * @param context <tt>CallContext</tt> to be used.
-     * @param jid <tt>EntityFullJid</tt> for the lobby room to join.
+     * @param lobbyJid <tt>EntityFullJid</tt> for the lobby room to join.
      */
     public Lobby(ProtocolProviderService protocolProviderService,
                  CallContext context,
@@ -115,7 +117,8 @@ public class Lobby
      * @throws OperationFailedException
      * @throws OperationNotSupportedException
      */
-    public void join() throws OperationFailedException, OperationNotSupportedException
+    public void join()
+        throws OperationFailedException, OperationNotSupportedException
     {
         joinRoom(getRoomJid());
 
@@ -166,8 +169,7 @@ public class Lobby
      */
     protected void leaveRoom()
     {
-        OperationSetMultiUserChat muc
-                = this.xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
+        OperationSetMultiUserChat muc = this.xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
 
         muc.removeInvitationListener(this);
 
@@ -176,8 +178,6 @@ public class Lobby
             logger.warn(getCallContext() + " MUC room is null");
             return;
         }
-
-        ProtocolProviderService pps = getProtocolProvider();
 
         muc.removePresenceListener(this);
 
@@ -197,8 +197,7 @@ public class Lobby
     {
         try
         {
-            this.sipGatewaySession
-                    .getSoundNotificationManager()
+            this.sipGatewaySession.getSoundNotificationManager()
                     .notifyLobbyAccessGranted();
 
             if (this.jvbConference != null)
@@ -207,14 +206,14 @@ public class Lobby
             }
             else
             {
-                logger.error("No JVB conference!!!");
+                logger.error(getCallContext() + " No JVB conference!!!");
             }
 
             leave();
         }
         catch (Exception ex)
         {
-            logger.error(ex.toString());
+            logger.error(getCallContext() + " " + ex.toString(), ex);
         }
     }
 
@@ -222,17 +221,16 @@ public class Lobby
      * Participant is kicked if rejected on join and this method handles the lobby rejection and lobby room destruction.
      * Participant receives LOCAL_USER_LEFT if lobby is disabled.
      *
-     * @param localUserChatRoomPresenceChangeEvent <tt>LocalUserChatRoomPresenceChangeEvent</tt> contains reason.
+     * @param evt <tt>LocalUserChatRoomPresenceChangeEvent</tt> contains reason.
      */
     @Override
-    public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent localUserChatRoomPresenceChangeEvent)
+    public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
     {
         try
         {
-            if (localUserChatRoomPresenceChangeEvent.getChatRoom().equals(this.mucRoom))
+            if (evt.getChatRoom().equals(this.mucRoom))
             {
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED)
+                if (evt.getEventType().equals(LOCAL_USER_KICKED))
                 {
                     /**
                      * Lobby access denied.
@@ -244,14 +242,13 @@ public class Lobby
                     leave();
                 }
 
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_LEFT)
+                if (evt.getEventType().equals(LOCAL_USER_LEFT))
                 {
                     /**
                      * Lobby access granted.
                      */
 
-                    String alternateAddress = localUserChatRoomPresenceChangeEvent.getAlternateAddress();
+                    String alternateAddress = evt.getAlternateAddress();
 
                     if (alternateAddress == null)
                     {
@@ -263,9 +260,9 @@ public class Lobby
                     }
                     else
                     {
-                        Jid alternateJid = (Jid)JidCreate.entityBareFrom(alternateAddress);
+                        Jid alternateJid = JidCreate.entityBareFrom(alternateAddress);
 
-                        if (alternateJid.equals(this.mainRoomJid) == false)
+                        if (!alternateJid.equals(this.mainRoomJid))
                         {
                             logger.warn("Alternate Jid not the same as main room Jid!");
                         }
@@ -288,8 +285,7 @@ public class Lobby
                     }
                 }
 
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOINED)
+                if (evt.getEventType().equals(LOCAL_USER_JOINED))
                 {
                     /**
                      * After lobby is joined playback the waiting notification.
@@ -297,18 +293,15 @@ public class Lobby
                      */
                 }
 
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_JOIN_FAILED)
+                if (evt.getEventType().equals(LOCAL_USER_JOIN_FAILED))
                 {
                     /**
                      * If join has failed playback the meeting ended notification.
                      */
-
                     logger.error("Failed to join lobby!");
                 }
 
-                if (localUserChatRoomPresenceChangeEvent.getEventType()
-                        == LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_ROOM_DESTROYED)
+                if (evt.getEventType().equals(LOCAL_USER_ROOM_DESTROYED))
                 {
 
                 }
@@ -316,7 +309,7 @@ public class Lobby
         }
         catch (Exception ex)
         {
-            logger.error(ex.toString());
+            logger.error(getCallContext() + " " + ex.toString(), ex);
         }
     }
 

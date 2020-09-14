@@ -547,8 +547,6 @@ public class SoundNotificationManager
      */
     public void onJvbCallEnded()
     {
-        notifyJvbConferenceEnded();
-
         scheduleAloneNotification(0);
 
         if (this.participantJoinedRateLimiterLazy != null)
@@ -690,14 +688,6 @@ public class SoundNotificationManager
     public void notifyLobbyAccessDenied()
     {
         playSoundFileIfPossible(LOBBY_ACCESS_DENIED);
-    }
-
-    /**
-     * Used to notify the user that the JVB call has ended.
-     */
-    public void notifyJvbConferenceEnded()
-    {
-
     }
 
     /**
