@@ -187,6 +187,11 @@ public class SoundNotificationManager
     private TimerTask participantAloneNotificationTask = null;
 
     /**
+     * To sync schedule and cancel the participant alone notification.
+     */
+    private final Object participantAloneNotificationSync = new Object();
+
+    /**
      * A queue of files to be played when call is connected.
      */
     private PlaybackQueue playbackQueue = new PlaybackQueue();
@@ -496,13 +501,12 @@ public class SoundNotificationManager
      */
     private void scheduleAloneNotification(long timeout)
     {
-        if (this.participantAloneNotificationTask != null)
+        synchronized(participantAloneNotificationSync)
         {
-            this.participantAloneNotificationTask.cancel();
-        }
+            this.cancelAloneNotification();
 
-        this.participantAloneNotificationTask
-            = new TimerTask()
+            this.participantAloneNotificationTask
+                = new TimerTask()
             {
                 @Override
                 public void run()
@@ -518,7 +522,22 @@ public class SoundNotificationManager
                 }
             };
 
-        getParticipantAloneNotificationTimer().schedule(this.participantAloneNotificationTask, timeout);
+            getParticipantAloneNotificationTimer().schedule(this.participantAloneNotificationTask, timeout);
+        }
+    }
+
+    /**
+     * Cancels the participant alone notification.
+     */
+    private void cancelAloneNotification()
+    {
+        synchronized(participantAloneNotificationSync)
+        {
+            if (this.participantAloneNotificationTask != null)
+            {
+                this.participantAloneNotificationTask.cancel();
+            }
+        }
     }
 
     /**
@@ -572,11 +591,7 @@ public class SoundNotificationManager
             playParticipantJoinedNotification();
         }
 
-        // Cancel alone notification
-        if (this.participantAloneNotificationTask != null)
-        {
-            this.participantAloneNotificationTask.cancel();
-        }
+        this.cancelAloneNotification();
     }
 
     /**
@@ -752,10 +767,7 @@ public class SoundNotificationManager
     {
         try
         {
-            if (this.participantAloneNotificationTask != null)
-            {
-                this.participantAloneNotificationTask.cancel();
-            }
+            this.cancelAloneNotification();
 
             if (!getParticipantJoinedRateLimiter().on())
             {
