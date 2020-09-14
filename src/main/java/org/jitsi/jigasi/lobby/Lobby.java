@@ -27,6 +27,7 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 
@@ -122,9 +123,8 @@ public class Lobby
     {
         joinRoom(getRoomJid());
 
-        this.sipGatewaySession
-                .getSoundNotificationManager()
-                .notifyLobbyWaitReview();
+        this.sipGatewaySession.getSoundNotificationManager()
+            .notifyLobbyWaitReview();
     }
 
     /**
@@ -230,16 +230,17 @@ public class Lobby
         {
             if (evt.getChatRoom().equals(this.mucRoom))
             {
+                SoundNotificationManager soundManager = this.sipGatewaySession.getSoundNotificationManager();
                 if (evt.getEventType().equals(LOCAL_USER_KICKED))
                 {
                     /**
                      * Lobby access denied.
                      */
-                    this.sipGatewaySession
-                            .getSoundNotificationManager()
-                            .notifyLobbyAccessDenied();
+                    soundManager.notifyLobbyAccessDenied();
 
                     leave();
+
+                    return;
                 }
 
                 if (evt.getEventType().equals(LOCAL_USER_LEFT))
@@ -247,50 +248,14 @@ public class Lobby
                     /**
                      * Lobby access granted.
                      */
-
                     String alternateAddress = evt.getAlternateAddress();
 
-                    if (alternateAddress == null)
+                    if (alternateAddress != null)
                     {
-                        this.sipGatewaySession
-                                .getSoundNotificationManager()
-                                .notifyLobbyRoomDestroyed();
-
-                        return;
+                        accessGranted(alternateAddress);
                     }
-                    else
-                    {
-                        Jid alternateJid = JidCreate.entityBareFrom(alternateAddress);
 
-                        if (!alternateJid.equals(this.mainRoomJid))
-                        {
-                            logger.warn("Alternate Jid not the same as main room Jid!");
-                        }
-
-                        this.sipGatewaySession
-                                .getSoundNotificationManager()
-                                .notifyLobbyAccessGranted();
-
-                        /**
-                         * The left event is used here in case the lobby is disabled.
-                         */
-                        if (this.jvbConference != null)
-                        {
-                            this.jvbConference.joinConferenceRoom();
-                        }
-                        else
-                        {
-                            logger.error("No JVB conference!!!");
-                        }
-                    }
-                }
-
-                if (evt.getEventType().equals(LOCAL_USER_JOINED))
-                {
-                    /**
-                     * After lobby is joined playback the waiting notification.
-                     * Event is not working at the moment.
-                     */
+                    return;
                 }
 
                 if (evt.getEventType().equals(LOCAL_USER_JOIN_FAILED))
@@ -299,17 +264,79 @@ public class Lobby
                      * If join has failed playback the meeting ended notification.
                      */
                     logger.error("Failed to join lobby!");
+
+                    return;
                 }
 
                 if (evt.getEventType().equals(LOCAL_USER_ROOM_DESTROYED))
                 {
+                    String alternateAddress = evt.getAlternateAddress();
 
+                    if (alternateAddress == null)
+                    {
+                        soundManager.notifyLobbyRoomDestroyed();
+
+                        return;
+                    }
+                    else
+                    {
+                        /**
+                         * Lobby access granted by disabling the lobby.
+                         */
+                        logger.info("dabeeeee vernos " + alternateAddress);
+
+                        accessGranted(alternateAddress);
+                    }
+
+                    return;
                 }
             }
         }
         catch (Exception ex)
         {
             logger.error(getCallContext() + " " + ex.toString(), ex);
+        }
+    }
+
+    /**
+     * Access is granted.
+     * @param alternateAddress
+     * @throws XmppStringprepException
+     */
+    private void accessGranted(String alternateAddress)
+        throws XmppStringprepException
+    {
+        Jid alternateJid = JidCreate.entityBareFrom(alternateAddress);
+
+        if (!alternateJid.equals(this.mainRoomJid))
+        {
+            logger.warn(getCallContext() + " Alternate Jid not the same as main room Jid!");
+        }
+
+        try
+        {
+            // we may receive destroy and user leave with alternate address one after another
+            // in case of lobby disabled, leaving early the lobby will remove listeners and
+            // one of them will not be delivered here
+            leave();
+        }
+        catch(Exception e)
+        {
+            logger.error(getCallContext() + " Error leaving lobby", e);
+        }
+
+        this.sipGatewaySession.getSoundNotificationManager().notifyLobbyAccessGranted();
+
+        /**
+         * The left event is used here in case the lobby is disabled.
+         */
+        if (this.jvbConference != null)
+        {
+            this.jvbConference.joinConferenceRoom();
+        }
+        else
+        {
+            logger.error(getCallContext() + " No JVB conference!!!");
         }
     }
 
@@ -370,8 +397,7 @@ public class Lobby
             }
             else
             {
-                logger.error(this.callContext
-                        + " No display name to use...");
+                logger.error(this.callContext + " No display name to use...");
             }
         }
     }
