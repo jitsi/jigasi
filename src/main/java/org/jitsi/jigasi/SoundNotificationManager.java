@@ -357,6 +357,7 @@ public class SoundNotificationManager
         long ts = new Random().nextInt(0xFFFF);
         long ssrc = new Random().nextInt(0xFFFF);
         byte pt = stream.getDynamicRTPPayloadType(Constants.OPUS);
+        long timePushPreviousData = 0;
 
         while ((opusAudioData = of.getNextAudioPacket()) != null)
         {
@@ -375,7 +376,7 @@ public class SoundNotificationManager
             }
 
             byte[] data = opusAudioData.getData();
-            RawPacket rtp = RawPacket.makeRTP(
+            RawPacket rtp = Util.makeRTP(
                 ssrc, // ssrc
                 pt,// payload
                 seq++, /// seq
@@ -386,12 +387,13 @@ public class SoundNotificationManager
             System.arraycopy(
                 data, 0, rtp.getBuffer(), rtp.getPayloadOffset(), data.length);
 
+            long sleepTime = nSamples/48 - (System.currentTimeMillis() - timePushPreviousData);
+            if (sleepTime < 0)
+                sleepTime = 0;
+            Thread.sleep(sleepTime);
+
             stream.injectPacket(rtp, true, null);
-            synchronized (of)
-            {
-                // we wait the time which this packets carries as time of sound
-                of.wait(nSamples/48);
-            }
+            timePushPreviousData = System.currentTimeMillis();
         }
     }
 

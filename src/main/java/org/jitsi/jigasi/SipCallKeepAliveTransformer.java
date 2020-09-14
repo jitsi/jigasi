@@ -17,10 +17,10 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.*;
@@ -228,7 +228,7 @@ public class SipCallKeepAliveTransformer
                     // in case they get lost
                     for(int i=0; i < 3; i++)
                     {
-                        RawPacket packet = RawPacket.makeRTP(
+                        RawPacket packet = Util.makeRTP(
                             stream.getLocalSourceID(),
                             13/* comfort noise payload type */,
                             seqNum++,
