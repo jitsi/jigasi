@@ -24,6 +24,7 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
+import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
@@ -38,7 +39,10 @@ import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smackx.disco.*;
+import org.jivesoftware.smackx.disco.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
+import org.jivesoftware.smackx.xdata.packet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -673,7 +677,7 @@ public class JvbConference
         return started;
     }
 
-    private void joinConferenceRoom()
+    public void joinConferenceRoom()
     {
         // Advertise gateway feature before joining
         addSupportedFeatures(
@@ -695,9 +699,13 @@ public class JvbConference
             this.jitsiMeetTools.addRequestListener(this.gatewaySession);
         }
 
+        Localpart lobbyLocalpart = null;
+
+        String roomName = null;
+
         try
         {
-            String roomName = callContext.getRoomName();
+            roomName = callContext.getRoomName();
             if (!roomName.contains("@"))
             {
                 // we check for optional muc service
@@ -794,6 +802,8 @@ public class JvbConference
 
             Localpart resourceIdentifier = getResourceIdentifier();
 
+            lobbyLocalpart = resourceIdentifier;
+
             // let's schedule the timeout before joining, before been able
             // to receive any incoming call, will cancel it if we need to
             // jvbCall will be null (no need on any sync as we are still not in
@@ -829,6 +839,104 @@ public class JvbConference
         }
         catch (Exception e)
         {
+            if (e instanceof OperationFailedException)
+            {
+                OperationFailedException opex = (OperationFailedException)e;
+
+                switch(opex.getErrorCode())
+                {
+                    /**
+                     * Thrown when lobby is enabled.
+                     */
+                    case OperationFailedException.REGISTRATION_REQUIRED:
+                    {
+                        /**
+                         * Lobby functionality is only supported for <tt>SipGatewaySession</tt>.
+                         */
+                        if (this.gatewaySession != null && this.gatewaySession instanceof SipGatewaySession)
+                        {
+                            try
+                            {
+                                if (JigasiBundleActivator.isSipStartMutedEnabled())
+                                {
+                                    if (this.muteIqHandler != null)
+                                    {
+                                        getConnection().unregisterIQRequestHandler(this.muteIqHandler);
+                                    }
+                                }
+
+                                if (this.mucRoom != null)
+                                {
+                                    this.mucRoom.removeMemberPresenceListener(this);
+                                }
+
+                                if (muc != null)
+                                {
+                                    muc.removePresenceListener(this);
+                                }
+
+                                if (opSet != null)
+                                {
+                                    opSet.removeDTMFListener(this.gatewaySession);
+                                }
+
+                                if (this.jitsiMeetTools != null)
+                                {
+                                    this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
+                                }
+
+                                DataObject dataObject = opex.getDataObject();
+
+                                if (dataObject != null)
+                                {
+                                    Jid lobbyJid = (Jid)dataObject.getData("lobbyroomjid");
+
+                                    if (lobbyJid != null)
+                                    {
+                                        EntityFullJid lobbyFullJid =
+                                                JidCreate.fullFrom(lobbyJid.asEntityBareJidOrThrow(),
+                                                        Resourcepart.from(lobbyLocalpart.toString()));
+
+                                        Jid mainRoomJid = null;
+
+                                        if (roomName != null)
+                                        {
+                                            mainRoomJid = JidCreate.entityBareFrom(roomName);
+                                        }
+
+                                        Lobby lobbyRoom = new Lobby(this.xmppProvider,
+                                                this.callContext,
+                                                lobbyFullJid,
+                                                mainRoomJid,
+                                                this,
+                                                (SipGatewaySession)this.gatewaySession);
+
+                                        logger.info(
+                                            callContext + " Lobby enabled by moderator! Will try to join lobby!");
+
+                                        lobbyRoom.join();
+
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        logger.error(callContext + " No required lobby jid!");
+                                    }
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                logger.error(callContext + " Failed to join lobby room!", ex);
+                            }
+                        }
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+
             if (e.getCause() instanceof XMPPException.XMPPErrorException)
             {
                 if (JigasiBundleActivator.getConfigurationService()
@@ -840,7 +948,7 @@ public class JvbConference
                 }
             }
 
-            logger.error(this.callContext.toString() + e, e);
+            logger.error(this.callContext + " " + e.getMessage(), e);
 
             // inform that this session had failed
             gatewaySession.getGateway()
@@ -1015,6 +1123,96 @@ public class JvbConference
             stop();
 
             return;
+        }
+
+        // process member left if it is not focus
+        processChatRoomMemberLeft(member);
+    }
+
+    /**
+     * Extra logic when member left. In case of sip gateway session and lobby is enabled, if only jigasi participants
+     * are in the room they should leave as they cannot be moderators. In case of dedicated moderator in the room
+     * the jigasi instances can stay.
+     *
+     * @param member The member that had left
+     */
+    private void processChatRoomMemberLeft(ChatRoomMember member)
+    {
+        if (!this.started)
+        {
+            // we want to ignore the leave events when stopping the conference
+            return;
+        }
+
+        try
+        {
+            DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
+                discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
+
+            DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
+            boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
+            boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
+
+            // if lobby is not enabled or single moderator mode is detected
+            // there is nothing to process
+            // but otherwise we will check whether there are
+            if (lobbyEnabled && !singleModeratorEnabled)
+            {
+                // let's check the rest of the members
+                String roomName = mucRoom.getIdentifier();
+
+                boolean onlyJigasisInRoom = !this.mucRoom.getMembers().stream().anyMatch(m -> {
+                    // If its us or jicofo ignore checking for jigasi
+                    if (m.getName().equals(getResourceIdentifier().toString())
+                        || m.getName().equals(gatewaySession.getFocusResourceAddr()))
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        String jidString = roomName  + "/" + m.getName();
+                        DiscoverInfo i = ServiceDiscoveryManager.getInstanceFor(getConnection())
+                            .discoverInfo(JidCreate.entityFullFrom(jidString));
+
+                        if (!i.containsFeature(SIP_GATEWAY_FEATURE_NAME))
+                        {
+                            return true;
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        logger.error(callContext + " Error checking discoInfo for:" + m.getName(), e);
+                    }
+
+                    return false;
+                });
+
+                if (onlyJigasisInRoom)
+                {
+                    // there are only jigasi participants in the room with lobby enabled
+                    // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
+                    // leaving it
+                    logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
+
+                    // let's play something
+                    if (this.gatewaySession instanceof SipGatewaySession)
+                    {
+                        // This will hangup the call at the end
+                        ((SipGatewaySession) this.gatewaySession)
+                            .getSoundNotificationManager().notifyLobbyRoomDestroyed();
+                    }
+                    else
+                    {
+                        // transcriber case
+                        stop();
+                    }
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            logger.error(callContext + " Error checking lobby and other participants", e);
         }
     }
 
@@ -1714,7 +1912,7 @@ public class JvbConference
         return true;
     }
 
-    private XMPPConnection getConnection()
+    public XMPPConnection getConnection()
     {
         if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
         {
