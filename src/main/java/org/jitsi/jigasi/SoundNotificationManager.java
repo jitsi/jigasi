@@ -392,7 +392,8 @@ public class SoundNotificationManager
             sentDuration += duration;
             stream.injectPacket(rtp, true, null);
             long sleep = timeForNextPacket - System.currentTimeMillis();
-            if (sleep > 0 && sentDuration > 200) { // we let the first 200ms to be sent without waiting
+            if (sleep > 0 && sentDuration > 200) // we let the first 200ms to be sent without waiting
+            {
                 Thread.sleep(sleep);
             }
         }
