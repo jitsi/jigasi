@@ -49,6 +49,16 @@ public class Lobby
     private final static Logger logger = Logger.getLogger(Lobby.class);
 
     /**
+     * The data form field added when lobby is enabled.
+     */
+    public static final String DATA_FORM_LOBBY_ROOM_FIELD = "muc#roominfo_lobbyroom";
+
+    /**
+     * The data form field added when single moderator is enabled for the room.
+     */
+    public static final String DATA_FORM_SINGLE_MODERATOR_FIELD = "muc#roominfo_moderator_identity";
+
+    /**
      * The XMPP provider used to join JVB conference.
      */
     private final ProtocolProviderService xmppProvider;
