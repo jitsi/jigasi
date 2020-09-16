@@ -1138,9 +1138,10 @@ public class JvbConference
      */
     private void processChatRoomMemberLeft(ChatRoomMember member)
     {
-        if (!this.started)
+        if (!this.started || getConnection() == null || !getConnection().isConnected())
         {
-            // we want to ignore the leave events when stopping the conference
+            // we want to ignore the leave events when stopping the conference,
+            // or connection is missing or not connected
             return;
         }
 

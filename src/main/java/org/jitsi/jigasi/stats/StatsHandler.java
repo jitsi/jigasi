@@ -203,7 +203,7 @@ public class StatsHandler
                 {
                     AccountID acc = candidate.getAccountID();
                     String confPrefix = acc.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
-                    if (callContext.getDomain().equals(confPrefix))
+                    if (callContext.getDomain() != null && callContext.getDomain().equals(confPrefix))
                     {
                         targetAccountID = acc;
                         break;
@@ -259,10 +259,12 @@ public class StatsHandler
             String jigasiId = targetAccountID.getAccountPropertyString(CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
 
             String conferenceIDPrefix = targetAccountID.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
-            int interval = targetAccountID.getAccountPropertyInt(CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
+            int interval = targetAccountID.getAccountPropertyInt(
+                CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
 
             ServiceReference<VersionService> serviceReference = bundleContext.getServiceReference(VersionService.class);
-            VersionService versionService = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
+            VersionService versionService
+                = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
             Version version = versionService != null ? versionService.getCurrentVersion() : null;
 
             logger.info(callContext + " Jitsi-stats library initializing for account: " + targetAccountID);
