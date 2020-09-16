@@ -95,7 +95,7 @@ Using Jigasi to transcribe a Jitsi Meet conference
 It is also possible to use Jigasi as a provider of nearly real-time transcription
 while a conference is ongoing as well as serving a complete transcription
 after the conference is over. This can be done by using the SIP dial button and 
-using the the URI `jitsi_meet_transcribe`. 
+using the URI `jitsi_meet_transcribe`. 
 Currently Jigasi can send speech-to-text results to
 the chat of a Jitsi Meet room as either plain text or JSON. If it's send in JSON,
 Jitsi Meet will provide subtitles in the left corner of the video, while plain text
