@@ -83,7 +83,7 @@ public class CallsHandlingTest
     {
         sipProvider = osgi.getSipProvider();
 
-        this.roomName = getTestRoomName();
+        this.roomName = getTestRoomName() + "@conference.net";
 
         this.focus = new MockJvbConferenceFocus(roomName);
     }
@@ -213,6 +213,7 @@ public class CallsHandlingTest
         ChatRoom chatRoom = session.getJvbChatRoom();
         Call jvbCall = session.getJvbCall();
 
+        assertNotNull(chatRoom);
         assertEquals(true, chatRoom.isJoined());
         assertEquals(CallState.CALL_IN_PROGRESS, jvbCall.getCallState());
 
@@ -347,7 +348,8 @@ public class CallsHandlingTest
 
         Jid callResource = JidCreate.from(callUri.substring(5)); //remove xmpp:
 
-        List<SipGatewaySession> sessions = gatewaySessions.getSessions(1000);
+        List<SipGatewaySession> sessions = gatewaySessions.getSessions(2000);
+        assertNotNull(sessions);
         assertEquals(1, sessions.size());
 
         SipGatewaySession session = sessions.get(0);

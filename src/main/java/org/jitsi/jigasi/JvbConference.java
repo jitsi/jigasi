@@ -1138,9 +1138,10 @@ public class JvbConference
      */
     private void processChatRoomMemberLeft(ChatRoomMember member)
     {
-        if (!this.started)
+        if (!this.started || getConnection() == null || !getConnection().isConnected())
         {
-            // we want to ignore the leave events when stopping the conference
+            // we want to ignore the leave events when stopping the conference,
+            // or connection is missing or not connected
             return;
         }
 
@@ -1367,9 +1368,8 @@ public class JvbConference
             if (statsHandler == null)
             {
                 statsHandler = new StatsHandler(
-                    gatewaySession.getMucDisplayName(), DEFAULT_BRIDGE_ID);
+                    jvbCall, gatewaySession.getMucDisplayName(), DEFAULT_BRIDGE_ID);
             }
-            jvbCall.addCallChangeListener(statsHandler);
 
             gatewaySession.onConferenceCallInvited(jvbCall);
         }
@@ -1679,7 +1679,6 @@ public class JvbConference
                 if (this.jvbCall != null)
                 {
                     this.jvbCall.removeCallChangeListener(callChangeListener);
-                    this.jvbCall.removeCallChangeListener(statsHandler);
                 }
                 if (statsHandler != null)
                 {

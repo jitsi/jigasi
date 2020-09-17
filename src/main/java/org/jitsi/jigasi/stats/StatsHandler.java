@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2015 Atlassian Pty Ltd
+ * Copyright @ 2015 - present, 8x8 Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,19 +21,24 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.jigasi.util.*;
 import org.jitsi.stats.media.*;
-import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.version.*;
+import org.jitsi.utils.version.Version;
+import org.jxmpp.jid.*;
+import org.jxmpp.jid.impl.*;
+import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * The entry point for stats logging.
  * Listens for start of calls to start reporting and end of calls
  * to stop reporting.
+ * This is one instance per sip and one instance per xmpp call(JvbConference).
+ * We need to initialize on Callstats instance of the life time of Jigasi.
+ * So we keep a list of those instances per appId.
  *
  * @author Damian Minkov
  */
@@ -95,6 +100,11 @@ public class StatsHandler
     public static final String DEFAULT_JIGASI_ID = "jigasi";
 
     /**
+     * Map of all statsInstances we had created.
+     */
+    private static final Map<Integer, StatsServiceWrapper> statsInstances = new HashMap<>();
+
+    /**
      * The {@link RecurringRunnableExecutor} which periodically invokes
      * generating and pushing statistics per call for every statistic from the
      * MediaStream.
@@ -104,11 +114,15 @@ public class StatsHandler
             StatsHandler.class.getSimpleName() + "-statisticsExecutor");
 
     /**
-     * List of the processor per call. Kept in order to stop and
-     * deRegister them from the executor.
+     * The call handled by this StatsHandler instance.
      */
-    private final Map<Call,CallPeriodicRunnable>
-        statisticsProcessors = new ConcurrentHashMap<>();
+    private final Call call;
+
+    /**
+     * The periodic runnable we register with the the executor.
+     * We stop it and deRegister on dispose.
+     */
+    private CallPeriodicRunnable theStatsReporter = null;
 
     /**
      * The remote endpoint jvb or sip.
@@ -122,60 +136,50 @@ public class StatsHandler
     private final String originID;
 
     /**
+     * The call context used to create this conference, contains info as
+     * room name and room password and other optional parameters.
+     */
+    private final CallContext callContext;
+
+    /**
+     * The stats service for this instance of StatsHandler.
+     */
+    private StatsServiceWrapper statsService = null;
+
+    /**
      * Constructs StatsHandler.
      * @param remoteEndpointID the remote endpoint.
      */
-    public StatsHandler(String originID, String remoteEndpointID)
+    public StatsHandler(Call call, String originID, String remoteEndpointID)
     {
+        this.call = call;
         this.remoteEndpointID = remoteEndpointID;
         this.originID = originID;
-    }
+        this.callContext = (CallContext) this.call.getData(CallContext.class);
 
-    @Override
-    public synchronized void callStateChanged(CallChangeEvent evt)
-    {
-        Call call = evt.getSourceCall();
+        initStatsService();
 
-        if (call.getCallState() == CallState.CALL_IN_PROGRESS)
-        {
-            startConferencePeriodicRunnable(call);
-        }
-        else if(call.getCallState() == CallState.CALL_ENDED)
-        {
-            CallPeriodicRunnable cpr
-                = statisticsProcessors.remove(call);
-
-            if (cpr == null)
-            {
-                return;
-            }
-
-            cpr.stop();
-            statisticsExecutor.deRegisterRecurringRunnable(cpr);
-        }
+        this.call.addCallChangeListener(this);
     }
 
     /**
-     * Starts <tt>CallPeriodicRunnable</tt> for a call.
-     * @param call the call.
+     * Initializes the stats service.
      */
-    private void startConferencePeriodicRunnable(Call call)
+    private void initStatsService()
     {
-        CallContext callContext = (CallContext) call.getData(CallContext.class);
         BundleContext bundleContext = JigasiBundleActivator.osgiContext;
-        Object source = callContext.getSource();
+        Object source = this.callContext.getSource();
 
         if (source == null)
         {
-            logger.warn(
-                "No source of callContext found, will not init stats");
+            logger.warn(callContext + " No source of callContext found, will not init stats");
             return;
         }
 
         AccountID targetAccountID = null;
         if (source instanceof ProtocolProviderService
             && ((ProtocolProviderService) source).getProtocolName()
-                    .equals(ProtocolNames.JABBER))
+            .equals(ProtocolNames.JABBER))
         {
             targetAccountID = ((ProtocolProviderService) source).getAccountID();
         }
@@ -198,9 +202,8 @@ public class StatsHandler
                 if (ProtocolNames.JABBER.equals(candidate.getProtocolName()))
                 {
                     AccountID acc = candidate.getAccountID();
-                    String confPrefix = acc.getAccountPropertyString(
-                        CS_ACC_PROP_CONFERENCE_PREFIX);
-                    if (callContext.getDomain().equals(confPrefix))
+                    String confPrefix = acc.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
+                    if (callContext.getDomain() != null && callContext.getDomain().equals(confPrefix))
                     {
                         targetAccountID = acc;
                         break;
@@ -234,108 +237,114 @@ public class StatsHandler
 
             if (targetAccountID == null)
             {
-                logger.debug("No account found with enabled stats");
+                logger.debug(callContext + " No account found with enabled stats");
 
                 return;
             }
         }
 
-        int appId
-            = targetAccountID.getAccountPropertyInt(CS_ACC_PROP_APP_ID, 0);
-        String keyId
-            = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_ID);
-        String keyPath
-            = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_PATH);
-        String jigasiId = targetAccountID.getAccountPropertyString(
-            CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
+        int appId = targetAccountID.getAccountPropertyInt(CS_ACC_PROP_APP_ID, 0);
 
-        StatsService statsService
-            = StatsServiceFactory.getInstance()
-                .getStatsService(appId, bundleContext);
-
-        if (statsService == null)
+        synchronized(statsInstances)
         {
-            // no service will create it, and listen for its registration
-            // in OSGi
-            StatsServiceListener serviceListener = new StatsServiceListener(
-                bundleContext, callContext, call, targetAccountID);
-            bundleContext.addServiceListener(serviceListener);
+            if (statsInstances.containsKey(appId))
+            {
+                // that stat instance is already created
+                this.statsService = statsInstances.get(appId);
+                return;
+            }
 
-            final String targetAccountIDDescription
-                = targetAccountID.toString();
-            StatsServiceFactory.getInstance()
+            String keyId = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_ID);
+            String keyPath = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_PATH);
+            String jigasiId = targetAccountID.getAccountPropertyString(CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
+
+            String conferenceIDPrefix = targetAccountID.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
+            int interval = targetAccountID.getAccountPropertyInt(
+                CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
+
+            ServiceReference<VersionService> serviceReference = bundleContext.getServiceReference(VersionService.class);
+            VersionService versionService
+                = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
+            Version version = versionService != null ? versionService.getCurrentVersion() : null;
+
+            logger.info(callContext + " Jitsi-stats library initializing for account: " + targetAccountID);
+
+            StatsService statsServiceInstance = StatsServiceFactory.getInstance()
                 .createStatsService(
-                    bundleContext,
+                    version,
                     appId,
                     null,
                     keyId,
                     keyPath,
                     jigasiId,
                     true,
-                    ((reason, errorMessage) -> {
-                        logger.error("Jitsi-stats library failed to initialize "
-                            + "with reason: " + reason
-                            + " and error message: " + errorMessage
-                            + " for account: " + targetAccountIDDescription);
-
-                        bundleContext.removeServiceListener(serviceListener);
-
-                        // callstats holds this lambda and listener instance
-                        // and we clean instances to make sure we do not leave
-                        // anything behind, as much as possible
-                        serviceListener.clean();
-                    }));
-
-            return;
+                    new StatsServiceInitListener());
+            this.statsService = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
+            statsInstances.put(appId, this.statsService);
         }
+    }
 
-        createAndStartCallPeriodicRunnable(
-            statsService, callContext, call, targetAccountID);
+    @Override
+    public synchronized void callStateChanged(CallChangeEvent evt)
+    {
+        Call call = evt.getSourceCall();
+
+        if (call.getCallState() == CallState.CALL_IN_PROGRESS)
+        {
+            startConferencePeriodicRunnable(call);
+        }
+        else if(call.getCallState() == CallState.CALL_ENDED)
+        {
+            stopConferencePeriodicRunnable();
+        }
     }
 
     /**
-     * Creates and starts <tt>CallPeriodicRunnable</tt>.
-     * @param statsService the <tt>StatsService</tt> to use for reporting.
-     * @param callContext the call context.
+     * Starts <tt>CallPeriodicRunnable</tt> for a call.
      * @param call the call.
-     * @param accountID the account.
      */
-    private void createAndStartCallPeriodicRunnable(
-        StatsService statsService,
-        CallContext callContext,
-        Call call,
-        AccountID accountID)
+    private void startConferencePeriodicRunnable(Call call)
     {
-        String conferenceIDPrefix = accountID.getAccountPropertyString(
-            CS_ACC_PROP_CONFERENCE_PREFIX);
-        int interval = accountID.getAccountPropertyInt(
-            CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
-
-        String subDomain = callContext.getSubDomain();
-
-        // Add subdomain if available
-        if (!StringUtils.isNullOrEmpty(subDomain) && conferenceIDPrefix != null)
+        if(this.theStatsReporter != null)
         {
-            if (!conferenceIDPrefix.endsWith("/"))
-            {
-                conferenceIDPrefix += "/";
-            }
-            conferenceIDPrefix += subDomain;
+            logger.warn(callContext + " Stats reporter already started for call:" + this.call);
+            return;
         }
 
-        CallPeriodicRunnable cpr
-            = new CallPeriodicRunnable(
-                call,
-                interval,
-                statsService,
-                callContext.getConferenceName(),
-                conferenceIDPrefix,
-                DEFAULT_JIGASI_ID + "-" + originID,
-                this.remoteEndpointID);
+        if (this.statsService == null)
+        {
+            logger.warn(callContext + " Stats handler missing for call:" + this.call);
+        }
+
+        if (call.getCallState() != CallState.CALL_IN_PROGRESS)
+        {
+            // this is the case when the callstats initialized before the call
+            // was connected, once that is done we will start the runnable
+            return;
+        }
+
+        EntityBareJid roomJid;
+        try
+        {
+            roomJid = JidCreate.entityBareFrom(callContext.getRoomName());
+        }
+        catch(XmppStringprepException e)
+        {
+            logger.warn("Not stating stats handler as provided roomName is not a jid:" + callContext.getRoomName(), e);
+            return;
+        }
+
+        CallPeriodicRunnable cpr = StatsHandler.this.theStatsReporter = new CallPeriodicRunnable(
+            call,
+            this.statsService.interval,
+            this.statsService.service,
+            roomJid,
+            this.statsService.conferenceIDPrefix,
+            DEFAULT_JIGASI_ID + "-" + originID,
+            remoteEndpointID);
         cpr.start();
 
         // register for periodic execution.
-        statisticsProcessors.put(call, cpr);
         statisticsExecutor.registerRecurringRunnable(cpr);
     }
 
@@ -344,112 +353,73 @@ public class StatsHandler
      */
     public void dispose()
     {
-        statisticsProcessors.values().stream()
-            .forEach(cpr ->
-                {
-                    cpr.stop();
-                    statisticsExecutor.deRegisterRecurringRunnable(cpr);
-                });
+        this.call.removeCallChangeListener(this);
+
+        stopConferencePeriodicRunnable();
+    }
+
+    /**
+     * Stops the periodic runnable and deregister it from the executor.
+     */
+    private void stopConferencePeriodicRunnable()
+    {
+        if (this.theStatsReporter != null)
+        {
+            this.theStatsReporter.stop();
+            statisticsExecutor.deRegisterRecurringRunnable(this.theStatsReporter);
+            this.theStatsReporter = null;
+        }
     }
 
     /**
      * Waits for <tt>StatsService</tt> to registered to OSGi.
      */
-    private class StatsServiceListener
-        implements ServiceListener
+    private class StatsServiceInitListener
+        implements StatsServiceFactory.InitCallback
     {
-        /**
-         * The context.
-         */
-        private BundleContext context;
-
-        /**
-         * The call context.
-         */
-        private CallContext callContext;
-
-        /**
-         * The call.
-         */
-        private Call call;
-
-        /**
-         * The accountID.
-         */
-        private AccountID accountID;
-
-        /**
-         * Constructs <tt>StatsServiceListener</tt>.
-         * @param context the OSGi context.
-         * @param callContext the call context.
-         * @param call the call.
-         * @param accountID the accountID.
-         */
-        StatsServiceListener(
-            BundleContext context,
-            CallContext callContext,
-            Call call,
-            AccountID accountID)
+        @Override
+        public void error(String reason, String message)
         {
-            this.context = context;
-            this.callContext = callContext;
-            this.call = call;
-            this.accountID = accountID;
-        }
-
-        /**
-         * Cleans instances the listener holds.
-         */
-        private void clean()
-        {
-            this.context = null;
-            this.callContext = null;
-            this.call = null;
-            this.accountID = null;
+            logger.error(callContext + " Jitsi-stats library failed to initialize "
+                + "with reason: " + reason
+                + " and error message: " + message);
         }
 
         @Override
-        public void serviceChanged(ServiceEvent ev)
+        public void onInitialized(StatsService statsService, String message)
         {
-            if (this.context == null
-                || this.callContext == null
-                || this.call == null
-                || this.accountID == null)
-            {
-                logger.warn(
-                    "Received serviceChanged after listener was maybe cleaned");
-                return;
-            }
+            logger.info(callContext + " StatsService initialized " + message);
 
-            Object service;
+            startConferencePeriodicRunnable(call);
+        }
+    }
 
-            try
-            {
-                service = context.getService(ev.getServiceReference());
-            }
-            catch (IllegalArgumentException
-                | IllegalStateException
-                | SecurityException ex)
-            {
-                service = null;
-            }
+    /**
+     * A wrapper to carry all needed information from the runners.
+     * The confId prefix, the interval and the service.
+     */
+    private static class StatsServiceWrapper
+    {
+        /**
+         * The conference prefix.
+         */
+        private final String conferenceIDPrefix;
 
-            if (service == null || !(service instanceof StatsService))
-                return;
+        /**
+         * the interval for stats used by the runnable.
+         */
+        private final int interval;
 
-            switch (ev.getType())
-            {
-            case ServiceEvent.REGISTERED:
-                context.removeServiceListener(this);
+        /**
+         * The service itself.
+         */
+        private final StatsService service;
 
-                createAndStartCallPeriodicRunnable(
-                    (StatsService) service,
-                    this.callContext,
-                    call,
-                    accountID);
-
-                break;
-            }
+        public StatsServiceWrapper(String conferenceIDPrefix, int interval, StatsService service)
+        {
+            this.conferenceIDPrefix = conferenceIDPrefix;
+            this.interval = interval;
+            this.service = service;
         }
     }
 }

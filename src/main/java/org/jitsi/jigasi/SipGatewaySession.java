@@ -553,7 +553,7 @@ public class SipGatewaySession
             try
             {
                 this.sipCall = tele.createCall(destination);
-                this.initSipCall(destination);
+                this.initSipCall();
 
                 // Outgoing SIP connection mode sets common conference object
                 // just after the call has been created
@@ -621,7 +621,6 @@ public class SipGatewaySession
 
         if (statsHandler != null)
         {
-            sipCall.removeCallChangeListener(statsHandler);
             statsHandler.dispose();
             statsHandler = null;
         }
@@ -664,7 +663,20 @@ public class SipGatewaySession
                     .getAccountPropertyString(
                         CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
 
+                // we have the room information, lets add cs to incoming call
+                if (statsHandler == null)
+                {
+                    String sipCallIdentifier = this.getMucDisplayName();
+                    statsHandler = new StatsHandler(
+                        sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
+                }
+
                 joinJvbConference(callContext);
+            }
+            else
+            {
+                logger.warn("No JVB room name provided in INVITE header.");
+                logger.info("Count of headers received:" + (data != null ? data.size() : 0));
             }
         }
     }
@@ -873,21 +885,12 @@ public class SipGatewaySession
 
     /**
      * Initializes the sip call listeners.
-     * @param sipCallIdentifier the stats identifier for the call in or out.
      */
-    private void initSipCall(String sipCallIdentifier)
+    private void initSipCall()
     {
         sipCall.setData(CallContext.class, super.callContext);
         sipCall.addCallChangeListener(callStateListener);
 
-        // lets add cs to incoming call
-        if (statsHandler == null)
-        {
-            statsHandler = new StatsHandler(
-                sipCallIdentifier,
-                DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
-        }
-        sipCall.addCallChangeListener(statsHandler);
         jitsiMeetTools.addRequestListener(this);
 
         if (mediaDroppedThresholdMs != -1)
@@ -947,7 +950,7 @@ public class SipGatewaySession
      */
     void initIncomingCall()
     {
-        initSipCall(this.getMucDisplayName());
+        initSipCall();
 
         if (jvbConference != null)
         {
@@ -1557,14 +1560,12 @@ public class SipGatewaySession
                         }
                         else
                         {
-                            logger.info(
+                            logger.warn(
                                 SipGatewaySession.this.callContext
                                 + " No JVB room name provided in INVITE header"
                             );
 
-                            hangUp(
-                            OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE,
-                            "No JVB room name provided");
+                            hangUp(OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE, "No JVB room name provided");
                         }
                     }
                 }

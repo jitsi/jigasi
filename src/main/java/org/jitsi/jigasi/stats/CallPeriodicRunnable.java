@@ -23,6 +23,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.stats.*;
 import org.jitsi.stats.media.*;
 import org.jitsi.utils.*;
+import org.jxmpp.jid.*;
 
 import java.util.*;
 
@@ -55,7 +56,7 @@ public class CallPeriodicRunnable
         Call call,
         long period,
         StatsService statsService,
-        String conferenceName,
+        EntityBareJid conferenceName,
         String conferenceIDPrefix,
         String initiatorID,
         String remoteID)
