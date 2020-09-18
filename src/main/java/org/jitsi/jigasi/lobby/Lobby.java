@@ -293,8 +293,6 @@ public class Lobby
                         /**
                          * Lobby access granted by disabling the lobby.
                          */
-                        logger.info("dabeeeee vernos " + alternateAddress);
-
                         accessGranted(alternateAddress);
                     }
 
@@ -320,7 +318,9 @@ public class Lobby
 
         if (!alternateJid.equals(this.mainRoomJid))
         {
-            logger.warn(getCallContext() + " Alternate Jid not the same as main room Jid!");
+            logger.warn(getCallContext() + " Alternate Jid(" + alternateJid
+                + ") not the same as main room Jid(" + this.mainRoomJid + ")!");
+            return;
         }
 
         try
