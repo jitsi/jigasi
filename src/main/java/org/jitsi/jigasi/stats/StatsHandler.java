@@ -158,8 +158,6 @@ public class StatsHandler
         this.callContext = (CallContext) this.call.getData(CallContext.class);
 
         initStatsService();
-
-        this.call.addCallChangeListener(this);
     }
 
     /**
@@ -281,6 +279,9 @@ public class StatsHandler
                     new StatsServiceInitListener());
             this.statsService = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
             statsInstances.put(appId, this.statsService);
+
+            // Adds the call change listener only after we find config and create the stats service
+            this.call.addCallChangeListener(this);
         }
     }
 
