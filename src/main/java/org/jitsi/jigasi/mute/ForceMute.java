@@ -5,4 +5,6 @@ public interface ForceMute
     void requestAudioMute(boolean muted);
 
     void setAllowedToSpeak(boolean allowedToSpeak);
+
+    boolean enabled();
 }

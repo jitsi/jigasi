@@ -36,4 +36,9 @@ public class ForceMuteEnabled
     {
         this.allowedToSpeak = allowedToSpeak;
     }
+
+    @Override
+    public boolean enabled() {
+        return true;
+    }
 }

@@ -24,4 +24,9 @@ public class ForceMuteDisabled
     {
 
     }
+
+    @Override
+    public boolean enabled() {
+        return false;
+    }
 }

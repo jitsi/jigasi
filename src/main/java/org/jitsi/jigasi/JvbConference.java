@@ -837,9 +837,7 @@ public class JvbConference
             // the room)
             inviteTimeout.scheduleTimeout();
 
-            this.getConnection()
-                    .addAsyncStanzaListener(this.roomConfigurationListener,
-                                            new StanzaTypeFilter(org.jivesoftware.smack.packet.Message.class));
+            registerRoomConfigurationChange();
 
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
@@ -1057,10 +1055,8 @@ public class JvbConference
 
     private void leaveConferenceRoom()
     {
-        if (roomConfigurationListener != null)
-        {
-            this.getConnection().removeAsyncStanzaListener(this.roomConfigurationListener);
-        }
+
+        unregisterRoomConfigurationChange();
 
         if (this.jitsiMeetTools != null)
         {
@@ -2141,9 +2137,22 @@ public class JvbConference
     /**
      * Called when room configuration has changed.
      */
-    private void onRoomConfigurationChanged() {
-        try {
-            if (this.mucRoom != null) {
+    private void onRoomConfigurationChanged()
+    {
+        try
+        {
+            if (this.mucRoom != null)
+            {
+                /**
+                 * Check the room configuration only if force mute is enabled.
+                 * This should probably be in jitsi SDK.
+                 */
+
+                if (!this.forceMute.enabled())
+                {
+                    return;
+                }
+
                 ServiceDiscoveryManager serviceDiscoveryManager
                         = ServiceDiscoveryManager.getInstanceFor(this.getConnection());
 
@@ -2185,6 +2194,40 @@ public class JvbConference
             }
         } catch (Exception ex) {
             logger.error(ex.toString());
+        }
+    }
+
+    /**
+     *
+     */
+    private void registerRoomConfigurationChange()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            XMPPConnection xmppConnection = ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                .getConnection();
+
+            xmppConnection
+                    .addAsyncStanzaListener(this.roomConfigurationListener,
+                            new StanzaTypeFilter(org.jivesoftware.smack.packet.Message.class));
+        }
+    }
+
+    /**
+     *
+     */
+    private void unregisterRoomConfigurationChange()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            if (roomConfigurationListener != null)
+            {
+                XMPPConnection xmppConnection = ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                        .getConnection();
+
+                xmppConnection
+                        .removeAsyncStanzaListener(this.roomConfigurationListener);
+            }
         }
     }
 }
