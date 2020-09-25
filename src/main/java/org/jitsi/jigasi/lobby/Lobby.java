@@ -207,6 +207,12 @@ public class Lobby
     {
         try
         {
+            byte[] pass = chatRoomInvitationReceivedEvent.getInvitation().getChatRoomPassword();
+            if (pass != null)
+            {
+                callContext.setRoomPassword(new String(pass));
+            }
+
             this.sipGatewaySession.getSoundNotificationManager()
                     .notifyLobbyAccessGranted();
 
