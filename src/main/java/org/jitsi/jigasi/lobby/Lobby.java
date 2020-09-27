@@ -19,6 +19,8 @@ package org.jitsi.jigasi.lobby;
 
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
+import org.jivesoftware.smackx.disco.ServiceDiscoveryManager;
+import org.jivesoftware.smackx.disco.packet.DiscoverInfo;
 import org.jivesoftware.smackx.nick.packet.*;
 
 import org.jxmpp.jid.*;
@@ -28,6 +30,10 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 
@@ -57,6 +63,11 @@ public class Lobby
      * The data form field added when single moderator is enabled for the room.
      */
     public static final String DATA_FORM_SINGLE_MODERATOR_FIELD = "muc#roominfo_moderator_identity";
+
+    /**
+     * The disco#info feature var for password protection. See XEP-0045.
+     */
+    private static final String MUC_PASSWORD_PROTECTED_VAR = "muc_passwordprotected";
 
     /**
      * The XMPP provider used to join JVB conference.
@@ -129,7 +140,8 @@ public class Lobby
      * @throws OperationNotSupportedException
      */
     public void join()
-        throws OperationFailedException, OperationNotSupportedException
+            throws OperationFailedException,
+            OperationNotSupportedException
     {
         joinRoom(getRoomJid());
 
@@ -180,13 +192,13 @@ public class Lobby
 
         muc.removeInvitationListener(this);
 
+        muc.removePresenceListener(this);
+
         if (mucRoom == null)
         {
             logger.warn(getCallContext() + " MUC room is null");
             return;
         }
-
-        muc.removePresenceListener(this);
 
         mucRoom.leave();
 

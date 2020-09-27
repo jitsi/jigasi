@@ -628,6 +628,7 @@ public class SoundNotificationManager
      * Tries to play a sound file if connected if not it will be queued.
      *
      * @param fileName The sound file to be played.
+     * @param params A map to use to get parameters for the file to be played.
      */
     private void playSoundFileIfPossible(String fileName)
     {
@@ -645,6 +646,10 @@ public class SoundNotificationManager
                 // Hangup in these two cases
                 if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
+                    if (fileName.equals(LOBBY_ACCESS_DENIED)) {
+                        gatewaySession.notifyLobbyRejectedJoin();
+                    }
+
                     long playbackDuration = playbackFileDuration.get(fileName).longValue();
 
                         playbackQueue.queueNext(
@@ -655,6 +660,25 @@ public class SoundNotificationManager
                                 CallManager.hangupCall(gatewaySession.getSipCall());
                             },
                             playbackDuration);
+                }
+                else if (fileName.equals(LOBBY_JOIN_REVIEW))
+                {
+                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
+
+                    playbackQueue.queueNext(
+                            gatewaySession.getSipCall(),
+                            fileName,
+                            () -> {
+                                gatewaySession.notifyLobbyJoined();
+                            },
+                            playbackDuration);
+                }
+                else if (fileName.equals(LOBBY_ACCESS_GRANTED))
+                {
+                    gatewaySession.notifyLobbyAllowedJoin();
+                    gatewaySession.notifyLobbyLeft();
+
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), fileName);
                 }
                 else
                 {
@@ -1088,6 +1112,7 @@ public class SoundNotificationManager
         {
             while(playbackQueueStopFlag.get() == false)
             {
+                Call playbackCall = null;
                 try
                 {
                     PlaybackData playbackData
@@ -1095,31 +1120,31 @@ public class SoundNotificationManager
 
                     if (playbackData != null)
                     {
-                        Call playbackCall = playbackData.getPlaybackCall();
+                        playbackCall = playbackData.getPlaybackCall();
 
-                        injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+                        if (playbackCall != null)
+                        {
+                            injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+                        }
 
                         final PlaybackDelegate playbackDelegate = playbackData.getPlaybackDelegate();
                         if (playbackDelegate != null)
                         {
-                            // Start new Timer
-                            new Thread( () -> {
-                                try
-                                {
-                                    Thread.sleep(playbackData.getPlaybackDurationSeconds() * 1000);
-                                    playbackDelegate.onPlaybackFinished();
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.error(playbackCall.getData(CallContext.class) + " " + ex.toString(), ex);
-                                }
-                            }).start();
+                            playbackDelegate.onPlaybackFinished();
                         }
                     }
                 }
-                catch (InterruptedException e)
+                catch (Exception ex)
                 {
-                    logger.error(e.toString(), e);
+                    if (playbackCall != null)
+                    {
+                        Object callContext = playbackCall.getData(CallContext.class);
+                        logger.error(callContext + " " + ex.toString(), ex);
+                    }
+                    else
+                    {
+                        logger.error(ex.toString());
+                    }
                 }
             }
         }

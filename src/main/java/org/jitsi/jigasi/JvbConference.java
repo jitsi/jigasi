@@ -319,6 +319,11 @@ public class JvbConference
     private MuteIqHandler muteIqHandler = null;
 
     /**
+     *
+     */
+    private Lobby lobby = null;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -914,6 +919,8 @@ public class JvbConference
                                         logger.info(
                                             callContext + " Lobby enabled by moderator! Will try to join lobby!");
 
+                                        this.lobby = lobbyRoom;
+
                                         lobbyRoom.join();
 
                                         return;
@@ -1050,6 +1057,13 @@ public class JvbConference
         mucRoom.removeMemberPresenceListener(this);
 
         mucRoom = null;
+
+        if (this.lobby != null)
+        {
+            this.lobby.leave();
+        }
+
+        this.lobby = null;
     }
 
     @Override
@@ -1967,6 +1981,43 @@ public class JvbConference
             }
 
             return IQ.createResultIQ(muteIq);
+        }
+    }
+
+    /**
+     * Called whenever password is known.
+     *
+     * @param pwd <tt>String</tt> room password.
+     */
+    public void onPasswordReceived(String pwd)
+    {
+        // Check if conference joined before trying...
+
+        this.callContext.setRoomPassword(pwd);
+
+        // leave lobby room
+        if (this.lobby != null)
+        {
+            this.lobby.leave();
+        }
+
+        if (this.mucRoom == null)
+        {
+            // notify access granted
+            if (gatewaySession instanceof SipGatewaySession)
+            {
+                SipGatewaySession sipGatewaySession = (SipGatewaySession)gatewaySession;
+
+                SoundNotificationManager soundNotificationManager = sipGatewaySession.getSoundNotificationManager();
+
+                if (soundNotificationManager != null)
+                {
+                    soundNotificationManager.notifyLobbyAccessGranted();
+                }
+            }
+
+            // join conference room
+            joinConferenceRoom();
         }
     }
 }
