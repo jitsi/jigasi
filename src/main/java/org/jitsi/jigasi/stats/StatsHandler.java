@@ -245,44 +245,59 @@ public class StatsHandler
 
         synchronized(statsInstances)
         {
-            if (statsInstances.containsKey(appId))
-            {
-                // that stat instance is already created
-                this.statsService = statsInstances.get(appId);
-                return;
-            }
-
-            String keyId = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_ID);
-            String keyPath = targetAccountID.getAccountPropertyString(CS_ACC_PROP_KEY_PATH);
-            String jigasiId = targetAccountID.getAccountPropertyString(CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
-
-            String conferenceIDPrefix = targetAccountID.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
-            int interval = targetAccountID.getAccountPropertyInt(
-                CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
-
-            ServiceReference<VersionService> serviceReference = bundleContext.getServiceReference(VersionService.class);
-            VersionService versionService
-                = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
-            Version version = versionService != null ? versionService.getCurrentVersion() : null;
-
-            logger.info(callContext + " Jitsi-stats library initializing for account: " + targetAccountID);
-
-            StatsService statsServiceInstance = StatsServiceFactory.getInstance()
-                .createStatsService(
-                    version,
-                    appId,
-                    null,
-                    keyId,
-                    keyPath,
-                    jigasiId,
-                    true,
-                    new StatsServiceInitListener());
-            this.statsService = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
-            statsInstances.put(appId, this.statsService);
+            this.statsService = getStatsServiceWrapper(appId, targetAccountID, bundleContext);
 
             // Adds the call change listener only after we find config and create the stats service
             this.call.addCallChangeListener(this);
         }
+    }
+
+    /**
+     * Returns already initialized wrapper or creates a new one add returns it.
+     *
+     * @param appId the appId of the stats instance.
+     * @param accountID the target account id.
+     * @param bundleContext the osgi bundle context.
+     * @return the StatsServiceWrapper instance.
+     */
+    private StatsServiceWrapper getStatsServiceWrapper(
+        int appId, AccountID accountID, BundleContext bundleContext)
+    {
+        if (statsInstances.containsKey(appId))
+        {
+            // that stat instance is already created
+            return statsInstances.get(appId);
+        }
+
+        String keyId = accountID.getAccountPropertyString(CS_ACC_PROP_KEY_ID);
+        String keyPath = accountID.getAccountPropertyString(CS_ACC_PROP_KEY_PATH);
+        String jigasiId = accountID.getAccountPropertyString(CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
+
+        String conferenceIDPrefix = accountID.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
+        int interval = accountID.getAccountPropertyInt(
+            CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
+
+        ServiceReference<VersionService> serviceReference = bundleContext.getServiceReference(VersionService.class);
+        VersionService versionService
+            = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
+        Version version = versionService != null ? versionService.getCurrentVersion() : null;
+
+        logger.info(callContext + " Jitsi-stats library initializing for account: " + accountID);
+
+        StatsService statsServiceInstance = StatsServiceFactory.getInstance()
+            .createStatsService(
+                version,
+                appId,
+                null,
+                keyId,
+                keyPath,
+                jigasiId,
+                true,
+                new StatsServiceInitListener());
+        StatsServiceWrapper wrapper = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
+        statsInstances.put(appId, wrapper);
+
+        return wrapper;
     }
 
     @Override
