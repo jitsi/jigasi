@@ -133,8 +133,7 @@ public class Lobby
     {
         joinRoom(getRoomJid());
 
-        this.sipGatewaySession.getSoundNotificationManager()
-            .notifyLobbyWaitReview();
+        this.sipGatewaySession.notifyOnLobbyWaitReview(this.mucRoom);
     }
 
     /**
@@ -159,9 +158,7 @@ public class Lobby
 
         setupChatRoom(mucRoom);
 
-        Localpart resourceIdentifier = getResourceIdentifier();
-
-        mucRoom.joinAs(resourceIdentifier.toString());
+        mucRoom.joinAs(getResourceIdentifier().toString());
 
         this.mucRoom = mucRoom;
     }
@@ -391,9 +388,9 @@ public class Lobby
      *
      * @return <tt>Localpart</tt> identifier.
      */
-    public Localpart getResourceIdentifier()
+    public Resourcepart getResourceIdentifier()
     {
-        return this.roomJid.getLocalpartOrNull();
+        return this.roomJid.getResourceOrNull();
     }
 
     /**

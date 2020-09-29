@@ -31,7 +31,6 @@ import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smack.tcp.*;
 import org.jxmpp.jid.parts.*;
 import org.osgi.framework.*;
 
@@ -383,6 +382,10 @@ public class CallControlMucActivator
     }
 
     @Override
+    public void onLobbyWaitReview(ChatRoom lobbyRoom)
+    {}
+
+    @Override
     public void onSessionAdded(AbstractGatewaySession session)
     {
         session.addListener(this);
@@ -636,8 +639,13 @@ public class CallControlMucActivator
             }
 
             ChatRoom room = session.getJvbChatRoom();
-            response.setUri(
-                "xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
+            if (room == null)
+            {
+                // if room is null, lobby should be used
+                room = waiter.lobbyRoom;
+            }
+
+            response.setUri("xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
 
             final XMPPConnection roomConnection
                 = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
@@ -654,6 +662,11 @@ public class CallControlMucActivator
         implements GatewaySessionListener
     {
         /**
+         * The lobby room if any.
+         */
+        ChatRoom lobbyRoom = null;
+
+        /**
          * The countdown we wait.
          */
         private final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -661,6 +674,14 @@ public class CallControlMucActivator
         @Override
         public void onJvbRoomJoined(AbstractGatewaySession source)
         {
+            countDownLatch.countDown();
+        }
+
+        @Override
+        public void onLobbyWaitReview(ChatRoom lobbyRoom)
+        {
+            this.lobbyRoom = lobbyRoom;
+
             countDownLatch.countDown();
         }
 

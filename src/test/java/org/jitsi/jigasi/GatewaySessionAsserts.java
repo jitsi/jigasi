@@ -39,6 +39,10 @@ public class GatewaySessionAsserts
         }
     }
 
+    @Override
+    public void onLobbyWaitReview(ChatRoom lobbyRoom)
+    {}
+
     public void assertJvbRoomJoined(AbstractGatewaySession session, long timeout)
         throws InterruptedException
     {

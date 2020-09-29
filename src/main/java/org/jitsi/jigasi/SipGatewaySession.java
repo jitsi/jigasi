@@ -29,7 +29,6 @@ import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
-import org.jxmpp.jid.*;
 
 import java.io.*;
 import java.text.*;
@@ -1176,6 +1175,20 @@ public class SipGatewaySession
         if (soundNotificationManager != null)
         {
             soundNotificationManager.notifyJvbRoomJoined();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyOnLobbyWaitReview(ChatRoom lobbyRoom)
+    {
+        super.notifyOnLobbyWaitReview(lobbyRoom);
+
+        if (soundNotificationManager != null)
+        {
+            soundNotificationManager.notifyLobbyWaitReview();
         }
     }
 
