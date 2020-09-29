@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.*;
 import org.osgi.framework.*;
@@ -156,6 +157,10 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
 
         fireGatewaySessionAdded(source);
     }
+
+    @Override
+    public void onLobbyWaitReview(ChatRoom lobbyRoom)
+    {}
 
     /**
      * Finds {@link AbstractGatewaySession} for given <tt>callResource</tt> if

@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi;
 
-import org.jitsi.xmpp.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jivesoftware.smack.packet.*;
@@ -272,6 +271,27 @@ public abstract class AbstractGatewaySession
         for (GatewaySessionListener listener : gwListeners)
         {
             listener.onJvbRoomJoined(this);
+        }
+    }
+
+    /**
+     * Method called by {@link Lobby} to notify session that it has
+     * joined the lobby room.
+     *
+     * This method Notifies {@link GatewaySessionListener}(if any) that we have
+     * just joined the lobby room(call is not started yet - just the MUC and we are waiting for a modrator to accept it)
+     */
+    public void notifyOnLobbyWaitReview(ChatRoom lobbyRoom)
+    {
+        Iterable<GatewaySessionListener> gwListeners;
+        synchronized (listeners)
+        {
+            gwListeners = new ArrayList<>(listeners);
+        }
+
+        for (GatewaySessionListener listener : gwListeners)
+        {
+            listener.onLobbyWaitReview(lobbyRoom);
         }
     }
 

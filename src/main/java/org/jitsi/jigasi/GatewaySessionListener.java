@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.service.protocol.*;
 
 /**
  * Class used to listen for various {@link AbstractGatewaySession} state
@@ -34,4 +35,11 @@ public interface GatewaySessionListener<T extends AbstractGatewaySession>
      *               takes place.
      */
     void onJvbRoomJoined(T source);
+
+    /**
+     * Called when a <tt>AbstractGatewaySession</tt> has joined the lobby MUC
+     *
+     * @param lobbyRoom the {@link ChatRoom} representing the lobby room.
+     */
+    void onLobbyWaitReview(ChatRoom lobbyRoom);
 }
