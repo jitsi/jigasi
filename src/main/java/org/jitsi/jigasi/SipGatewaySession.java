@@ -22,7 +22,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.jigasi.sip.SipInfoJsonProtocol;
+import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -704,7 +704,6 @@ public class SipGatewaySession
     }
 
     /**
-     *
      * Received JSON over SIP from callPeer.
      *
      * @param callPeer callPeer that sent the JSON.

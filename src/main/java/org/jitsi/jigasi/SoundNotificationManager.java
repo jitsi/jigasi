@@ -646,7 +646,8 @@ public class SoundNotificationManager
                 // Hangup in these two cases
                 if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
-                    if (fileName.equals(LOBBY_ACCESS_DENIED)) {
+                    if (fileName.equals(LOBBY_ACCESS_DENIED))
+                    {
                         gatewaySession.notifyLobbyRejectedJoin();
                     }
 

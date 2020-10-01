@@ -19,8 +19,6 @@ package org.jitsi.jigasi.lobby;
 
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
-import org.jivesoftware.smackx.disco.ServiceDiscoveryManager;
-import org.jivesoftware.smackx.disco.packet.DiscoverInfo;
 import org.jivesoftware.smackx.nick.packet.*;
 
 import org.jxmpp.jid.*;
@@ -30,10 +28,6 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 
