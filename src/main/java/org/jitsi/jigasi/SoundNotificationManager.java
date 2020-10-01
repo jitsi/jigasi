@@ -628,7 +628,6 @@ public class SoundNotificationManager
      * Tries to play a sound file if connected if not it will be queued.
      *
      * @param fileName The sound file to be played.
-     * @param params A map to use to get parameters for the file to be played.
      */
     private void playSoundFileIfPossible(String fileName)
     {
@@ -646,11 +645,6 @@ public class SoundNotificationManager
                 // Hangup in these two cases
                 if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
-                    if (fileName.equals(LOBBY_ACCESS_DENIED))
-                    {
-                        gatewaySession.notifyLobbyRejectedJoin();
-                    }
-
                     long playbackDuration = playbackFileDuration.get(fileName).longValue();
 
                         playbackQueue.queueNext(
@@ -669,17 +663,8 @@ public class SoundNotificationManager
                     playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
-                            () -> {
-                                gatewaySession.notifyLobbyJoined();
-                            },
+                            null,
                             playbackDuration);
-                }
-                else if (fileName.equals(LOBBY_ACCESS_GRANTED))
-                {
-                    gatewaySession.notifyLobbyAllowedJoin();
-                    gatewaySession.notifyLobbyLeft();
-
-                    playbackQueue.queueNext(gatewaySession.getSipCall(), fileName);
                 }
                 else
                 {
@@ -876,7 +861,7 @@ public class SoundNotificationManager
     /**
      * Implements RateLimiter for sound notifications.
      */
-    private class SoundRateLimiter implements RateLimiter
+    private static class SoundRateLimiter implements RateLimiter
     {
         /**
          * Initial time point.
@@ -1056,7 +1041,7 @@ public class SoundNotificationManager
         /**
          * Queue used to schedule sound notifications.
          */
-        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<PlaybackData>(20, true);
+        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(20, true);
 
         /**
          * Flag used to stop the queue thread.
@@ -1111,7 +1096,7 @@ public class SoundNotificationManager
         @Override
         public void run()
         {
-            while(playbackQueueStopFlag.get() == false)
+            while(!playbackQueueStopFlag.get())
             {
                 Call playbackCall = null;
                 try
@@ -1180,11 +1165,9 @@ public class SoundNotificationManager
                 return;
             }
 
-            final MediaStream streamToPass = stream;
-
             try
             {
-                injectSoundFileInStream(streamToPass, fileName);
+                injectSoundFileInStream(stream, fileName);
             }
             catch (Throwable t)
             {

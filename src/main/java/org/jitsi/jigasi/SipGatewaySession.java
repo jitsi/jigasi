@@ -235,7 +235,7 @@ public class SipGatewaySession
     /**
      * The sip info protocol used to through pstn.
      */
-    private SipInfoJsonProtocol sipInfoJsonProtocol;
+    private final SipInfoJsonProtocol sipInfoJsonProtocol;
 
     /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
@@ -734,7 +734,7 @@ public class SipGatewaySession
                 msgId = ((Long)jsonObject.get("i")).intValue();
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Received message " + String.valueOf(msgId));
+                    logger.debug("Received message " + msgId);
                 }
             }
 
@@ -742,15 +742,10 @@ public class SipGatewaySession
             {
                 int messageType = ((Long)jsonObject.get("t")).intValue();
 
-                switch (messageType)
+                if (messageType == SipInfoJsonProtocol.MESSAGE_TYPE.REQUEST_ROOM_ACCESS)
                 {
-                    case SipInfoJsonProtocol.MESSAGE_TYPE.REQUEST_ROOM_ACCESS:
-                    {
-                        String password = this.sipInfoJsonProtocol.getPasswordFromRoomAccessRequest(jsonObject);
-                        this.jvbConference.onPasswordReceived(password);
-
-                        break;
-                    }
+                    String password = this.sipInfoJsonProtocol.getPasswordFromRoomAccessRequest(jsonObject);
+                    this.jvbConference.onPasswordReceived(password);
                 }
             }
 
@@ -886,7 +881,7 @@ public class SipGatewaySession
         jitsiMeetTools.sendJSON(callPeer,
                                 muteRequestJson,
                                 new HashMap<String, Object>(){{
-                                    put("VIA", (Object)("SIP.INFO"));
+                                    put("VIA", "SIP.INFO");
                                 }});
     }
 
@@ -1223,6 +1218,8 @@ public class SipGatewaySession
         {
             soundNotificationManager.notifyLobbyWaitReview();
         }
+
+        this.notifyLobbyJoined();
     }
 
     /**
