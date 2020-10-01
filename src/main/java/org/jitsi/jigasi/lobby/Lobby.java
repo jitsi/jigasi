@@ -86,12 +86,12 @@ public class Lobby
     /**
      * <tt>JvbConference</tt> Handles JVB conference events and connections.
      */
-    private JvbConference jvbConference = null;
+    private final JvbConference jvbConference;
 
     /**
      * <tt>SipGatewaySession</tt> Handles SIP events and connections.
      */
-    private SipGatewaySession sipGatewaySession = null;
+    private final SipGatewaySession sipGatewaySession;
 
     /**
      * Creates a new instance of <tt>Lobby</tt>
@@ -129,7 +129,8 @@ public class Lobby
      * @throws OperationNotSupportedException
      */
     public void join()
-        throws OperationFailedException, OperationNotSupportedException
+            throws OperationFailedException,
+            OperationNotSupportedException
     {
         joinRoom(getRoomJid());
 
@@ -151,8 +152,6 @@ public class Lobby
         muc.addInvitationListener(this);
 
         muc.addPresenceListener(this);
-
-        ProtocolProviderService pps = getProtocolProvider();
 
         ChatRoom mucRoom = muc.findRoom(roomJid.toString());
 
@@ -180,13 +179,13 @@ public class Lobby
 
         muc.removeInvitationListener(this);
 
+        muc.removePresenceListener(this);
+
         if (mucRoom == null)
         {
             logger.warn(getCallContext() + " MUC room is null");
             return;
         }
-
-        muc.removePresenceListener(this);
 
         mucRoom.leave();
 
@@ -210,8 +209,7 @@ public class Lobby
                 callContext.setRoomPassword(new String(pass));
             }
 
-            this.sipGatewaySession.getSoundNotificationManager()
-                    .notifyLobbyAccessGranted();
+            this.notifyAccessGranted();
 
             if (this.jvbConference != null)
             {
@@ -228,6 +226,18 @@ public class Lobby
         {
             logger.error(getCallContext() + " " + ex.toString(), ex);
         }
+    }
+
+    /**
+     * Access granted, notifies sound manager and sip gw session.
+     */
+    private void notifyAccessGranted()
+    {
+        this.sipGatewaySession.getSoundNotificationManager()
+            .notifyLobbyAccessGranted();
+
+        this.sipGatewaySession.notifyLobbyAllowedJoin();
+        this.sipGatewaySession.notifyLobbyLeft();
     }
 
     /**
@@ -250,6 +260,8 @@ public class Lobby
                      * Lobby access denied.
                      */
                     soundManager.notifyLobbyAccessDenied();
+
+                    sipGatewaySession.notifyLobbyRejectedJoin();
 
                     leave();
 
@@ -288,8 +300,6 @@ public class Lobby
                     if (alternateAddress == null)
                     {
                         soundManager.notifyLobbyRoomDestroyed();
-
-                        return;
                     }
                     else
                     {
@@ -298,8 +308,6 @@ public class Lobby
                          */
                         accessGranted(alternateAddress);
                     }
-
-                    return;
                 }
             }
         }
@@ -338,7 +346,7 @@ public class Lobby
             logger.error(getCallContext() + " Error leaving lobby", e);
         }
 
-        this.sipGatewaySession.getSoundNotificationManager().notifyLobbyAccessGranted();
+        this.notifyAccessGranted();
 
         /**
          * The left event is used here in case the lobby is disabled.

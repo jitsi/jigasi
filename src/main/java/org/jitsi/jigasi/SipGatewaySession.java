@@ -22,6 +22,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -232,6 +233,11 @@ public class SipGatewaySession
     private boolean startAudioMuted = false;
 
     /**
+     * The sip info protocol used to through pstn.
+     */
+    private final SipInfoJsonProtocol sipInfoJsonProtocol;
+
+    /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -280,6 +286,8 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_MEET_DOMAIN_BASE_HEADER_PROPERTY,
                 JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT);
+
+        this.sipInfoJsonProtocol = new SipInfoJsonProtocol(jitsiMeetTools);
     }
 
     private void allCallsEnded()
@@ -719,64 +727,84 @@ public class SipGatewaySession
                 return;
             }
 
-            if (!jsonObject.containsKey("type"))
-            {
-                logger.error(this.callContext + " Unknown json object type!");
-                return;
-            }
+            int msgId = -1;
 
-            if (!jsonObject.containsKey("id"))
+            if (jsonObject.containsKey("i"))
             {
-                logger.error(this.callContext + " Unknown json object id!");
-                return;
-            }
-
-            String id = (String)jsonObject.get("id");
-            String type = (String)jsonObject.get("type");
-
-            if (type.equalsIgnoreCase("muteResponse"))
-            {
-                if (!jsonObject.containsKey("status"))
+                msgId = ((Long)jsonObject.get("i")).intValue();
+                if (logger.isDebugEnabled())
                 {
-                    logger.error(this.callContext
-                        + " muteResponse without status!");
+                    logger.debug("Received message " + msgId);
+                }
+            }
+
+            if (jsonObject.containsKey("t"))
+            {
+                int messageType = ((Long)jsonObject.get("t")).intValue();
+
+                if (messageType == SipInfoJsonProtocol.MESSAGE_TYPE.REQUEST_ROOM_ACCESS)
+                {
+                    String password = this.sipInfoJsonProtocol.getPasswordFromRoomAccessRequest(jsonObject);
+                    this.jvbConference.onPasswordReceived(password);
+                }
+            }
+
+            if (jsonObject.containsKey("type"))
+            {
+
+                if (!jsonObject.containsKey("id"))
+                {
+                    logger.error(this.callContext + " Unknown json object id!");
                     return;
                 }
 
-                if (((String) jsonObject.get("status")).equalsIgnoreCase("OK"))
+                String id = (String)jsonObject.get("id");
+                String type = (String)jsonObject.get("type");
+
+                if (type.equalsIgnoreCase("muteResponse"))
+                {
+                    if (!jsonObject.containsKey("status"))
+                    {
+                        logger.error(this.callContext
+                                + " muteResponse without status!");
+                        return;
+                    }
+
+                    if (((String) jsonObject.get("status")).equalsIgnoreCase("OK"))
+                    {
+                        JSONObject data = (JSONObject) jsonObject.get("data");
+
+                        boolean bMute = (boolean)data.get("audio");
+
+                        // Send presence audio muted
+                        this.jvbConference.setChatRoomAudioMuted(bMute);
+                    }
+                }
+                else if (type.equalsIgnoreCase("muteRequest"))
                 {
                     JSONObject data = (JSONObject) jsonObject.get("data");
 
-                    boolean bMute = (boolean)data.get("audio");
+                    boolean bAudioMute = (boolean)data.get("audio");
 
-                    // Send presence audio muted
-                    this.jvbConference.setChatRoomAudioMuted(bMute);
-                }
-            }
-            else if (type.equalsIgnoreCase("muteRequest"))
-            {
-                JSONObject data = (JSONObject) jsonObject.get("data");
+                    // Send request to jicofo
+                    if (jvbConference.requestAudioMute(bAudioMute))
+                    {
+                        // Send response through sip
+                        respondRemoteAudioMute(bAudioMute,
+                                true,
+                                callPeer,
+                                id);
 
-                boolean bAudioMute = (boolean)data.get("audio");
-
-                // Send request to jicofo
-                if (jvbConference.requestAudioMute(bAudioMute))
-                {
-                    // Send response through sip
-                    respondRemoteAudioMute(bAudioMute,
-                                            true,
-                                            callPeer,
-                                            id);
-
-                    // Send presence if response succeeded
-                    this.jvbConference.setChatRoomAudioMuted(bAudioMute);
-                }
-                else
-                {
-                    respondRemoteAudioMute(bAudioMute,
-                                            false,
-                                            callPeer,
-                                            id);
+                        // Send presence if response succeeded
+                        this.jvbConference.setChatRoomAudioMuted(bAudioMute);
+                    }
+                    else
+                    {
+                        respondRemoteAudioMute(bAudioMute,
+                                false,
+                                callPeer,
+                                id);
+                    }
                 }
             }
         }
@@ -806,13 +834,13 @@ public class SipGatewaySession
     /**
      * Creates a JSONObject to request audio to be muted over SIP.
      *
-     * @param bMuted <tt>true</tt> if audio is to be muted, <tt>false</tt> otherwise.
+     * @param muted <tt>true</tt> if audio is to be muted, <tt>false</tt> otherwise.
      * @return Formed JSONObject.
      */
-    private JSONObject createSIPJSONAudioMuteRequest(boolean bMuted)
+    private JSONObject createSIPJSONAudioMuteRequest(boolean muted)
     {
         JSONObject muteSettingsJson = new JSONObject();
-        muteSettingsJson.put("audio", bMuted);
+        muteSettingsJson.put("audio", muted);
 
         return createSIPJSON("muteRequest", muteSettingsJson, null);
     }
@@ -820,17 +848,17 @@ public class SipGatewaySession
     /**
      * Creates a JSONObject as response to a muteRequest.
      *
-     * @param bMuted <tt>true</tt> if audio was muted, <tt>false</tt> otherwise.
+     * @param muted <tt>true</tt> if audio was muted, <tt>false</tt> otherwise.
      * @param bSucceeded <tt>true</tt> if muteRequest succeeded, <tt>false</tt> otherwise.
      * @param id Represents id of muteRequest.
      * @return Formed JSONObject.
      */
-    private JSONObject createSIPJSONAudioMuteResponse(boolean bMuted,
+    private JSONObject createSIPJSONAudioMuteResponse(boolean muted,
                                                         boolean bSucceeded,
                                                         String id)
     {
         JSONObject muteSettingsJson = new JSONObject();
-        muteSettingsJson.put("audio", bMuted);
+        muteSettingsJson.put("audio", muted);
         JSONObject muteResponseJson
             = createSIPJSON("muteResponse", muteSettingsJson, id);
         muteResponseJson.put("status", bSucceeded ? "OK" : "FAILED");
@@ -838,42 +866,42 @@ public class SipGatewaySession
     }
 
     /**
-     * Sends a JSON request over SIP to mute callPeer with bMuted flag.
+     * Sends a JSON request over SIP to mute callPeer with muted flag.
      *
-     * @param bMuted true if audio should be muted, false otherwise.
+     * @param muted true if audio should be muted, false otherwise.
      * @param callPeer CallPeer to send JSON to.
      * @throws OperationFailedException
      */
-    private void requestRemoteAudioMute(boolean bMuted, CallPeer callPeer)
+    private void requestRemoteAudioMute(boolean muted, CallPeer callPeer)
         throws OperationFailedException
     {
         // Mute audio
-        JSONObject muteRequestJson = createSIPJSONAudioMuteRequest(bMuted);
+        JSONObject muteRequestJson = createSIPJSONAudioMuteRequest(muted);
 
         jitsiMeetTools.sendJSON(callPeer,
                                 muteRequestJson,
                                 new HashMap<String, Object>(){{
-                                    put("VIA", (Object)("SIP.INFO"));
+                                    put("VIA", "SIP.INFO");
                                 }});
     }
 
     /**
      * Sends a JSON muteResponse over SIP to callPeer with specified flag.
      *
-     * @param bMuted true if audio was muted, false otherwise.
+     * @param muted true if audio was muted, false otherwise.
      * @param bSucceeded <tt>true</tt> if request succeeded, <tt>false</tt> otherwise.
      * @param callPeer CallPeer to send response to.
      * @param id Set as muteRequest id.
      * @throws OperationFailedException
      */
-    private void respondRemoteAudioMute(boolean bMuted,
+    private void respondRemoteAudioMute(boolean muted,
                                         boolean bSucceeded,
                                         CallPeer callPeer,
                                         String id)
         throws OperationFailedException
     {
         JSONObject muteResponseJson
-            = createSIPJSONAudioMuteResponse(bMuted, bSucceeded, id);
+            = createSIPJSONAudioMuteResponse(muted, bSucceeded, id);
 
         jitsiMeetTools.sendJSON(callPeer,
                                 muteResponseJson,
@@ -1190,6 +1218,8 @@ public class SipGatewaySession
         {
             soundNotificationManager.notifyLobbyWaitReview();
         }
+
+        this.notifyLobbyJoined();
     }
 
     /**
@@ -1325,6 +1355,94 @@ public class SipGatewaySession
     public SoundNotificationManager getSoundNotificationManager()
     {
         return this.soundNotificationManager;
+    }
+
+    /**
+     * Notifies received call that lobby was joined.
+     */
+    public void notifyLobbyJoined()
+    {
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            if (this.sipInfoJsonProtocol != null)
+            {
+                JSONObject request = this.sipInfoJsonProtocol.createLobbyJoinedNotification();
+                this.sipInfoJsonProtocol.sendJson(callPeer, request);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Notifies received call that lobby was left.
+     */
+    public void notifyLobbyLeft()
+    {
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            if (this.sipInfoJsonProtocol != null)
+            {
+                JSONObject request = this.sipInfoJsonProtocol.createLobbyLeftNotification();
+                this.sipInfoJsonProtocol.sendJson(callPeer, request);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Notifies received call that user was allowed to join while in lobby.
+     */
+    public void notifyLobbyAllowedJoin()
+    {
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            if (this.sipInfoJsonProtocol != null)
+            {
+                JSONObject request = this.sipInfoJsonProtocol.createLobbyAllowedJoinNotification();
+                this.sipInfoJsonProtocol.sendJson(callPeer, request);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Notify received call that user was rejected to join while in lobby.
+     */
+    public void notifyLobbyRejectedJoin()
+    {
+        // Notify peer
+        CallPeer callPeer = sipCall.getCallPeers().next();
+
+        try
+        {
+            if (this.sipInfoJsonProtocol != null)
+            {
+                JSONObject request = this.sipInfoJsonProtocol.createLobbyRejectedJoinNotification();
+                this.sipInfoJsonProtocol.sendJson(callPeer, request);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+        }
     }
 
     /**

@@ -656,6 +656,16 @@ public class SoundNotificationManager
                             },
                             playbackDuration);
                 }
+                else if (fileName.equals(LOBBY_JOIN_REVIEW))
+                {
+                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
+
+                    playbackQueue.queueNext(
+                            gatewaySession.getSipCall(),
+                            fileName,
+                            null,
+                            playbackDuration);
+                }
                 else
                 {
                     playbackQueue.queueNext(gatewaySession.getSipCall(), fileName);
@@ -851,7 +861,7 @@ public class SoundNotificationManager
     /**
      * Implements RateLimiter for sound notifications.
      */
-    private class SoundRateLimiter implements RateLimiter
+    private static class SoundRateLimiter implements RateLimiter
     {
         /**
          * Initial time point.
@@ -1031,7 +1041,7 @@ public class SoundNotificationManager
         /**
          * Queue used to schedule sound notifications.
          */
-        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<PlaybackData>(20, true);
+        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(20, true);
 
         /**
          * Flag used to stop the queue thread.
@@ -1086,8 +1096,9 @@ public class SoundNotificationManager
         @Override
         public void run()
         {
-            while(playbackQueueStopFlag.get() == false)
+            while(!playbackQueueStopFlag.get())
             {
+                Call playbackCall = null;
                 try
                 {
                     PlaybackData playbackData
@@ -1095,31 +1106,31 @@ public class SoundNotificationManager
 
                     if (playbackData != null)
                     {
-                        Call playbackCall = playbackData.getPlaybackCall();
+                        playbackCall = playbackData.getPlaybackCall();
 
-                        injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+                        if (playbackCall != null)
+                        {
+                            injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+                        }
 
                         final PlaybackDelegate playbackDelegate = playbackData.getPlaybackDelegate();
                         if (playbackDelegate != null)
                         {
-                            // Start new Timer
-                            new Thread( () -> {
-                                try
-                                {
-                                    Thread.sleep(playbackData.getPlaybackDurationSeconds() * 1000);
-                                    playbackDelegate.onPlaybackFinished();
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.error(playbackCall.getData(CallContext.class) + " " + ex.toString(), ex);
-                                }
-                            }).start();
+                            playbackDelegate.onPlaybackFinished();
                         }
                     }
                 }
-                catch (InterruptedException e)
+                catch (Exception ex)
                 {
-                    logger.error(e.toString(), e);
+                    if (playbackCall != null)
+                    {
+                        Object callContext = playbackCall.getData(CallContext.class);
+                        logger.error(callContext + " " + ex.toString(), ex);
+                    }
+                    else
+                    {
+                        logger.error(ex.toString());
+                    }
                 }
             }
         }
@@ -1154,11 +1165,9 @@ public class SoundNotificationManager
                 return;
             }
 
-            final MediaStream streamToPass = stream;
-
             try
             {
-                injectSoundFileInStream(streamToPass, fileName);
+                injectSoundFileInStream(stream, fileName);
             }
             catch (Throwable t)
             {

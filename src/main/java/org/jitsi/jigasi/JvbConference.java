@@ -319,6 +319,11 @@ public class JvbConference
     private MuteIqHandler muteIqHandler = null;
 
     /**
+     * The lobby room instance for the room if any.
+     */
+    private Lobby lobby = null;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -904,7 +909,7 @@ public class JvbConference
                                             mainRoomJid = JidCreate.entityBareFrom(roomName);
                                         }
 
-                                        Lobby lobbyRoom = new Lobby(this.xmppProvider,
+                                        this.lobby = new Lobby(this.xmppProvider,
                                                 this.callContext,
                                                 lobbyFullJid,
                                                 mainRoomJid,
@@ -914,7 +919,7 @@ public class JvbConference
                                         logger.info(
                                             callContext + " Lobby enabled by moderator! Will try to join lobby!");
 
-                                        lobbyRoom.join();
+                                        this.lobby.join();
 
                                         return;
                                     }
@@ -1050,6 +1055,13 @@ public class JvbConference
         mucRoom.removeMemberPresenceListener(this);
 
         mucRoom = null;
+
+        if (this.lobby != null)
+        {
+            this.lobby.leave();
+        }
+
+        this.lobby = null;
     }
 
     @Override
@@ -1968,5 +1980,33 @@ public class JvbConference
 
             return IQ.createResultIQ(muteIq);
         }
+    }
+
+    /**
+     * Called whenever password is known. In case of lobby, while waiting in the lobby, the user can enter the password
+     * and that can be signalled through SIP Info messages, and we can leve the lobby and enter the room with the
+     * password received, if the password is wrong we will fail joining and the call will be dropped.
+     *
+     * @param pwd <tt>String</tt> room password.
+     */
+    public void onPasswordReceived(String pwd)
+    {
+        // Check if conference joined before trying...
+        if (this.mucRoom != null)
+        {
+            logger.warn(this.callContext + " Strange received a password after joining the room");
+            return;
+        }
+
+        this.callContext.setRoomPassword(pwd);
+
+        // leave lobby room
+        if (this.lobby != null)
+        {
+            this.lobby.leave();
+        }
+
+        // join conference room
+        joinConferenceRoom();
     }
 }
