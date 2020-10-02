@@ -1218,8 +1218,6 @@ public class SipGatewaySession
         {
             soundNotificationManager.notifyLobbyWaitReview();
         }
-
-        this.notifyLobbyJoined();
     }
 
     /**
