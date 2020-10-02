@@ -663,7 +663,7 @@ public class SoundNotificationManager
                     playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
-                            null,
+                            () -> gatewaySession.notifyLobbyJoined(),
                             playbackDuration);
                 }
                 else
