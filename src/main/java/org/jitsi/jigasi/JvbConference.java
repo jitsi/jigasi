@@ -523,7 +523,11 @@ public class JvbConference
             // we need to remove it from the connection, or we break some Smack
             // weak references map where the key is connection and the value
             // holds a connection and we leak connection/conferences.
-            getConnection().unregisterIQRequestHandler(muteIqHandler);
+            XMPPConnection connection = getConnection();
+            if (connection != null)
+            {
+                connection.unregisterIQRequestHandler(muteIqHandler);
+            }
         }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
@@ -1052,7 +1056,11 @@ public class JvbConference
 
         // remove listener needs to be after leave,
         // to catch all member left events
-        mucRoom.removeMemberPresenceListener(this);
+        // and when focus is leaving we will call again leaveConferenceRoom making mucRoom, so we need another check
+        if (mucRoom != null)
+        {
+            mucRoom.removeMemberPresenceListener(this);
+        }
 
         mucRoom = null;
 
