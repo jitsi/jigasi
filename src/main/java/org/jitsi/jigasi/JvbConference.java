@@ -1139,8 +1139,8 @@ public class JvbConference
         // if it is the focus leaving
         if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
-            logger.info(this.callContext + " Focus left! - stopping");
-            stop();
+            logger.info(this.callContext + " Focus left! - stopping the call");
+            CallManager.hangupCall(jvbCall, 502, "Focus left");
 
             return;
         }
