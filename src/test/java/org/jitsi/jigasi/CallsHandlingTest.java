@@ -261,11 +261,14 @@ public class CallsHandlingTest
     }
 
     @Test
-    public void testFocusLeftTheRoom()
+    public void testFocusLeftTheRoomWithNoResume()
         throws OperationFailedException,
                OperationNotSupportedException, InterruptedException,
                TimeoutException
     {
+        long origValue = AbstractGateway.getJvbInviteTimeout();
+        AbstractGateway.setJvbInviteTimeout(-1);
+
         focus.setup();
 
         // Focus will leave the room after inviting us to the conference
@@ -274,15 +277,46 @@ public class CallsHandlingTest
         CallStateListener callStateWatch = new CallStateListener();
 
         // Create incoming call
-        MockCall sipCall
-            = sipProvider.getTelephony()
-                    .mockIncomingGatewayCall("calee", roomName);
+        MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
 
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 2000);
 
         // Now we expect SIP call to be terminated
         assertEquals(CallState.CALL_ENDED, focus.getCall().getCallState());
         assertNull(focus.getChatRoom());
+
+        AbstractGateway.setJvbInviteTimeout(origValue);
+    }
+
+    @Test
+    public void testFocusLeftTheRoomWithResume()
+        throws OperationFailedException,
+               OperationNotSupportedException, InterruptedException,
+               TimeoutException
+    {
+        long origValue = AbstractGateway.getJvbInviteTimeout();
+        AbstractGateway.setJvbInviteTimeout(AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
+
+        focus.setup();
+
+        // Focus will leave the room after inviting us to the conference
+        focus.setLeaveRoomAfterInvite(true);
+
+        CallStateListener callStateWatch = new CallStateListener();
+
+        // Create incoming call
+        MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
+
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 2000);
+
+        // Now we expect SIP call to be in progress, but xmpp call ended
+        callStateWatch.waitForState(focus.getCall(), CallState.CALL_ENDED, 2000);
+        assertNull(focus.getChatRoom());
+
+        AbstractGateway.setJvbInviteTimeout(origValue);
+
+        // clear
+        CallManager.hangupCall(sipCall);
     }
 
     @Test
