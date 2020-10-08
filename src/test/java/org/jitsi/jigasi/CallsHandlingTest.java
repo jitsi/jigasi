@@ -209,6 +209,9 @@ public class CallsHandlingTest
 
         callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
 
+        GatewaySessionAsserts sessionWatch = new GatewaySessionAsserts();
+        sessionWatch.assertJvbRoomJoined(session, 2000);
+
         // Check we're in the room and all calls are up
         ChatRoom chatRoom = session.getJvbChatRoom();
         Call jvbCall = session.getJvbCall();
