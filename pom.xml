@@ -435,6 +435,15 @@
           <includes>
             <include>**/*Test.*</include>
           </includes>
+          <systemPropertyVariables>
+            <java.util.logging.config.file>lib/logging.properties</java.util.logging.config.file>
+          </systemPropertyVariables>
+          <properties>
+            <property>
+              <name>listener</name>
+              <value>org.jitsi.jigasi.PrintCurrentTestRunListener</value>
+            </property>
+          </properties>
         </configuration>
       </plugin>
       <plugin>
