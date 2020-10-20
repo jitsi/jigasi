@@ -2068,13 +2068,9 @@ public class JvbConference
          * This handles the MUCUser extension status codes if the extension exists.
          *
          * @param packet
-         * @throws SmackException.NotConnectedException
-         * @throws InterruptedException
-         * @throws SmackException.NotLoggedInException
          */
         @Override
         public void processStanza(Stanza packet)
-                throws SmackException.NotConnectedException, InterruptedException, SmackException.NotLoggedInException
         {
             /**
              * TODO check room configuration if force mute is enabled only.
@@ -2121,15 +2117,19 @@ public class JvbConference
     /**
      * Moderator has enabled force mute.
      */
-    private void onSessionForceMute()
+    private void onNotAllowedToSpeak()
     {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Force mute enabled!");
+        }
+
         this.forceMute = new ForceMuteEnabled(this);
     }
 
     /**
-     * Moderator has allowed the participant to unmute.
+     * Moderator has allowed the participant to speak.
      */
-    private void onAllowedToUnmute()
+    private void onAllowedToSpeak()
     {
         this.forceMute = new ForceMuteDisabled(this);
     }
@@ -2148,11 +2148,6 @@ public class JvbConference
                  * This should probably be in jitsi SDK.
                  */
 
-                if (!this.forceMute.enabled())
-                {
-                    return;
-                }
-
                 ServiceDiscoveryManager serviceDiscoveryManager
                         = ServiceDiscoveryManager.getInstanceFor(this.getConnection());
 
@@ -2165,8 +2160,6 @@ public class JvbConference
 
                 if (formField.getType() == FormField.Type.jid_multi) {
                     List<String> squelchedList = formField.getValues();
-
-                    // TODO Get local resource identifier
 
                     EntityBareJid roomJid = JidCreate.entityBareFrom(this.mucRoom.getIdentifier());
 
@@ -2182,8 +2175,12 @@ public class JvbConference
 
                     if (allowedToSpeak) {
 
+                        onAllowedToSpeak();
+
                         logger.error("ALLOWED TO SPEAK!!!");
                     } else {
+
+                        onNotAllowedToSpeak();
 
                         logger.error("NOT ALLOWED TO SPEAK!!!");
                     }
