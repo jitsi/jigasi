@@ -2078,7 +2078,9 @@ public class JvbConference
 
                 if (mucUser != null)
                 {
-                    for (MUCUser.Status status: mucUser.getStatus()) {
+                    Set<MUCUser.Status> statusCodes = mucUser.getStatus();
+
+                    for (MUCUser.Status status: statusCodes) {
                         if (status.getCode() == ROOM_CONFIGURATION_CHANGED_104.getCode())
                         {
                             // Room configuration changed
@@ -2112,9 +2114,20 @@ public class JvbConference
     }
 
     /**
+     *
+     */
+    private void onAllowedToSpeak(boolean allowed)
+    {
+        if (this.forceMute != null)
+        {
+            this.forceMute.setAllowedToSpeak(allowed);
+        }
+    }
+
+    /**
      * Moderator has enabled force mute.
      */
-    private void onNotAllowedToSpeak()
+    private void onForceMuteEnabled()
     {
         logger.error("NOT ALLOWED TO SPEAK!!!");
 
@@ -2123,23 +2136,23 @@ public class JvbConference
         }
 
         this.forceMute = new ForceMuteEnabled(this);
-    }
-
-    /**
-     * Moderator has allowed the participant to speak.
-     */
-    private void onAllowedToSpeak()
-    {
-        logger.error("ALLOWED TO SPEAK!!!");
-
-        this.forceMute = new ForceMuteDisabled(this);
 
         if (this.gatewaySession instanceof SipGatewaySession)
         {
             SipGatewaySession sipGatewaySession = (SipGatewaySession) this.gatewaySession;
 
-            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteAllowed();
+            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteNoSpeakers();
         }
+    }
+
+    /**
+     * Moderator has allowed the participant to speak.
+     */
+    private void onForceMuteDisabled()
+    {
+        logger.error("ALLOWED TO SPEAK!!!");
+
+        this.forceMute = new ForceMuteDisabled(this);
     }
 
     /**
@@ -2175,16 +2188,12 @@ public class JvbConference
                             = JidCreate.fullFrom(roomJid,
                             Resourcepart.from(this.getResourceIdentifier().toString()));
 
-                    boolean allowedToSpeak = !squelchedList.contains(localFullJid.toString());
+                    boolean forceMuteEnabled = squelchedList.contains(localFullJid.toString());
 
-                    if (this.forceMute != null) {
-                        this.forceMute.setAllowedToSpeak(allowedToSpeak);
-                    }
-
-                    if (allowedToSpeak) {
-                        onAllowedToSpeak();
+                    if (forceMuteEnabled) {
+                        onForceMuteEnabled();
                     } else {
-                        onNotAllowedToSpeak();
+                        onForceMuteDisabled();
                     }
 
                 }
