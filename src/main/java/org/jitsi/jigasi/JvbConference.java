@@ -2072,9 +2072,6 @@ public class JvbConference
         @Override
         public void processStanza(Stanza packet)
         {
-            /**
-             * TODO check room configuration if force mute is enabled only.
-             */
             try
             {
                 MUCUser mucUser = getMUCUserExtension(packet);
@@ -2119,6 +2116,8 @@ public class JvbConference
      */
     private void onNotAllowedToSpeak()
     {
+        logger.error("NOT ALLOWED TO SPEAK!!!");
+
         if (logger.isTraceEnabled()) {
             logger.trace("Force mute enabled!");
         }
@@ -2131,7 +2130,16 @@ public class JvbConference
      */
     private void onAllowedToSpeak()
     {
+        logger.error("ALLOWED TO SPEAK!!!");
+
         this.forceMute = new ForceMuteDisabled(this);
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            SipGatewaySession sipGatewaySession = (SipGatewaySession) this.gatewaySession;
+
+            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteAllowed();
+        }
     }
 
     /**
@@ -2174,15 +2182,9 @@ public class JvbConference
                     }
 
                     if (allowedToSpeak) {
-
                         onAllowedToSpeak();
-
-                        logger.error("ALLOWED TO SPEAK!!!");
                     } else {
-
                         onNotAllowedToSpeak();
-
-                        logger.error("NOT ALLOWED TO SPEAK!!!");
                     }
 
                 }

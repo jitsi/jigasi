@@ -117,6 +117,26 @@ public class SoundNotificationManager
     private static final String LOBBY_JOIN_REVIEW = "sounds/LobbyWait.opus";
 
     /**
+     * The sound file to use to notify that the participant is allowed to speak.
+     */
+    private static final String FORCE_UNMUTE_ALLOWED = "sounds/ForceUnmuteAllowed.opus";
+
+    /**
+     * The sound file to use to notify that participant is now allowed to speak.
+     */
+    private static final String FORCE_UNMUTE_NOSPEAKERS = "sounds/ForceUnmuteNoSpeakers.opus";
+
+    /**
+     * The sound file to use to notify that the request to unmute is being moderated.
+     */
+    private static final String FORCE_UNMUTE_REQUEST = "sounds/ForceUnmuteRequest.opus";
+
+    /**
+     * The sound file to use to notify that the request to unmute is being moderated and user has to wait.
+     */
+    private static final String FORCE_UNMUTE_REQUEST_REVIEW = "sounds/ForceUnmuteRequestReview.opus";
+
+    /**
      * Approximate duration of the file to be played, we need it as to know
      * when to hangup the call. The actual file is 10 seconds but we give a
      * little longer for the file to be played and call to be answered.
@@ -709,6 +729,26 @@ public class SoundNotificationManager
     {
         playSoundFileIfPossible(LOBBY_MEETING_END);
     }
+
+    /**
+     * Used to notify that the user is allowed to unmute.
+     */
+    public void notifyForceUnmuteAllowed() { playSoundFileIfPossible(FORCE_UNMUTE_ALLOWED); }
+
+    /**
+     * Used to notify that the user is not allowed to unmute.
+     */
+    public void notifyForceUnmuteNoSpeakers() { playSoundFileIfPossible(FORCE_UNMUTE_NOSPEAKERS); }
+
+    /**
+     * Used to notify that the request to unmute has been sent to the moderator.
+     */
+    public void notifyForceUnmuteRequest() { playSoundFileIfPossible(FORCE_UNMUTE_REQUEST); }
+
+    /**
+     * Used to notify that the request to unmute has been sent to the moderator and user has to wait.
+     */
+    public void notifyForceUnmuteRequestReview() { playSoundFileIfPossible(FORCE_UNMUTE_REQUEST_REVIEW); }
 
     /**
      * Sends sound notification that tells the user
