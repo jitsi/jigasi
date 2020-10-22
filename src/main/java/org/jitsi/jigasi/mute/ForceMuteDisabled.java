@@ -3,10 +3,8 @@ package org.jitsi.jigasi.mute;
 import org.jitsi.jigasi.JvbConference;
 
 public class ForceMuteDisabled
-    implements ForceMute
+    extends ForceMute
 {
-
-    private JvbConference conference;
 
     public ForceMuteDisabled(JvbConference jvbConference)
     {
@@ -14,9 +12,9 @@ public class ForceMuteDisabled
     }
 
     @Override
-    public void requestAudioMute(boolean muted)
+    public boolean requestAudioMute(boolean mute)
     {
-        this.conference.requestAudioMute(muted);
+        return this.conference.sendAudioMuteRequest(mute);
     }
 
     @Override

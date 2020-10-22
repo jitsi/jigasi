@@ -1890,6 +1890,51 @@ public class JvbConference
     }
 
     /**
+     * Request Jicofo to mute a participant.
+     *
+     * @param muted true if request is to mute audio false otherwise.
+     * @return <tt>true</tt> if request succeeded, false otherwise.
+     */
+    public boolean sendAudioMuteRequest(boolean muted)
+    {
+        StanzaCollector collector = null;
+        try
+        {
+            String roomName = mucRoom.getIdentifier();
+
+            String jidString = roomName  + "/" + getResourceIdentifier().toString();
+            Jid memberJid = JidCreate.from(jidString);
+            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
+            Jid roomJid = JidCreate.from(roomJidString);
+
+            MuteIq muteIq = new MuteIq();
+            muteIq.setJid(memberJid);
+            muteIq.setMute(muted);
+            muteIq.setType(IQ.Type.set);
+            muteIq.setTo(roomJid);;
+
+            collector = getConnection()
+                    .createStanzaCollectorAndSend(muteIq);
+
+            Stanza result = collector.nextResultOrThrow();
+        }
+        catch(Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+            return false;
+        }
+        finally
+        {
+            if (collector != null)
+            {
+                collector.cancel();
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Sets the chatroom presence for the participant.
      *
      * @param muted <tt>true</tt> for presence as muted,
@@ -1913,50 +1958,21 @@ public class JvbConference
     }
 
     /**
-     * Request Jicofo on behalf of Jigasi to mute a participant.
+     * Tries to mute/unmute audio based on meeting settings.
      *
-     * @param bMuted <tt>true</tt> if request is to mute audio,
+     * @param muted <tt>true</tt> if request is to mute audio,
      * false otherwise
      * @return <tt>true</tt> if request succeeded, false
      * otherwise
      */
-    public boolean requestAudioMute(boolean bMuted)
+    public boolean requestAudioMute(boolean muted)
     {
-        StanzaCollector collector = null;
-        try
+        if (this.forceMute != null)
         {
-            String roomName = mucRoom.getIdentifier();
-
-            String jidString = roomName  + "/" + getResourceIdentifier().toString();
-            Jid memberJid = JidCreate.from(jidString);
-            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
-            Jid roomJid = JidCreate.from(roomJidString);
-
-            MuteIq muteIq = new MuteIq();
-            muteIq.setJid(memberJid);
-            muteIq.setMute(bMuted);
-            muteIq.setType(IQ.Type.set);
-            muteIq.setTo(roomJid);;
-
-            collector = getConnection()
-                .createStanzaCollectorAndSend(muteIq);
-
-            Stanza result = collector.nextResultOrThrow();
-        }
-        catch(Exception ex)
-        {
-            logger.error(this.callContext + " " + ex.getMessage());
-            return false;
-        }
-        finally
-        {
-            if (collector != null)
-            {
-                collector.cancel();
-            }
+            return this.forceMute.requestAudioMute(muted);
         }
 
-        return true;
+        return false;
     }
 
     public XMPPConnection getConnection()
@@ -2121,6 +2137,13 @@ public class JvbConference
         if (this.forceMute != null)
         {
             this.forceMute.setAllowedToSpeak(allowed);
+        }
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            SipGatewaySession sipGatewaySession = (SipGatewaySession) this.gatewaySession;
+
+            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteAllowed();
         }
     }
 

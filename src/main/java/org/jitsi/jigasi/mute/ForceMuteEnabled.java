@@ -3,9 +3,8 @@ package org.jitsi.jigasi.mute;
 import org.jitsi.jigasi.JvbConference;
 
 public class ForceMuteEnabled
-    implements ForceMute
+    extends ForceMute
 {
-    private JvbConference conference;
 
     private boolean allowedToSpeak;
 
@@ -16,19 +15,22 @@ public class ForceMuteEnabled
     }
 
     @Override
-    public void requestAudioMute(boolean muted)
+    public boolean requestAudioMute(boolean mute)
     {
-        if (muted == false)
+        if (!this.allowedToSpeak)
         {
-            if (this.allowedToSpeak == false)
+            if (mute)
             {
-                //
-
-                return;
+                return this.conference.sendAudioMuteRequest(mute);
             }
+
+            return false;
         }
 
-        this.conference.requestAudioMute(muted);
+        // TODO reset allowed to speak flag?
+        allowedToSpeak = false;
+
+        return this.conference.sendAudioMuteRequest(mute);
     }
 
     @Override

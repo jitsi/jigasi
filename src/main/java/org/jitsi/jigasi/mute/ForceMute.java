@@ -1,10 +1,14 @@
 package org.jitsi.jigasi.mute;
 
-public interface ForceMute
+import org.jitsi.jigasi.JvbConference;
+
+public abstract class ForceMute
 {
-    void requestAudioMute(boolean muted);
+    protected JvbConference conference;
 
-    void setAllowedToSpeak(boolean allowedToSpeak);
+    public abstract boolean requestAudioMute(boolean muted);
 
-    boolean enabled();
+    public abstract void setAllowedToSpeak(boolean allowedToSpeak);
+
+    public abstract boolean enabled();
 }
