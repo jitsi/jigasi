@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import org.jitsi.jigasi.mute.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
@@ -37,12 +38,17 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.filter.StanzaTypeFilter;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smackx.disco.*;
-import org.jivesoftware.smackx.disco.packet.*;
+
 import org.jivesoftware.smackx.nick.packet.*;
-import org.jivesoftware.smackx.xdata.packet.*;
+import org.jivesoftware.smackx.disco.ServiceDiscoveryManager;
+import org.jivesoftware.smackx.disco.packet.DiscoverInfo;
+import org.jivesoftware.smackx.muc.packet.MUCUser;
+import org.jivesoftware.smackx.xdata.FormField;
+import org.jivesoftware.smackx.xdata.packet.DataForm;
+
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -151,6 +157,12 @@ public class JvbConference
      */
     public static final String LOCAL_REGION_PNAME
         = "org.jitsi.jigasi.LOCAL_REGION";
+
+    /**
+     *
+     */
+    private static final String VAR_ROOM_CONFIGURATION_SQUELCHED_JID
+            = "muc#roomconfig_squelched";
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -318,6 +330,10 @@ public class JvbConference
      */
     private MuteIqHandler muteIqHandler = null;
 
+    private RoomConfigurationListener roomConfigurationListener = null;
+
+    private ForceMute forceMute = null;
+
     /**
      * The lobby room instance for the room if any.
      */
@@ -333,6 +349,8 @@ public class JvbConference
     {
         this.gatewaySession = gatewaySession;
         this.callContext = ctx;
+        this.roomConfigurationListener = new RoomConfigurationListener(this);
+        this.forceMute = new ForceMuteDisabled(this);
     }
 
     private Localpart getResourceIdentifier()
@@ -819,6 +837,8 @@ public class JvbConference
             // the room)
             inviteTimeout.scheduleTimeout();
 
+            registerRoomConfigurationChange();
+
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
@@ -845,6 +865,11 @@ public class JvbConference
             }
 
             gatewaySession.notifyJvbRoomJoined();
+
+//            ServiceDiscoveryManager serviceDiscoveryManager = ServiceDiscoveryManager.getInstanceFor(this.getConnection());
+//
+//            DiscoverInfo discoverInfo = serviceDiscoveryManager.discoverInfo(JidCreate.entityBareFrom(this.mucRoom.getIdentifier()));
+
         }
         catch (Exception e)
         {
@@ -1030,6 +1055,9 @@ public class JvbConference
 
     private void leaveConferenceRoom()
     {
+
+        unregisterRoomConfigurationChange();
+
         if (this.jitsiMeetTools != null)
         {
             this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
@@ -1862,6 +1890,51 @@ public class JvbConference
     }
 
     /**
+     * Request Jicofo to mute a participant.
+     *
+     * @param muted true if request is to mute audio false otherwise.
+     * @return <tt>true</tt> if request succeeded, false otherwise.
+     */
+    public boolean sendAudioMuteRequest(boolean muted)
+    {
+        StanzaCollector collector = null;
+        try
+        {
+            String roomName = mucRoom.getIdentifier();
+
+            String jidString = roomName  + "/" + getResourceIdentifier().toString();
+            Jid memberJid = JidCreate.from(jidString);
+            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
+            Jid roomJid = JidCreate.from(roomJidString);
+
+            MuteIq muteIq = new MuteIq();
+            muteIq.setJid(memberJid);
+            muteIq.setMute(muted);
+            muteIq.setType(IQ.Type.set);
+            muteIq.setTo(roomJid);;
+
+            collector = getConnection()
+                    .createStanzaCollectorAndSend(muteIq);
+
+            Stanza result = collector.nextResultOrThrow();
+        }
+        catch(Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+            return false;
+        }
+        finally
+        {
+            if (collector != null)
+            {
+                collector.cancel();
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Sets the chatroom presence for the participant.
      *
      * @param muted <tt>true</tt> for presence as muted,
@@ -1885,50 +1958,21 @@ public class JvbConference
     }
 
     /**
-     * Request Jicofo on behalf of Jigasi to mute a participant.
+     * Tries to mute/unmute audio based on meeting settings.
      *
-     * @param bMuted <tt>true</tt> if request is to mute audio,
+     * @param muted <tt>true</tt> if request is to mute audio,
      * false otherwise
      * @return <tt>true</tt> if request succeeded, false
      * otherwise
      */
-    public boolean requestAudioMute(boolean bMuted)
+    public boolean requestAudioMute(boolean muted)
     {
-        StanzaCollector collector = null;
-        try
+        if (this.forceMute != null)
         {
-            String roomName = mucRoom.getIdentifier();
-
-            String jidString = roomName  + "/" + getResourceIdentifier().toString();
-            Jid memberJid = JidCreate.from(jidString);
-            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
-            Jid roomJid = JidCreate.from(roomJidString);
-
-            MuteIq muteIq = new MuteIq();
-            muteIq.setJid(memberJid);
-            muteIq.setMute(bMuted);
-            muteIq.setType(IQ.Type.set);
-            muteIq.setTo(roomJid);;
-
-            collector = getConnection()
-                .createStanzaCollectorAndSend(muteIq);
-
-            Stanza result = collector.nextResultOrThrow();
-        }
-        catch(Exception ex)
-        {
-            logger.error(this.callContext + " " + ex.getMessage());
-            return false;
-        }
-        finally
-        {
-            if (collector != null)
-            {
-                collector.cancel();
-            }
+            return this.forceMute.requestAudioMute(muted);
         }
 
-        return true;
+        return false;
     }
 
     public XMPPConnection getConnection()
@@ -2017,4 +2061,205 @@ public class JvbConference
         // join conference room
         joinConferenceRoom();
     }
+
+    class RoomConfigurationListener implements StanzaListener
+    {
+        /**
+         * XEP-0045
+         * Status code for unknown room configuration changes.
+         */
+        public final MUCUser.Status ROOM_CONFIGURATION_CHANGED_104 = MUCUser.Status.create(104);
+
+        /**
+         * Constructs a new room configuration listener that handles the notifications.
+         */
+        private JvbConference jvbConference;
+
+        RoomConfigurationListener(JvbConference jvbConference)
+        {
+            this.jvbConference = jvbConference;
+        }
+
+        /**
+         * This handles the MUCUser extension status codes if the extension exists.
+         *
+         * @param packet
+         */
+        @Override
+        public void processStanza(Stanza packet)
+        {
+            try
+            {
+                MUCUser mucUser = getMUCUserExtension(packet);
+
+                if (mucUser != null)
+                {
+                    Set<MUCUser.Status> statusCodes = mucUser.getStatus();
+
+                    for (MUCUser.Status status: statusCodes) {
+                        if (status.getCode() == ROOM_CONFIGURATION_CHANGED_104.getCode())
+                        {
+                            // Room configuration changed
+                            this.jvbConference.onRoomConfigurationChanged();
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                logger.error(ex.toString());
+            }
+        }
+
+        /**
+         * Returns the MUCUser packet extension included in the packet or <tt>null</tt> if none.
+         *
+         * @param packet the packet that may include the MUCUser extension.
+         * @return the MUCUser found in the packet.
+         */
+        private MUCUser getMUCUserExtension(Stanza packet)
+        {
+            if (packet != null)
+            {
+                // Get the MUC User extension
+                return (MUCUser) packet.getExtension("x",
+                        "http://jabber.org/protocol/muc#user");
+            }
+            return null;
+        }
+    }
+
+    /**
+     *
+     */
+    private void onAllowedToSpeak(boolean allowed)
+    {
+        if (this.forceMute != null)
+        {
+            this.forceMute.setAllowedToSpeak(allowed);
+        }
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            SipGatewaySession sipGatewaySession = (SipGatewaySession) this.gatewaySession;
+
+            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteAllowed();
+        }
+    }
+
+    /**
+     * Moderator has enabled force mute.
+     */
+    private void onForceMuteEnabled()
+    {
+        logger.error("NOT ALLOWED TO SPEAK!!!");
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Force mute enabled!");
+        }
+
+        this.forceMute = new ForceMuteEnabled(this);
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            SipGatewaySession sipGatewaySession = (SipGatewaySession) this.gatewaySession;
+
+            sipGatewaySession.getSoundNotificationManager().notifyForceUnmuteNoSpeakers();
+        }
+    }
+
+    /**
+     * Moderator has allowed the participant to speak.
+     */
+    private void onForceMuteDisabled()
+    {
+        logger.error("ALLOWED TO SPEAK!!!");
+
+        this.forceMute = new ForceMuteDisabled(this);
+    }
+
+    /**
+     * Called when room configuration has changed.
+     */
+    private void onRoomConfigurationChanged()
+    {
+        try
+        {
+            if (this.mucRoom != null)
+            {
+                /**
+                 * Check the room configuration only if force mute is enabled.
+                 * This should probably be in jitsi SDK.
+                 */
+
+                ServiceDiscoveryManager serviceDiscoveryManager
+                        = ServiceDiscoveryManager.getInstanceFor(this.getConnection());
+
+                DiscoverInfo discoverInfo
+                        = serviceDiscoveryManager.discoverInfo(JidCreate.entityBareFrom(this.mucRoom.getIdentifier()));
+
+                DataForm formExtension = discoverInfo.getExtension("x", "jabber:x:data");
+
+                FormField formField = formExtension.getField(VAR_ROOM_CONFIGURATION_SQUELCHED_JID);
+
+                if (formField.getType() == FormField.Type.jid_multi) {
+                    List<String> squelchedList = formField.getValues();
+
+                    EntityBareJid roomJid = JidCreate.entityBareFrom(this.mucRoom.getIdentifier());
+
+                    EntityFullJid localFullJid
+                            = JidCreate.fullFrom(roomJid,
+                            Resourcepart.from(this.getResourceIdentifier().toString()));
+
+                    boolean forceMuteEnabled = squelchedList.contains(localFullJid.toString());
+
+                    if (forceMuteEnabled) {
+                        onForceMuteEnabled();
+                    } else {
+                        onForceMuteDisabled();
+                    }
+
+                }
+            } else {
+                logger.error("No MUC room when trying to retrieve room configuration!");
+            }
+        } catch (Exception ex) {
+            logger.error(ex.toString());
+        }
+    }
+
+    /**
+     *
+     */
+    private void registerRoomConfigurationChange()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            XMPPConnection xmppConnection = ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                .getConnection();
+
+            xmppConnection
+                    .addAsyncStanzaListener(this.roomConfigurationListener,
+                            new StanzaTypeFilter(org.jivesoftware.smack.packet.Message.class));
+        }
+    }
+
+    /**
+     *
+     */
+    private void unregisterRoomConfigurationChange()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            if (roomConfigurationListener != null)
+            {
+                XMPPConnection xmppConnection = ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                        .getConnection();
+
+                xmppConnection
+                        .removeAsyncStanzaListener(this.roomConfigurationListener);
+            }
+        }
+    }
 }
+
