@@ -294,10 +294,16 @@ public class StatsHandler
                 jigasiId,
                 true,
                 new StatsServiceInitListener());
-        StatsServiceWrapper wrapper = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
-        statsInstances.put(appId, wrapper);
 
-        return wrapper;
+        if (statsServiceInstance != null)
+        {
+            StatsServiceWrapper wrapper = new StatsServiceWrapper(conferenceIDPrefix, interval, statsServiceInstance);
+            statsInstances.put(appId, wrapper);
+
+            return wrapper;
+        }
+
+        return null;
     }
 
     @Override
@@ -330,6 +336,8 @@ public class StatsHandler
         if (this.statsService == null)
         {
             logger.warn(callContext + " Stats handler missing for call:" + this.call);
+
+            return;
         }
 
         if (call.getCallState() != CallState.CALL_IN_PROGRESS)
