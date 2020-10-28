@@ -37,11 +37,6 @@
       <version>1.94.1</version>
     </dependency>
     <dependency>
-      <groupId>dom4j</groupId>
-      <artifactId>dom4j</artifactId>
-      <version>1.6.1</version>
-    </dependency>
-    <dependency>
       <groupId>org.igniterealtime</groupId>
       <artifactId>tinder</artifactId>
       <version>1.2.3</version>
