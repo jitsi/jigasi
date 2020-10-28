@@ -84,6 +84,13 @@ public class Statistics
         = "total_calls_with_sip_call_reconnected";
 
     /**
+     * The name of the number of conferences for which XMPP call received transport replace for migrating to a new
+     * jvb.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_WITH_JVB_MIGRATE = "total_calls_with_jvb_migrate";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -119,6 +126,11 @@ public class Statistics
      */
     private static AtomicLong totalCallsWithSipCalReconnected
         = new AtomicLong();
+
+    /**
+     * Total number of calls with xmpp call receiving transport replace for moving to a new bridge.
+     */
+    private static AtomicLong totalCallsWithJvbMigrate = new AtomicLong();
 
     /**
      * Cumulative number of seconds of all conferences.
@@ -188,6 +200,7 @@ public class Statistics
             totalCallsWithSipCallWaiting.get());
         stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
             totalCallsWithSipCalReconnected.get());
+        stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -309,6 +322,15 @@ public class Statistics
     public static void incrementTotalCallsWithSipCallReconnected()
     {
         totalCallsWithSipCalReconnected.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of calls with XMPP calls terminated
+     * and new XMPP call been connected again with the SIP call
+     */
+    public static void incrementTotalCallsWithJvbMigrate()
+    {
+        totalCallsWithJvbMigrate.incrementAndGet();
     }
 
     /**

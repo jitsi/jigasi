@@ -48,6 +48,7 @@ import org.jxmpp.jid.parts.*;
 import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
+import java.beans.*;
 import java.util.*;
 
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
@@ -67,7 +68,8 @@ public class JvbConference
                ServiceListener,
                ChatRoomMemberPresenceListener,
                LocalUserChatRoomPresenceListener,
-               CallPeerConferenceListener
+               CallPeerConferenceListener,
+               PropertyChangeListener
 {
     /**
      * The logger.
@@ -1291,6 +1293,24 @@ public class JvbConference
         return callContext.getMeetingUrl();
     }
 
+    /**
+     * Listens for transport replace - migrating to a new bridge.
+     * For now we just leave the room(xmpp call) and join again to be re-invited.
+     * @param evt the event for CallPeer change.
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt)
+    {
+        if (evt.getPropertyName().equals(CallPeerJabberImpl.TRANSPORT_REPLACE_PROPERTY_NAME))
+        {
+            Statistics.incrementTotalCallsWithJvbMigrate();
+
+            leaveConferenceRoom();
+
+            joinConferenceRoom();
+        }
+    }
+
     private class JvbCallListener
         implements CallListener
     {
@@ -1352,6 +1372,7 @@ public class JvbConference
             if (peer != null)
             {
                 peer.addCallPeerConferenceListener(JvbConference.this);
+                peer.addPropertyChangeListener(JvbConference.this);
 
                 peer.addCallPeerListener(new CallPeerAdapter()
                 {
@@ -1713,6 +1734,119 @@ public class JvbConference
     }
 
     /**
+     * Sets the chatroom presence for the participant.
+     *
+     * @param muted <tt>true</tt> for presence as muted,
+     * false otherwise
+     */
+    void setChatRoomAudioMuted(boolean muted)
+    {
+        if (mucRoom != null)
+        {
+            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
+
+            audioMutedExtension.setAudioMuted(muted);
+
+            OperationSetJitsiMeetTools jitsiMeetTools
+                = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
+
+            jitsiMeetTools
+                .sendPresenceExtension(mucRoom, audioMutedExtension);
+
+        }
+    }
+
+    /**
+     * Request Jicofo on behalf of Jigasi to mute a participant.
+     *
+     * @param bMuted <tt>true</tt> if request is to mute audio,
+     * false otherwise
+     * @return <tt>true</tt> if request succeeded, false
+     * otherwise
+     */
+    public boolean requestAudioMute(boolean bMuted)
+    {
+        StanzaCollector collector = null;
+        try
+        {
+            String roomName = mucRoom.getIdentifier();
+
+            String jidString = roomName  + "/" + getResourceIdentifier().toString();
+            Jid memberJid = JidCreate.from(jidString);
+            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
+            Jid roomJid = JidCreate.from(roomJidString);
+
+            MuteIq muteIq = new MuteIq();
+            muteIq.setJid(memberJid);
+            muteIq.setMute(bMuted);
+            muteIq.setType(IQ.Type.set);
+            muteIq.setTo(roomJid);;
+
+            collector = getConnection()
+                .createStanzaCollectorAndSend(muteIq);
+
+            collector.nextResultOrThrow();
+        }
+        catch(Exception ex)
+        {
+            logger.error(this.callContext + " " + ex.getMessage());
+            return false;
+        }
+        finally
+        {
+            if (collector != null)
+            {
+                collector.cancel();
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Retrieves the connection from ProtocolProviderService if it is the JabberImpl.
+     * @return the XMPPConnection.
+     */
+    public XMPPConnection getConnection()
+    {
+        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
+        {
+            return ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
+                .getConnection();
+        }
+
+        return null;
+    }
+
+    /**
+     * Called whenever password is known. In case of lobby, while waiting in the lobby, the user can enter the password
+     * and that can be signalled through SIP Info messages, and we can leve the lobby and enter the room with the
+     * password received, if the password is wrong we will fail joining and the call will be dropped.
+     *
+     * @param pwd <tt>String</tt> room password.
+     */
+    public void onPasswordReceived(String pwd)
+    {
+        // Check if conference joined before trying...
+        if (this.mucRoom != null)
+        {
+            logger.warn(this.callContext + " Strange received a password after joining the room");
+            return;
+        }
+
+        this.callContext.setRoomPassword(pwd);
+
+        // leave lobby room
+        if (this.lobby != null)
+        {
+            this.lobby.leave();
+        }
+
+        // join conference room
+        joinConferenceRoom();
+    }
+
+    /**
      * Threads handles the timeout for stopping the conference.
      * For waiting for conference call invite sent by the focus or for waiting
      * another participant to joins.
@@ -1861,87 +1995,6 @@ public class JvbConference
     }
 
     /**
-     * Sets the chatroom presence for the participant.
-     *
-     * @param muted <tt>true</tt> for presence as muted,
-     * false otherwise
-     */
-    void setChatRoomAudioMuted(boolean muted)
-    {
-        if (mucRoom != null)
-        {
-            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
-
-            audioMutedExtension.setAudioMuted(muted);
-
-            OperationSetJitsiMeetTools jitsiMeetTools
-                = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
-
-            jitsiMeetTools
-                .sendPresenceExtension(mucRoom, audioMutedExtension);
-
-        }
-    }
-
-    /**
-     * Request Jicofo on behalf of Jigasi to mute a participant.
-     *
-     * @param bMuted <tt>true</tt> if request is to mute audio,
-     * false otherwise
-     * @return <tt>true</tt> if request succeeded, false
-     * otherwise
-     */
-    public boolean requestAudioMute(boolean bMuted)
-    {
-        StanzaCollector collector = null;
-        try
-        {
-            String roomName = mucRoom.getIdentifier();
-
-            String jidString = roomName  + "/" + getResourceIdentifier().toString();
-            Jid memberJid = JidCreate.from(jidString);
-            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
-            Jid roomJid = JidCreate.from(roomJidString);
-
-            MuteIq muteIq = new MuteIq();
-            muteIq.setJid(memberJid);
-            muteIq.setMute(bMuted);
-            muteIq.setType(IQ.Type.set);
-            muteIq.setTo(roomJid);;
-
-            collector = getConnection()
-                .createStanzaCollectorAndSend(muteIq);
-
-            Stanza result = collector.nextResultOrThrow();
-        }
-        catch(Exception ex)
-        {
-            logger.error(this.callContext + " " + ex.getMessage());
-            return false;
-        }
-        finally
-        {
-            if (collector != null)
-            {
-                collector.cancel();
-            }
-        }
-
-        return true;
-    }
-
-    public XMPPConnection getConnection()
-    {
-        if (this.xmppProvider instanceof ProtocolProviderServiceJabberImpl)
-        {
-            return ((ProtocolProviderServiceJabberImpl) this.xmppProvider)
-                .getConnection();
-        }
-
-        return null;
-    }
-
-    /**
      * Handles mute requests received by jicofo if enabled.
      */
     private class MuteIqHandler
@@ -1987,33 +2040,5 @@ public class JvbConference
 
             return IQ.createResultIQ(muteIq);
         }
-    }
-
-    /**
-     * Called whenever password is known. In case of lobby, while waiting in the lobby, the user can enter the password
-     * and that can be signalled through SIP Info messages, and we can leve the lobby and enter the room with the
-     * password received, if the password is wrong we will fail joining and the call will be dropped.
-     *
-     * @param pwd <tt>String</tt> room password.
-     */
-    public void onPasswordReceived(String pwd)
-    {
-        // Check if conference joined before trying...
-        if (this.mucRoom != null)
-        {
-            logger.warn(this.callContext + " Strange received a password after joining the room");
-            return;
-        }
-
-        this.callContext.setRoomPassword(pwd);
-
-        // leave lobby room
-        if (this.lobby != null)
-        {
-            this.lobby.leave();
-        }
-
-        // join conference room
-        joinConferenceRoom();
     }
 }
