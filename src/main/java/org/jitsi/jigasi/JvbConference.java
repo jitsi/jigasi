@@ -48,6 +48,7 @@ import org.jxmpp.jid.parts.*;
 import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
+import java.beans.*;
 import java.util.*;
 
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
@@ -67,7 +68,8 @@ public class JvbConference
                ServiceListener,
                ChatRoomMemberPresenceListener,
                LocalUserChatRoomPresenceListener,
-               CallPeerConferenceListener
+               CallPeerConferenceListener,
+               PropertyChangeListener
 {
     /**
      * The logger.
@@ -1291,6 +1293,24 @@ public class JvbConference
         return callContext.getMeetingUrl();
     }
 
+    /**
+     * Listens for transport replace - migrating to a new bridge.
+     * For now we just leave the room(xmpp call) and join again to be re-invited.
+     * @param evt the event for CallPeer change.
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt)
+    {
+        if (evt.getPropertyName().equals(CallPeerJabberImpl.TRANSPORT_REPLACE_PROPERTY_NAME))
+        {
+            Statistics.incrementTotalCallsWithJvbMigrate();
+
+            leaveConferenceRoom();
+
+            joinConferenceRoom();
+        }
+    }
+
     private class JvbCallListener
         implements CallListener
     {
@@ -1352,6 +1372,7 @@ public class JvbConference
             if (peer != null)
             {
                 peer.addCallPeerConferenceListener(JvbConference.this);
+                peer.addPropertyChangeListener(JvbConference.this);
 
                 peer.addCallPeerListener(new CallPeerAdapter()
                 {

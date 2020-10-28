@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
+import org.jitsi.jigasi.lobby.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
