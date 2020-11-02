@@ -2202,28 +2202,48 @@ public class JvbConference
 
                 FormField formField = formExtension.getField(VAR_ROOM_CONFIGURATION_SQUELCHED_JID);
 
-                if (formField.getType() == FormField.Type.jid_multi) {
-                    List<String> squelchedList = formField.getValues();
-
-                    EntityBareJid roomJid = JidCreate.entityBareFrom(this.mucRoom.getIdentifier());
-
-                    EntityFullJid localFullJid
-                            = JidCreate.fullFrom(roomJid,
-                            Resourcepart.from(this.getResourceIdentifier().toString()));
-
-                    boolean forceMuteEnabled = squelchedList.contains(localFullJid.toString());
-
-                    if (forceMuteEnabled) {
-                        onForceMuteEnabled();
-                    } else {
-                        onForceMuteDisabled();
-                    }
-
+                if (formField != null)
+                {
+                    onForcemuteWhiteListChanged(formField);
                 }
+
+
             } else {
                 logger.error("No MUC room when trying to retrieve room configuration!");
             }
         } catch (Exception ex) {
+            logger.error(ex.toString());
+        }
+    }
+
+    /**
+     *
+     * @param formField
+     */
+    private void onForcemuteWhiteListChanged(FormField formField)
+    {
+        try
+        {
+            if (formField.getType() == FormField.Type.jid_multi)
+            {
+                List<String> squelchedList = formField.getValues();
+
+                EntityBareJid roomJid = JidCreate.entityBareFrom(this.mucRoom.getIdentifier());
+
+                EntityFullJid localFullJid
+                        = JidCreate.fullFrom(roomJid,
+                        Resourcepart.from(this.getResourceIdentifier().toString()));
+
+                boolean allowedToSpeak = squelchedList.contains(localFullJid.toString());
+
+                if (this.forceMute != null)
+                {
+                    this.forceMute.setAllowedToSpeak(allowedToSpeak);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
             logger.error(ex.toString());
         }
     }
