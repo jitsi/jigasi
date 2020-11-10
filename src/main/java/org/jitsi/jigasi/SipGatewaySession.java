@@ -1360,6 +1360,12 @@ public class SipGatewaySession
      */
     public void notifyLobbyJoined()
     {
+        // outgoing calls first join xmpp before dialing out
+        if (sipCall == null)
+        {
+            return;
+        }
+
         // Notify peer
         CallPeer callPeer = sipCall.getCallPeers().next();
 
@@ -1382,6 +1388,12 @@ public class SipGatewaySession
      */
     public void notifyLobbyLeft()
     {
+        // outgoing calls first join xmpp before dialing out
+        if (sipCall == null)
+        {
+            return;
+        }
+
         // Notify peer
         CallPeer callPeer = sipCall.getCallPeers().next();
 
@@ -1404,6 +1416,12 @@ public class SipGatewaySession
      */
     public void notifyLobbyAllowedJoin()
     {
+        // outgoing calls first join xmpp before dialing out
+        if (sipCall == null)
+        {
+            return;
+        }
+
         // Notify peer
         CallPeer callPeer = sipCall.getCallPeers().next();
 
@@ -1426,6 +1444,12 @@ public class SipGatewaySession
      */
     public void notifyLobbyRejectedJoin()
     {
+        // outgoing calls first join xmpp before dialing out
+        if (sipCall == null)
+        {
+            return;
+        }
+
         // Notify peer
         CallPeer callPeer = sipCall.getCallPeers().next();
 
