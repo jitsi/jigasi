@@ -110,7 +110,6 @@ case "$1" in
         OWNER=$(stat -c '%U' /etc/jitsi/jigasi)
         GROUP=$(stat -c '%G' /etc/jitsi/jigasi)
         if ! dpkg-statoverride --list /etc/jitsi/jigasi/* >/dev/null && [ "$OWNER:$GROUP" != "jigasi:jitsi" ]; then
-            chown -R jigasi:jitsi /etc/jitsi/jigasi
             chown -R jigasi:jitsi /usr/share/jigasi
             OWNER=jigasi
             GROUP=jitsi
@@ -118,8 +117,8 @@ case "$1" in
 
         CONFIG_DIR=$(dirname $CONFIG)
         if ! dpkg-statoverride --list "$CONFIG_DIR" >/dev/null; then
-                chown root:$GROUP "$CONFIG_DIR"
-                chmod 750 "$CONFIG_DIR"
+            chown -R jigasi:jitsi "$CONFIG_DIR"
+            chmod 750 "$CONFIG_DIR"
         fi
 
         if [ ! -d /var/log/jitsi ]; then
