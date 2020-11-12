@@ -47,7 +47,10 @@ public class MockMucShare
 
     public void nextRoomCreated(MockMultiUserChat chatRoom)
     {
-        groupedChats.add(chatRoom);
+        synchronized(groupedChats)
+        {
+            groupedChats.add(chatRoom);
+        }
 
         chatRoom.addMemberPresenceListener(this);
 
@@ -83,7 +86,13 @@ public class MockMucShare
     private void broadcastMemberJoined(ChatRoom       chatRoom,
                                        ChatRoomMember chatRoomMember)
     {
-        for (MockMultiUserChat chatToNotify : groupedChats)
+        List<MockMultiUserChat> listeners;
+        synchronized(groupedChats)
+        {
+            listeners = new ArrayList<>(groupedChats);
+        }
+
+        for (MockMultiUserChat chatToNotify : listeners)
         {
             if (chatToNotify != chatRoom)
             {
@@ -99,7 +108,13 @@ public class MockMucShare
     private void broadcastMemberLeft(ChatRoom       chatRoom,
                                      ChatRoomMember chatRoomMember)
     {
-        for (MockMultiUserChat chatToNotify : groupedChats)
+        List<MockMultiUserChat> listeners;
+        synchronized(groupedChats)
+        {
+            listeners = new ArrayList<>(groupedChats);
+        }
+
+        for (MockMultiUserChat chatToNotify : listeners)
         {
             if (chatToNotify != chatRoom)
             {

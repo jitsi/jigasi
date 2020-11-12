@@ -29,7 +29,7 @@ PIDFILE=/var/run/jigasi.pid
 LOGDIR=/var/log/jitsi
 LOGFILE=$LOGDIR/jigasi.log
 DESC=jigasi
-DAEMON_OPTS=" --host=$JIGASI_HOST --domain=$JIGASI_HOSTNAME --subdomain=callcontrol --secret=$JIGASI_SECRET --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
+DAEMON_OPTS=" --host=$JIGASI_HOST --domain=$JIGASI_HOSTNAME --logdir=$LOGDIR --configdir=/etc/jitsi --configdirname=jigasi $JIGASI_OPTS"
 
 if [ ! -x $DAEMON ] ;then
   echo "Daemon not executable: $DAEMON"

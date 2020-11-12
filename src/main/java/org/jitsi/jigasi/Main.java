@@ -117,12 +117,6 @@ public class Main
     private static final String SUBDOMAIN_ARG_NAME = "--subdomain";
 
     /**
-     * The name of the command-line argument which specifies that connecting the
-     * component is disabled.
-     */
-    private static final String DISABLE_COMPONENT_ARG_NAME = "--nocomponent";
-
-    /**
      * The name of the command-line argument which specifies log folder to use.
      */
     private static final String LOGDIR_ARG_NAME = "--logdir";
@@ -288,13 +282,7 @@ public class Main
 
         ComponentMain main = new ComponentMain();
 
-        main.runMainProgramLoop(
-            Boolean.valueOf(
-                cmdLine.getOptionValue(DISABLE_COMPONENT_ARG_NAME)) ?
-                null :
-                new CallControlComponent(
-                    host, port, domain, subdomain, secret),
-            new JigasiBundleConfig());
+        main.runMainProgramLoop(new JigasiBundleConfig());
     }
 
     /**

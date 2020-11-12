@@ -31,7 +31,7 @@ case "$1" in
         # we don't want to regenerate config on upgrade
         if [ -f $CONFIG ]; then
             . $CONFIG
-            if [ -n "$JIGASI_SIPUSER" ] && [ -n "$JIGASI_SIPPWD" ] && [ -n "$JIGASI_SECRET" ]; then
+            if [ -n "$JIGASI_SIPUSER" ] && [ -n "$JIGASI_SIPPWD" ]; then
                 OLDCONFIG="true"
             fi
         fi
@@ -59,13 +59,12 @@ case "$1" in
             JIGASI_SIPPWD=$(echo -n $RET | base64 -)
 
             # 8-chars random secret, alternative to pwgen 8
-            JIGASI_SECRET=`head -c 8 /dev/urandom | tr '\0-\377' 'a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9@@@@####'`
+            JIGASI_XMPP_SECRET=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 16`
 
             # storing default for later use by Jigasi and other packages
             echo '# Jigasi settings' > $CONFIG
             echo "JIGASI_SIPUSER=$JIGASI_SIPUSER" >> $CONFIG
             echo "JIGASI_SIPPWD=$JIGASI_SIPPWD" >> $CONFIG
-            echo "JIGASI_SECRET=$JIGASI_SECRET" >> $CONFIG
             echo "JIGASI_OPTS=\"\"" >> $CONFIG
         fi
 
@@ -142,22 +141,50 @@ case "$1" in
             chmod 770 /var/lib/jigasi
         fi
 
+        JIGASI_XMPP_PASSWORD_BASE64=$(echo -n $JIGASI_XMPP_SECRET | base64 -)
+
         # populate the config with debconf values
-        sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" /etc/jitsi/jigasi/sip-communicator.properties
-        sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" /etc/jitsi/jigasi/sip-communicator.properties
+        JIGASI_CONFIG="/etc/jitsi/jigasi/sip-communicator.properties"
+        sed -i "s/<<JIGASI_SIPUSER>>/$JIGASI_SIPUSER/g" $JIGASI_CONFIG
+        sed -i "s/<<JIGASI_SIPPWD>>/$JIGASI_SIPPWD/g" $JIGASI_CONFIG
         SIPSERVER=`echo $JIGASI_SIPUSER | cut -d'@' -f 2`
-        sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" /etc/jitsi/jigasi/sip-communicator.properties
-        sed -i "s/<<DOMAIN_BASE>>/$JVB_HOSTNAME/g" /etc/jitsi/jigasi/sip-communicator.properties
+        sed -i "s/<<JIGASI_SIPSERVER>>/$SIPSERVER/g" $JIGASI_CONFIG
+        sed -i "s/<<DOMAIN_BASE>>/$JVB_HOSTNAME/g" $JIGASI_CONFIG
+        sed -i "s/<<JIGASI_XMPP_PASSWORD_BASE64>>/$JIGASI_XMPP_PASSWORD_BASE64/g" $JIGASI_CONFIG
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         if [ -f $PROSODY_HOST_CONFIG ]; then
-            JIGASI_PROSODY="Component \"callcontrol.$JVB_HOSTNAME\" component_secret = \"$JIGASI_SECRET\""
-            # update prosody config
-            if [ ! "$(grep "Component \"callcontrol.$JVB_HOSTNAME\"" $PROSODY_HOST_CONFIG)" ]; then
-                echo $JIGASI_PROSODY >> $PROSODY_HOST_CONFIG
-                invoke-rc.d prosody restart
+            # We create the user once and fill in the template with password once and do nothing on the next updates
+            USER_EXISTS_CHECK=`prosodyctl adduser jigasi@auth.$JVB_HOSTNAME < /dev/null || true`
+            if [ ! "$USER_EXISTS_CHECK" = "That user already exists" ]; then
+                prosodyctl register jigasi auth.$JVB_HOSTNAME $JIGASI_XMPP_SECRET || true
             fi
         fi
+
+        JICOFO_CONFIG="/etc/jitsi/jicofo/jicofo.conf"
+        if [ -f $JICOFO_CONFIG ]; then
+            # add brewery room to jicofo config if it is not there
+            RES=0
+            hocon -f $JICOFO_CONFIG get jicofo.jigasi.brewery > /dev/null 2>&1 || RES=$? || true
+            if [ $RES -eq 1 ]; then
+                hocon -f $JICOFO_CONFIG set jicofo.jigasi.brewery \"JigasiBrewery@internal.auth.$JVB_HOSTNAME\" || true
+
+                # now let's restart jicofo
+                systemctl restart jicofo
+            fi
+        fi
+
+        # Prints a warning when we think that brewery is not configured
+        if ! grep -q ".BREWERY" "$JIGASI_CONFIG" ;then
+            echo "------------------------------------------------"
+            echo ""
+            echo "MUC brewery not configured!"
+            echo "Outgoing calls and transcriptions will not work till this is not fixed."
+            echo "Check out https://github.com/jitsi/jigasi#call-control-mucs-brewery"
+            echo ""
+            echo "------------------------------------------------"
+        fi
+
 
         # ensure jigasi is not running - it will be started at the end
         if [ -d /run/systemd/system ]; then

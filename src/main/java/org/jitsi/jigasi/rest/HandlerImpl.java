@@ -432,15 +432,6 @@ public class HandlerImpl
         }
         String id = (String) requestJSONObject.get("id");
 
-        if (!JigasiBundleActivator.getConfigurationService()
-                .getBoolean(
-                    CallControlMucActivator.BREWERY_ENABLED_PROP, false))
-        {
-            //MUC call control disabled.
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-            return;
-        }
-
         if ("add".equals(target))
         {
             try
