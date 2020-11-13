@@ -154,11 +154,7 @@ case "$1" in
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         if [ -f $PROSODY_HOST_CONFIG ]; then
-            # We create the user once and fill in the template with password once and do nothing on the next updates
-            USER_EXISTS_CHECK=`prosodyctl adduser jigasi@auth.$JVB_HOSTNAME < /dev/null || true`
-            if [ ! "$USER_EXISTS_CHECK" = "That user already exists" ]; then
-                prosodyctl register jigasi auth.$JVB_HOSTNAME $JIGASI_XMPP_SECRET || true
-            fi
+            echo -e "$JIGASI_XMPP_SECRET\n$JIGASI_XMPP_SECRET" | prosodyctl adduser jigasi@auth.$JVB_HOSTNAME || true
         fi
 
         JICOFO_CONFIG="/etc/jitsi/jicofo/jicofo.conf"
