@@ -46,7 +46,7 @@ Component "internal.auth.meet.example.com" "muc"
 
 6. Setup the xmpp account for jigasi control room (brewery).
     prosodyctl register jigasi auth.meet.example.com topsecret
-    Replace ```<<JIGASI_XMPPPWD>>``` tag with Base64 encoded password (topsecret) in the sip-communicator.properties file.
+    Replace ```<<JIGASI_XMPP_PASSWORD_BASE64>>``` tag with Base64 encoded password (topsecret) in the sip-communicator.properties file.
 
 6. Start Jigasi
  
