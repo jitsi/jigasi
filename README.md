@@ -273,7 +273,7 @@ when a call on this account is received.
 The value of `BREWERY` is the name of the brewery room where jigasi will connect.
 That room needs to be configured in jicofo with the following property:
 `org.jitsi.jicofo.jigasi.BREWERY=JigasiBrewery@internal.auth.meet.example.com` or in the new jicofo config:
-`hocon -f /etc/jitsi/jicofo/jicofo.conf set jicofo.jigasi.brewery '"JigasiBrewery@internal.auth.meet.example.com"'`
+`hocon -f /etc/jitsi/jicofo/jicofo.conf set jicofo.jigasi.brewery-jid '"JigasiBrewery@internal.auth.meet.example.com"'`
 Where prosody needs to have a registered muc component: `internal.auth.meet.example.com`.
 
 You can configure and per XMPP account callstats account, a jigasi instance can 

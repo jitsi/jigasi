@@ -160,8 +160,8 @@ case "$1" in
         JICOFO_CONFIG="/etc/jitsi/jicofo/jicofo.conf"
         if [ -f $JICOFO_CONFIG ]; then
             # add brewery room to jicofo config if it is not there
-            if ! hocon -f $JICOFO_CONFIG get jicofo.jigasi.brewery > /dev/null 2>&1 ; then
-                hocon -f $JICOFO_CONFIG set jicofo.jigasi.brewery \"JigasiBrewery@internal.auth.$JVB_HOSTNAME\" || true
+            if ! hocon -f $JICOFO_CONFIG get jicofo.jigasi.brewery-jid > /dev/null 2>&1 ; then
+                hocon -f $JICOFO_CONFIG set jicofo.jigasi.brewery-jid \"JigasiBrewery@internal.auth.$JVB_HOSTNAME\" || true
 
                 # now let's restart jicofo
                 systemctl restart jicofo
