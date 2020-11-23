@@ -117,12 +117,6 @@ public class CallsHandlingTest
         }
     }
 
-    @AfterClass
-    public static void tearDownClass()
-    {
-        osgi.shutdown();
-    }
-
     private String getTestRoomName()
     {
         return "test" + roomNameCounter++;
@@ -323,20 +317,13 @@ public class CallsHandlingTest
     }
 
     @Test
-    public void testXmppComponent()
+    public void testCallControl()
         throws Exception
     {
-        String subdomain = "call";
         String serverName = "conference.net";
-        Jid jigasiJid = JidCreate.from(subdomain + "." + serverName);
 
-        CallControlComponent component
-            = new CallControlComponent(
-                    serverName, 1234, serverName, subdomain, "secret");
-
-        component.postComponentStart();
-
-        assertEquals(serverName, component.getDomain());
+        CallControl callControl = new CallControl(JigasiBundleActivator.getConfigurationService());
+        callControl.setSipGateway(osgi.getSipGateway());
 
         Jid from = JidCreate.from("from@example.org");
         Jid to = JidCreate.from("sipAddress@example.com");
@@ -350,24 +337,22 @@ public class CallsHandlingTest
             = RayoIqProvider.DialIq.create(to.toString(), from.toString());
 
         dialIq.setFrom(from);
-        dialIq.setTo(jigasiJid);
 
         dialIq.setHeader(
             CallControl.ROOM_NAME_HEADER,
             focus.getRoomName());
 
-        org.xmpp.packet.IQ result
-            = component.handleIQ(IQUtils.convert(dialIq));
+        CallContext ctx = new CallContext(this);
+        ctx.setDomain(serverName);
 
-        IQ iq = IQUtils.convert(result);
+        org.jivesoftware.smack.packet.IQ result = callControl.handleDialIq(dialIq, ctx, null);
 
-        assertTrue(iq instanceof RayoIqProvider.RefIq);
+        assertTrue(result instanceof RayoIqProvider.RefIq);
 
-        RayoIqProvider.RefIq callRef = (RayoIqProvider.RefIq) iq;
+        RayoIqProvider.RefIq callRef = (RayoIqProvider.RefIq) result;
 
         String callUri = callRef.getUri();
         assertEquals("xmpp:", callUri.substring(0, 5));
-        assertTrue(callUri.contains("@" + jigasiJid));
 
         GatewaySessions gatewaySessions = new GatewaySessions(osgi.getSipGateway());
 
@@ -404,7 +389,7 @@ public class CallsHandlingTest
                     from, callResource);
 
         // FIXME: validate result
-        component.handleIQ(IQUtils.convert(hangUp));
+        callControl.handleHangUp(hangUp);
 
         callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);

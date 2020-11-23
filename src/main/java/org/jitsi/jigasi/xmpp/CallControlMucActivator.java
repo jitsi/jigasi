@@ -70,12 +70,6 @@ public class CallControlMucActivator
     public static final String ROOM_NAME_ACCOUNT_PROP = "BREWERY";
 
     /**
-     * A property to enable or disable muc call control, disabled by default.
-     */
-    public static final String BREWERY_ENABLED_PROP
-        = "org.jitsi.jigasi.BREWERY_ENABLED";
-
-    /**
      * The call controlling logic.
      */
     private CallControl callControl = null;
@@ -92,12 +86,6 @@ public class CallControlMucActivator
         osgiContext = bundleContext;
 
         ConfigurationService config = getConfigurationService();
-
-        if (!config.getBoolean(BREWERY_ENABLED_PROP, false))
-        {
-            logger.warn("MUC call control disabled.");
-            return;
-        }
 
         osgiContext.addServiceListener(this);
 

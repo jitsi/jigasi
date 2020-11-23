@@ -329,12 +329,7 @@ public class JigasiBundleActivator
         shutdownInProgress = true;
         maybeDoShutdown();
 
-        // lets send the status if using brewery
-        if (getConfigurationService().getBoolean(
-                CallControlMucActivator.BREWERY_ENABLED_PROP, false))
-        {
-            Statistics.updatePresenceStatusForXmppProviders();
-        }
+        Statistics.updatePresenceStatusForXmppProviders();
     }
 
     /**

@@ -107,22 +107,6 @@ public class CallControl
     }
 
     /**
-     * Constructs new call control instance with a SipGateway
-     *
-     * @param sipGateway the SipGateway instance
-     * @param transcriptionGateway the TranscriptionGateway instance
-     * @param config the config service instance
-     */
-    public CallControl(SipGateway sipGateway,
-                       TranscriptionGateway transcriptionGateway,
-                       ConfigurationService config)
-    {
-        this(config);
-        this.sipGateway = sipGateway;
-        this.transcriptionGateway = transcriptionGateway;
-    }
-
-    /**
      * Constructs new call control instance.
      * @param config the config service instance.
      */

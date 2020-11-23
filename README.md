@@ -29,30 +29,36 @@ It is possible to install Jigasi along with Jitsi Meet using our [quick install 
  unzip jigasi-{os-version}-{version}.zip
  ```
 
-4. Configure external component in your XMPP server. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua and append following lines to your config (assuming that subdomain is 'callcontrol' and domain 'meet.jit.si'):
+4. Configure a muc component in your XMPP server that will be used for the brewery rooms. If your server is Prosody: edit /etc/prosody/prosody.cfg.lua or the appropriate file in /etc/prosody/conf.d and append following lines to your config (assuming that domain 'meet.example.com'):
 
  ```
- Component "callcontrol.meet.jit.si"
-     component_secret = "topsecret"
- ```
+Component "internal.auth.meet.example.com" "muc"
+    storage = "memory"
+    modules_enabled = {
+      "ping";
+    }
+    admins = { "focus@auth.meet.example.com", "jigasi@auth.meet.example.com" }
+    muc_room_locking = false
+    muc_room_default_public_jids = true ```
 5. Setup SIP account
 
  Go to jigasi/jigasi-home and edit sip-communicator.properties file. Replace ```<<JIGASI_SIPUSER>>``` tag with SIP username for example: "user1232@sipserver.net". Then put Base64 encoded password in place of ```<<JIGASI_SIPPWD>>```.
+
+6. Setup the xmpp account for jigasi control room (brewery).
+    prosodyctl register jigasi auth.meet.example.com topsecret
+    Replace ```<<JIGASI_XMPP_PASSWORD_BASE64>>``` tag with Base64 encoded password (topsecret) in the sip-communicator.properties file.
 
 6. Start Jigasi
  
  ```
  cd jigasi/target/jigasi-{os-version}-{version}/
- ./jigasi.sh --domain=meet.jit.si --subdomain=callcontrol --secret=topsecret
+ ./jigasi.sh --domain=meet.example.com
  ```
-After Jigasi is started it will register as XMPP component under the 'callcontrol' subdomain. In Jitsi Meet application -> config.js -> hosts.call_control must be set to 'callcontrol.meet.jit.si'. This will enable SIP calls in Jitsi Meet.
+After Jigasi is started it will register to the XMPP server and connect to the brewery room.
 
 Supported arguments:
  * --domain: specifies the XMPP domain to use.
  * --host: the IP address or the name of the XMPP host to connect to (localhost by default).
- * --port: the port of the XMPP host to connect on (5347 by default).
- * --subdomain: subdomain name for SIP gateway component.
- * --secret: the secret key for the sub-domain of the Jabber component implemented by this application with which it is to authenticate to the XMPP server to connect to.
  * --min-port: the minimum port number that we'd like our RTP managers to bind upon.
  * --max-port: the maximum port number that we'd like our RTP managers to bind upon.
 
@@ -73,7 +79,7 @@ Jigasi will register on your SIP server with some identity and it will accept ca
 
 Example:
 
-Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.jit.si/room1234' (assuming that our domain is 'meet.jit.si').
+Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.example.com/room1234' (assuming that our domain is 'meet.example.com').
 
 Configuring SIP and Transcription
 =======================================
@@ -203,33 +209,30 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
 Call control MUCs (brewery)
 =======================================
 
-For outgoing calls jigasi by default configures using callcontrol XMPP component 
-(when installing using Debian package). Jicofo discovers jigasi components and 
-uses them.
-Instead of component and for multiple jigasi instances and better load balancing 
-jigasi can disable component (by passing startup parameter `--nocomponent=true`)
-and can use XMPP MUCs called a brewery to join and be discovered.
+For outgoing calls jigasi by default configures using a control room called brewery(XMPP MUC).
 To configure using MUCs you need to add an XMPP account that will be used to 
 connect to the XMPP server and add the property 
 `org.jitsi.jigasi.BREWERY_ENABLED=true`.
 Here are example XMPP account properties:
 ```
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1=acc-xmpp-1
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ACCOUNT_UID=Jabber:jigasi@auth.meet.jit.si@meet.jit.si
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.USER_ID=jigasi@auth.meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ACCOUNT_UID=Jabber:jigasi@auth.meet.example.com
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.USER_ID=jigasi@auth.meet.example.com
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_SERVER_OVERRIDDEN=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_ADDRESS=<xmpp_server_ip_address>
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_PORT=5222
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BOSH_URL=https://xmpp_server_ip_address/http-bind
+#net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BOSH_URL=https://xmpp_server_ip_address/http-bind
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ALLOW_NON_SECURE=true
-#base64
+#base64 AES keyLength:256 or 128
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.PASSWORD=<xmpp_account_password>
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.AUTO_GENERATE_RESOURCE=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.RESOURCE_PRIORITY=30
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.KEEP_ALIVE_METHOD=XEP-0199
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.KEEP_ALIVE_INTERVAL=30
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CALLING_DISABLED=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.JINGLE_NODES_ENABLED=false
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_CARBON_DISABLED=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.DEFAULT_ENCRYPTION=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_USE_ICE=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_ACCOUNT_DISABLED=false
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_PREFERRED_PROTOCOL=false
@@ -239,10 +242,29 @@ net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_USE_UPNP=false
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IM_DISABLED=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.SERVER_STORED_INFO_DISABLED=true
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.IS_FILE_TRANSFER_DISABLED=true
-
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.USE_DEFAULT_STUN_SERVER=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ENCRYPTION_PROTOCOL.DTLS-SRTP=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.ENCRYPTION_PROTOCOL_STATUS.DTLS-SRTP=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.OVERRIDE_ENCODINGS=true
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.G722/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.GSM/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.H263-1998/90000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.H264/90000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.PCMA/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.PCMU/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.SILK/12000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.SILK/16000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.SILK/24000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.SILK/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.VP8/90000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.iLBC/8000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.opus/48000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.speex/16000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.speex/32000=0
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.Encodings.speex/8000=0
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BOSH_URL_PATTERN=https://{host}{subdomain}/http-bind?room={roomName}
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.DOMAIN_BASE=meet.jit.si
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BREWERY=JigasiBreweryRoom@internal.muc.meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.DOMAIN_BASE=meet.example.com
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.BREWERY=JigasiBrewery@internal.auth.meet.example.com
 
 ```
 The property `BOSH_URL_PATTERN` is the bosh URL that will be used from jigasi 
@@ -250,8 +272,9 @@ when a call on this account is received.
 
 The value of `BREWERY` is the name of the brewery room where jigasi will connect.
 That room needs to be configured in jicofo with the following property:
-`org.jitsi.jicofo.jigasi.BREWERY=JigasiBreweryRoom@internal.muc.meet.jit.si`
-Where prosody needs to have a registered muc component: `internal.muc.meet.jit.si`.
+`org.jitsi.jicofo.jigasi.BREWERY=JigasiBrewery@internal.auth.meet.example.com` or in the new jicofo config:
+`hocon -f /etc/jitsi/jicofo/jicofo.conf set jicofo.jigasi.brewery-jid '"JigasiBrewery@internal.auth.meet.example.com"'`
+Where prosody needs to have a registered muc component: `internal.auth.meet.example.com`.
 
 You can configure and per XMPP account callstats account, a jigasi instance can 
 serve several deployments/domains:
@@ -259,7 +282,7 @@ serve several deployments/domains:
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.appId=...
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyId=...
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyPath=/etc/jitsi/jigasi/ecpriv.jwk
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.conferenceIDPrefix=meet.jit.si
+net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.conferenceIDPrefix=meet.example.com
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.jigasiId=<id-of-this-instance-visible-in-callstats>
 net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.STATISTICS_INTERVAL=60000
 ``` 
@@ -272,8 +295,8 @@ A new XMPP control MUC can be added by posting a JSON which contains its configu
 ```
 {
   "id": "acc-xmpp-1",
-  "ACCOUNT_UID":"Jabber:jigasi@auth.meet.jit.si@meet.jit.si",
-  "USER_ID":"jigasi@auth.meet.jit.si",
+  "ACCOUNT_UID":"Jabber:jigasi@auth.meet.example.com@meet.example.com",
+  "USER_ID":"jigasi@auth.meet.example.com",
   "IS_SERVER_OVERRIDDEN":"true",
   .....
 }

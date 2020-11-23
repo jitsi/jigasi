@@ -44,11 +44,7 @@ case "$1" in
         JVB_HOSTNAME="$RET"
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         if [ -f $PROSODY_HOST_CONFIG ]; then
-            sed "/Component \"callcontrol.\"/d" -i /etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua
-
-            if [ -x "/etc/init.d/prosody" ]; then
-                invoke-rc.d prosody reload
-            fi
+            prosodyctl deluser jigasi@auth.$JVB_HOSTNAME < /dev/null || true
         fi
 
         rm -rf /usr/share/jigasi/

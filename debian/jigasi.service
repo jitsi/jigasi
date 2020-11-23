@@ -14,7 +14,7 @@ TasksMax=65000
 # allow more open files for this process
 LimitNPROC=65000
 LimitNOFILE=65000
-ExecStart=/bin/bash -c "exec /usr/share/jigasi/jigasi.sh --host=$${JIGASI_HOST:-localhost} --domain=${JIGASI_HOSTNAME} --subdomain=callcontrol --secret=${JIGASI_SECRET} --logdir=/var/log/jitsi --configdir=/etc/jitsi --configdirname=jigasi ${JIGASI_OPTS} < /dev/null >> ${LOGFILE} 2>&1"
+ExecStart=/bin/bash -c "exec /usr/share/jigasi/jigasi.sh --host=$${JIGASI_HOST:-localhost} --domain=${JIGASI_HOSTNAME} --logdir=/var/log/jitsi --configdir=/etc/jitsi --configdirname=jigasi ${JIGASI_OPTS} < /dev/null >> ${LOGFILE} 2>&1"
 ExecStartPost=/bin/bash -c "echo $MAINPID > /var/run/jigasi/jigasi.pid"
 
 [Install]
