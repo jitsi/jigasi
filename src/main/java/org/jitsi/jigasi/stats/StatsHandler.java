@@ -21,10 +21,9 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.version.*;
 import org.jitsi.stats.media.*;
 import org.jitsi.utils.concurrent.*;
-import org.jitsi.utils.version.*;
-import org.jitsi.utils.version.Version;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -245,7 +244,7 @@ public class StatsHandler
 
         synchronized(statsInstances)
         {
-            this.statsService = getStatsServiceWrapper(appId, targetAccountID, bundleContext);
+            this.statsService = getStatsServiceWrapper(appId, targetAccountID);
 
             // Adds the call change listener only after we find config and create the stats service
             this.call.addCallChangeListener(this);
@@ -257,11 +256,9 @@ public class StatsHandler
      *
      * @param appId the appId of the stats instance.
      * @param accountID the target account id.
-     * @param bundleContext the osgi bundle context.
      * @return the StatsServiceWrapper instance.
      */
-    private StatsServiceWrapper getStatsServiceWrapper(
-        int appId, AccountID accountID, BundleContext bundleContext)
+    private StatsServiceWrapper getStatsServiceWrapper(int appId, AccountID accountID)
     {
         if (statsInstances.containsKey(appId))
         {
@@ -274,19 +271,13 @@ public class StatsHandler
         String jigasiId = accountID.getAccountPropertyString(CS_ACC_PROP_JIGASI_ID, DEFAULT_JIGASI_ID);
 
         String conferenceIDPrefix = accountID.getAccountPropertyString(CS_ACC_PROP_CONFERENCE_PREFIX);
-        int interval = accountID.getAccountPropertyInt(
-            CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
-
-        ServiceReference<VersionService> serviceReference = bundleContext.getServiceReference(VersionService.class);
-        VersionService versionService
-            = (serviceReference == null) ? null : bundleContext.getService(serviceReference);
-        Version version = versionService != null ? versionService.getCurrentVersion() : null;
+        int interval = accountID.getAccountPropertyInt(CS_ACC_PROP_STATISTICS_INTERVAL, DEFAULT_STAT_INTERVAL);
 
         logger.info(callContext + " Jitsi-stats library initializing for account: " + accountID);
 
         StatsService statsServiceInstance = StatsServiceFactory.getInstance()
             .createStatsService(
-                version,
+                CurrentVersionImpl.VERSION,
                 appId,
                 null,
                 keyId,
