@@ -82,13 +82,20 @@ public class CallContext
     private String roomPassword;
 
     /**
+     * Optional token (JWT) required to enter MUC room
+     * when using token based authentication.
+     */
+    private String authToken;
+
+    /**
      * Optional bosh url that we use to join a room with the
      * xmpp account.
      * The bosh URL is a pattern:
      * https://{host}{subdomain}/http-bind?room={roomName}
      * Call context take care of the parameters {host} and {subdomain}
      * replacing them with domain and if available subdomain separating them
-     * with '/', otherwise replaces subdomain with ''.
+     * with '/', otherwise replaces subdomain with ''. If authToken is
+     * set, then an additional parameter &token={authToken} is appended.
      */
     private String boshURL;
 
@@ -243,6 +250,23 @@ public class CallContext
     public void setRoomPassword(String roomPassword)
     {
         this.roomPassword = roomPassword;
+    }
+
+    /**
+     * Auth token to enter MUC room, optional.
+     * @return the token or null.
+     */
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    /**
+     * Set the auth token required to enter MUC room
+     * when using token based authenitcation.
+     * @param token the token.
+     */
+    public void setAuthToken(String token) {
+        this.authToken = token;
     }
 
     /**
@@ -415,6 +439,14 @@ public class CallContext
             // before we have a chance to check for subdomain in the
             // target room name
             boshURL = boshURL.replace("{subdomain}", subdomain);
+        }
+
+        if (this.authToken != null)
+        {
+            if (!boshURL.contains("&token="))
+            {
+                boshURL = boshURL + "&token=" + this.authToken;
+            }
         }
     }
 
