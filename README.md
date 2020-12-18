@@ -53,7 +53,8 @@ Component "internal.auth.meet.example.com" "muc"
  ```
  cd jigasi/target/jigasi-{os-version}-{version}/
  ./jigasi.sh --domain=meet.example.com
- ```
+ ``
+ 
 After Jigasi is started it will register to the XMPP server and connect to the brewery room.
 
 Supported arguments:
