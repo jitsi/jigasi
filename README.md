@@ -39,7 +39,9 @@ Component "internal.auth.meet.example.com" "muc"
     }
     admins = { "focus@auth.meet.example.com", "jigasi@auth.meet.example.com" }
     muc_room_locking = false
-    muc_room_default_public_jids = true ```
+    muc_room_default_public_jids = true 
+ ```
+
 5. Setup SIP account
 
  Go to jigasi/jigasi-home and edit sip-communicator.properties file. Replace ```<<JIGASI_SIPUSER>>``` tag with SIP username for example: "user1232@sipserver.net". Then put Base64 encoded password in place of ```<<JIGASI_SIPPWD>>```.
