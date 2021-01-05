@@ -156,12 +156,17 @@ public class JvbConference
     /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
+     * @return Returns the features extension element that can be added to presence.
      */
-    private static void addSupportedFeatures(
+    private static ExtensionElement addSupportedFeatures(
             OperationSetJitsiMeetTools meetTools)
     {
+        AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
+
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
+        features.addChildExtension(getFeature(SIP_GATEWAY_FEATURE_NAME));
         meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
+        features.addChildExtension(getFeature(DTMF_FEATURE_NAME));
 
         ConfigurationService cfg
                 = JigasiBundleActivator.getConfigurationService();
@@ -186,7 +191,10 @@ public class JvbConference
         if (JigasiBundleActivator.isSipStartMutedEnabled())
         {
             meetTools.addSupportedFeature(MUTED_FEATURE_NAME);
+            features.addChildExtension(getFeature(MUTED_FEATURE_NAME));
         }
+
+        return features;
     }
 
     /**
@@ -690,8 +698,8 @@ public class JvbConference
     public void joinConferenceRoom()
     {
         // Advertise gateway feature before joining
-        addSupportedFeatures(
-            xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
+        ExtensionElement features
+            = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
 
         OperationSetMultiUserChat muc
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
@@ -787,6 +795,8 @@ public class JvbConference
                     ((ChatRoomJabberImpl)mucRoom)
                         .addPresencePacketExtensions(initiator);
                 }
+
+                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
             }
             else
             {
@@ -1844,6 +1854,19 @@ public class JvbConference
 
         // join conference room
         joinConferenceRoom();
+    }
+
+    /**
+     * Creates a feature xmpp extension, that can be added to features and used in presence.
+     * @param var the value to be added.
+     * @return the extension element.
+     */
+    private static ExtensionElement getFeature(String var)
+    {
+        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
+        feature.setAttribute("var", var);
+
+        return feature;
     }
 
     /**
