@@ -333,6 +333,11 @@ public class JvbConference
     private Lobby lobby = null;
 
     /**
+     * Up-to-date list of participants in the room that are jigasi.
+     */
+    private List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -1120,8 +1125,7 @@ public class JvbConference
             && !ChatRoomMemberPresenceChangeEvent.MEMBER_LEFT.equals(eventType)
             && !ChatRoomMemberPresenceChangeEvent.MEMBER_QUIT.equals(eventType))
         {
-            if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED
-                    .equals(eventType))
+            if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED.equals(eventType))
             {
                 gatewaySession.notifyChatRoomMemberJoined(member);
             }
@@ -1130,10 +1134,18 @@ public class JvbConference
             {
                 if (member instanceof ChatRoomMemberJabberImpl)
                 {
-                    Presence presence
-                        = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+                    Presence presence = ((ChatRoomMemberJabberImpl) member).getLastPresence();
 
                     gatewaySession.notifyChatRoomMemberUpdated(member, presence);
+
+                    // let's check and whether it is a jigasi participant
+                    // we use initiator as its easier for checking/parsing
+                    if (presence != null
+                        && !jigasiChatRoomMembers.contains(member.getName())
+                        && presence.hasExtension("initiator", SIP_GATEWAY_FEATURE_NAME))
+                    {
+                        jigasiChatRoomMembers.add(member.getName());
+                    }
                 }
             }
 
@@ -1145,6 +1157,8 @@ public class JvbConference
             logger.info(
                 this.callContext + " Member left : " + member.getRole()
                             + " " + member.getContactAddress());
+
+            jigasiChatRoomMembers.remove(member.getName());
         }
 
         // if it is the focus leaving
@@ -1190,9 +1204,6 @@ public class JvbConference
             // but otherwise we will check whether there are
             if (lobbyEnabled && !singleModeratorEnabled)
             {
-                // let's check the rest of the members
-                String roomName = mucRoom.getIdentifier();
-
                 boolean onlyJigasisInRoom = !this.mucRoom.getMembers().stream().anyMatch(m -> {
                     // If its us or jicofo ignore checking for jigasi
                     if (m.getName().equals(getResourceIdentifier().toString())
@@ -1201,20 +1212,9 @@ public class JvbConference
                         return false;
                     }
 
-                    try
+                    if (!jigasiChatRoomMembers.contains(m.getName()))
                     {
-                        String jidString = roomName  + "/" + m.getName();
-                        DiscoverInfo i = ServiceDiscoveryManager.getInstanceFor(getConnection())
-                            .discoverInfo(JidCreate.entityFullFrom(jidString));
-
-                        if (!i.containsFeature(SIP_GATEWAY_FEATURE_NAME))
-                        {
-                            return true;
-                        }
-                    }
-                    catch(Exception e)
-                    {
-                        logger.error(callContext + " Error checking discoInfo for:" + m.getName(), e);
+                        return true;
                     }
 
                     return false;
