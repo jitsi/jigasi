@@ -1422,7 +1422,13 @@ public class JvbConference
                         if (CallPeerState.CONNECTED.equals(peerState))
                         {
                             p.removeCallPeerListener(this);
-                            setPresenceStatus(peerState.getStateString());
+
+                            // We set the connected state only for incoming calls
+                            // outgoing calls will set it when the sip side connects
+                            if (callContext.getDestination() == null && gatewaySession instanceof SipGatewaySession)
+                            {
+                                setPresenceStatus(peerState.getStateString());
+                            }
                         }
                     }
                 });

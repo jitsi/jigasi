@@ -1681,8 +1681,13 @@ public class SipGatewaySession
 
             logger.info(callContext + " SIP peer state: " + stateString);
 
-            if (jvbConference != null)
+            // The sip side set the state only when it is outgoing call and is connected
+            if (jvbConference != null
+                    && CallPeerState.CONNECTED.equals(callPeerState)
+                    && destination != null)
+            {
                 jvbConference.setPresenceStatus(stateString);
+            }
 
             soundNotificationManager.process(callPeerState);
         }
