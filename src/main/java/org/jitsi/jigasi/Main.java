@@ -18,11 +18,11 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.configuration.*;
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 
 import org.jitsi.cmd.*;
 import org.jitsi.jigasi.osgi.*;
-import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
@@ -224,6 +224,14 @@ public class Main
         System.setProperty(
             OperationSetBasicTelephony.MIN_MEDIA_PORT_NUMBER_PROPERTY_NAME,
             String.valueOf(minPort));
+
+        // skips some unused signalling signalling
+        System.setProperty(
+            CallPeerJabberImpl.SKIP_DISCO_INFO_ON_SESSION_INITIATE,
+            "true");
+        System.setProperty(
+            CallPeerJabberImpl.SKIP_RINGING_ON_SESSION_INITIATE,
+            "true");
 
         // FIXME: properties used for debug purposes
         // jigasi-home will be create in current directory (from where the
