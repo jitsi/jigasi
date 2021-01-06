@@ -1202,15 +1202,6 @@ public class JvbConference
             jigasiChatRoomMembers.remove(member.getName());
         }
 
-        // if it is the focus leaving
-        if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
-        {
-            logger.info(this.callContext + " Focus left! - stopping the call");
-            CallManager.hangupCall(jvbCall, 502, "Focus left");
-
-            return;
-        }
-
         // process member left if it is not focus
         processChatRoomMemberLeft(member);
     }
@@ -1228,6 +1219,15 @@ public class JvbConference
         {
             // we want to ignore the leave events when stopping the conference,
             // or connection is missing or not connected
+            return;
+        }
+
+        // if it is the focus leaving and we are not in the middle of hangup
+        if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
+        {
+            logger.info(this.callContext + " Focus left! - stopping the call");
+            CallManager.hangupCall(jvbCall, 502, "Focus left");
+
             return;
         }
 
