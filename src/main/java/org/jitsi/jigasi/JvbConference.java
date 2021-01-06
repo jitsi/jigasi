@@ -37,10 +37,12 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.disco.*;
 import org.jivesoftware.smackx.disco.packet.*;
+import org.jivesoftware.smackx.muc.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -331,6 +333,21 @@ public class JvbConference
      * The lobby room instance for the room if any.
      */
     private Lobby lobby = null;
+
+    /**
+     * Keeps the state where lobby is currently enabled in this room.
+     */
+    private boolean lobbyEnabled = false;
+
+    /**
+     * Whether single moderator is enabled and set in room config.
+     */
+    private boolean singleModeratorEnabled = false;
+
+    /**
+     * Listens for room configuration changes and request room config to reflect it locally.
+     */
+    private RoomConfigurationChangeListener roomConfigurationListener = null;
 
     /**
      * Up-to-date list of participants in the room that are jigasi.
@@ -861,6 +878,22 @@ public class JvbConference
             }
 
             gatewaySession.notifyJvbRoomJoined();
+
+            if (lobbyEnabled)
+            {
+                // let's check room config
+                updateFromRoomConfiguration();
+            }
+
+            // let's listen for any future changes in room configuration, whether lobby will be enabled/disabled
+            if (roomConfigurationListener == null && mucRoom instanceof ChatRoomJabberImpl)
+            {
+                roomConfigurationListener = new RoomConfigurationChangeListener();
+                getConnection().addAsyncStanzaListener(roomConfigurationListener,
+                    new AndFilter(
+                        FromMatchesFilter.create(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid()),
+                        MessageTypeFilter.GROUPCHAT));
+            }
         }
         catch (Exception e)
         {
@@ -940,6 +973,8 @@ public class JvbConference
                                             callContext + " Lobby enabled by moderator! Will try to join lobby!");
 
                                         this.lobby.join();
+
+                                        this.setLobbyEnabled(true);
 
                                         return;
                                     }
@@ -1068,6 +1103,12 @@ public class JvbConference
             return;
         }
 
+        if (this.roomConfigurationListener != null)
+        {
+            getConnection().removeAsyncStanzaListener(roomConfigurationListener);
+            this.roomConfigurationListener = null;
+        }
+
         mucRoom.leave();
 
         // remove listener needs to be after leave,
@@ -1190,61 +1231,47 @@ public class JvbConference
             return;
         }
 
-        try
+        // if lobby is not enabled or single moderator mode is detected
+        // there is nothing to process
+        // but otherwise we will check whether there are
+        if (this.lobbyEnabled && !this.singleModeratorEnabled)
         {
-            DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
-                discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
-
-            DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
-            boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
-            boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
-
-            // if lobby is not enabled or single moderator mode is detected
-            // there is nothing to process
-            // but otherwise we will check whether there are
-            if (lobbyEnabled && !singleModeratorEnabled)
-            {
-                boolean onlyJigasisInRoom = !this.mucRoom.getMembers().stream().anyMatch(m -> {
-                    // If its us or jicofo ignore checking for jigasi
-                    if (m.getName().equals(getResourceIdentifier().toString())
-                        || m.getName().equals(gatewaySession.getFocusResourceAddr()))
-                    {
-                        return false;
-                    }
-
-                    if (!jigasiChatRoomMembers.contains(m.getName()))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                });
-
-                if (onlyJigasisInRoom)
+            boolean onlyJigasisInRoom = !this.mucRoom.getMembers().stream().anyMatch(m -> {
+                // If its us or jicofo ignore checking for jigasi
+                if (m.getName().equals(getResourceIdentifier().toString())
+                    || m.getName().equals(gatewaySession.getFocusResourceAddr()))
                 {
-                    // there are only jigasi participants in the room with lobby enabled
-                    // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
-                    // leaving it
-                    logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
+                    return false;
+                }
 
-                    // let's play something
-                    if (this.gatewaySession instanceof SipGatewaySession)
-                    {
-                        // This will hangup the call at the end
-                        ((SipGatewaySession) this.gatewaySession)
-                            .getSoundNotificationManager().notifyLobbyRoomDestroyed();
-                    }
-                    else
-                    {
-                        // transcriber case
-                        stop();
-                    }
+                if (!jigasiChatRoomMembers.contains(m.getName()))
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (onlyJigasisInRoom)
+            {
+                // there are only jigasi participants in the room with lobby enabled
+                // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
+                // leaving it
+                logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
+
+                // let's play something
+                if (this.gatewaySession instanceof SipGatewaySession)
+                {
+                    // This will hangup the call at the end
+                    ((SipGatewaySession) this.gatewaySession)
+                        .getSoundNotificationManager().notifyLobbyRoomDestroyed();
+                }
+                else
+                {
+                    // transcriber case
+                    stop();
                 }
             }
-        }
-        catch(Exception e)
-        {
-            logger.error(callContext + " Error checking lobby and other participants", e);
         }
     }
 
@@ -1870,6 +1897,39 @@ public class JvbConference
     }
 
     /**
+     * Changes the value of the flag whether lobby is enabled or not.
+     * @param value the new value.
+     */
+    public void setLobbyEnabled(boolean value)
+    {
+        lobbyEnabled = value;
+    }
+
+    /**
+     * Discovers the room configuration and checks the values of whether lobby is enabled and whether
+     * single moderator is set.
+     */
+    private void updateFromRoomConfiguration()
+    {
+        try
+        {
+            DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
+                discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
+
+            DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
+            boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
+            boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
+
+            setLobbyEnabled(lobbyEnabled);
+            this.singleModeratorEnabled = singleModeratorEnabled;
+        }
+        catch(Exception e)
+        {
+            logger.error(this.callContext + " Error checking room configuration", e);
+        }
+    }
+
+    /**
      * Threads handles the timeout for stopping the conference.
      * For waiting for conference call invite sent by the focus or for waiting
      * another participant to joins.
@@ -2062,6 +2122,28 @@ public class JvbConference
             }
 
             return IQ.createResultIQ(muteIq);
+        }
+    }
+
+    /**
+     * When a room config change is detected we update room configuration to check it.
+     */
+    private class RoomConfigurationChangeListener
+        implements StanzaListener
+    {
+        @Override
+        public void processStanza(Stanza stanza)
+        {
+            MUCUser mucUser = stanza.getExtension("x", "http://jabber.org/protocol/muc#user");
+            if (mucUser == null)
+            {
+                return;
+            }
+
+            if (mucUser.getStatus().contains(MUCUser.Status.create(104)))
+            {
+                updateFromRoomConfiguration();
+            }
         }
     }
 }

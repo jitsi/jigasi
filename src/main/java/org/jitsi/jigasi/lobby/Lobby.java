@@ -353,6 +353,7 @@ public class Lobby
          */
         if (this.jvbConference != null)
         {
+            this.jvbConference.setLobbyEnabled(false);
             this.jvbConference.joinConferenceRoom();
         }
         else
