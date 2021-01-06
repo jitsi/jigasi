@@ -47,24 +47,6 @@ import org.jivesoftware.smack.tcp.*;
 public class Main
 {
     /**
-     * The name of the command-line argument which specifies the XMPP domain
-     * to use.
-     */
-    private static final String DOMAIN_ARG_NAME = "--domain";
-
-    /**
-     * The name of the command-line argument which specifies the IP address or
-     * the name of the XMPP host to connect to.
-     */
-    private static final String HOST_ARG_NAME = "--host";
-
-    /**
-     * The default value of the {@link #HOST_ARG_NAME} command-line argument if
-     * it is not explicitly provided.
-     */
-    private static final String HOST_ARG_VALUE = "localhost";
-
-    /**
      * The name of the command-line argument which specifies the value of the
      * <tt>System</tt> property
      * {@link DefaultStreamConnector#MAX_PORT_NUMBER_PROPERTY_NAME}.
@@ -90,31 +72,6 @@ public class Main
      * it is not explicitly provided.
      */
     private static final int MIN_PORT_ARG_VALUE = 10000;
-
-    /**
-     * The name of the command-line argument which specifies the port of the
-     * XMPP host to connect on.
-     */
-    private static final String PORT_ARG_NAME = "--port";
-
-    /**
-     * The default value of the {@link #PORT_ARG_NAME} command-line argument if
-     * it is not explicitly provided.
-     */
-    private static final int PORT_ARG_VALUE = 5347;
-
-    /**
-     * The name of the command-line argument which specifies the secret key for
-     * the sub-domain of the Jabber component implemented by this application
-     * with which it is to authenticate to the XMPP server to connect to.
-     */
-    private static final String SECRET_ARG_NAME = "--secret";
-
-    /**
-     * The name of the command-line argument which specifies sub-domain name for
-     * the jigasi component.
-     */
-    private static final String SUBDOMAIN_ARG_NAME = "--subdomain";
 
     /**
      * The name of the command-line argument which specifies log folder to use.
@@ -193,19 +150,6 @@ public class Main
         int minPort
             = cmdLine.getIntOptionValue(
                     MIN_PORT_ARG_NAME, MIN_PORT_ARG_VALUE);
-
-        int port
-            = cmdLine.getIntOptionValue(PORT_ARG_NAME, PORT_ARG_VALUE);
-
-        String secret = cmdLine.getOptionValue(SECRET_ARG_NAME);
-
-        String domain = cmdLine.getOptionValue(DOMAIN_ARG_NAME);
-
-        String host = cmdLine.getOptionValue(
-                HOST_ARG_NAME,
-                domain == null ? HOST_ARG_VALUE : domain);
-
-        String subdomain = cmdLine.getOptionValue(SUBDOMAIN_ARG_NAME);
 
         // Jingle Raw UDP transport
         System.setProperty(
