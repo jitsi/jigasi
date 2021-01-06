@@ -1699,13 +1699,6 @@ public class JvbConference
         ConferenceIq focusInviteIQ = new ConferenceIq();
         focusInviteIQ.setRoom(roomIdentifier);
 
-        // FIXME: uses hardcoded values that are currently used in production
-        // we need to configure them or retrieve them in the future
-        focusInviteIQ.addProperty("channelLastN", "-1");
-        focusInviteIQ.addProperty("disableRtx", "false");
-        focusInviteIQ.addProperty("startBitrate", "800");
-        focusInviteIQ.addProperty("openSctp", "true");
-
         try
         {
             focusInviteIQ.setType(IQ.Type.set);
