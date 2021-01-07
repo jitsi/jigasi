@@ -429,14 +429,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.4.0</version>
-        <configuration>
-          <mainClass>org.jitsi.jicofo.Main</mainClass>
-        </configuration>
-      </plugin>
-      <plugin>
         <!-- Instructs the plugin to add the current package version in the jar manifest
         So we can access it runtime with: .class.getPackage().getImplementationVersion()
          -->
