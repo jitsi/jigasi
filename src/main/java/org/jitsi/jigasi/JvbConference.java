@@ -2133,7 +2133,7 @@ public class JvbConference
         @Override
         public void processStanza(Stanza stanza)
         {
-            MUCUser mucUser = stanza.getExtension("x", "http://jabber.org/protocol/muc#user");
+            MUCUser mucUser = stanza.getExtension(MUCInitialPresence.ELEMENT, MUCInitialPresence.NAMESPACE);
             if (mucUser == null)
             {
                 return;
