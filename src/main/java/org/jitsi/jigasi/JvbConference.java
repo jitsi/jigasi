@@ -166,9 +166,9 @@ public class JvbConference
         AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
 
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-        features.addChildExtension(getFeature(SIP_GATEWAY_FEATURE_NAME));
+        features.addChildExtension(createFeature(SIP_GATEWAY_FEATURE_NAME));
         meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
-        features.addChildExtension(getFeature(DTMF_FEATURE_NAME));
+        features.addChildExtension(createFeature(DTMF_FEATURE_NAME));
 
         ConfigurationService cfg
                 = JigasiBundleActivator.getConfigurationService();
@@ -193,10 +193,23 @@ public class JvbConference
         if (JigasiBundleActivator.isSipStartMutedEnabled())
         {
             meetTools.addSupportedFeature(MUTED_FEATURE_NAME);
-            features.addChildExtension(getFeature(MUTED_FEATURE_NAME));
+            features.addChildExtension(createFeature(MUTED_FEATURE_NAME));
         }
 
         return features;
+    }
+
+    /**
+     * Creates a feature xmpp extension, that can be added to features and used in presence.
+     * @param var the value to be added.
+     * @return the extension element.
+     */
+    private static ExtensionElement createFeature(String var)
+    {
+        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
+        feature.setAttribute("var", var);
+
+        return feature;
     }
 
     /**
@@ -1215,14 +1228,13 @@ public class JvbConference
      */
     private void processChatRoomMemberLeft(ChatRoomMember member)
     {
-        if (!this.started || getConnection() == null || !getConnection().isConnected())
+        if (!this.started)
         {
-            // we want to ignore the leave events when stopping the conference,
-            // or connection is missing or not connected
             return;
         }
 
         // if it is the focus leaving and we are not in the middle of hangup
+        // we leave this here before checking connection to make tests happy
         if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
             logger.info(this.callContext + " Focus left! - stopping the call");
@@ -1231,32 +1243,28 @@ public class JvbConference
             return;
         }
 
+        if (getConnection() == null || !getConnection().isConnected())
+        {
+            // we want to ignore the leave events when stopping the conference,
+            // or connection is missing or not connected
+            return;
+        }
+
         // if lobby is not enabled or single moderator mode is detected
         // there is nothing to process
-        // but otherwise we will check whether there are
+        // but otherwise we will check whether there are jigasi participants
+        // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
+        // leaving it
         if (this.lobbyEnabled && !this.singleModeratorEnabled)
         {
-            boolean onlyJigasisInRoom = !this.mucRoom.getMembers().stream().anyMatch(m -> {
-                // If its us or jicofo ignore checking for jigasi
-                if (m.getName().equals(getResourceIdentifier().toString())
-                    || m.getName().equals(gatewaySession.getFocusResourceAddr()))
-                {
-                    return false;
-                }
-
-                if (!jigasiChatRoomMembers.contains(m.getName()))
-                {
-                    return true;
-                }
-
-                return false;
-            });
+            boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
+                m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
+                || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
+                || jigasiChatRoomMembers.contains(m.getName()));
 
             if (onlyJigasisInRoom)
             {
                 // there are only jigasi participants in the room with lobby enabled
-                // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
-                // leaving it
                 logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
 
                 // let's play something
@@ -1880,19 +1888,6 @@ public class JvbConference
 
         // join conference room
         joinConferenceRoom();
-    }
-
-    /**
-     * Creates a feature xmpp extension, that can be added to features and used in presence.
-     * @param var the value to be added.
-     * @return the extension element.
-     */
-    private static ExtensionElement getFeature(String var)
-    {
-        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
-        feature.setAttribute("var", var);
-
-        return feature;
     }
 
     /**
