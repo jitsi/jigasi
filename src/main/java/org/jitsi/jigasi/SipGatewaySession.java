@@ -694,14 +694,6 @@ public class SipGatewaySession
                     .getAccountPropertyString(
                         CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
 
-                // we have the room information, lets add cs to incoming call
-                if (statsHandler == null)
-                {
-                    String sipCallIdentifier = this.getMucDisplayName();
-                    statsHandler = new StatsHandler(
-                        sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
-                }
-
                 joinJvbConference(callContext);
             }
             else
@@ -992,6 +984,14 @@ public class SipGatewaySession
                     }
                 }
             });
+        }
+
+        // lets add cs to the call
+        if (statsHandler == null)
+        {
+            String sipCallIdentifier = this.getMucDisplayName();
+            statsHandler = new StatsHandler(
+                sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
         }
     }
 
@@ -1702,7 +1702,7 @@ public class SipGatewaySession
      * FIXME: to be removed
      */
     class WaitForJvbRoomNameThread
-            extends Thread
+        extends Thread
     {
         private boolean cancel = false;
 
