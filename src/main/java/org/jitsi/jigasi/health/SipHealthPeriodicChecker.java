@@ -279,6 +279,27 @@ class SipHealthPeriodicChecker
         OperationSetBasicTelephony tele
             = pps.getOperationSet(OperationSetBasicTelephony.class);
 
+        // once peer is connected we will start sending audio to avoid relaying on just a few hole punch packets
+        CallPeerListener callPeerListener = new CallPeerAdapter()
+        {
+            @Override
+            public void peerStateChanged(CallPeerChangeEvent evt)
+            {
+                super.peerStateChanged(evt);
+
+
+                CallPeer peer = evt.getSourceCallPeer();
+
+                CallPeerState peerState = peer.getState();
+
+                if (CallPeerState.CONNECTED.equals(peerState))
+                {
+                    SoundNotificationManager.injectSoundFile(
+                        peer.getCall(), SoundNotificationManager.PARTICIPANT_ALONE);
+                }
+            }
+        };
+
         // set a dummy mixer to detect incoming audio packets
         Call call = tele.createCall(healthCheckSipUri,
             new MediaAwareCallConference()
@@ -302,6 +323,8 @@ class SipHealthPeriodicChecker
                     return super.getDefaultDevice(mediaType, useCase);
                 }
             });
+        CallPeer sipPeer = call.getCallPeers().next();
+        sipPeer.addCallPeerListener(callPeerListener);
 
         call.addCallChangeListener(new CallChangeAdapter()
         {
@@ -316,6 +339,7 @@ class SipHealthPeriodicChecker
         });
 
         countDownLatch.await(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
+        sipPeer.removeCallPeerListener(callPeerListener);
 
         if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
         {

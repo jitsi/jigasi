@@ -22,6 +22,7 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -80,7 +81,7 @@ public class SoundNotificationManager
      * The sound file to use to notify sip participant that
      * nobody is in the conference.
      */
-    private static final String PARTICIPANT_ALONE = "sounds/Alone.opus";
+    public static final String PARTICIPANT_ALONE = "sounds/Alone.opus";
 
     /**
      * The sound file to use to notify sip participant that a
@@ -308,7 +309,7 @@ public class SoundNotificationManager
      * @param call the call (sip one) to inject the sound as rtp.
      * @param fileName the file name to play.
      */
-    private static void injectSoundFile(Call call, String fileName)
+    public static void injectSoundFile(Call call, String fileName)
     {
         MediaStream stream = getMediaStream(call);
 
@@ -390,7 +391,15 @@ public class SoundNotificationManager
             int duration = nSamples/48;
             timeForNextPacket += duration;
             sentDuration += duration;
-            stream.injectPacket(rtp, true, null);
+            if (stream instanceof MediaStreamImpl)
+            {
+                ((MediaStreamImpl)stream).injectPacket(rtp, true, null, true);
+            }
+            else
+            {
+                stream.injectPacket(rtp, true, null);
+            }
+
             long sleep = timeForNextPacket - System.currentTimeMillis();
             if (sleep > 0 && sentDuration > 200) // we let the first 200ms to be sent without waiting
             {
