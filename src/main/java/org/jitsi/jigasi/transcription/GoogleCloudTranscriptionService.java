@@ -139,11 +139,9 @@ public class GoogleCloudTranscriptionService
             "hi-IN",
             "th-TH",
             "ko-KR",
-            "cmn-Hant-TW",
-            "yue-Hant-HK",
+            "zh-TW",
             "ja-JP",
-            "cmn-Hans-HK",
-            "cmn-Hans-CN",
+            "zh",
         };
 
     /**
