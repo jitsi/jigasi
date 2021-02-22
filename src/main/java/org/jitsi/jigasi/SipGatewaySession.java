@@ -1095,15 +1095,13 @@ public class SipGatewaySession
         {
             MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
 
-            CallPeerMediaHandler mediaHandler
-                = peerMedia.getMediaHandler();
+            CallPeerMediaHandler mediaHandler = peerMedia.getMediaHandler();
             if (mediaHandler != null)
             {
                 MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
                 if (stream != null)
                 {
-                    stream.setExternalTransformer(
-                        new SsrcRewriter(stream.getLocalSourceID()));
+                    stream.setExternalTransformer(new SsrcRewriter(stream.getLocalSourceID()));
                     return true;
                 }
             }

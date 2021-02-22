@@ -454,30 +454,6 @@ public class JvbConference
     }
 
     /**
-     * Returns local SSRC of media stream sent towards given <tt>peer</tt>.
-     * @param peer the peer to whom media is sent.
-     * @param mediaType type of media sent.
-     */
-    private String getPeerSSRCforMedia(CallPeer peer, MediaType mediaType)
-    {
-        if (!(peer instanceof MediaAwareCallPeer))
-            return null;
-
-        MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
-
-        CallPeerMediaHandler mediaHandler
-            = peerMedia.getMediaHandler();
-        if (mediaHandler == null)
-            return null;
-
-        MediaStream stream = mediaHandler.getStream(mediaType);
-        if (stream == null)
-            return null;
-
-        return Long.toString(stream.getLocalSourceID());
-    }
-
-    /**
      * Start this JVB conference handler.
      */
     public synchronized void start()
