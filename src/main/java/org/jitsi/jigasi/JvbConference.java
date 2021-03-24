@@ -808,6 +808,11 @@ public class JvbConference
                 }
 
                 ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
+
+                // we always start the call unmuted
+                AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
+                audioMutedExtension.setAudioMuted(false);
+                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(audioMutedExtension);
             }
             else
             {
