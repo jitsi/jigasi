@@ -221,7 +221,7 @@ public class VoskTranscriptionService
                     l.notify(new TranscriptionResult(
                             null,
                             UUID.randomUUID(),
-                            !partial,
+                            partial,
                             "C",
                             1.0,
                             new TranscriptionAlternative(result)));
