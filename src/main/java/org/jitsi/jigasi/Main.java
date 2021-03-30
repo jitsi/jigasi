@@ -121,6 +121,7 @@ public class Main
             "org.jivesoftware.smackx.filetransfer",
             "org.jivesoftware.smackx.hoxt",
             "org.jivesoftware.smackx.httpfileupload",
+            "org.jivesoftware.smackx.iot",
             "org.jivesoftware.smackx.si",
             "org.jivesoftware.smackx.vcardtemp",
             "org.jivesoftware.smackx.xhtmlim",
