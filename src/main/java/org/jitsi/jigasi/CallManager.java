@@ -20,7 +20,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
-import org.jitsi.utils.concurrent.*;
+import org.jitsi.jigasi.util.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -38,26 +38,15 @@ public class CallManager
 
     private static final int POOL_MAX_SIZE = 20;
 
+    private static final String POOL_THREADS_PREFIX = "jigasi-callManager";
+
     /**
      * The thread pool to serve all call operations like answer and hangup.
      * We initialize it with the 1 thread and can grow up to POOL_MAX_SIZE.
      */
-    private static ExecutorService threadPool = createNewThreadPool();
+    private static ExecutorService threadPool = Util.createNewThreadPool(POOL_MAX_SIZE, POOL_THREADS_PREFIX);
 
     private static boolean healthy = true;
-
-    /**
-     * Creates new thread pool.
-     * @return the newly created pool.
-     */
-    private static ExecutorService createNewThreadPool()
-    {
-        return new ThreadPoolExecutor(
-            1, POOL_MAX_SIZE,
-            60L, TimeUnit.SECONDS, // time to wait before clearing threads
-            new SynchronousQueue<>(),
-            new CustomizableThreadFactory("jigasi-callManager", true));
-    }
 
     /**
      * Returns whether or not we consider this CallManager as healthy.
@@ -698,6 +687,6 @@ public class CallManager
         if (!threadPool.isTerminated())
             throw new TimeoutException();
 
-        threadPool = createNewThreadPool();
+        threadPool = Util.createNewThreadPool(POOL_MAX_SIZE, POOL_THREADS_PREFIX);
     }
 }

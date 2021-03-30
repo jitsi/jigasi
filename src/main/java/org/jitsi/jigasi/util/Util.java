@@ -23,6 +23,7 @@ import net.java.sip.communicator.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.concurrent.*;
 import org.jivesoftware.smack.bosh.*;
 
 import java.lang.reflect.*;
@@ -33,6 +34,7 @@ import javax.xml.transform.stream.*;
 import java.io.*;
 import java.math.*;
 import java.security.*;
+import java.util.concurrent.*;
 
 /**
  * Various utility methods.
@@ -241,5 +243,20 @@ public class Util
         pkt.setSequenceNumber(seqNum);
 
         return pkt;
+    }
+
+    /**
+     * Creates new thread pool.
+     * @param size the pool size.
+     * @param name the threads name prefix.
+     * @return the newly created pool.
+     */
+    public static ExecutorService createNewThreadPool(int size, String name)
+    {
+        return new ThreadPoolExecutor(
+            1, size,
+            60L, TimeUnit.SECONDS, // time to wait before clearing threads
+            new SynchronousQueue<>(),
+            new CustomizableThreadFactory(name, true));
     }
 }
