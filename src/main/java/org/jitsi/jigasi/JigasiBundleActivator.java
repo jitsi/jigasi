@@ -89,7 +89,7 @@ public class JigasiBundleActivator
     /**
      * The default value for room join timeout.
      */
-    public final static long MUC_JOIN_TIMEOUT_DEFAULT_VALUE = 5;
+    public final static long MUC_JOIN_TIMEOUT_DEFAULT_VALUE = 10;
 
     /**
      * The default value for enabling transcription
