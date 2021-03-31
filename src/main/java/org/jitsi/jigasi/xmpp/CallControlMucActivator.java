@@ -75,6 +75,11 @@ public class CallControlMucActivator
     private CallControl callControl = null;
 
     /**
+     * The thread pool to serve all call control operations.
+     */
+    private static ExecutorService threadPool = Util.createNewThreadPool(10, "jigasi-callcontrol");
+
+    /**
      * Starts muc control component. Finds all xmpp accounts and listen for
      * new ones registered.
      * @param bundleContext the bundle context
@@ -564,9 +569,41 @@ public class CallControlMucActivator
         @Override
         public IQ processIQ(DialIq packet, CallContext ctx)
         {
+            try
+            {
+                threadPool.submit(
+                    () -> {
+                        IQ result = processIQInternal(packet, ctx);
+                        if (result != null)
+                        {
+                            try
+                            {
+                                XMPPConnection conn = ((ProtocolProviderServiceJabberImpl) pps).getConnection();
+                                conn.sendStanza(result);
+                            }
+                            catch(SmackException.NotConnectedException | InterruptedException e)
+                            {
+                                logger.error(ctx + " Cannot send reply for dialIQ:" + packet.toXML());
+                            }
+                        }
+                    });
+            }
+            catch(RejectedExecutionException e)
+            {
+                logger.error(ctx + " Failed to handle incoming dialIQ:" + packet.toXML());
+
+                return IQ.createErrorResponse(packet, XMPPError.from(
+                    XMPPError.Condition.internal_server_error, e.getMessage()));
+            }
+
+            return null;
+        }
+
+        private IQ processIQInternal(DialIq packet, CallContext ctx)
+        {
             if (logger.isDebugEnabled())
             {
-                logger.debug("Processing a RayoIq: " + packet.toXML());
+                logger.debug(ctx + " Processing a RayoIq: " + packet.toXML());
             }
 
             try
@@ -586,7 +623,7 @@ public class CallControlMucActivator
             }
             catch (Exception e)
             {
-                logger.error("Error processing RayoIq", e);
+                logger.error(ctx + " Error processing RayoIq", e);
                 return IQ.createErrorResponse(packet, XMPPError.from(
                     XMPPError.Condition.internal_server_error, e.getMessage()));
             }
@@ -716,7 +753,7 @@ public class CallControlMucActivator
     private abstract class RayoIqHandler<T extends RayoIq>
         extends AbstractIqRequestHandler
     {
-        private ProtocolProviderService pps;
+        protected ProtocolProviderService pps;
 
         RayoIqHandler(String element, IQ.Type type, ProtocolProviderService pps)
         {
