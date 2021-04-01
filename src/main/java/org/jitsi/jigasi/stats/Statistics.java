@@ -91,6 +91,12 @@ public class Statistics
     public static final String TOTAL_CALLS_WITH_JVB_MIGRATE = "total_calls_with_jvb_migrate";
 
     /**
+     * The name of the number of conferences for which XMPP call did not receive any media from the bridge.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_CALLS_JVB_NO_MEDIA = "total_calls_jvb_no_media";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -131,6 +137,11 @@ public class Statistics
      * Total number of calls with xmpp call receiving transport replace for moving to a new bridge.
      */
     private static AtomicLong totalCallsWithJvbMigrate = new AtomicLong();
+
+    /**
+     * Total number of calls with xmpp call not receiving media from the bridge.
+     */
+    private static AtomicLong totalCallsJvbNoMedia = new AtomicLong();
 
     /**
      * Cumulative number of seconds of all conferences.
@@ -201,6 +212,7 @@ public class Statistics
         stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
             totalCallsWithSipCalReconnected.get());
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
+        stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -331,6 +343,14 @@ public class Statistics
     public static void incrementTotalCallsWithJvbMigrate()
     {
         totalCallsWithJvbMigrate.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of calls with XMPP calls not receiving media from the bridge.
+     */
+    public static void incrementTotalCallsJvbNoMedia()
+    {
+        totalCallsJvbNoMedia.incrementAndGet();
     }
 
     /**
