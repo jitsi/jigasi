@@ -2153,6 +2153,12 @@ public class JvbConference
             }
 
             CallPeer peer = jvbCall.getCallPeers().next();
+
+            if (peer == null)
+            {
+                dropCall();
+            }
+
             if (peer instanceof MediaAwareCallPeer)
             {
                 MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
@@ -2161,27 +2167,45 @@ public class JvbConference
                 if (mediaHandler != null)
                 {
                     MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
-                    if (stream != null && stream instanceof AudioMediaStreamImpl)
+
+                    if (stream == null)
+                    {
+                        dropCall();
+                    }
+
+                    if (stream instanceof AudioMediaStreamImpl)
                     {
                         try
                         {
                             // if there is no activity on the audio channel this means there is a problem
                             // establishing the media path with the bridge so we can just fail the call
-                            if (((AudioMediaStreamImpl) stream).getLastInputActivityTime() == 0)
+                            if (((AudioMediaStreamImpl) stream).getLastInputActivityTime() <= 0)
                             {
-                                Statistics.incrementTotalCallsJvbNoMedia();
-                                logger.error(callContext + " No activity on JVB conference call will stop");
-
-                                stop();
+                                dropCall();
                             }
                         }
                         catch(IOException e)
                         {
-                            logger.error("", e);
+                            logger.error("Error obtaining last activity while checking for media activity", e);
                         }
                     }
                 }
+                else
+                {
+                    dropCall();
+                }
             }
+        }
+
+        /**
+         * Drops the current call as there was no media path established.
+         */
+        private void dropCall()
+        {
+            Statistics.incrementTotalCallsJvbNoMedia();
+            logger.error(callContext + " No activity on JVB conference call will stop");
+
+            stop();
         }
     }
 }
