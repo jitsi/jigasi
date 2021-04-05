@@ -24,6 +24,7 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import net.java.sip.communicator.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
@@ -51,6 +52,7 @@ import org.jxmpp.stringprep.*;
 import org.osgi.framework.*;
 
 import java.beans.*;
+import java.io.*;
 import java.util.*;
 
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
@@ -154,6 +156,17 @@ public class JvbConference
      */
     public static final String LOCAL_REGION_PNAME
         = "org.jitsi.jigasi.LOCAL_REGION";
+
+    /**
+     * The milliseconds to wait before check the jvb side of the call for activity.
+     */
+    private static final int JVB_ACTIVITY_CHECK_DELAY = 5000;
+
+    /**
+     * A timer which will be used to schedule a quick non-blocking check whether there is any activity
+     * on the bridge side of the call.
+     */
+    private static Timer checkReceivedMediaTimer = new Timer();
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -1471,6 +1484,8 @@ public class JvbConference
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
+
+                checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
             else if(jvbCall.getCallState() == CallState.CALL_ENDED)
             {
@@ -2119,6 +2134,78 @@ public class JvbConference
             {
                 updateFromRoomConfiguration();
             }
+        }
+    }
+
+    /**
+     * Used to check the jvb side of the call for any activity.
+     */
+    private class MediaActivityChecker
+        extends TimerTask
+    {
+        @Override
+        public void run()
+        {
+            // if the call was stopped before we check ignore
+            if (!started)
+            {
+                return;
+            }
+
+            CallPeer peer = jvbCall.getCallPeers().next();
+
+            if (peer == null)
+            {
+                dropCall();
+            }
+
+            if (peer instanceof MediaAwareCallPeer)
+            {
+                MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
+
+                CallPeerMediaHandler mediaHandler = peerMedia.getMediaHandler();
+                if (mediaHandler != null)
+                {
+                    MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
+
+                    if (stream == null)
+                    {
+                        dropCall();
+                    }
+
+                    if (stream instanceof AudioMediaStreamImpl)
+                    {
+                        try
+                        {
+                            // if there is no activity on the audio channel this means there is a problem
+                            // establishing the media path with the bridge so we can just fail the call
+                            if (((AudioMediaStreamImpl) stream).getLastInputActivityTime() <= 0)
+                            {
+                                dropCall();
+                            }
+                        }
+                        catch(IOException e)
+                        {
+                            logger.error("Error obtaining last activity while checking for media activity", e);
+                        }
+                    }
+                }
+                else
+                {
+                    dropCall();
+                }
+            }
+        }
+
+        /**
+         * Drops the current call as there was no media path established.
+         */
+        private void dropCall()
+        {
+            Statistics.incrementTotalCallsJvbNoMedia();
+            logger.error(callContext + " No activity on JVB conference call will stop");
+
+            stop();
         }
     }
 }
