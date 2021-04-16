@@ -147,6 +147,13 @@ public class JvbConference
         = "org.jitsi.jigasi.NOTIFY_MAX_OCCUPANTS";
 
     /**
+     * The name of the property which enables dropping jigasi calls
+     * without anyone on the web.
+     */
+    public static final String P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM
+        = "org.jitsi.jigasi.ALLOW_ONLY_JIGASIS_IN_ROOM";
+
+    /**
      * The default bridge id to use.
      */
     public static final String DEFAULT_BRIDGE_ID = "jitsi";
@@ -230,6 +237,11 @@ public class JvbConference
      * instance.
      */
     private final AbstractGatewaySession gatewaySession;
+
+    /**
+     * Whether to auto stop when only jigasi are left in the room.
+     */
+    private boolean allowOnlyJigasiInRoom = false;
 
     /**
      * The XMPP account used for the call handled by this instance.
@@ -390,6 +402,8 @@ public class JvbConference
     {
         this.gatewaySession = gatewaySession;
         this.callContext = ctx;
+        this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
     }
 
     private Localpart getResourceIdentifier()
@@ -1249,7 +1263,7 @@ public class JvbConference
         // but otherwise we will check whether there are jigasi participants
         // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
         // leaving it
-        if (this.lobbyEnabled && !this.singleModeratorEnabled)
+        if ((this.lobbyEnabled && !this.singleModeratorEnabled) || !this.allowOnlyJigasiInRoom)
         {
             boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
                 m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
@@ -1258,6 +1272,13 @@ public class JvbConference
 
             if (onlyJigasisInRoom)
             {
+                if (!this.allowOnlyJigasiInRoom)
+                {
+                    logger.info(this.callContext + " Leaving room without web users and only jigasi participants!");
+                    stop();
+                    return;
+                }
+
                 // there are only jigasi participants in the room with lobby enabled
                 logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
 
