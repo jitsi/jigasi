@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.sounds.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;

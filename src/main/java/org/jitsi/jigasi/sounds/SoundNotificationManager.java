@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.jigasi;
+package org.jitsi.jigasi.sounds;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -24,6 +24,7 @@ import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -613,7 +614,7 @@ public class SoundNotificationManager
     public void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
         // if this is the sip hanging up (stopping) skip playing
-        if (gatewaySession.jvbConference.isStarted()
+        if (gatewaySession.getJvbConference().isStarted()
             && gatewaySession.getSipCall() != null)
         {
             playParticipantLeftNotification();

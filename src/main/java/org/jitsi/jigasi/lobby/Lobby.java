@@ -20,6 +20,7 @@ package org.jitsi.jigasi.lobby;
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
 
+import org.jitsi.jigasi.sounds.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.parts.*;
