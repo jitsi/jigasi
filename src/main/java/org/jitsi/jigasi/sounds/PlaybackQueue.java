@@ -114,11 +114,6 @@ class PlaybackQueue
     private AtomicBoolean playbackQueueStopFlag = new AtomicBoolean(false);
 
     /**
-     * Constructor for <tt>PlaybackQueue</tt>
-     */
-    public PlaybackQueue() { }
-
-    /**
      * Queues a file to be played to the caller.
      *
      * @param call The call used to send audio.
@@ -151,7 +146,9 @@ class PlaybackQueue
      */
     public void stopAtNextPlayback()
     {
+        playbackQueue.clear();
         playbackQueueStopFlag.set(true);
+        this.interrupt();
     }
 
     /**
@@ -165,8 +162,7 @@ class PlaybackQueue
             Call playbackCall = null;
             try
             {
-                PlaybackData playbackData
-                    = playbackQueue.poll(1000, TimeUnit.MILLISECONDS);
+                PlaybackData playbackData = playbackQueue.take();
 
                 if (playbackData != null)
                 {
@@ -183,6 +179,10 @@ class PlaybackQueue
                         playbackDelegate.onPlaybackFinished();
                     }
                 }
+            }
+            catch(InterruptedException ex)
+            {
+                // the execution was interrupted
             }
             catch (Exception ex)
             {
