@@ -266,15 +266,21 @@ public class SoundNotificationManager
             return;
         }
 
-        if(JibriIq.Status.ON.equals(status))
+        try
         {
-            // if call is still not established this will be ignored in
-            // injectSoundFile and nothing will be played
-            injectSoundFile(gatewaySession.getSipCall(), currentJibriOnSound);
-        }
-        else if(JibriIq.Status.OFF.equals(status))
+            if(JibriIq.Status.ON.equals(status))
+            {
+                // if call is still not established this will be ignored in
+                // injectSoundFile and nothing will be played
+                playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+            }
+            else if(JibriIq.Status.OFF.equals(status))
+            {
+                playbackQueue.queueNext(gatewaySession.getSipCall(), offSound);
+            }
+        }catch(InterruptedException ex)
         {
-            injectSoundFile(gatewaySession.getSipCall(), offSound);
+            logger.error(getCallContext() + " Error playing sound notification");
         }
     }
 
@@ -410,24 +416,29 @@ public class SoundNotificationManager
         // when someone connects and recording is on, play notification
         if (CallPeerState.CONNECTED.equals(callPeerState))
         {
-            if (currentJibriStatus.equals(JibriIq.Status.ON))
+            try
             {
-                injectSoundFile(
-                    gatewaySession.getSipCall(), currentJibriOnSound);
+                if (currentJibriStatus.equals(JibriIq.Status.ON))
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+                }
+
+                if (callMaxOccupantsLimitReached)
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), MAX_OCCUPANTS_SOUND);
+
+                    delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
+                }
+                else
+                {
+                    playbackQueue.start();
+
+                    playParticipantJoinedNotification();
+                }
             }
-
-            if (callMaxOccupantsLimitReached)
+            catch(InterruptedException ex)
             {
-                injectSoundFile(
-                    gatewaySession.getSipCall(), MAX_OCCUPANTS_SOUND);
-
-                delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
-            }
-            else
-            {
-                playbackQueue.start();
-
-                playParticipantJoinedNotification();
+                logger.error(getCallContext() + " Error playing sound notification");
             }
         }
         else if (CallPeerState.DISCONNECTED.equals(callPeerState))
@@ -706,13 +717,10 @@ public class SoundNotificationManager
 
             if (sipCall != null)
             {
-                if (sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
+                playbackQueue.queueNext(sipCall, PARTICIPANT_ALONE);
+
+                if (sipCall.getCallState() != CallState.CALL_IN_PROGRESS)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_ALONE);
-                }
-                else
-                {
-                    playbackQueue.queueNext(sipCall, PARTICIPANT_ALONE);
                     CallManager.acceptCall(sipCall);
                 }
             }
@@ -737,7 +745,7 @@ public class SoundNotificationManager
 
                 if (sipCall != null)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_LEFT);
+                    playbackQueue.queueNext(sipCall, PARTICIPANT_LEFT);
                 }
             }
         }
@@ -763,7 +771,7 @@ public class SoundNotificationManager
 
                 if (sipCall != null)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_JOINED);
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), PARTICIPANT_JOINED);
                 }
             }
         }
