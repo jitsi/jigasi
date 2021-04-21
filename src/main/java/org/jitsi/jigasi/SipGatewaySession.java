@@ -667,6 +667,8 @@ public class SipGatewaySession
             this.transformerMonitor = null;
         }
 
+        this.soundNotificationManager.stop();
+
         sipCall = null;
 
         if (jvbConference != null)

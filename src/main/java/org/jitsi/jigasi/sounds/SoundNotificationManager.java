@@ -467,6 +467,14 @@ public class SoundNotificationManager
     }
 
     /**
+     * Stops playback.
+     */
+    public void stop()
+    {
+        this.playbackQueue.stopAtNextPlayback();
+    }
+
+    /**
      * We need to play a sound notification that the limit is reached, so we
      * need to answer the call once connected, play the sound and then wait for
      * the hangup before returning.
