@@ -32,10 +32,8 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jivesoftware.smack.packet.*;
 
-import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Manages all sounds notifications that are send to a SIP session side.
@@ -197,23 +195,6 @@ public class SoundNotificationManager
      * A queue of files to be played when call is connected.
      */
     private PlaybackQueue playbackQueue = new PlaybackQueue();
-
-    /**
-     * Map with different file durations to be played.
-     * As we will connect the sip side of the call just to play some notifications we need their diration
-     * in order to hangup the call after the playback.
-     */
-    private static final Map<String, Integer> playbackFileDuration = new HashMap<>();
-
-    /**
-     * The sound files approximate durations.
-     */
-    static {
-        playbackFileDuration.put(LOBBY_MEETING_END, new Integer(8));
-        playbackFileDuration.put(LOBBY_JOIN_REVIEW, new Integer(7));
-        playbackFileDuration.put(LOBBY_ACCESS_GRANTED, new Integer(5));
-        playbackFileDuration.put(LOBBY_ACCESS_DENIED, new Integer(11));
-    }
 
     /**
      * Constructs new <tt>SoundNotificationManager</tt>.
@@ -654,26 +635,20 @@ public class SoundNotificationManager
                 // Hangup in these two cases
                 if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
-                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
-
                         playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
                             () -> {
                                 // Hangup
                                 CallManager.hangupCall(gatewaySession.getSipCall());
-                            },
-                            playbackDuration);
+                            });
                 }
                 else if (fileName.equals(LOBBY_JOIN_REVIEW))
                 {
-                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
-
                     playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
-                            () -> gatewaySession.notifyLobbyJoined(),
-                            playbackDuration);
+                            () -> gatewaySession.notifyLobbyJoined());
                 }
                 else
                 {

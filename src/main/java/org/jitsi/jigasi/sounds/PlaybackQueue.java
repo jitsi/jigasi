@@ -61,11 +61,6 @@ class PlaybackQueue
         private PlaybackDelegate playbackDelegate;
 
         /**
-         * Playback duration of the file in seconds.
-         */
-        private long playbackDurationSeconds;
-
-        /**
          * The call to send audio to.
          */
         private Call playbackCall;
@@ -75,17 +70,14 @@ class PlaybackQueue
          *
          * @param fileName File to play.
          * @param delegate Delegate code.
-         * @param durationSeconds Playback duration in seconds.
          * @param call Call to send audio to.
          */
         public PlaybackData(String fileName,
                             PlaybackDelegate delegate,
-                            long durationSeconds,
                             Call call)
         {
             playbackFileName = fileName;
             playbackDelegate = delegate;
-            playbackDurationSeconds = durationSeconds;
             playbackCall = call;
         }
 
@@ -102,13 +94,6 @@ class PlaybackQueue
          * @return <tt>PlaybackDelegate</tt>
          */
         PlaybackDelegate getPlaybackDelegate() { return playbackDelegate; }
-
-        /**
-         * Returns the playback duration of the file.
-         *
-         * @return Length in seconds of the file.
-         */
-        long getPlaybackDurationSeconds() { return playbackDurationSeconds; }
 
         /**
          * Returns the caller.
@@ -142,7 +127,7 @@ class PlaybackQueue
      */
     public void queueNext(Call call, String fileName) throws InterruptedException
     {
-        playbackQueue.put(new PlaybackData(fileName, null, 0, call));
+        playbackQueue.put(new PlaybackData(fileName, null, call));
     }
 
     /**
@@ -151,15 +136,14 @@ class PlaybackQueue
      * @param call The call used to send audio.
      * @param fileName The file to be queued for playback.
      * @param delegate Used to delegate code when needed.
-     * @param lengthInSeconds Playback duration in seconds for the file.
      * @throws InterruptedException
      */
     public void queueNext(Call call,
                           String fileName,
-                          PlaybackDelegate delegate,
-                          long lengthInSeconds) throws InterruptedException
+                          PlaybackDelegate delegate)
+        throws InterruptedException
     {
-        playbackQueue.put(new PlaybackData(fileName, delegate, lengthInSeconds, call));
+        playbackQueue.put(new PlaybackData(fileName, delegate, call));
     }
 
     /**
