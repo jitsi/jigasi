@@ -154,12 +154,12 @@ public class SoundNotificationManager
     /**
      * Rate limiter of participant left sound notification.
      */
-    private RateLimiter participantLeftRateLimiterLazy = null;
+    private SoundRateLimiter participantLeftRateLimiterLazy = null;
 
     /**
      * Rate limiter of participant joined sound notification.
      */
-    private RateLimiter participantJoinedRateLimiterLazy = null;
+    private SoundRateLimiter participantJoinedRateLimiterLazy = null;
 
     /**
      * Timeout of rate limiter for participant alone notification.
@@ -821,7 +821,7 @@ public class SoundNotificationManager
      *
      * @return participantLeftRateLimiterLazy
      */
-    private RateLimiter getParticipantLeftRateLimiter()
+    private SoundRateLimiter getParticipantLeftRateLimiter()
     {
         if (this.participantLeftRateLimiterLazy == null)
         {
@@ -838,7 +838,7 @@ public class SoundNotificationManager
      *
      * @return participantJoinedRateLimiterLazy
      */
-    private RateLimiter getParticipantJoinedRateLimiter()
+    private SoundRateLimiter getParticipantJoinedRateLimiter()
     {
         if (this.participantJoinedRateLimiterLazy == null)
         {
@@ -850,27 +850,9 @@ public class SoundNotificationManager
     }
 
     /**
-     * RateLimiter interface.
-     */
-    private interface RateLimiter
-    {
-        /**
-         * Used to get state of the rate limiter.
-         *
-         * @return true if enabled, false otherwise.
-         */
-        boolean on();
-
-        /**
-         * Reset timeout.
-         */
-        void reset();
-    }
-
-    /**
      * Implements RateLimiter for sound notifications.
      */
-    private static class SoundRateLimiter implements RateLimiter
+    private static class SoundRateLimiter
     {
         /**
          * Initial time point.
