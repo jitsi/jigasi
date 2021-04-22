@@ -278,7 +278,8 @@ public class SoundNotificationManager
             {
                 playbackQueue.queueNext(gatewaySession.getSipCall(), offSound);
             }
-        }catch(InterruptedException ex)
+        }
+        catch(InterruptedException ex)
         {
             logger.error(getCallContext() + " Error playing sound notification");
         }
