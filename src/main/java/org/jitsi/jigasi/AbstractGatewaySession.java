@@ -163,6 +163,14 @@ public abstract class AbstractGatewaySession
     }
 
     /**
+     * Returns <tt>JvbConference</tt> of this session.
+     */
+    public JvbConference getJvbConference()
+    {
+        return jvbConference;
+    }
+
+    /**
      * Method called by <tt>JvbConference</tt> to notify that JVB conference
      * call has been received and is about to be answered.
      *

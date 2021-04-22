@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.jigasi;
+package org.jitsi.jigasi.sounds;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -24,6 +24,7 @@ import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -31,10 +32,8 @@ import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jivesoftware.smack.packet.*;
 
-import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Manages all sounds notifications that are send to a SIP session side.
@@ -153,12 +152,12 @@ public class SoundNotificationManager
     /**
      * Rate limiter of participant left sound notification.
      */
-    private RateLimiter participantLeftRateLimiterLazy = null;
+    private SoundRateLimiter participantLeftRateLimiterLazy = null;
 
     /**
      * Rate limiter of participant joined sound notification.
      */
-    private RateLimiter participantJoinedRateLimiterLazy = null;
+    private SoundRateLimiter participantJoinedRateLimiterLazy = null;
 
     /**
      * Timeout of rate limiter for participant alone notification.
@@ -196,23 +195,6 @@ public class SoundNotificationManager
      * A queue of files to be played when call is connected.
      */
     private PlaybackQueue playbackQueue = new PlaybackQueue();
-
-    /**
-     * Map with different file durations to be played.
-     * As we will connect the sip side of the call just to play some notifications we need their diration
-     * in order to hangup the call after the playback.
-     */
-    private static final Map<String, Integer> playbackFileDuration = new HashMap<>();
-
-    /**
-     * The sound files approximate durations.
-     */
-    static {
-        playbackFileDuration.put(LOBBY_MEETING_END, new Integer(8));
-        playbackFileDuration.put(LOBBY_JOIN_REVIEW, new Integer(7));
-        playbackFileDuration.put(LOBBY_ACCESS_GRANTED, new Integer(5));
-        playbackFileDuration.put(LOBBY_ACCESS_DENIED, new Integer(11));
-    }
 
     /**
      * Constructs new <tt>SoundNotificationManager</tt>.
@@ -284,15 +266,22 @@ public class SoundNotificationManager
             return;
         }
 
-        if(JibriIq.Status.ON.equals(status))
+        try
         {
-            // if call is still not established this will be ignored in
-            // injectSoundFile and nothing will be played
-            injectSoundFile(gatewaySession.getSipCall(), currentJibriOnSound);
+            if(JibriIq.Status.ON.equals(status))
+            {
+                // if call is still not established this will be ignored in
+                // injectSoundFile and nothing will be played
+                playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+            }
+            else if(JibriIq.Status.OFF.equals(status))
+            {
+                playbackQueue.queueNext(gatewaySession.getSipCall(), offSound);
+            }
         }
-        else if(JibriIq.Status.OFF.equals(status))
+        catch(InterruptedException ex)
         {
-            injectSoundFile(gatewaySession.getSipCall(), offSound);
+            logger.error(getCallContext() + " Error playing sound notification");
         }
     }
 
@@ -345,8 +334,7 @@ public class SoundNotificationManager
      * @param fileName the file name to play.
      * @throws Throwable cannot read source sound file or cannot transmit it.
      */
-    private static void injectSoundFileInStream(
-        MediaStream stream, String fileName)
+    static void injectSoundFileInStream(MediaStream stream, String fileName)
         throws Throwable
     {
         OpusFile of = new OpusFile(new OggPacketReader(
@@ -429,24 +417,29 @@ public class SoundNotificationManager
         // when someone connects and recording is on, play notification
         if (CallPeerState.CONNECTED.equals(callPeerState))
         {
-            if (currentJibriStatus.equals(JibriIq.Status.ON))
+            try
             {
-                injectSoundFile(
-                    gatewaySession.getSipCall(), currentJibriOnSound);
+                if (currentJibriStatus.equals(JibriIq.Status.ON))
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+                }
+
+                if (callMaxOccupantsLimitReached)
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), MAX_OCCUPANTS_SOUND);
+
+                    delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
+                }
+                else
+                {
+                    playbackQueue.start();
+
+                    playParticipantJoinedNotification();
+                }
             }
-
-            if (callMaxOccupantsLimitReached)
+            catch(InterruptedException ex)
             {
-                injectSoundFile(
-                    gatewaySession.getSipCall(), MAX_OCCUPANTS_SOUND);
-
-                delayedHangupSeconds = MAX_OCCUPANTS_SOUND_DURATION_SEC * 1000;
-            }
-            else
-            {
-                playbackQueue.start();
-
-                playParticipantJoinedNotification();
+                logger.error(getCallContext() + " Error playing sound notification");
             }
         }
         else if (CallPeerState.DISCONNECTED.equals(callPeerState))
@@ -472,6 +465,14 @@ public class SoundNotificationManager
                     hangupWait.countDown();
             }).start();
         }
+    }
+
+    /**
+     * Stops playback.
+     */
+    public void stop()
+    {
+        this.playbackQueue.stopAtNextPlayback();
     }
 
     /**
@@ -613,7 +614,7 @@ public class SoundNotificationManager
     public void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
         // if this is the sip hanging up (stopping) skip playing
-        if (gatewaySession.jvbConference.isStarted()
+        if (gatewaySession.getJvbConference().isStarted()
             && gatewaySession.getSipCall() != null)
         {
             playParticipantLeftNotification();
@@ -654,26 +655,20 @@ public class SoundNotificationManager
                 // Hangup in these two cases
                 if (fileName.equals(LOBBY_ACCESS_DENIED) || fileName.equals(LOBBY_MEETING_END))
                 {
-                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
-
                         playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
                             () -> {
                                 // Hangup
                                 CallManager.hangupCall(gatewaySession.getSipCall());
-                            },
-                            playbackDuration);
+                            });
                 }
                 else if (fileName.equals(LOBBY_JOIN_REVIEW))
                 {
-                    long playbackDuration = playbackFileDuration.get(fileName).longValue();
-
                     playbackQueue.queueNext(
                             gatewaySession.getSipCall(),
                             fileName,
-                            () -> gatewaySession.notifyLobbyJoined(),
-                            playbackDuration);
+                            () -> gatewaySession.notifyLobbyJoined());
                 }
                 else
                 {
@@ -731,13 +726,10 @@ public class SoundNotificationManager
 
             if (sipCall != null)
             {
-                if (sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
+                playbackQueue.queueNext(sipCall, PARTICIPANT_ALONE);
+
+                if (sipCall.getCallState() != CallState.CALL_IN_PROGRESS)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_ALONE);
-                }
-                else
-                {
-                    playbackQueue.queueNext(sipCall, PARTICIPANT_ALONE);
                     CallManager.acceptCall(sipCall);
                 }
             }
@@ -762,7 +754,7 @@ public class SoundNotificationManager
 
                 if (sipCall != null)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_LEFT);
+                    playbackQueue.queueNext(sipCall, PARTICIPANT_LEFT);
                 }
             }
         }
@@ -788,7 +780,7 @@ public class SoundNotificationManager
 
                 if (sipCall != null)
                 {
-                    injectSoundFile(sipCall, PARTICIPANT_JOINED);
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), PARTICIPANT_JOINED);
                 }
             }
         }
@@ -821,7 +813,7 @@ public class SoundNotificationManager
      *
      * @return participantLeftRateLimiterLazy
      */
-    private RateLimiter getParticipantLeftRateLimiter()
+    private SoundRateLimiter getParticipantLeftRateLimiter()
     {
         if (this.participantLeftRateLimiterLazy == null)
         {
@@ -838,7 +830,7 @@ public class SoundNotificationManager
      *
      * @return participantJoinedRateLimiterLazy
      */
-    private RateLimiter getParticipantJoinedRateLimiter()
+    private SoundRateLimiter getParticipantJoinedRateLimiter()
     {
         if (this.participantJoinedRateLimiterLazy == null)
         {
@@ -850,96 +842,11 @@ public class SoundNotificationManager
     }
 
     /**
-     * RateLimiter interface.
-     */
-    private interface RateLimiter
-    {
-        /**
-         * Used to get state of the rate limiter.
-         *
-         * @return true if enabled, false otherwise.
-         */
-        boolean on();
-
-        /**
-         * Reset timeout.
-         */
-        void reset();
-    }
-
-    /**
-     * Implements RateLimiter for sound notifications.
-     */
-    private static class SoundRateLimiter implements RateLimiter
-    {
-        /**
-         * Initial time point.
-         */
-        private final AtomicReference<Instant> startTimePoint = new AtomicReference<>(null);
-
-        /**
-         * Timeout in milliseconds.
-         */
-        private long limiterTimeout;
-
-        /**
-         * SoundRateLimiter constructor.
-         *
-         * @param maxTimeout Timeout in milliseconds to block notification.
-         */
-        SoundRateLimiter(long maxTimeout)
-        {
-            this.limiterTimeout = maxTimeout;
-        }
-
-        /**
-         * Checks if timeout since last notification has passed.
-         * When it returns false, sound notification can be played.
-         *
-         * @return true of enabled, false otherwise.
-         */
-        public boolean on()
-        {
-            if (this.startTimePoint.compareAndSet(null, Instant.now()))
-            {
-                return false;
-            }
-
-            Instant prevTimePoint = this.startTimePoint.get();
-
-            if (prevTimePoint == null)
-            {
-                return false;
-            }
-
-            long elapsedMs =
-                Instant.now().toEpochMilli()
-                    - prevTimePoint.toEpochMilli();
-
-            if (elapsedMs >= this.limiterTimeout)
-            {
-                this.startTimePoint.set(Instant.now());
-                return false;
-            }
-
-            return true;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public void reset()
-        {
-            this.startTimePoint.set(null);
-        }
-    }
-
-    /**
      * Extracts MediaStream from call.
      * @param call the call.
      * @return null or <tt>MediaStream</tt> if available.
      */
-    private static MediaStream getMediaStream(Call call)
+    static MediaStream getMediaStream(Call call)
     {
         CallPeer peer;
         if (call != null
@@ -959,229 +866,5 @@ public class SoundNotificationManager
         }
 
         return null;
-    }
-
-    /**
-     * Used to queue audio files for playback. This is used for the IVR.
-     */
-    private static class PlaybackQueue extends Thread
-    {
-        /**
-         * Interface to use to execute specific code.
-         */
-        public interface PlaybackDelegate
-        {
-            void onPlaybackFinished();
-        }
-
-        /**
-         * Used internally. This holds information of the file that is to be played and additional code.
-         */
-        private static class PlaybackData
-        {
-            /**
-             * File to be played, relative path.
-             */
-            private String playbackFileName;
-
-            /**
-             * Used to delegate code.
-             */
-            private PlaybackDelegate playbackDelegate;
-
-            /**
-             * Playback duration of the file in seconds.
-             */
-            private long playbackDurationSeconds;
-
-            /**
-             * The call to send audio to.
-             */
-            private Call playbackCall;
-
-            /**
-             * Constructor of <tt>PlaybackData</tt>
-             *
-             * @param fileName File to play.
-             * @param delegate Delegate code.
-             * @param durationSeconds Playback duration in seconds.
-             * @param call Call to send audio to.
-             */
-            public PlaybackData(String fileName,
-                                PlaybackDelegate delegate,
-                                long durationSeconds,
-                                Call call)
-            {
-                playbackFileName = fileName;
-                playbackDelegate = delegate;
-                playbackDurationSeconds = durationSeconds;
-                playbackCall = call;
-            }
-
-            /**
-             * Returns the relative path of the file to be played.
-             *
-             * @return File to play.
-             */
-            String getPlaybackFileName() { return playbackFileName; }
-
-            /**
-             * Used to run specific code.
-             *
-             * @return <tt>PlaybackDelegate</tt>
-             */
-            PlaybackDelegate getPlaybackDelegate() { return playbackDelegate; }
-
-            /**
-             * Returns the playback duration of the file.
-             *
-             * @return Length in seconds of the file.
-             */
-            long getPlaybackDurationSeconds() { return playbackDurationSeconds; }
-
-            /**
-             * Returns the caller.
-             *
-             * @return Call to send audio to.
-             */
-            Call getPlaybackCall() { return playbackCall; }
-        }
-
-        /**
-         * Queue used to schedule sound notifications.
-         */
-        private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(20, true);
-
-        /**
-         * Flag used to stop the queue thread.
-         */
-        private AtomicBoolean playbackQueueStopFlag = new AtomicBoolean(false);
-
-        /**
-         * Constructor for <tt>PlaybackQueue</tt>
-         */
-        public PlaybackQueue() { }
-
-        /**
-         * Queues a file to be played to the caller.
-         *
-         * @param call The call used to send audio.
-         * @param fileName The file to be queued for playback.
-         * @throws InterruptedException
-         */
-        public void queueNext(Call call, String fileName) throws InterruptedException
-        {
-            playbackQueue.put(new PlaybackData(fileName, null, 0, call));
-        }
-
-        /**
-         * Queues a file to be played to the caller.
-         *
-         * @param call The call used to send audio.
-         * @param fileName The file to be queued for playback.
-         * @param delegate Used to delegate code when needed.
-         * @param lengthInSeconds Playback duration in seconds for the file.
-         * @throws InterruptedException
-         */
-        public void queueNext(Call call,
-                              String fileName,
-                              PlaybackDelegate delegate,
-                              long lengthInSeconds) throws InterruptedException
-        {
-            playbackQueue.put(new PlaybackData(fileName, delegate, lengthInSeconds, call));
-        }
-
-        /**
-         * Stops the playback queue after the current playback ends.
-         */
-        public void stopAtNextPlayback()
-        {
-            playbackQueueStopFlag.set(true);
-        }
-
-        /**
-         * Thread execution method that injects queued files into audio stream.
-         */
-        @Override
-        public void run()
-        {
-            while(!playbackQueueStopFlag.get())
-            {
-                Call playbackCall = null;
-                try
-                {
-                    PlaybackData playbackData
-                            = playbackQueue.poll(1000, TimeUnit.MILLISECONDS);
-
-                    if (playbackData != null)
-                    {
-                        playbackCall = playbackData.getPlaybackCall();
-
-                        if (playbackCall != null)
-                        {
-                            injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
-                        }
-
-                        final PlaybackDelegate playbackDelegate = playbackData.getPlaybackDelegate();
-                        if (playbackDelegate != null)
-                        {
-                            playbackDelegate.onPlaybackFinished();
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (playbackCall != null)
-                    {
-                        Object callContext = playbackCall.getData(CallContext.class);
-                        logger.error(callContext + " " + ex.toString(), ex);
-                    }
-                    else
-                    {
-                        logger.error(ex.toString());
-                    }
-                }
-            }
-        }
-
-        /**
-         * Copied from above.
-         * Injects sound file in a call's <tt>MediaStream</tt> using injectPacket
-         * method and constructing RTP packets for it.
-         * Supports opus only (when using translator mode calls from the jitsi-meet
-         * side are using opus and are just translated to the sip side).
-         *
-         * The file will be played if possible, if there is call passed and that
-         * call has call peers of type MediaAwareCallPeer with media handler that
-         * has MediaStream for Audio.
-         *
-         * @param call the call (sip one) to inject the sound as rtp.
-         * @param fileName the file name to play.
-         */
-        private void injectSoundFile(Call call, String fileName)
-        {
-            MediaStream stream = getMediaStream(call);
-
-            // if there is no stream or the calling account is not using translator
-            // or the current call is not using opus
-            if (stream == null
-                    || !call.getProtocolProvider().getAccountID().getAccountPropertyBoolean(
-                            ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, false)
-                    || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
-                    || fileName == null)
-            {
-                logger.error(call.getData(CallContext.class) + " No playback!");
-                return;
-            }
-
-            try
-            {
-                injectSoundFileInStream(stream, fileName);
-            }
-            catch (Throwable t)
-            {
-                logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
-            }
-        }
     }
 }

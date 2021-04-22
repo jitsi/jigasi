@@ -23,6 +23,7 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.sip.*;
+import org.jitsi.jigasi.sounds.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
@@ -665,6 +666,8 @@ public class SipGatewaySession
             this.transformerMonitor.dispose();
             this.transformerMonitor = null;
         }
+
+        this.soundNotificationManager.stop();
 
         sipCall = null;
 
