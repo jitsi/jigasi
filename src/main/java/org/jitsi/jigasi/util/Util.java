@@ -256,7 +256,7 @@ public class Util
         return new ThreadPoolExecutor(
             1, size,
             60L, TimeUnit.SECONDS, // time to wait before clearing threads
-            new SynchronousQueue<>(),
+            new LinkedBlockingQueue<>(),
             new CustomizableThreadFactory(name, true));
     }
 }
