@@ -342,26 +342,22 @@ class SipHealthPeriodicChecker
         countDownLatch.await(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
         sipPeer.removeCallPeerListener(callPeerListener);
 
+        // we do not care for any failures on hangup
+        Iterator<? extends CallPeer> peerIter = call.getCallPeers();
+        while (peerIter.hasNext())
+        {
+            try
+            {
+                tele.hangupCallPeer(peerIter.next());
+            }
+            catch (Throwable t){}
+        }
+
         if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
         {
-            logger.error("Outgoing health check failed. " +
-                (debugEnabled ? getThreadDumb() : ""));
+            logger.error("Outgoing health check failed. " + (debugEnabled ? getThreadDumb() : ""));
 
             throw new Exception("Health check call failed with no media!");
-        }
-        else
-        {
-            // the call had succeeded  as we had received media, we do not care
-            // for any failures on hangup
-            Iterator<? extends CallPeer> peerIter = call.getCallPeers();
-            while (peerIter.hasNext())
-            {
-                try
-                {
-                    tele.hangupCallPeer(peerIter.next());
-                }
-                catch (Throwable t){}
-            }
         }
     }
 
