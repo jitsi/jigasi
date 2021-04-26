@@ -212,6 +212,7 @@ public class CallsHandlingTest
 
         assertNotNull(chatRoom);
         assertEquals(true, chatRoom.isJoined());
+        callStateWatch.waitForState(jvbCall, CallState.CALL_IN_PROGRESS, 1000);
         assertEquals(CallState.CALL_IN_PROGRESS, jvbCall.getCallState());
 
         // Now tear down, SIP calee ends the call
