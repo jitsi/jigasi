@@ -170,7 +170,7 @@ class PlaybackQueue
 
                     if (playbackCall != null)
                     {
-                        injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
+                        SoundNotificationManager.injectSoundFile(playbackCall, playbackData.getPlaybackFileName());
                     }
 
                     final PlaybackDelegate playbackDelegate = playbackData.getPlaybackDelegate();
@@ -196,46 +196,6 @@ class PlaybackQueue
                     logger.error(ex.toString());
                 }
             }
-        }
-    }
-
-    /**
-     * Copied from above.
-     * Injects sound file in a call's <tt>MediaStream</tt> using injectPacket
-     * method and constructing RTP packets for it.
-     * Supports opus only (when using translator mode calls from the jitsi-meet
-     * side are using opus and are just translated to the sip side).
-     *
-     * The file will be played if possible, if there is call passed and that
-     * call has call peers of type MediaAwareCallPeer with media handler that
-     * has MediaStream for Audio.
-     *
-     * @param call the call (sip one) to inject the sound as rtp.
-     * @param fileName the file name to play.
-     */
-    private void injectSoundFile(Call call, String fileName)
-    {
-        MediaStream stream = SoundNotificationManager.getMediaStream(call);
-
-        // if there is no stream or the calling account is not using translator
-        // or the current call is not using opus
-        if (stream == null
-            || !call.getProtocolProvider().getAccountID().getAccountPropertyBoolean(
-            ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, false)
-            || stream.getDynamicRTPPayloadType(Constants.OPUS) == -1
-            || fileName == null)
-        {
-            logger.error(call.getData(CallContext.class) + " No playback!");
-            return;
-        }
-
-        try
-        {
-            SoundNotificationManager.injectSoundFileInStream(stream, fileName);
-        }
-        catch (Throwable t)
-        {
-            logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
         }
     }
 }

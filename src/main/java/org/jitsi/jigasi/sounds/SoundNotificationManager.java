@@ -315,16 +315,14 @@ public class SoundNotificationManager
 
         final MediaStream streamToPass = stream;
 
-        new Thread(() -> {
-            try
-            {
-                injectSoundFileInStream(streamToPass, fileName);
-            }
-            catch (Throwable t)
-            {
-                logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
-            }
-        }).start();
+        try
+        {
+            injectSoundFileInStream(streamToPass, fileName);
+        }
+        catch (Throwable t)
+        {
+            logger.error(call.getData(CallContext.class) + " Error playing:" + fileName, t);
+        }
     }
 
     /**

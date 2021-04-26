@@ -125,6 +125,13 @@ class SipHealthPeriodicChecker
     private long lastResultMs = -1;
 
     /**
+     * The executor that will push sound files in the stream.
+     */
+    private final static ExecutorService injectSoundExecutor
+        = Executors.newSingleThreadExecutor(new CustomizableThreadFactory("SipHealthPeriodicChecker", false));
+
+
+    /**
      * Creates this periodic checker.
      *
      * @param o the sip protocol provider service.
@@ -272,7 +279,7 @@ class SipHealthPeriodicChecker
         throws Exception
     {
         // countdown will wait for received audio buffer or call being ended
-        CountDownLatch countDownLatch = new CountDownLatch(1);
+        CountDownLatch hangupLatch = new CountDownLatch(1);
 
         // will use this to store whether any media had been received
         Boolean[] receivedBuffer = new Boolean[1];
@@ -288,15 +295,29 @@ class SipHealthPeriodicChecker
             {
                 super.peerStateChanged(evt);
 
-
                 CallPeer peer = evt.getSourceCallPeer();
 
                 CallPeerState peerState = peer.getState();
 
                 if (CallPeerState.CONNECTED.equals(peerState))
                 {
-                    SoundNotificationManager.injectSoundFile(
-                        peer.getCall(), SoundNotificationManager.PARTICIPANT_ALONE);
+                    injectSoundExecutor.execute(() -> {
+                        try
+                        {
+                            // make sure we push audio, no longer than the time limit we will check for media
+                            long startNano = System.nanoTime();
+                            long maxDuration = TimeUnit.NANOSECONDS.convert(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
+                            while(hangupLatch.getCount() > 0 && (System.nanoTime() - startNano) < maxDuration)
+                            {
+                                SoundNotificationManager.injectSoundFile(
+                                    peer.getCall(), SoundNotificationManager.PARTICIPANT_ALONE);
+
+                                Thread.sleep(1000);
+                            }
+                        }
+                        catch(InterruptedException ex)
+                        {}
+                    });
                 }
             }
         };
@@ -310,7 +331,7 @@ class SipHealthPeriodicChecker
                        (receiveStream, buffer) ->
                             {
                                 receivedBuffer[0] = true;
-                                countDownLatch.countDown();
+                                hangupLatch.countDown();
                             });
 
                 @Override
@@ -334,12 +355,12 @@ class SipHealthPeriodicChecker
             {
                 if (callChangeEvent.getNewValue().equals(CallState.CALL_ENDED))
                 {
-                    countDownLatch.countDown();
+                    hangupLatch.countDown();
                 }
             }
         });
 
-        countDownLatch.await(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
+        hangupLatch.await(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
         sipPeer.removeCallPeerListener(callPeerListener);
 
         // we do not care for any failures on hangup
