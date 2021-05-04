@@ -17,14 +17,39 @@
  */
 package org.jitsi.jigasi.osgi;
 
+import java.util.stream.Collectors;
+import net.java.sip.communicator.impl.certificate.CertificateVerificationActivator;
+import net.java.sip.communicator.impl.configuration.ConfigurationActivator;
+import net.java.sip.communicator.impl.credentialsstorage.CredentialsStorageActivator;
+import net.java.sip.communicator.impl.dns.DnsUtilActivator;
+import net.java.sip.communicator.impl.globaldisplaydetails.GlobalDisplayDetailsActivator;
+import net.java.sip.communicator.impl.neomedia.NeomediaActivator;
+import net.java.sip.communicator.impl.netaddr.NetaddrActivator;
+import net.java.sip.communicator.impl.packetlogging.PacketLoggingActivator;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 
+import net.java.sip.communicator.impl.protocol.sip.SipActivator;
+import net.java.sip.communicator.impl.resources.ResourceManagementActivator;
+import net.java.sip.communicator.impl.sysactivity.SysActivityActivator;
+import net.java.sip.communicator.plugin.defaultresourcepack.*;
+import net.java.sip.communicator.plugin.reconnectplugin.ReconnectPluginActivator;
+import net.java.sip.communicator.service.gui.internal.GuiServiceActivator;
+import net.java.sip.communicator.service.notification.NotificationServiceActivator;
+import net.java.sip.communicator.service.protocol.ProtocolProviderActivator;
+import net.java.sip.communicator.service.protocol.media.ProtocolMediaActivator;
+import net.java.sip.communicator.util.UtilActivator;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.osgi.framework.launch.*;
+import org.jitsi.jigasi.JigasiBundleActivator;
+import org.jitsi.jigasi.rest.RESTBundleActivator;
+import org.jitsi.jigasi.rest.TranscriptServerBundleActivator;
+import org.jitsi.jigasi.version.VersionActivator;
+import org.jitsi.jigasi.xmpp.CallControlMucActivator;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.LibJitsiActivator;
 import org.jitsi.stats.media.*;
 
 import java.util.*;
@@ -75,8 +100,8 @@ public class JigasiBundleConfig
 
         String[] protocols =
             {
-                "net/java/sip/communicator/impl/protocol/sip/SipActivator",
-                "net/java/sip/communicator/impl/protocol/jabber/JabberActivator"
+                SipActivator.class.getName(),
+                JabberActivator.class.getName(),
             };
 
         String[] mockProtocols =
@@ -86,76 +111,77 @@ public class JigasiBundleConfig
 
         String[][] bundles = {
             {
-                "org/jitsi/service/libjitsi/LibJitsiActivator"
+                LibJitsiActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/util/UtilActivator",
-                "net/java/sip/communicator/impl/fileaccess/FileAccessActivator"
+                ConfigurationActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/configuration/ConfigurationActivator"
+                UtilActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/resources/ResourceManagementActivator"
+                DefaultResourcePackActivator.class.getName(),
+                ResourceManagementActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/dns/DnsUtilActivator"
+                NotificationServiceActivator.class.getName(),
+                DnsUtilActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/credentialsstorage/CredentialsStorageActivator"
+                CredentialsStorageActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/netaddr/NetaddrActivator",
-                "net/java/sip/communicator/impl/sysactivity/SysActivityActivator"
+                NetaddrActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/packetlogging/PacketLoggingActivator"
+                PacketLoggingActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/service/gui/internal/GuiServiceActivator"
+                GuiServiceActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/service/protocol/media/ProtocolMediaActivator"
+                ProtocolMediaActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/service/notification/NotificationServiceActivator",
-                "net/java/sip/communicator/impl/globaldisplaydetails/GlobalDisplayDetailsActivator"
+                NeomediaActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/neomedia/NeomediaActivator"
+                CertificateVerificationActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/impl/certificate/CertificateVerificationActivator"
+                VersionActivator.class.getName(),
             },
             {
-                "org/jitsi/jigasi/version/VersionActivator"
+                ProtocolProviderActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/service/protocol/ProtocolProviderActivator"
+                GlobalDisplayDetailsActivator.class.getName(),
             },
             {
-                "net/java/sip/communicator/plugin/reconnectplugin/ReconnectPluginActivator"
+                ReconnectPluginActivator.class.getName(),
             },
             // Shall we use mock protocol providers ?
             _useMockProtocols ? mockProtocols : protocols,
             {
-                "org/jitsi/jigasi/JigasiBundleActivator"
+                JigasiBundleActivator.class.getName(),
             },
             {
-                "org/jitsi/jigasi/rest/RESTBundleActivator"
+                RESTBundleActivator.class.getName(),
             },
             {
-                "org/jitsi/jigasi/rest/TranscriptServerBundleActivator"
+                TranscriptServerBundleActivator.class.getName(),
             },
             {
-                "org/jitsi/jigasi/xmpp/CallControlMucActivator"
+                CallControlMucActivator.class.getName(),
             },
             {
-                "org/jitsi/ddclient/Activator"
+                org.jitsi.ddclient.Activator.class.getName(),
             }
         };
 
-        return bundles;
+        return Arrays.stream(bundles)
+            .map(b -> Arrays.stream(b).map(bb -> bb.replace(".", "/")).toArray(String[]::new))
+            .toArray(String[][]::new);
     }
 
     @Override

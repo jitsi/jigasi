@@ -27,9 +27,11 @@ import java.util.stream.*;
 
 import javax.servlet.http.*;
 
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 import org.json.simple.*;
 
@@ -38,7 +40,6 @@ import static org.jitsi.xmpp.extensions.colibri.ColibriStatsExtension.*;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
-import net.java.sip.communicator.util.*;
 
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.xmpp.*;

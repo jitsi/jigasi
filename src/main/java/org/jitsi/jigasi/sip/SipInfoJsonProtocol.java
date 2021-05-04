@@ -18,8 +18,8 @@
 package org.jitsi.jigasi.sip;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 
+import org.jitsi.utils.logging.Logger;
 import org.json.simple.*;
 
 import java.util.*;

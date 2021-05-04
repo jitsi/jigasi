@@ -18,13 +18,13 @@
 package org.jitsi.jigasi.sounds;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * Used to queue audio files for playback. This is used for the IVR.

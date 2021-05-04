@@ -18,14 +18,15 @@
 package org.jitsi.jigasi;
 
 import com.timgroup.statsd.*;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.meet.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;

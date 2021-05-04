@@ -20,9 +20,9 @@ package net.java.sip.communicator.service.protocol.mock;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * @author Pawel Domas

@@ -18,7 +18,7 @@
 package net.java.sip.communicator.service.protocol.mock;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
+import org.jitsi.utils.logging.Logger;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 

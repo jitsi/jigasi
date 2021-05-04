@@ -19,7 +19,7 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.osgi.*;
 import org.jitsi.meet.*;
 import org.osgi.framework.*;

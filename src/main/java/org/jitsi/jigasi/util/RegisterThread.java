@@ -18,8 +18,8 @@
 package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * Thread does the job of registering given <tt>ProtocolProviderService</tt>.

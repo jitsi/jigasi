@@ -19,11 +19,11 @@ package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.Logger;
 import org.jivesoftware.smack.bosh.*;
 
 import java.lang.reflect.*;

@@ -21,12 +21,12 @@ import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
 
 import org.jitsi.jigasi.sounds.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.parts.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
 

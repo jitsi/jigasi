@@ -18,7 +18,7 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
+import org.jitsi.utils.logging.Logger;
 import org.jxmpp.jid.*;
 import org.osgi.framework.*;
 

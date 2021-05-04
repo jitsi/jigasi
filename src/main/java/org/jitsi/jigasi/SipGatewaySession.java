@@ -20,7 +20,6 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.sounds.*;
@@ -29,6 +28,7 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.Logger;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 

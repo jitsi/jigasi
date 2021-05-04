@@ -17,8 +17,8 @@
  */
 package org.jitsi.jigasi.xmpp;
 
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.service.configuration.*;

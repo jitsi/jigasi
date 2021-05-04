@@ -19,11 +19,11 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.util.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * CallManager responsible for processing call operations like answer or hangup

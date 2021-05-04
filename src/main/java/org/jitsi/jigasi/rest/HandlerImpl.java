@@ -25,7 +25,6 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.health.Health;
 import org.jitsi.jigasi.stats.*;
@@ -33,6 +32,7 @@ import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.rest.*;
 
 import org.eclipse.jetty.server.*;
+import org.jitsi.utils.logging.Logger;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 import org.osgi.framework.*;

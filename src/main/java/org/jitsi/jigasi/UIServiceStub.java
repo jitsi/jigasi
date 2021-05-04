@@ -19,9 +19,9 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.gui.Container;
+import net.java.sip.communicator.service.gui.account.LoginManager;
 import net.java.sip.communicator.service.gui.event.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.account.*;
 
 import java.awt.*;
 import java.awt.event.*;
