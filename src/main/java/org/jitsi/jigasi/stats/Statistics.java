@@ -97,6 +97,33 @@ public class Statistics
     public static final String TOTAL_CALLS_JVB_NO_MEDIA = "total_calls_jvb_no_media";
 
     /**
+     * The name of the property that holds the normalizing constant that is used to reduce the number of
+     * current conferences to a stress level metric {@link #CONFERENCES_THRESHOLD}.
+     */
+    private static final String CONFERENCES_THRESHOLD_PNAME = "org.jitsi.jigasi.CONFERENCES_THRESHOLD";
+
+    /**
+     * The default value of the normalizing constant that is used to reduce the number of current conferences
+     * to a stress level metric {@link #CONFERENCES_THRESHOLD}.
+     */
+    private static final double CONFERENCES_THRESHOLD_DEFAULT = 450.0D;
+
+    /**
+     * The normalizing constant that is used to reduce the number of current conferences to a stress level
+     * metric. This number should be the max number of conferences that this Jigasi instance can handle
+     * correctly (i.e. if Jigasi has more conferences it is overloaded and it may experience abnormal operation).
+     * The stress_level metric is computed in {@link #getSessionStats()}.
+     */
+    private static final double CONFERENCES_THRESHOLD = JigasiBundleActivator
+            .getConfigurationService()
+            .getDouble(CONFERENCES_THRESHOLD_PNAME, CONFERENCES_THRESHOLD_DEFAULT);
+
+    /**
+     * The name of the stress level metric.
+     */
+    private static final String STRESS_LEVEL = "stress_level";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -271,6 +298,9 @@ public class Statistics
 
         stats.put(PARTICIPANTS, participants);
 
+        double stressLevel = conferences / CONFERENCES_THRESHOLD;
+        stats.put(STRESS_LEVEL, stressLevel);
+
         return stats;
     }
 
@@ -399,6 +429,7 @@ public class Statistics
                 pps,
                 (int)stats.get(PARTICIPANTS),
                 (int)stats.get(CONFERENCES),
+                (double)stats.get(STRESS_LEVEL),
                 JigasiBundleActivator.isShutdownInProgress()));
     }
 
@@ -411,11 +442,13 @@ public class Statistics
      * @param pps the protocol provider service
      * @param participants the participant count.
      * @param conferences the active session/conference count.
+     * @param stressLevel the current stress level
      */
     private static void updatePresenceStatusForXmppProvider(
         ProtocolProviderService pps,
         int participants,
         int conferences,
+        double stressLevel,
         boolean shutdownInProgress)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
@@ -454,6 +487,10 @@ public class Statistics
                 stats.addStat(new ColibriStatsExtension.Stat(
                     SHUTDOWN_IN_PROGRESS,
                     shutdownInProgress));
+                stats.addStat((new ColibriStatsExtension.Stat(
+                    STRESS_LEVEL,
+                    stressLevel
+                )));
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
