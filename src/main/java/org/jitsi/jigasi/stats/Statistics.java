@@ -97,6 +97,11 @@ public class Statistics
     public static final String TOTAL_CALLS_JVB_NO_MEDIA = "total_calls_jvb_no_media";
 
     /**
+     * The name of the stress level metric.
+     */
+    private static final String STRESS_LEVEL = "stress_level";
+
+    /**
      * Total number of participants since started.
      */
     private static int totalParticipantsCount = 0;
@@ -271,6 +276,12 @@ public class Statistics
 
         stats.put(PARTICIPANTS, participants);
 
+        // This emulates the current behavour that we have implemented in our autoscaling
+        // rules. It's not a good model for estimating load and will change in the near
+        // future
+        double stressLevel = participants / 450.0;
+        stats.put(STRESS_LEVEL, stressLevel);
+
         return stats;
     }
 
@@ -399,6 +410,7 @@ public class Statistics
                 pps,
                 (int)stats.get(PARTICIPANTS),
                 (int)stats.get(CONFERENCES),
+                (double)stats.get(STRESS_LEVEL),
                 JigasiBundleActivator.isShutdownInProgress()));
     }
 
@@ -411,11 +423,13 @@ public class Statistics
      * @param pps the protocol provider service
      * @param participants the participant count.
      * @param conferences the active session/conference count.
+     * @param stressLevel the current stress level
      */
     private static void updatePresenceStatusForXmppProvider(
         ProtocolProviderService pps,
         int participants,
         int conferences,
+        double stressLevel,
         boolean shutdownInProgress)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
@@ -454,6 +468,10 @@ public class Statistics
                 stats.addStat(new ColibriStatsExtension.Stat(
                     SHUTDOWN_IN_PROGRESS,
                     shutdownInProgress));
+                stats.addStat((new ColibriStatsExtension.Stat(
+                    STRESS_LEVEL,
+                    stressLevel
+                )));
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
