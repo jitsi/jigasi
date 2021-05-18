@@ -118,8 +118,7 @@ public class JigasiBundleConfig
                 "net/java/sip/communicator/service/protocol/media/ProtocolMediaActivator"
             },
             {
-                "net/java/sip/communicator/service/notification/NotificationServiceActivator",
-                "net/java/sip/communicator/impl/globaldisplaydetails/GlobalDisplayDetailsActivator"
+                "net/java/sip/communicator/service/notification/NotificationServiceActivator"
             },
             {
                 "net/java/sip/communicator/impl/neomedia/NeomediaActivator"
