@@ -17,10 +17,12 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.plugin.reconnectplugin.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.service.configuration.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -653,10 +655,8 @@ public class CallManager
                     logger.error("Cannot unregister");
                 }
 
-                ProtocolProviderFactory factory
-                    = ProtocolProviderFactory.getProtocolProviderFactory(
-                        JigasiBundleActivator.osgiContext,
-                        pp.getProtocolName());
+                ProtocolProviderFactory factory = ProtocolProviderFactory.getProtocolProviderFactory(
+                    JigasiBundleActivator.osgiContext, pp.getProtocolName());
 
                 if (factory != null)
                 {
@@ -665,6 +665,11 @@ public class CallManager
                             + " Removing account " + pp.getAccountID());
 
                     factory.unloadAccount(pp.getAccountID());
+
+                    // Deleting not needed property
+                    ConfigurationService config = JigasiBundleActivator.getConfigurationService();
+                    config.removeProperty(ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP
+                        + "." + pp.getAccountID().getAccountUniqueID());
                 }
             }
         }
