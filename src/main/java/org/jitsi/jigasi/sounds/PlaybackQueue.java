@@ -20,9 +20,8 @@ package org.jitsi.jigasi.sounds;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.codec.*;
 
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
@@ -101,6 +100,40 @@ class PlaybackQueue
          * @return Call to send audio to.
          */
         Call getPlaybackCall() { return playbackCall; }
+
+        /**
+         * Checks for equals by just checking the filename as this is what is to be played.
+         * Can be passed a String (the filename) and we will also check and that.
+         * @param o the object to check can be PlaybackData or string.
+         * @return true if equals.
+         */
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o)
+            {
+                return true;
+            }
+
+            if (o != null && o instanceof String)
+            {
+                return playbackFileName.equals(o);
+            }
+
+            if (o == null || getClass() != o.getClass())
+            {
+                return false;
+            }
+
+            PlaybackData that = (PlaybackData) o;
+            return playbackFileName.equals(that.playbackFileName);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(playbackFileName, playbackDelegate, playbackCall);
+        }
     }
 
     /**
@@ -122,7 +155,7 @@ class PlaybackQueue
      */
     public void queueNext(Call call, String fileName) throws InterruptedException
     {
-        playbackQueue.put(new PlaybackData(fileName, null, call));
+        this.queueNext(call, fileName, null);
     }
 
     /**
@@ -138,6 +171,14 @@ class PlaybackQueue
                           PlaybackDelegate delegate)
         throws InterruptedException
     {
+        // if the thread for playing is not started (call is not connected)
+        // there is no point to add the same notification twice, so skip it
+        if (!this.isAlive() && playbackQueue.contains(fileName))
+        {
+            // let's skip it
+            return;
+        }
+
         playbackQueue.put(new PlaybackData(fileName, delegate, call));
     }
 
