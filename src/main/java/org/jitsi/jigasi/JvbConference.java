@@ -1225,10 +1225,9 @@ public class JvbConference
             CallPeer peer;
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
             {
-                MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
-                peerMedia.getConferenceMembers().stream().forEach(m ->
+                MediaAwareCallPeer<?, ?, ?> peerMedia = (MediaAwareCallPeer<?, ?, ?>) peer;
+                peerMedia.getConferenceMembers().stream().forEach(confMember ->
                 {
-                    ConferenceMember confMember = (ConferenceMember)m;
                     String address = confMember.getAddress();
                     if (address != null && !address.equals("jvb"))
                     {
