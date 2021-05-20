@@ -1226,16 +1226,17 @@ public class JvbConference
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
             {
                 MediaAwareCallPeer peerMedia = (MediaAwareCallPeer) peer;
-                peerMedia.getConferenceMembers().stream().forEach(m -> {
-
-                    String address = ((ConferenceMember)m).getAddress();
+                peerMedia.getConferenceMembers().stream().forEach(m ->
+                {
+                    ConferenceMember confMember = (ConferenceMember)m;
+                    String address = confMember.getAddress();
                     if (address != null && !address.equals("jvb"))
                     {
                         try
                         {
                             if (JidCreate.from(address).getResourceOrEmpty().equals(member.getName()))
                             {
-                                peerMedia.removeConferenceMember((ConferenceMember)m);
+                                peerMedia.removeConferenceMember(confMember);
                             }
                         }
                         catch(Exception e)
