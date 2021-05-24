@@ -173,7 +173,7 @@ class PlaybackQueue
     {
         // if the thread for playing is not started (call is not connected)
         // there is no point to add the same notification twice, so skip it
-        if (!this.isAlive() && playbackQueue.contains(fileName))
+        if (!this.isAlive() || playbackQueue.contains(fileName))
         {
             // let's skip it
             return;
