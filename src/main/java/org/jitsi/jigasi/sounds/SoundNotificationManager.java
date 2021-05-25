@@ -371,6 +371,7 @@ public class SoundNotificationManager
                 ts, // ts
                 data.length + RawPacket.FIXED_HEADER_SIZE// len
             );
+            rtp.setSkipStats(true);
 
             System.arraycopy(
                 data, 0, rtp.getBuffer(), rtp.getPayloadOffset(), data.length);
