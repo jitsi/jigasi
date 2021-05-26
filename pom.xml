@@ -150,7 +150,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0-20190327.151046-25</version>
+      <version>1.0-20210526.183948-26</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
