@@ -97,6 +97,28 @@ public class Statistics
     public static final String TOTAL_CALLS_JVB_NO_MEDIA = "total_calls_jvb_no_media";
 
     /**
+     * The name of the property that holds the normalizing constant that is used to reduce the number of
+     * current conferences to a stress level metric {@link #CONFERENCES_THRESHOLD}.
+     */
+    private static final String CONFERENCES_THRESHOLD_PNAME = "org.jitsi.jigasi.CONFERENCES_THRESHOLD";
+
+    /**
+     * The default value of the normalizing constant that is used to reduce the number of current conferences
+     * to a stress level metric {@link #CONFERENCES_THRESHOLD}.
+     */
+    private static final double CONFERENCES_THRESHOLD_DEFAULT = 100;
+
+    /**
+     * The normalizing constant that is used to reduce the number of current conferences to a stress level
+     * metric. This number should be the max number of conferences that this Jigasi instance can handle
+     * correctly (i.e. if Jigasi has more conferences it is overloaded and it may experience abnormal operation).
+     * The stress_level metric is computed in {@link #getSessionStats()}.
+     */
+    private static final double CONFERENCES_THRESHOLD = JigasiBundleActivator
+            .getConfigurationService()
+            .getDouble(CONFERENCES_THRESHOLD_PNAME, CONFERENCES_THRESHOLD_DEFAULT);
+
+    /**
      * The name of the stress level metric.
      */
     private static final String STRESS_LEVEL = "stress_level";
@@ -276,10 +298,7 @@ public class Statistics
 
         stats.put(PARTICIPANTS, participants);
 
-        // This emulates the current behavour that we have implemented in our autoscaling
-        // rules. It's not a good model for estimating load and will change in the near
-        // future
-        double stressLevel = participants / 450.0;
+        double stressLevel = conferences / CONFERENCES_THRESHOLD;
         stats.put(STRESS_LEVEL, stressLevel);
 
         return stats;
