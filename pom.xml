@@ -330,12 +330,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-videobridge</artifactId>
-      <version>1.1-20190408.175802-112</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>xmlunit</groupId>
       <artifactId>xmlunit</artifactId>
       <version>1.6</version>
