@@ -36,6 +36,11 @@
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-core</artifactId>
+      <version>${smack.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack-extensions</artifactId>
       <version>${smack.version}</version>
     </dependency>
@@ -322,6 +327,80 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- transitive dependencies -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.10.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-common-protos</artifactId>
+      <version>1.17.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>xml-apis</groupId>
+      <artifactId>xml-apis</artifactId>
+      <version>1.0.b2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.main</artifactId>
+      <version>4.4.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jxmpp</groupId>
+      <artifactId>jxmpp-jid</artifactId>
+      <version>0.6.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jxmpp</groupId>
+      <artifactId>jxmpp-core</artifactId>
+      <version>0.6.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-api</artifactId>
+      <version>9.4.15.v20190215</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.datadoghq</groupId>
+      <artifactId>java-dogstatsd-client</artifactId>
+      <version>2.5</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>gax</artifactId>
+      <version>1.50.1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-speech-v1</artifactId>
+      <version>1.22.1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+      <version>9.4.15.v20190215</version>
+      <scope>compile</scope>
+    </dependency>
+
     <!-- test -->
     <dependency>
       <groupId>junit</groupId>
@@ -339,6 +418,47 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
+        <configuration>
+          <usedDependencies>
+            <dependency>org.apache.felix:org.apache.felix.main</dependency>
+            <dependency>org.jitsi:jitsi-systray-service</dependency>
+            <dependency>org.jitsi:jitsi-sysactivity</dependency>
+            <dependency>rusv:agafua-syslog</dependency>
+            <dependency>org.jitsi:jitsi-hid</dependency>
+            <dependency>org.jitsi:jitsi-reconnect</dependency>
+            <dependency>org.jitsi:jain-sip-ri-ossonly</dependency>
+            <dependency>org.bouncycastle:bcprov-jdk15on</dependency>
+            <dependency>org.jitsi:ice4j</dependency>
+            <dependency>org.jitsi:jitsi-neomedia</dependency>
+            <dependency>org.opentelecoms.sip:sip-api-1.2</dependency>
+            <dependency>org.jitsi:jitsi-protocol-sip</dependency>
+            <dependency>org.jitsi:jitsi-certificate</dependency>
+            <dependency>org.jitsi:jitsi-resourcemanager</dependency>
+            <dependency>org.jitsi:jitsi-dns</dependency>
+            <dependency>org.jitsi:jitsi-dnsservice</dependency>
+            <dependency>org.slf4j:slf4j-jdk14</dependency>
+            <dependency>org.gagravarr:vorbis-java-core</dependency>
+            <dependency>org.jitsi:jitsi-packetlogging</dependency>
+            <dependency>javax.servlet:javax.servlet-api</dependency>
+            <dependency>org.jitsi:jitsi-netaddr</dependency>
+            <dependency>org.jitsi:jitsi-configuration</dependency>
+            <dependency>org.opentelecoms.sdp:java-sdp-nist-bridge</dependency>
+            <dependency>org.jitsi:jitsi-notification-service</dependency>
+            <dependency>org.jitsi:jitsi-desktoputil</dependency>
+            <dependency>org.jitsi:jitsi-lgpl-dependencies</dependency>
+            <dependency>org.slf4j:slf4j-api</dependency>
+            <dependency>io.sentry:sentry</dependency>
+            <dependency>org.igniterealtime.jbosh:jbosh</dependency>
+            <dependency>org.jitsi:jitsi-fileaccess</dependency>
+            <dependency>org.jitsi:jitsi-argdelegation</dependency>
+            <dependency>org.jitsi:jitsi-credentialsstorage</dependency>
+          </usedDependencies>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
