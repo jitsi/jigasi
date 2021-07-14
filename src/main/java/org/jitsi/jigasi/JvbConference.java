@@ -170,6 +170,16 @@ public class JvbConference
     private static final int JVB_ACTIVITY_CHECK_DELAY = 5000;
 
     /**
+     * We always start the call unmuted, we keep the instance so we can remove it from the list of extensions that
+     * we always add after joining and when sending a presence.
+     */
+    private static final AudioMutedExtension initialAudioMutedExtension = new AudioMutedExtension();
+    static
+    {
+        initialAudioMutedExtension.setAudioMuted(false);
+    }
+
+    /**
      * A timer which will be used to schedule a quick non-blocking check whether there is any activity
      * on the bridge side of the call.
      */
@@ -837,9 +847,7 @@ public class JvbConference
                 ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
 
                 // we always start the call unmuted
-                AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
-                audioMutedExtension.setAudioMuted(false);
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(audioMutedExtension);
+                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initialAudioMutedExtension);
             }
             else
             {
@@ -1828,6 +1836,9 @@ public class JvbConference
     {
         if (mucRoom != null)
         {
+            // remove the initial extension otherwise it will overwrite our new setting
+            ((ChatRoomJabberImpl)mucRoom).removePresencePacketExtensions(initialAudioMutedExtension);
+
             AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
 
             audioMutedExtension.setAudioMuted(muted);
