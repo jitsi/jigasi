@@ -86,13 +86,13 @@ public class SoundNotificationManager
      * The sound file to use to notify sip participant that a
      * participant has left.
      */
-    private static final String PARTICIPANT_LEFT = "sounds/ParticipantLeft.opus";
+    public static final String PARTICIPANT_LEFT = "sounds/ParticipantLeft.opus";
 
     /**
      * The sound file to use to notify sip partitipant that a
      * new participant has joined.
      */
-    private static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
+    public static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
 
     /**
      * The sound file to use to notify the participant that access was granted to join the
