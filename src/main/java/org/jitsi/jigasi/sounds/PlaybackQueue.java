@@ -139,7 +139,7 @@ class PlaybackQueue
     /**
      * Queue used to schedule sound notifications.
      */
-    private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(20, true);
+    private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(100, true);
 
     /**
      * Flag used to stop the queue thread.
@@ -171,11 +171,20 @@ class PlaybackQueue
                           PlaybackDelegate delegate)
         throws InterruptedException
     {
-        // if the thread for playing is not started (call is not connected)
-        // there is no point to add the same notification twice, so skip it
-        if (!this.isAlive() || playbackQueue.contains(fileName))
+        if ((fileName.equals(SoundNotificationManager.PARTICIPANT_JOINED)
+            || fileName.equals(SoundNotificationManager.PARTICIPANT_LEFT))
+            && playbackQueue.contains(fileName))
         {
-            // let's skip it
+            // just in case, we do not want to spam user with leave and join events
+            return;
+        }
+
+        // if the queue has no capacity we will block playing the sound till there is space
+        // and playing may depend on signalling and if we block smack thread we can stop the signalling
+        if (playbackQueue.remainingCapacity() == 0)
+        {
+            Object callContext = call.getData(CallContext.class);
+            logger.warn(callContext + "Not playing sound to avoid blocking:" + fileName);
             return;
         }
 
@@ -230,11 +239,11 @@ class PlaybackQueue
                 if (playbackCall != null)
                 {
                     Object callContext = playbackCall.getData(CallContext.class);
-                    logger.error(callContext + " " + ex.toString(), ex);
+                    logger.error(callContext + " " + ex, ex);
                 }
                 else
                 {
-                    logger.error(ex.toString());
+                    logger.error(ex);
                 }
             }
         }
