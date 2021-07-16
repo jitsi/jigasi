@@ -182,7 +182,7 @@ public class LocalTxtTranscriptHandler
     @Override
     public void publish(ChatRoom chatRoom, TranscriptionResult result)
     {
-        if(result.isInterim())
+        if (result.isInterim())
         {
             return;
         }
@@ -281,7 +281,7 @@ public class LocalTxtTranscriptHandler
                                 List<Participant> initialMembers)
     {
         String initialMembersString;
-        if(initialMembers == null || initialMembers.isEmpty())
+        if (initialMembers == null || initialMembers.isEmpty())
         {
             initialMembersString = "";
         }
@@ -297,7 +297,7 @@ public class LocalTxtTranscriptHandler
         String header;
         String dateString = dateFormatter.format(startInstant);
         String timeString = timeFormatter.format(startInstant);
-        if(roomName == null)
+        if (roomName == null)
         {
             header = String.format(UNFORMATTED_HEADER,
                 dateString, timeString, initialMembersString,
@@ -355,28 +355,28 @@ public class LocalTxtTranscriptHandler
         //split to get each token separated by one or more spaces
         String[] tokens = toFormat.split(" +");
 
-        if(tokens.length == 0)
+        if (tokens.length == 0)
         {
             return "";
         }
-        else if(tokens.length == 1)
+        else if (tokens.length == 1)
         {
             return tokens[0];
         }
 
         StringBuilder formattedBuilder = new StringBuilder();
         int currentLineLength = 0;
-        for(String currentToken: tokens)
+        for (String currentToken: tokens)
         {
             // first we check if adding a new token will exceed the limit or
             // if the current token is a newline character
             // when this is the case, we need to append a newline in the
             // formatted string to not exceed the limit
-            if(currentLineLength + currentToken.length() > maximumLength ||
+            if (currentLineLength + currentToken.length() > maximumLength ||
                 NEW_LINE.equals(currentToken))
             {
                 formattedBuilder.append(NEW_LINE);
-                if(spacesAfterEnter > 0)
+                if (spacesAfterEnter > 0)
                 {
                     formattedBuilder.append(
                         String.join("",
@@ -393,7 +393,7 @@ public class LocalTxtTranscriptHandler
 
             // if we aren't at the end of a line, we have to put a space between
             // each token
-            if(currentLineLength < maximumLength)
+            if (currentLineLength < maximumLength)
             {
                 formattedBuilder.append(" ");
                 currentLineLength += 1;
@@ -402,7 +402,7 @@ public class LocalTxtTranscriptHandler
 
         // if the given string ended with a newline character, so does the
         // formatted string
-        if(endWithSeparator)
+        if (endWithSeparator)
         {
             formattedBuilder.append(NEW_LINE);
         }
@@ -431,7 +431,7 @@ public class LocalTxtTranscriptHandler
                 new ArrayList<>(super.formattedEvents.keySet());
             Collections.sort(sortedKeys);
 
-            for(String event : super.getSortedEvents())
+            for (String event : super.getSortedEvents())
             {
                 builder.append(event);
             }

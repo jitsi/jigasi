@@ -543,7 +543,7 @@ public class SipGatewaySession
                 public void outgoingCallCreated(CallEvent callEvent)
                 {
                     String roomName = getJvbRoomName();
-                    if(roomName != null)
+                    if (roomName != null)
                     {
                         Call call = callEvent.getSourceCall();
                         AtomicInteger headerCount = new AtomicInteger(0);
@@ -942,7 +942,7 @@ public class SipGatewaySession
         if (mediaDroppedThresholdMs != -1)
         {
             CallPeer peer = sipCall.getCallPeers().next();
-            if(!addExpireRunnable(peer))
+            if (!addExpireRunnable(peer))
             {
                 peer.addCallPeerListener(new CallPeerAdapter()
                 {
@@ -952,7 +952,7 @@ public class SipGatewaySession
                         CallPeer peer = evt.getSourceCallPeer();
                         CallPeerState peerState = peer.getState();
 
-                        if(CallPeerState.CONNECTED.equals(peerState))
+                        if (CallPeerState.CONNECTED.equals(peerState))
                         {
                             peer.removeCallPeerListener(this);
                             addExpireRunnable(peer);
@@ -1524,7 +1524,7 @@ public class SipGatewaySession
             {
                 long lastReceived = stream.getLastInputActivityTime();
 
-                if(System.currentTimeMillis() - lastReceived
+                if (System.currentTimeMillis() - lastReceived
                         > mediaDroppedThresholdMs)
                 {
                     // we want to log only when we go from not-expired into
@@ -1612,7 +1612,7 @@ public class SipGatewaySession
 
                 maybeProcessStartMuted();
             }
-            else if(call.getCallState() == CallState.CALL_ENDED)
+            else if (call.getCallState() == CallState.CALL_ENDED)
             {
                 logger.info(SipGatewaySession.this.callContext
                     + " SIP call ended: " + cause);

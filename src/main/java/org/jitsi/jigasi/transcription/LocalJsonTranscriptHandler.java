@@ -361,7 +361,7 @@ public class LocalJsonTranscriptHandler
         TranscriptionResult result = e.getResult();
         JSONArray alternativeJSONArray = new JSONArray();
 
-        for(TranscriptionAlternative alternative : result.getAlternatives())
+        for (TranscriptionAlternative alternative : result.getAlternatives())
         {
             JSONObject alternativeJSON = new JSONObject();
 
@@ -417,13 +417,13 @@ public class LocalJsonTranscriptHandler
         }
 
         String identityUserId = participant.getIdentityUserId();
-        if(identityUserId != null)
+        if (identityUserId != null)
         {
             pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_USERID, identityUserId);
         }
 
         String identityGroupId = participant.getIdentityGroupId();
-        if(identityGroupId != null)
+        if (identityGroupId != null)
         {
             pJSON.put(JSON_KEY_PARTICIPANT_IDENTITY_GROUPID, identityGroupId);
         }
@@ -450,28 +450,28 @@ public class LocalJsonTranscriptHandler
                                           Instant end,
                                           Collection<JSONObject> events)
     {
-        if(roomName != null && !roomName.isEmpty())
+        if (roomName != null && !roomName.isEmpty())
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_NAME, roomName);
         }
-        if(roomUrl != null && !roomUrl.isEmpty())
+        if (roomUrl != null && !roomUrl.isEmpty())
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_ROOM_URL, roomUrl);
         }
-        if(start != null)
+        if (start != null)
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_START_TIME,
                 start.toString());
         }
-        if(end != null)
+        if (end != null)
         {
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_END_TIME, end.toString());
         }
-        if(participants != null && !participants.isEmpty())
+        if (participants != null && !participants.isEmpty())
         {
             JSONArray participantArray = new JSONArray();
 
-            for(Participant participant : participants)
+            for (Participant participant : participants)
             {
                 JSONObject pJSON = new JSONObject();
 
@@ -483,7 +483,7 @@ public class LocalJsonTranscriptHandler
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_INITIAL_PARTICIPANTS,
                 participantArray);
         }
-        if(events != null && !events.isEmpty())
+        if (events != null && !events.isEmpty())
         {
             JSONArray eventArray = new JSONArray();
 

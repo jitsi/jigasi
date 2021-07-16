@@ -344,7 +344,7 @@ public class HandlerImpl
     {
         int status;
         String reason = null;
-        Map<String,Object> responseMap = new HashMap<>();
+        Map<String, Object> responseMap = new HashMap<>();
         try
         {
             Health.check();

@@ -111,12 +111,12 @@ public class Util
             m.reset();
             m.update(toHash.getBytes());
             byte[] digest = m.digest();
-            BigInteger bigInt = new BigInteger(1,digest);
+            BigInteger bigInt = new BigInteger(1, digest);
             String hashtext = bigInt.toString(16);
 
             // Now we need to zero pad it if you actually want the full
             // 32 chars.
-            if(hashtext.length() < 32)
+            if (hashtext.length() < 32)
             {
                 int padLength = 32 - hashtext.length();
                 String pad = String.join("",

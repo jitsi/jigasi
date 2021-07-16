@@ -193,7 +193,7 @@ public class JigasiBundleActivator
 
         bundleContext.registerService(UIService.class, uiServiceStub, null);
 
-        if(isSipEnabled())
+        if (isSipEnabled())
         {
             MuteIqProvider.registerMuteIqProvider();
 
