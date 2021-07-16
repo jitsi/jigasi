@@ -306,7 +306,7 @@ public class StatsHandler
         {
             startConferencePeriodicRunnable(call);
         }
-        else if(call.getCallState() == CallState.CALL_ENDED)
+        else if (call.getCallState() == CallState.CALL_ENDED)
         {
             stopConferencePeriodicRunnable();
         }
@@ -318,7 +318,7 @@ public class StatsHandler
      */
     private void startConferencePeriodicRunnable(Call call)
     {
-        if(this.theStatsReporter != null)
+        if (this.theStatsReporter != null)
         {
             logger.warn(callContext + " Stats reporter already started for call:" + this.call);
             return;

@@ -268,13 +268,13 @@ public class SoundNotificationManager
 
         try
         {
-            if(JibriIq.Status.ON.equals(status))
+            if (JibriIq.Status.ON.equals(status))
             {
                 // if call is still not established this will be ignored in
                 // injectSoundFile and nothing will be played
                 playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
             }
-            else if(JibriIq.Status.OFF.equals(status))
+            else if (JibriIq.Status.OFF.equals(status))
             {
                 playbackQueue.queueNext(gatewaySession.getSipCall(), offSound);
             }
@@ -366,7 +366,7 @@ public class SoundNotificationManager
             byte[] data = opusAudioData.getData();
             RawPacket rtp = Util.makeRTP(
                 ssrc, // ssrc
-                pt,// payload
+                pt, // payload
                 seq++, /// seq
                 ts, // ts
                 data.length + RawPacket.FIXED_HEADER_SIZE// len

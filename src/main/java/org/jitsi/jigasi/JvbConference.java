@@ -631,7 +631,7 @@ public class JvbConference
     private synchronized void setXmppProvider(
             ProtocolProviderService xmppProvider)
     {
-        if(this.xmppProvider != null)
+        if (this.xmppProvider != null)
             throw new IllegalStateException("unexpected");
 
         if (!xmppProvider.getAccountID().getAccountUniqueID()
@@ -805,7 +805,7 @@ public class JvbConference
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if(!StringUtils.isNullOrEmpty(region))
+                if (!StringUtils.isNullOrEmpty(region))
                 {
                     RegionPacketExtension rpe = new RegionPacketExtension();
                     rpe.setRegionId(region);
@@ -901,7 +901,7 @@ public class JvbConference
               //  gatewaySession.createPresenceExtension(
                 //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
 
-            if(gatewaySession.getDefaultInitStatus() != null)
+            if (gatewaySession.getDefaultInitStatus() != null)
             {
                 setPresenceStatus(gatewaySession.getDefaultInitStatus());
             }
@@ -1084,7 +1084,7 @@ public class JvbConference
         {
             // if leave timeout is 0 or less we will not wait for new invite
             // and let's stop the call
-            if(AbstractGateway.getJvbInviteTimeout() <= 0
+            if (AbstractGateway.getJvbInviteTimeout() <= 0
                 || !gatewaySession.hasCallResumeSupport())
             {
                 stop();
@@ -1199,7 +1199,7 @@ public class JvbConference
             {
                 gatewaySession.notifyChatRoomMemberJoined(member);
             }
-            else if(ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
+            else if (ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
                     .equals(eventType))
             {
                 if (member instanceof ChatRoomMemberJabberImpl)
@@ -1540,7 +1540,7 @@ public class JvbConference
 
                 checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
-            else if(jvbCall.getCallState() == CallState.CALL_ENDED)
+            else if (jvbCall.getCallState() == CallState.CALL_ENDED)
             {
                 onJvbCallEnded();
             }
@@ -1593,7 +1593,7 @@ public class JvbConference
             JigasiBundleActivator.getConfigurationService()
                 .getPropertyNamesByPrefix(overridePrefix, false);
 
-        if(gw instanceof SipGateway
+        if (gw instanceof SipGateway
             && Boolean.valueOf(
                 ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN")))
         {
@@ -1608,7 +1608,7 @@ public class JvbConference
                 + "." + ProtocolProviderFactory.IS_ALLOW_NON_SECURE);
         }
 
-        for(String overridenProp : overriddenProps)
+        for (String overridenProp : overriddenProps)
         {
             String key = overridenProp.replace(overridePrefix + ".", "");
             String value = JigasiBundleActivator.getConfigurationService()
@@ -1687,7 +1687,7 @@ public class JvbConference
 
         // Because some AbstractGatewaySessions needs access to the audio,
         // we can't always use translator
-        if(!gatewaySession.isTranslatorSupported())
+        if (!gatewaySession.isTranslatorSupported())
         {
             properties.put(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
                 "false");

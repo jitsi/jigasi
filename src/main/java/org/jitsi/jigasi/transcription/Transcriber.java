@@ -219,7 +219,7 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
 
-        if(isTranslationEnabled())
+        if (isTranslationEnabled())
         {
             addTranscriptionListener(this.translationManager);
         }
@@ -355,7 +355,7 @@ public class Transcriber
     {
         Participant participant = getParticipant(identifier);
 
-        if(participant != null)
+        if (participant != null)
         {
             participant.setSourceLanguage(language);
         }
@@ -374,7 +374,7 @@ public class Transcriber
     {
         Participant participant = getParticipant(identifier);
 
-        if(participant != null)
+        if (participant != null)
         {
             String previousLanguage = participant.getTranslationLanguage();
 
@@ -503,10 +503,10 @@ public class Transcriber
     private void updateDDClient(String ddAspectStop)
     {
         StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
-        if(dClient != null)
+        if (dClient != null)
         {
             dClient.increment(ddAspectStop);
-            if(logger.isDebugEnabled())
+            if (logger.isDebugEnabled())
             {
                 logger.debug(getDebugName() + " thrown stat: " + ddAspectStop);
             }

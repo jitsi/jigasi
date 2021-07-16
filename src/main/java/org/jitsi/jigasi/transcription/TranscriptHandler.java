@@ -107,19 +107,19 @@ public class TranscriptHandler
             = new LocalJsonTranscriptHandler();
         LocalTxtTranscriptHandler txtHandler = new LocalTxtTranscriptHandler();
 
-        if(getStoreInJson())
+        if (getStoreInJson())
         {
             this.add((TranscriptPublisher) jsonHandler);
         }
-        if(getStoreInTxt())
+        if (getStoreInTxt())
         {
             this.add((TranscriptPublisher) txtHandler);
         }
-        if(getSendInJSON())
+        if (getSendInJSON())
         {
             this.add((TranscriptionResultPublisher) jsonHandler);
         }
-        if(getSendInTxt())
+        if (getSendInTxt())
         {
             this.add((TranscriptionResultPublisher) txtHandler);
         }
@@ -141,7 +141,7 @@ public class TranscriptHandler
     public void publishTranscriptionResult(ChatRoom room,
                                            TranscriptionResult result)
     {
-        for(TranscriptionResultPublisher p : resultPublishers)
+        for (TranscriptionResultPublisher p : resultPublishers)
         {
             p.publish(room, result);
         }
@@ -157,7 +157,7 @@ public class TranscriptHandler
     public void publishTranslationResult(ChatRoom room,
                                          TranslationResult result)
     {
-        for(TranscriptionResultPublisher p : resultPublishers)
+        for (TranscriptionResultPublisher p : resultPublishers)
         {
             p.publish(room, result);
         }
@@ -174,7 +174,7 @@ public class TranscriptHandler
     public List<TranscriptPublisher.Promise> getTranscriptPublishPromises()
     {
         List<TranscriptPublisher.Promise> promises = new LinkedList<>();
-        for(TranscriptPublisher p : transcriptPublishers)
+        for (TranscriptPublisher p : transcriptPublishers)
         {
             promises.add(p.getPublishPromise());
         }

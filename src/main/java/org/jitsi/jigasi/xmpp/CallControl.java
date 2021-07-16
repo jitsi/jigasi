@@ -165,7 +165,7 @@ public class CallControl
         String roomName = null;
 
         // extract the headers and pass them to context
-        for(ExtensionElement ext: iq.getExtensions())
+        for (ExtensionElement ext: iq.getExtensions())
         {
             if (ext instanceof HeaderExtension)
             {
@@ -173,12 +173,12 @@ public class CallControl
                 String name = header.getName();
                 String value = header.getValue();
 
-                if(ROOM_NAME_HEADER.equals(name))
+                if (ROOM_NAME_HEADER.equals(name))
                 {
                     roomName = value;
                     ctx.setRoomName(roomName);
                 }
-                else if(ROOM_PASSWORD_HEADER.equals(name))
+                else if (ROOM_PASSWORD_HEADER.equals(name))
                 {
                     ctx.setRoomPassword(value);
                 }
@@ -196,9 +196,9 @@ public class CallControl
             " Got dial request " + from + " -> " + to + " room: " + roomName);
 
         AbstractGatewaySession session = null;
-        if(TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
+        if (TRANSCRIPTION_DIAL_IQ_DESTINATION.equals(to))
         {
-            if(transcriptionGateway == null)
+            if (transcriptionGateway == null)
             {
                 logger.error(ctx
                     + " Cannot accept dial request " + to + " because"
@@ -211,7 +211,7 @@ public class CallControl
         }
         else
         {
-            if(sipGateway == null)
+            if (sipGateway == null)
             {
                 logger.error(ctx
                     + " Cannot accept dial request " + to + " because"

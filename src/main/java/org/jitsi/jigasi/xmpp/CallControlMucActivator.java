@@ -386,7 +386,7 @@ public class CallControlMucActivator
         // We have to check if we can update anything here (stats),
         // cause session was just created and  might not have joined the jvb
         // room, which means there is no change in participant count yet
-        if(session.isInTheRoom())
+        if (session.isInTheRoom())
         {
             updatePresenceStatusForXmppProviders();
         }
@@ -611,7 +611,7 @@ public class CallControlMucActivator
                 AbstractGatewaySession[] session = { null };
                 RefIq resultIQ = callControl.handleDialIq(packet, ctx, session);
 
-                if(session[0] != null)
+                if (session[0] != null)
                     setDialResponseAndRegisterHangUpHandler(resultIQ,
                         session[0]);
 

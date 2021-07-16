@@ -199,9 +199,9 @@ public class GoogleCloudTranscriptionService
     private static void validateLanguageTag(String tag)
         throws UnsupportedOperationException
     {
-        for(String supportedTag : SUPPORTED_LANGUAGE_TAGS)
+        for (String supportedTag : SUPPORTED_LANGUAGE_TAGS)
         {
-            if(supportedTag.equals(tag))
+            if (supportedTag.equals(tag))
             {
                 return;
             }
@@ -255,9 +255,9 @@ public class GoogleCloudTranscriptionService
 
         // set the model to use. It will default to a cheaper model with
         // lower performance when not set.
-        if(useVideoModel)
+        if (useVideoModel)
         {
-            if(logger.isDebugEnabled())
+            if (logger.isDebugEnabled())
             {
                 logger.debug("Using the more expensive video model");
             }
@@ -558,7 +558,7 @@ public class GoogleCloudTranscriptionService
          */
         synchronized void increment(long ms)
         {
-            if(ms < 0)
+            if (ms < 0)
             {
                 return;
             }
@@ -583,7 +583,7 @@ public class GoogleCloudTranscriptionService
             // round up to 15 second intervals
             int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
 
-            if(client != null)
+            if (client != null)
             {
                 client.count(ASPECT_INTERVAL, intervals15s);
                 client.count(ASPECT_TOTAL_REQUESTS, requestsCount);
@@ -729,7 +729,7 @@ public class GoogleCloudTranscriptionService
          */
         void sentRequest(TranscriptionRequest request)
         {
-            if(stopped)
+            if (stopped)
             {
                 logger.warn(debugName + ": not able to send request because" +
                     " manager was already stopped");
@@ -744,7 +744,7 @@ public class GoogleCloudTranscriptionService
 
             synchronized(currentRequestObserverLock)
             {
-                if(currentRequestObserver == null)
+                if (currentRequestObserver == null)
                 {
                     if (logger.isDebugEnabled())
                         logger.debug(debugName + ": created a new session");
@@ -804,7 +804,7 @@ public class GoogleCloudTranscriptionService
         {
             synchronized(currentRequestObserverLock)
             {
-                if(currentRequestObserver != null)
+                if (currentRequestObserver != null)
                 {
                     if (logger.isDebugEnabled())
                         logger.debug(debugName + ": terminated current session");
@@ -815,7 +815,7 @@ public class GoogleCloudTranscriptionService
                     costLogger.sessionEnded();
                 }
 
-                if(terminatingSessionThread != null &&
+                if (terminatingSessionThread != null &&
                     terminatingSessionThread.isAlive())
                 {
                     terminatingSessionThread.setStopIfInterrupted(true);
@@ -895,7 +895,7 @@ public class GoogleCloudTranscriptionService
         {
             if (logger.isDebugEnabled())
                 logger.debug(debugName + ": received a StreamingRecognizeResponse");
-            if(message.hasError())
+            if (message.hasError())
             {
                 // it is expected to get an error if the 60 seconds are exceeded
                 // without any speech in the audio OR if someone muted their mic
@@ -913,7 +913,7 @@ public class GoogleCloudTranscriptionService
             // This will happen when SINGLE_UTTERANCE is set to true
             // and the server has detected the end of the user's speech
             // utterance.
-            if(isEndOfSingleUtteranceMessage(message) ||
+            if (isEndOfSingleUtteranceMessage(message) ||
                 message.getResultsCount() == 0)
             {
                 if (logger.isDebugEnabled())
@@ -930,7 +930,7 @@ public class GoogleCloudTranscriptionService
             // If empty, the session has reached it's time limit and
             // nothing new was said, but there should be an error in the message
             // so this is never supposed to happen
-            if(result.getAlternativesList().isEmpty())
+            if (result.getAlternativesList().isEmpty())
             {
                 logger.warn(
                     debugName + ": received a list of alternatives which"
@@ -939,7 +939,7 @@ public class GoogleCloudTranscriptionService
                 return;
             }
 
-            if(result.getIsFinal())
+            if (result.getIsFinal())
             {
                 handleResult(result);
                 requestManager.terminateCurrentSession();
@@ -1053,7 +1053,7 @@ public class GoogleCloudTranscriptionService
         @Override
         public void onCompleted()
         {
-            for(TranscriptionListener listener : requestManager.getListeners())
+            for (TranscriptionListener listener : requestManager.getListeners())
             {
                 listener.completed();
             }
@@ -1066,7 +1066,7 @@ public class GoogleCloudTranscriptionService
          */
         private void sent(TranscriptionResult result)
         {
-            for(TranscriptionListener listener : requestManager.getListeners())
+            for (TranscriptionListener listener : requestManager.getListeners())
             {
                 listener.notify(result);
             }
@@ -1134,7 +1134,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(InterruptedException e)
             {
-                if(!stopIfInterrupted)
+                if (!stopIfInterrupted)
                 {
                     run();
                 }

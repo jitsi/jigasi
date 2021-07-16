@@ -79,7 +79,7 @@ public class TranslationManager
      */
     public void addLanguage(String language)
     {
-        if(language == null || language.isEmpty())
+        if (language == null || language.isEmpty())
             return;
 
         synchronized(languages)
@@ -96,7 +96,7 @@ public class TranslationManager
      */
     public void removeLanguage(String language)
     {
-        if(language == null)
+        if (language == null)
             return;
 
         synchronized(languages)
@@ -136,9 +136,9 @@ public class TranslationManager
         Collection<TranscriptionAlternative> alternatives
             = result.getAlternatives();
 
-        if(!alternatives.isEmpty())
+        if (!alternatives.isEmpty())
         {
-            for(String targetLanguage : translationLanguages)
+            for (String targetLanguage : translationLanguages)
             {
                 String translatedText = translationService.translate(
                     alternatives.iterator().next().getTranscription(),
@@ -165,7 +165,7 @@ public class TranslationManager
     @Override
     public void notify(TranscriptionResult result)
     {
-        if(!result.isInterim())
+        if (!result.isInterim())
         {
             List<TranslationResult> translations
                 = getTranslations(result);

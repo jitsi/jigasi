@@ -207,7 +207,7 @@ class PlaybackQueue
     @Override
     public void run()
     {
-        while(!playbackQueueStopFlag.get())
+        while (!playbackQueueStopFlag.get())
         {
             Call playbackCall = null;
             try

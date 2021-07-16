@@ -216,7 +216,7 @@ public class Statistics
             HttpServletResponse response)
         throws IOException
     {
-        Map<String,Object> stats = new HashMap<>();
+        Map<String, Object> stats = new HashMap<>();
 
         stats.putAll(getSessionStats());
 
@@ -254,7 +254,7 @@ public class Statistics
      *
      * @return a map with the stats.
      */
-    private static Map<String,Object> getSessionStats()
+    private static Map<String, Object> getSessionStats()
     {
         // get sessions from all gateways
         List<AbstractGatewaySession> sessions = new ArrayList<>();
@@ -262,12 +262,12 @@ public class Statistics
             gw -> sessions.addAll(gw.getActiveSessions()));
 
         int[] conferenceSizes = new int[CONFERENCE_SIZE_BUCKETS];
-        Map<String,Object> stats = new HashMap<>();
+        Map<String, Object> stats = new HashMap<>();
 
         int participants = 0;
         int conferences = 0;
 
-        for(AbstractGatewaySession ses : sessions)
+        for (AbstractGatewaySession ses : sessions)
         {
             if (ses.getJvbChatRoom() == null)
             {
@@ -422,7 +422,7 @@ public class Statistics
     public static void updatePresenceStatusForXmppProviders(
         List<ProtocolProviderService> ppss)
     {
-        final Map<String,Object> stats = getSessionStats();
+        final Map<String, Object> stats = getSessionStats();
 
         ppss.forEach(pps ->
             updatePresenceStatusForXmppProvider(
@@ -494,7 +494,7 @@ public class Statistics
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if(!StringUtils.isNullOrEmpty(region))
+                if (!StringUtils.isNullOrEmpty(region))
                 {
                     stats.addStat(new ColibriStatsExtension.Stat(
                         REGION,

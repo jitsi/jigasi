@@ -469,7 +469,7 @@ public class CallContext
         String url = getBoshURL();
         String room = getRoomName();
 
-        if(url == null || room == null)
+        if (url == null || room == null)
         {
             return null;
         }
