@@ -297,7 +297,7 @@ public class TranscriptionGatewaySession
     {
         super.notifyChatRoomMemberUpdated(chatMember, presence);
 
-        if(transcriber.isTranscribing() &&
+        if (transcriber.isTranscribing() &&
             !transcriber.isAnyParticipantRequestingTranscription())
         {
             new Thread(() ->

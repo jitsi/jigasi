@@ -333,7 +333,7 @@ public class Transcriber
                         TranslationLanguageExtension.ELEMENT_NAME,
                         TranslationLanguageExtension.NAMESPACE);
 
-                if(transcriptionLanguageExtension != null)
+                if (transcriptionLanguageExtension != null)
                 {
                     String language
                         = transcriptionLanguageExtension.getTranscriptionLanguage();
@@ -342,7 +342,7 @@ public class Transcriber
                         language);
                 }
 
-                if(translationLanguageExtension != null)
+                if (translationLanguageExtension != null)
                 {
                     String language
                         = translationLanguageExtension.getTranslationLanguage();
