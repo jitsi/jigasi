@@ -18,11 +18,15 @@
 package org.jitsi.jigasi.transcription;
 
 import com.timgroup.statsd.*;
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
+import org.jitsi.xmpp.extensions.jitsimeet.TranscriptionLanguageExtension;
+import org.jitsi.xmpp.extensions.jitsimeet.TranslationLanguageExtension;
+import org.jivesoftware.smack.packet.Presence;
 
 import javax.media.Buffer;
 import javax.media.rtp.*;
@@ -314,6 +318,42 @@ public class Transcriber
         if (participant != null)
         {
             participant.setChatMember(chatRoomMember);
+
+            if (chatRoomMember instanceof ChatRoomMemberJabberImpl)
+            {
+                Presence presence = ((ChatRoomMemberJabberImpl) chatRoomMember).getLastPresence();
+
+                TranscriptionLanguageExtension transcriptionLanguageExtension
+                    = presence.getExtension(
+                        TranscriptionLanguageExtension.ELEMENT_NAME,
+                        TranscriptionLanguageExtension.NAMESPACE);
+
+                TranslationLanguageExtension translationLanguageExtension
+                    = presence.getExtension(
+                        TranslationLanguageExtension.ELEMENT_NAME,
+                        TranslationLanguageExtension.NAMESPACE);
+
+                if(transcriptionLanguageExtension != null)
+                {
+                    String language
+                        = transcriptionLanguageExtension.getTranscriptionLanguage();
+
+                    this.updateParticipantSourceLanguage(identifier,
+                        language);
+                }
+
+                if(translationLanguageExtension != null)
+                {
+                    String language
+                        = translationLanguageExtension.getTranslationLanguage();
+
+                    this.updateParticipantTargetLanguage(identifier, language);
+                }
+                else
+                {
+                    this.updateParticipantTargetLanguage(identifier, null);
+                }
+            }
         }
         else
         {
