@@ -396,6 +396,14 @@ public class SipGatewaySession
     {
         cancelWaitThread();
 
+        // let's add callstats to the call
+        if (statsHandler == null)
+        {
+            String sipCallIdentifier = this.getMucDisplayName();
+            statsHandler = new StatsHandler(
+                sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
+        }
+
         jvbConference = new JvbConference(this, ctx);
 
         jvbConference.start();
@@ -987,14 +995,6 @@ public class SipGatewaySession
                     }
                 }
             });
-        }
-
-        // lets add cs to the call
-        if (statsHandler == null)
-        {
-            String sipCallIdentifier = this.getMucDisplayName();
-            statsHandler = new StatsHandler(
-                sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
         }
     }
 
