@@ -88,13 +88,6 @@ public class JvbConference
         = "http://jitsi.org/protocol/jigasi";
 
     /**
-     * The name of XMPP feature which states this Jigasi SIP Gateway can be
-     * muted.
-     */
-    public static final String MUTED_FEATURE_NAME
-        = "http://jitsi.org/protocol/audio-mute";
-
-    /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
      */
     public static final String DTMF_FEATURE_NAME
@@ -186,6 +179,11 @@ public class JvbConference
     private static Timer checkReceivedMediaTimer = new Timer();
 
     /**
+     * Handles all the audio mute/unmute logic.
+     */
+    private final AudioModeration audioModeration;
+
+    /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the features extension element that can be added to presence.
@@ -196,9 +194,9 @@ public class JvbConference
         AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
 
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-        features.addChildExtension(createFeature(SIP_GATEWAY_FEATURE_NAME));
+        features.addChildExtension(Util.createFeature(SIP_GATEWAY_FEATURE_NAME));
         meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
-        features.addChildExtension(createFeature(DTMF_FEATURE_NAME));
+        features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
 
         ConfigurationService cfg
                 = JigasiBundleActivator.getConfigurationService();
@@ -220,26 +218,13 @@ public class JvbConference
             logger.info("ICE feature will not be advertised");
         }
 
-        if (JigasiBundleActivator.isSipStartMutedEnabled())
+        ExtensionElement audioMuteFeature = AudioModeration.addSupportedFeatures(meetTools);
+        if (audioMuteFeature != null)
         {
-            meetTools.addSupportedFeature(MUTED_FEATURE_NAME);
-            features.addChildExtension(createFeature(MUTED_FEATURE_NAME));
+            features.addChildExtension(audioMuteFeature);
         }
 
         return features;
-    }
-
-    /**
-     * Creates a feature xmpp extension, that can be added to features and used in presence.
-     * @param var the value to be added.
-     * @return the extension element.
-     */
-    private static ExtensionElement createFeature(String var)
-    {
-        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
-        feature.setAttribute("var", var);
-
-        return feature;
     }
 
     /**
@@ -373,11 +358,6 @@ public class JvbConference
     private boolean gwSesisonWaitingStatsSent = false;
 
     /**
-     * The mute IQ handler if enabled.
-     */
-    private MuteIqHandler muteIqHandler = null;
-
-    /**
      * The lobby room instance for the room if any.
      */
     private Lobby lobby = null;
@@ -414,6 +394,7 @@ public class JvbConference
         this.callContext = ctx;
         this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
+        this.audioModeration = new AudioModeration(this, this.gatewaySession);
     }
 
     private Localpart getResourceIdentifier()
@@ -575,17 +556,7 @@ public class JvbConference
             telephony = null;
         }
 
-        if (muteIqHandler != null)
-        {
-            // we need to remove it from the connection, or we break some Smack
-            // weak references map where the key is connection and the value
-            // holds a connection and we leak connection/conferences.
-            XMPPConnection connection = getConnection();
-            if (connection != null)
-            {
-                connection.unregisterIQRequestHandler(muteIqHandler);
-            }
-        }
+        this.audioModeration.clean();
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
@@ -856,15 +827,7 @@ public class JvbConference
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
-            if (JigasiBundleActivator.isSipStartMutedEnabled())
-            {
-                if (muteIqHandler == null)
-                {
-                    muteIqHandler = new MuteIqHandler();
-                }
-
-                getConnection().registerIQRequestHandler(muteIqHandler);
-            }
+            this.audioModeration.notifyWillJoinJvbRoom();
 
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
@@ -944,13 +907,7 @@ public class JvbConference
                         {
                             try
                             {
-                                if (JigasiBundleActivator.isSipStartMutedEnabled())
-                                {
-                                    if (this.muteIqHandler != null)
-                                    {
-                                        getConnection().unregisterIQRequestHandler(this.muteIqHandler);
-                                    }
-                                }
+                                this.audioModeration.clean();
 
                                 if (this.mucRoom != null)
                                 {
@@ -2120,54 +2077,6 @@ public class JvbConference
                 + ", willCauseTimeout:" + willCauseTimeout
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
-        }
-    }
-
-    /**
-     * Handles mute requests received by jicofo if enabled.
-     */
-    private class MuteIqHandler
-        extends AbstractIqRequestHandler
-    {
-        MuteIqHandler()
-        {
-            super(
-                MuteIq.ELEMENT_NAME,
-                MuteIq.NAMESPACE,
-                IQ.Type.set,
-                Mode.sync);
-        }
-
-        @Override
-        public IQ handleIQRequest(IQ iqRequest)
-        {
-            return handleMuteIq((MuteIq) iqRequest);
-        }
-
-        /**
-         * Handles the incoming mute request only if it is from the focus.
-         * @param muteIq the incoming iq.
-         * @return the result iq.
-         */
-        private IQ handleMuteIq(MuteIq muteIq)
-        {
-            Boolean doMute = muteIq.getMute();
-            Jid from = muteIq.getFrom();
-
-            if (doMute == null
-                || !from.getResourceOrEmpty().equals(
-                        gatewaySession.getFocusResourceAddr()))
-            {
-                return IQ.createErrorResponse(muteIq, XMPPError.getBuilder(
-                    XMPPError.Condition.item_not_found));
-            }
-
-            if (doMute)
-            {
-                gatewaySession.mute();
-            }
-
-            return IQ.createResultIQ(muteIq);
         }
     }
 
