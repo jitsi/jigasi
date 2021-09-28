@@ -110,11 +110,8 @@ public class SipInfoJsonProtocol
     {
         try
         {
-            jitsiMeetTools.sendJSON(callPeer,
-                    jsonObject,
-                    new HashMap<String, Object>(){{
-                        put("VIA", "SIP.INFO");
-                    }});
+            jitsiMeetTools.sendJSON(callPeer, jsonObject,
+                new HashMap<String, Object>(){{ put("VIA", "SIP.INFO"); }});
         }
         catch (Exception ex)
         {
@@ -135,7 +132,7 @@ public class SipInfoJsonProtocol
      * @param request JSONObject that represents a room access request.
      * @return String that represents a password.
      */
-    public String getPasswordFromRoomAccessRequest(JSONObject request)
+    public static String getPasswordFromRoomAccessRequest(JSONObject request)
     {
         String roomPwd = null;
         if (request.containsKey(MESSAGE_HEADER.MESSAGE_DATA))
@@ -199,5 +196,55 @@ public class SipInfoJsonProtocol
         lobbyRejectedJson.put(MESSAGE_HEADER.MESSAGE_ID, getMessageCount());
         lobbyRejectedJson.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.LOBBY_REJECTED_JOIN);
         return lobbyRejectedJson;
+    }
+
+    /**
+     * Creates a basic JSONObject to be sent over SIP.
+     *
+     * @param type Used to identify the JSON.
+     * @param data Used for JSON additional attributed.
+     * @param id Used for identification.
+     * @return Formed JSONObject.
+     */
+    private static JSONObject createSIPJSON(String type, JSONObject data, String id)
+    {
+        JSONObject req = new JSONObject();
+        req.put("type", type);
+        req.put("data", data);
+        req.put("id", id == null ? UUID.randomUUID().toString() : id);
+        return req;
+    }
+
+    /**
+     * Creates a JSONObject as response to a muteRequest.
+     *
+     * @param muted <tt>true</tt> if audio was muted, <tt>false</tt> otherwise.
+     * @param bSucceeded <tt>true</tt> if muteRequest succeeded, <tt>false</tt> otherwise.
+     * @param id Represents id of muteRequest.
+     * @return Formed JSONObject.
+     */
+    public static JSONObject createSIPJSONAudioMuteResponse(boolean muted,
+                                                      boolean bSucceeded,
+                                                      String id)
+    {
+        JSONObject muteSettingsJson = new JSONObject();
+        muteSettingsJson.put("audio", muted);
+        JSONObject muteResponseJson = createSIPJSON("muteResponse", muteSettingsJson, id);
+        muteResponseJson.put("status", bSucceeded ? "OK" : "FAILED");
+        return muteResponseJson;
+    }
+
+    /**
+     * Creates a JSONObject to request audio to be muted over SIP.
+     *
+     * @param muted <tt>true</tt> if audio is to be muted, <tt>false</tt> otherwise.
+     * @return Formed JSONObject.
+     */
+    public static JSONObject createSIPJSONAudioMuteRequest(boolean muted)
+    {
+        JSONObject muteSettingsJson = new JSONObject();
+        muteSettingsJson.put("audio", muted);
+
+        return createSIPJSON("muteRequest", muteSettingsJson, null);
     }
 }
