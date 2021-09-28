@@ -24,7 +24,9 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
+import org.jitsi.xmpp.extensions.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -258,5 +260,18 @@ public class Util
             60L, TimeUnit.SECONDS, // time to wait before clearing threads
             new LinkedBlockingQueue<>(),
             new CustomizableThreadFactory(name, true));
+    }
+
+    /**
+     * Creates a feature xmpp extension, that can be added to the features and used in presence.
+     * @param var the value to be added.
+     * @return the extension element.
+     */
+    public static ExtensionElement createFeature(String var)
+    {
+        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
+        feature.setAttribute("var", var);
+
+        return feature;
     }
 }
