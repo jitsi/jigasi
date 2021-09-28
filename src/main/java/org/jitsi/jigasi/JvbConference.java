@@ -392,7 +392,20 @@ public class JvbConference
         this.callContext = ctx;
         this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
-        this.audioModeration = new AudioModeration(this, this.gatewaySession);
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
+        }
+        else
+        {
+            this.audioModeration = null;
+        }
+    }
+
+    public AudioModeration getAudioModeration()
+    {
+        return audioModeration;
     }
 
     private Localpart getResourceIdentifier()
@@ -1445,6 +1458,7 @@ public class JvbConference
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
+                JvbConference.this.getAudioModeration().maybeProcessStartMuted();
 
                 checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
