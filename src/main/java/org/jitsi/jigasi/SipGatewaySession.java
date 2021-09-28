@@ -128,18 +128,18 @@ public class SipGatewaySession
     /**
      * The name of the property that is used to enable detection of
      * incoming sip RTP drop. Specifying the time with no media that
-     * we consider that the call had gone bad and we log an error or hang it up.
+     * we consider that the call had gone bad, and we log an error or hang it up.
      */
     private static final String P_NAME_MEDIA_DROPPED_THRESHOLD_MS
         = "org.jitsi.jigasi.SIP_MEDIA_DROPPED_THRESHOLD_MS";
 
     /**
-     * By default we consider sip call bad if there is no RTP for 10 seconds.
+     * By default, we consider sip call bad if there is no RTP for 10 seconds.
      */
     private static final int DEFAULT_MEDIA_DROPPED_THRESHOLD = 10*1000;
 
     /**
-     * The name of the property that is used to indicate whether we will hangup
+     * The name of the property that is used to indicate whether we will hang up
      * sip calls with no RTP after some timeout.
      */
     private static final String P_NAME_HANGUP_SIP_ON_MEDIA_DROPPED
@@ -207,7 +207,7 @@ public class SipGatewaySession
     /**
      * SIP protocol provider instance.
      */
-    private ProtocolProviderService sipProvider;
+    private final ProtocolProviderService sipProvider;
 
     /**
      * FIXME: to be removed ?
@@ -239,7 +239,7 @@ public class SipGatewaySession
     private SipCallKeepAliveTransformer transformerMonitor;
 
     /**
-     * Whether we had send indication that XMPP connection terminated and
+     * Whether we had sent indication that XMPP connection terminated and
      * the gateway session was connected to a new XMPP call.
      */
     private boolean callReconnectedStatsSent = false;
@@ -403,23 +403,6 @@ public class SipGatewaySession
         jvbConference.start();
     }
 
-    /*private void joinSipWithJvbCalls()
-    {
-        List<Call> calls = new ArrayList<Call>();
-        calls.add(call);
-        calls.add(jvbConferenceCall);
-
-        CallManager.mergeExistingCalls(
-            jvbConferenceCall.getConference(), calls);
-
-        sendPresenceExtension(
-            createPresenceExtension(
-                SipGatewayExtension.STATE_IN_PROGRESS, null));
-
-        jvbConference.setPresenceStatus(
-            SipGatewayExtension.STATE_IN_PROGRESS);
-    }*/
-
     void onConferenceCallInvited(Call incomingCall)
     {
         // Incoming SIP connection mode sets common conference here
@@ -432,7 +415,7 @@ public class SipGatewaySession
                     ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
                     false);
             CallPeer peer = incomingCall.getCallPeers().next();
-            // if use translator is enabled add a ssrc rewriter
+            // if useTranslator is enabled add a ssrc rewriter
             if (useTranslator && !addSsrcRewriter(peer))
             {
                 peer.addCallPeerListener(new CallPeerAdapter()
@@ -647,8 +630,7 @@ public class SipGatewaySession
         if (sipCall == null)
             return;
 
-        logger.info(this.callContext
-            + " Sip call ended: " + sipCall.toString());
+        logger.info(this.callContext + " Sip call ended: " + sipCall);
 
         sipCall.removeCallChangeListener(callStateListener);
 
@@ -1251,7 +1233,7 @@ public class SipGatewaySession
         /**
          * The stream to check.
          */
-        private AudioMediaStreamImpl stream;
+        private final AudioMediaStreamImpl stream;
 
         /**
          * Whether we had sent stats for dropped media.
@@ -1330,11 +1312,7 @@ public class SipGatewaySession
         public void callPeerAdded(CallPeerEvent evt) { }
 
         @Override
-        public void callPeerRemoved(CallPeerEvent evt)
-        {
-            //if (evt.getSourceCall().getCallPeerCount() == 0)
-            //  sipCallEnded();
-        }
+        public void callPeerRemoved(CallPeerEvent evt) { }
 
         @Override
         public void callStateChanged(CallChangeEvent evt)
@@ -1347,17 +1325,9 @@ public class SipGatewaySession
             // Once call is started notify SIP gateway
             if (call.getCallState() == CallState.CALL_IN_PROGRESS)
             {
-                logger.info(SipGatewaySession.this.callContext
-                    + " Sip call IN_PROGRESS: " + call);
-                //sendPresenceExtension(
-                  //  createPresenceExtension(
-                    //    SipGatewayExtension.STATE_IN_PROGRESS, null));
+                logger.info(SipGatewaySession.this.callContext + " Sip call IN_PROGRESS: " + call);
 
-                //jvbConference.setPresenceStatus(
-                  //  SipGatewayExtension.STATE_IN_PROGRESS);
-
-                logger.info(SipGatewaySession.this.callContext
-                    + " SIP call format used: "
+                logger.info(SipGatewaySession.this.callContext + " SIP call format used: "
                     + Util.getFirstPeerMediaFormat(call));
 
                 jvbConference.getAudioModeration().maybeProcessStartMuted();
@@ -1373,7 +1343,7 @@ public class SipGatewaySession
                 EXECUTOR.deRegisterRecurringRunnable(expireMediaStream);
                 expireMediaStream = null;
 
-                // If we have something to show and we're still in the MUC
+                // If we have something to show, and we're still in the MUC
                 // then we display error reason string and leave the room with
                 // 5 sec delay.
                 if (cause != null
@@ -1387,21 +1357,16 @@ public class SipGatewaySession
                     }
 
                     // Delay 5 seconds
-                    new Thread(new Runnable()
-                    {
-                        @Override
-                        public void run()
+                    new Thread(() -> {
+                        try
                         {
-                            try
-                            {
-                                Thread.sleep(5000);
+                            Thread.sleep(5000);
 
-                                sipCallEnded();
-                            }
-                            catch (InterruptedException e)
-                            {
-                                Thread.currentThread().interrupt();
-                            }
+                            sipCallEnded();
+                        }
+                        catch (InterruptedException e)
+                        {
+                            Thread.currentThread().interrupt();
                         }
                     }).start();
                 }
