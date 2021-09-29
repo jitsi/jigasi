@@ -822,7 +822,7 @@ public class JvbConference
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
-            this.audioModeration.notifyWillJoinJvbRoom();
+            this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
 
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
