@@ -131,9 +131,8 @@ public class AudioModeration
      * Adds the iq handler that will handle muting us from the xmpp side.
      * We add it before inviting jicofo and before joining the room to not miss any message.
      */
-    void notifyWillJoinJvbRoom()
+    void notifyWillJoinJvbRoom(ChatRoom mucRoom)
     {
-        ChatRoom mucRoom = this.jvbConference.getJvbRoom();
         if (mucRoom instanceof ChatRoomJabberImpl)
         {
             // we always start the call unmuted
