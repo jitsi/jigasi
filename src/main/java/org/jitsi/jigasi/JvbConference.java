@@ -162,16 +162,6 @@ public class JvbConference
     private static final int JVB_ACTIVITY_CHECK_DELAY = 5000;
 
     /**
-     * We always start the call unmuted, we keep the instance, so we can remove it from the list of extensions that
-     * we always add after joining and when sending a presence.
-     */
-    private static final AudioMutedExtension initialAudioMutedExtension = new AudioMutedExtension();
-    static
-    {
-        initialAudioMutedExtension.setAudioMuted(false);
-    }
-
-    /**
      * A timer which will be used to schedule a quick non-blocking check whether there is any activity
      * on the bridge side of the call.
      */
@@ -408,7 +398,7 @@ public class JvbConference
         return audioModeration;
     }
 
-    private Localpart getResourceIdentifier()
+    public Localpart getResourceIdentifier()
     {
         Localpart resourceIdentifier = null;
         if (JigasiBundleActivator.getConfigurationService()
@@ -645,6 +635,11 @@ public class JvbConference
         }
     }
 
+    public ProtocolProviderService getXmppProvider()
+    {
+        return xmppProvider;
+    }
+
     @Override
     public synchronized void registrationStateChanged(
             RegistrationStateChangeEvent evt)
@@ -815,14 +810,10 @@ public class JvbConference
                     });
                 if (initiator.getChildExtensions().size() > 0)
                 {
-                    ((ChatRoomJabberImpl)mucRoom)
-                        .addPresencePacketExtensions(initiator);
+                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initiator);
                 }
 
                 ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
-
-                // we always start the call unmuted
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initialAudioMutedExtension);
             }
             else
             {
@@ -1742,79 +1733,6 @@ public class JvbConference
 
             inviteTimeout.maybeScheduleInviteTimeout();
         }
-    }
-
-    /**
-     * Sets the chatroom presence for the participant.
-     *
-     * @param muted <tt>true</tt> for presence as muted,
-     * false otherwise
-     */
-    void setChatRoomAudioMuted(boolean muted)
-    {
-        if (mucRoom != null)
-        {
-            // remove the initial extension otherwise it will overwrite our new setting
-            ((ChatRoomJabberImpl)mucRoom).removePresencePacketExtensions(initialAudioMutedExtension);
-
-            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
-
-            audioMutedExtension.setAudioMuted(muted);
-
-            OperationSetJitsiMeetTools jitsiMeetTools
-                = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
-
-            jitsiMeetTools
-                .sendPresenceExtension(mucRoom, audioMutedExtension);
-
-        }
-    }
-
-    /**
-     * Request Jicofo on behalf of Jigasi to mute a participant.
-     *
-     * @param bMuted <tt>true</tt> if request is to mute audio,
-     * false otherwise
-     * @return <tt>true</tt> if request succeeded, false
-     * otherwise
-     */
-    public boolean requestAudioMute(boolean bMuted)
-    {
-        StanzaCollector collector = null;
-        try
-        {
-            String roomName = mucRoom.getIdentifier();
-
-            String jidString = roomName  + "/" + getResourceIdentifier().toString();
-            Jid memberJid = JidCreate.from(jidString);
-            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
-            Jid roomJid = JidCreate.from(roomJidString);
-
-            MuteIq muteIq = new MuteIq();
-            muteIq.setJid(memberJid);
-            muteIq.setMute(bMuted);
-            muteIq.setType(IQ.Type.set);
-            muteIq.setTo(roomJid);
-
-            collector = getConnection()
-                .createStanzaCollectorAndSend(muteIq);
-
-            collector.nextResultOrThrow();
-        }
-        catch(Exception ex)
-        {
-            logger.error(this.callContext + " " + ex.getMessage());
-            return false;
-        }
-        finally
-        {
-            if (collector != null)
-            {
-                collector.cancel();
-            }
-        }
-
-        return true;
     }
 
     /**

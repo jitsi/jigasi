@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.sip.*;
@@ -28,6 +29,7 @@ import org.jivesoftware.smack.packet.*;
 import org.jxmpp.jid.*;
 
 import org.json.simple.*;
+import org.jxmpp.jid.impl.*;
 
 import java.util.*;
 
@@ -66,6 +68,16 @@ public class AudioModeration
      * The <tt>JvbConference</tt> that handles current JVB conference.
      */
     private final JvbConference jvbConference;
+
+    /**
+     * We always start the call unmuted, we keep the instance, so we can remove it from the list of extensions that
+     * we always add after joining and when sending a presence.
+     */
+    private static final AudioMutedExtension initialAudioMutedExtension = new AudioMutedExtension();
+    static
+    {
+        initialAudioMutedExtension.setAudioMuted(false);
+    }
 
     /**
      * The call context used to create this conference, contains info as
@@ -121,6 +133,13 @@ public class AudioModeration
      */
     void notifyWillJoinJvbRoom()
     {
+        ChatRoom mucRoom = this.jvbConference.getJvbRoom();
+        if (mucRoom instanceof ChatRoomJabberImpl)
+        {
+            // we always start the call unmuted
+            ((ChatRoomJabberImpl) mucRoom).addPresencePacketExtensions(initialAudioMutedExtension);
+        }
+
         if (isMutingSupported())
         {
             if (muteIqHandler == null)
@@ -208,7 +227,7 @@ public class AudioModeration
                         boolean bMute = (boolean)data.get("audio");
 
                         // Send presence audio muted
-                        this.jvbConference.setChatRoomAudioMuted(bMute);
+                        this.setChatRoomAudioMuted(bMute);
                     }
                 }
                 else if (type.equalsIgnoreCase("muteRequest"))
@@ -218,14 +237,14 @@ public class AudioModeration
                     boolean bAudioMute = (boolean)data.get("audio");
 
                     // Send request to jicofo
-                    if (jvbConference.requestAudioMute(bAudioMute))
+                    if (this.requestAudioMuteByJicofo(bAudioMute))
                     {
                         // Send response through sip, respondRemoteAudioMute
                         this.gatewaySession.sendJson(callPeer,
                             SipInfoJsonProtocol.createSIPJSONAudioMuteResponse(bAudioMute, true, id));
 
                         // Send presence if response succeeded
-                        this.jvbConference.setChatRoomAudioMuted(bAudioMute);
+                        this.setChatRoomAudioMuted(bAudioMute);
                     }
                     else
                     {
@@ -239,6 +258,84 @@ public class AudioModeration
         {
             logger.error(this.callContext + " Error processing json ", ex);
         }
+    }
+
+    /**
+     * Sets the chatroom presence for the participant.
+     *
+     * @param muted <tt>true</tt> for presence as muted,
+     * false otherwise
+     */
+    void setChatRoomAudioMuted(boolean muted)
+    {
+        ChatRoom mucRoom = this.jvbConference.getJvbRoom();
+
+        if (mucRoom != null)
+        {
+            if (mucRoom instanceof ChatRoomJabberImpl)
+            {
+                // remove the initial extension otherwise it will overwrite our new setting
+                ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(initialAudioMutedExtension);
+            }
+
+            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
+
+            audioMutedExtension.setAudioMuted(muted);
+
+            OperationSetJitsiMeetTools jitsiMeetTools
+                = this.jvbConference.getXmppProvider().getOperationSet(OperationSetJitsiMeetTools.class);
+
+            jitsiMeetTools.sendPresenceExtension(mucRoom, audioMutedExtension);
+        }
+    }
+
+    /**
+     * Request Jicofo on behalf to mute/unmute us.
+     *
+     * @param bMuted <tt>true</tt> if request is to mute audio,
+     * false otherwise
+     * @return <tt>true</tt> if request succeeded, false
+     * otherwise
+     */
+    public boolean requestAudioMuteByJicofo(boolean bMuted)
+    {
+        ChatRoom mucRoom = this.jvbConference.getJvbRoom();
+
+        StanzaCollector collector = null;
+        try
+        {
+            String roomName = mucRoom.getIdentifier();
+
+            String jidString = roomName  + "/" + this.jvbConference.getResourceIdentifier().toString();
+            Jid memberJid = JidCreate.from(jidString);
+            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
+            Jid roomJid = JidCreate.from(roomJidString);
+
+            MuteIq muteIq = new MuteIq();
+            muteIq.setJid(memberJid);
+            muteIq.setMute(bMuted);
+            muteIq.setType(IQ.Type.set);
+            muteIq.setTo(roomJid);
+
+            collector = this.jvbConference.getConnection().createStanzaCollectorAndSend(muteIq);
+
+            collector.nextResultOrThrow();
+        }
+        catch(Exception ex)
+        {
+            logger.error(this.callContext + " Error sending xmpp request for audio mute", ex);
+
+            return false;
+        }
+        finally
+        {
+            if (collector != null)
+            {
+                collector.cancel();
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -260,7 +357,7 @@ public class AudioModeration
             && sipCall != null
             && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
         {
-            if (jvbConference.requestAudioMute(startAudioMuted))
+            if (this.requestAudioMuteByJicofo(startAudioMuted))
             {
                 mute();
             }
