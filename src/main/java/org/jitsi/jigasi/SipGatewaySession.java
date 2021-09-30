@@ -1134,7 +1134,7 @@ public class SipGatewaySession
      * @param jsonObject JSONObject to be sent.
      * @throws OperationFailedException failed sending the json.
      */
-    private void sendJson(JSONObject jsonObject)
+    public void sendJson(JSONObject jsonObject)
         throws OperationFailedException
     {
         this.sendJson(sipCall.getCallPeers().next(), jsonObject);

@@ -61,6 +61,9 @@ public class SipInfoJsonProtocol
         public static final int LOBBY_LEFT = 5;
         public static final int LOBBY_ALLOWED_JOIN = 6;
         public static final int LOBBY_REJECTED_JOIN = 7;
+        public static final int AV_MODERATION_ENABLED = 8;
+        public static final int AV_MODERATION_APPROVED = 9;
+        public static final int AV_MODERATION_DENIED = 10;
     }
 
     private static class MESSAGE_HEADER
@@ -246,5 +249,48 @@ public class SipInfoJsonProtocol
         muteSettingsJson.put("audio", muted);
 
         return createSIPJSON("muteRequest", muteSettingsJson, null);
+    }
+
+    /**
+     * Creates new JSONObject to notify that AV moderation is enabled/disabled.
+     *
+     * @return JSONObject representing a message to be sent over SIP.
+     */
+    public static JSONObject createAVModerationEnabledNotification(boolean value)
+    {
+        JSONObject obj = new JSONObject();
+
+        obj.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.AV_MODERATION_ENABLED);
+        obj.put(MESSAGE_HEADER.MESSAGE_DATA, value);
+
+        return obj;
+    }
+
+    /**
+     * Creates new JSONObject to notify that AV moderation is enabled/disabled.
+     *
+     * @return JSONObject representing a message to be sent over SIP.
+     */
+    public static JSONObject createAVModerationApprovedNotification()
+    {
+        JSONObject obj = new JSONObject();
+
+        obj.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.AV_MODERATION_APPROVED);
+
+        return obj;
+    }
+
+    /**
+     * Creates new JSONObject to notify that AV moderation is enabled/disabled.
+     *
+     * @return JSONObject representing a message to be sent over SIP.
+     */
+    public static JSONObject createAVModerationDeniedNotification()
+    {
+        JSONObject obj = new JSONObject();
+
+        obj.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.AV_MODERATION_DENIED);
+
+        return obj;
     }
 }
