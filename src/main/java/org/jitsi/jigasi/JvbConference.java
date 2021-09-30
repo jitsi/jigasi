@@ -648,6 +648,8 @@ public class JvbConference
             && mucRoom == null
             && evt.getNewState() == RegistrationState.REGISTERED)
         {
+            this.getAudioModeration().xmppProviderRegistered();
+
             // Join the MUC
             joinConferenceRoom();
 

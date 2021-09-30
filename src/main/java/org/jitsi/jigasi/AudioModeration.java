@@ -22,10 +22,15 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smackx.disco.*;
+import org.jivesoftware.smackx.disco.packet.*;
+import org.json.simple.parser.*;
 import org.jxmpp.jid.*;
 
 import org.json.simple.*;
@@ -78,18 +83,45 @@ public class AudioModeration
     {
         initialAudioMutedExtension.setAudioMuted(false);
     }
-
     /**
      * The call context used to create this conference, contains info as
      * room name and room password and other optional parameters.
      */
     private final CallContext callContext;
 
+    /**
+     * We keep track of the AV moderation component to be able to trust the incoming messages.
+     */
+    private String avModerationAddress = null;
+
+    /**
+     * Whether AV moderation is currently enabled.
+     */
+    private boolean avModerationEnabled = false;
+
+    /**
+     * Whether current jigasi provider is allowed to unmute itself. By default, AV moderation is not enabled,
+     * and we are allowed to unmute.
+     */
+    private boolean isAllowedToUnmute = true;
+
+    /**
+     * We use the same instance of extension so we can remove and add it from the default presence set of
+     * extensions.
+     */
+    private static final RaiseHandExtension lowerHandExtension = new RaiseHandExtension();
+
+    /**
+     * The listener for incoming messages with AV moderation commands.
+     */
+    private final AVModerationListener avModerationListener;
+
     public AudioModeration(JvbConference jvbConference, SipGatewaySession gatewaySession, CallContext ctx)
     {
         this.gatewaySession = gatewaySession;
         this.jvbConference = jvbConference;
         this.callContext = ctx;
+        this.avModerationListener = new AVModerationListener();
     }
 
     /**
@@ -115,16 +147,21 @@ public class AudioModeration
     {
         XMPPConnection connection = jvbConference.getConnection();
 
+        if (connection == null)
+        {
+            // if there is no connection nothing to clear
+            return;
+        }
+
         if (muteIqHandler != null)
         {
             // we need to remove it from the connection, or we break some Smack
             // weak references map where the key is connection and the value
             // holds a connection and we leak connection/conferences.
-            if (connection != null)
-            {
-                connection.unregisterIQRequestHandler(muteIqHandler);
-            }
+            connection.unregisterIQRequestHandler(muteIqHandler);
         }
+
+        connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
     /**
@@ -275,6 +312,12 @@ public class AudioModeration
             {
                 // remove the initial extension otherwise it will overwrite our new setting
                 ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(initialAudioMutedExtension);
+
+                if (!muted)
+                {
+                    // if we are unmuting make sure our raise hand is always lowered
+                    ((ChatRoomJabberImpl) mucRoom).addPresencePacketExtensions(lowerHandExtension);
+                }
             }
 
             AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
@@ -299,6 +342,23 @@ public class AudioModeration
     public boolean requestAudioMuteByJicofo(boolean bMuted)
     {
         ChatRoom mucRoom = this.jvbConference.getJvbRoom();
+
+        if (!bMuted && this.avModerationEnabled && !isAllowedToUnmute)
+        {
+            OperationSetJitsiMeetTools jitsiMeetTools
+                = this.jvbConference.getXmppProvider().getOperationSet(OperationSetJitsiMeetTools.class);
+
+            if (mucRoom instanceof ChatRoomJabberImpl)
+            {
+                // remove the default value which is lowering the hand
+                ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(lowerHandExtension);
+            }
+
+            // let's raise hand
+            jitsiMeetTools.sendPresenceExtension(mucRoom, new RaiseHandExtension().setRaisedHandValue(true));
+
+            return false;
+        }
 
         StanzaCollector collector = null;
         try
@@ -356,7 +416,8 @@ public class AudioModeration
             && sipCall != null
             && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
         {
-            if (this.requestAudioMuteByJicofo(startAudioMuted))
+            // we do not want to process start muted if AV moderation is enabled, as we are already muted
+            if (!this.avModerationEnabled && this.requestAudioMuteByJicofo(true))
             {
                 mute();
             }
@@ -382,12 +443,64 @@ public class AudioModeration
 
         try
         {
-            logger.info(this.callContext + " Sending mute request ");
+            logger.info(this.callContext + " Sending mute request avModeration:" + this.avModerationEnabled
+                + " allowed to unmute:" + this.isAllowedToUnmute);
+
             this.gatewaySession.sendJson(callPeer, SipInfoJsonProtocol.createSIPJSONAudioMuteRequest(true));
         }
         catch (Exception ex)
         {
             logger.error(this.callContext + " Error sending mute request", ex);
+        }
+    }
+
+    /**
+     * The xmpp provider for JvbConference has registered after connecting.
+     */
+    public void xmppProviderRegistered()
+    {
+        // we are here in the RegisterThread, and it is safe to query and wait
+        // Uses disco info to discover the AV moderation address.
+        if (this.callContext.getDomain() != null)
+        {
+            try
+            {
+                long startQuery = System.currentTimeMillis();
+                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.jvbConference.getConnection())
+                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getDomain()));
+
+                DiscoverInfo.Identity avIdentity =
+                    info.getIdentities().stream().
+                        filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
+                        .findFirst().orElse(null);
+
+                if (avIdentity != null)
+                {
+                    this.avModerationAddress = avIdentity.getName();
+                    logger.info(String.format("%s Discovered %s for %oms.",
+                        this.callContext, this.avModerationAddress, System.currentTimeMillis() - startQuery));
+                }
+            }
+            catch(Exception e)
+            {
+                logger.error("Error querying for av moderation address", e);
+            }
+        }
+
+        if (this.avModerationAddress != null)
+        {
+            try
+            {
+                this.jvbConference.getConnection().addAsyncStanzaListener(
+                    this.avModerationListener,
+                    new AndFilter(
+                        MessageTypeFilter.NORMAL,
+                        FromMatchesFilter.create(JidCreate.domainBareFrom(this.avModerationAddress))));
+            }
+            catch(Exception e)
+            {
+                logger.error("Error adding AV moderation listener", e);
+            }
         }
     }
 
@@ -440,6 +553,113 @@ public class AudioModeration
             }
 
             return IQ.createResultIQ(muteIq);
+        }
+    }
+
+    /**
+     * Added to presence to raise hand.
+     */
+    private static class RaiseHandExtension
+        extends AbstractPacketExtension
+    {
+        /**
+         * The namespace of this packet extension.
+         */
+        public static final String NAMESPACE = "jabber:client";
+
+        /**
+         * XML element name of this packet extension.
+         */
+        public static final String ELEMENT_NAME = "jitsi_participant_raisedHand";
+
+        /**
+         * Creates a {@link org.jitsi.xmpp.extensions.jitsimeet.TranslationLanguageExtension} instance.
+         */
+        public RaiseHandExtension()
+        {
+            super(NAMESPACE, ELEMENT_NAME);
+        }
+
+        /**
+         * Sets user's audio muted status.
+         *
+         * @param value <tt>true</tt> or <tt>false</tt> which indicates audio
+         *                   muted status of the user.
+         */
+        public ExtensionElement setRaisedHandValue(Boolean value)
+        {
+            setText(value ? value.toString() : null);
+
+            return this;
+        }
+    }
+
+    /**
+     * Listens for incoming messages with AV moderation commands.
+     */
+    private class AVModerationListener
+        implements StanzaListener
+    {
+        @Override
+        public void processStanza(Stanza packet)
+        {
+            JsonMessageExtension jsonMsg = packet.getExtension(
+                JsonMessageExtension.ELEMENT_NAME, JsonMessageExtension.NAMESPACE);
+
+            if (jsonMsg == null)
+            {
+                return;
+            }
+
+            try
+            {
+                Object o = new JSONParser().parse(jsonMsg.getJson());
+
+                if (o instanceof JSONObject)
+                {
+                    JSONObject data = (JSONObject) o;
+
+                    if (data.get("type").equals("av_moderation"))
+                    {
+                        Object enabledObj = data.get("enabled");
+                        Object approvedObj = data.get("approved");
+                        Object removedObj = data.get("removed");
+                        Object mediaTypeObj = data.get("mediaType");
+
+                        // we are interested only in audio moderation
+                        if (mediaTypeObj == null || !mediaTypeObj.equals("audio"))
+                        {
+                            return;
+                        }
+
+                        if (enabledObj != null)
+                        {
+                            avModerationEnabled = (Boolean) enabledObj;
+                            logger.info(callContext + " AV moderation has been enabled:" + avModerationEnabled);
+
+                            // we will receive separate message when we are allowed to unmute
+                            isAllowedToUnmute = false;
+
+                            gatewaySession.sendJson(
+                                SipInfoJsonProtocol.createAVModerationEnabledNotification(avModerationEnabled));
+                        }
+                        else if (removedObj != null && (Boolean) removedObj)
+                        {
+                            isAllowedToUnmute = false;
+                            gatewaySession.sendJson(SipInfoJsonProtocol.createAVModerationDeniedNotification());
+                        }
+                        else if (approvedObj != null && (Boolean) approvedObj)
+                        {
+                            isAllowedToUnmute = true;
+                            gatewaySession.sendJson(SipInfoJsonProtocol.createAVModerationApprovedNotification());
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                logger.error(callContext + " Error parsing", e);
+            }
         }
     }
 }
