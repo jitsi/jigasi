@@ -19,9 +19,9 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.utils.logging.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.*;
