@@ -17,9 +17,11 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.plugin.reconnectplugin.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.service.configuration.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -187,7 +189,7 @@ public class CallManager
             CallConference conference
                 = (call == null) ? null : call.getConference();
 
-            for(Map.Entry<ProtocolProviderService, List<String>> entry
+            for (Map.Entry<ProtocolProviderService, List<String>> entry
                 : callees.entrySet())
             {
                 ProtocolProviderService pps = entry.getKey();
@@ -201,7 +203,7 @@ public class CallManager
                     OperationSetBasicTelephony<?> basicTelephony
                         = pps.getOperationSet(OperationSetBasicTelephony.class);
 
-                    if(basicTelephony == null)
+                    if  (basicTelephony == null)
                         continue;
                 }
 
@@ -436,14 +438,14 @@ public class CallManager
                 CallPeer callPeer = peers.next();
                 boolean putOffHold = true;
 
-                if(callPeer instanceof MediaAwareCallPeer)
+                if (callPeer instanceof MediaAwareCallPeer)
                 {
                     putOffHold
-                        = ((MediaAwareCallPeer<?,?,?>) callPeer)
+                        = ((MediaAwareCallPeer<?, ?, ?>) callPeer)
                         .getMediaHandler()
                         .isLocallyOnHold();
                 }
-                if(putOffHold)
+                if (putOffHold)
                 {
                     try
                     {
@@ -468,7 +470,7 @@ public class CallManager
             // calls
             if (!calls.isEmpty())
             {
-                for(Call call : calls)
+                for (Call call : calls)
                 {
                     if (conference.containsCall(call))
                         continue;
@@ -653,10 +655,8 @@ public class CallManager
                     logger.error("Cannot unregister");
                 }
 
-                ProtocolProviderFactory factory
-                    = ProtocolProviderFactory.getProtocolProviderFactory(
-                        JigasiBundleActivator.osgiContext,
-                        pp.getProtocolName());
+                ProtocolProviderFactory factory = ProtocolProviderFactory.getProtocolProviderFactory(
+                    JigasiBundleActivator.osgiContext, pp.getProtocolName());
 
                 if (factory != null)
                 {
@@ -665,6 +665,11 @@ public class CallManager
                             + " Removing account " + pp.getAccountID());
 
                     factory.unloadAccount(pp.getAccountID());
+
+                    // Deleting not needed property
+                    ConfigurationService config = JigasiBundleActivator.getConfigurationService();
+                    config.removeProperty(ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP
+                        + "." + pp.getAccountID().getAccountUniqueID());
                 }
             }
         }

@@ -174,7 +174,7 @@ public class Participant
         this.transcriber = transcriber;
         this.identifier = identifier;
 
-        if(filterAudio)
+        if (filterAudio)
         {
             silenceFilter = new SilenceFilter();
         }
@@ -212,7 +212,7 @@ public class Participant
      */
     public String getName()
     {
-        if(chatMember == null)
+        if (chatMember == null)
         {
             return UNKNOWN_NAME;
         }
@@ -232,7 +232,7 @@ public class Participant
      */
     public String getEmail()
     {
-        if(chatMember == null)
+        if (chatMember == null)
         {
             return null;
         }
@@ -305,7 +305,7 @@ public class Participant
      */
     public String getIdentityUserName()
     {
-        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
             return null;
         }
@@ -326,7 +326,7 @@ public class Participant
      */
     public String getIdentityUserId()
     {
-        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
             return null;
         }
@@ -347,7 +347,7 @@ public class Participant
      */
     public String getIdentityGroupId()
     {
-        if(!(chatMember instanceof ChatRoomMemberJabberImpl))
+        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
         {
             return null;
         }
@@ -403,7 +403,7 @@ public class Participant
      */
     public long getSSRC()
     {
-        if(confMember == null)
+        if (confMember == null)
         {
             return DEFAULT_UNKNOWN_AUDIO_SSRC;
         }
@@ -621,14 +621,14 @@ public class Participant
         transcriber.executorService.submit(() ->
            {
                byte[] toBuffer;
-               if(silenceFilter != null)
+               if (silenceFilter != null)
                {
                    silenceFilter.giveSegment(audio);
-                   if(silenceFilter.shouldFilter())
+                   if (silenceFilter.shouldFilter())
                    {
                        return;
                    }
-                   else if(silenceFilter.newSpeech())
+                   else if (silenceFilter.newSpeech())
                    {
                        buffer.clear();
                        toBuffer = silenceFilter.getSpeechWindow();
@@ -653,7 +653,7 @@ public class Participant
                }
 
                int spaceLeft = buffer.limit() - buffer.position();
-               if(spaceLeft < EXPECTED_AUDIO_LENGTH)
+               if (spaceLeft < EXPECTED_AUDIO_LENGTH)
                {
                    sendRequest(buffer.array());
                    buffer.clear();

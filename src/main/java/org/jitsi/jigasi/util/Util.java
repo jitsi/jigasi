@@ -24,7 +24,9 @@ import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.logging.Logger;
+import org.jitsi.xmpp.extensions.*;
 import org.jivesoftware.smack.bosh.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -111,12 +113,12 @@ public class Util
             m.reset();
             m.update(toHash.getBytes());
             byte[] digest = m.digest();
-            BigInteger bigInt = new BigInteger(1,digest);
+            BigInteger bigInt = new BigInteger(1, digest);
             String hashtext = bigInt.toString(16);
 
             // Now we need to zero pad it if you actually want the full
             // 32 chars.
-            if(hashtext.length() < 32)
+            if (hashtext.length() < 32)
             {
                 int padLength = 32 - hashtext.length();
                 String pad = String.join("",
@@ -258,5 +260,18 @@ public class Util
             60L, TimeUnit.SECONDS, // time to wait before clearing threads
             new LinkedBlockingQueue<>(),
             new CustomizableThreadFactory(name, true));
+    }
+
+    /**
+     * Creates a feature xmpp extension, that can be added to the features and used in presence.
+     * @param var the value to be added.
+     * @return the extension element.
+     */
+    public static ExtensionElement createFeature(String var)
+    {
+        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
+        feature.setAttribute("var", var);
+
+        return feature;
     }
 }

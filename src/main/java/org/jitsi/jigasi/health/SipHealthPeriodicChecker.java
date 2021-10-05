@@ -307,7 +307,7 @@ class SipHealthPeriodicChecker
                             // make sure we push audio, no longer than the time limit we will check for media
                             long startNano = System.nanoTime();
                             long maxDuration = TimeUnit.NANOSECONDS.convert(CALL_ESTABLISH_TIMEOUT, TimeUnit.SECONDS);
-                            while(hangupLatch.getCount() > 0 && (System.nanoTime() - startNano) < maxDuration)
+                            while (hangupLatch.getCount() > 0 && (System.nanoTime() - startNano) < maxDuration)
                             {
                                 SoundNotificationManager.injectSoundFile(
                                     peer.getCall(), SoundNotificationManager.PARTICIPANT_ALONE);
@@ -338,7 +338,7 @@ class SipHealthPeriodicChecker
                 public MediaDevice getDefaultDevice(MediaType mediaType,
                     MediaUseCase useCase)
                 {
-                    if(MediaType.AUDIO.equals(mediaType))
+                    if (MediaType.AUDIO.equals(mediaType))
                     {
                         return mixer;
                     }

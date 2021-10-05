@@ -40,7 +40,6 @@ import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.filter.*;
-import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.disco.*;
 import org.jivesoftware.smackx.disco.packet.*;
@@ -59,11 +58,11 @@ import java.util.*;
 import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
 
 /**
- * Class takes care of handling Jitsi Videobridge conference. Currently it waits
+ * Class takes care of handling Jitsi Videobridge conference. Currently, it waits
  * for the first XMPP provider service to be registered and uses it to join the
  * conference. Once we've joined the focus sends jingle "session-initiate". Next
  * incoming call is accepted which means that we've joined JVB conference.
- * {@link SipGateway} is notified about this fact and it handles it appropriate.
+ * {@link SipGateway} is notified about this fact, and it handles it appropriate.
  *
  * @author Pawel Domas
  * @author Nik Vaessen
@@ -87,13 +86,6 @@ public class JvbConference
      */
     public static final String SIP_GATEWAY_FEATURE_NAME
         = "http://jitsi.org/protocol/jigasi";
-
-    /**
-     * The name of XMPP feature which states this Jigasi SIP Gateway can be
-     * muted.
-     */
-    public static final String MUTED_FEATURE_NAME
-        = "http://jitsi.org/protocol/audio-mute";
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -174,12 +166,17 @@ public class JvbConference
      * A timer which will be used to schedule a quick non-blocking check whether there is any activity
      * on the bridge side of the call.
      */
-    private static Timer checkReceivedMediaTimer = new Timer();
+    private static final Timer checkReceivedMediaTimer = new Timer();
+
+    /**
+     * Handles all the audio mute/unmute logic.
+     */
+    private final AudioModeration audioModeration;
 
     /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
-     * @return Returns the features extension element that can be added to presence.
+     * @return Returns the 'features' extension element that can be added to presence.
      */
     private static ExtensionElement addSupportedFeatures(
             OperationSetJitsiMeetTools meetTools)
@@ -187,9 +184,9 @@ public class JvbConference
         AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
 
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-        features.addChildExtension(createFeature(SIP_GATEWAY_FEATURE_NAME));
+        features.addChildExtension(Util.createFeature(SIP_GATEWAY_FEATURE_NAME));
         meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
-        features.addChildExtension(createFeature(DTMF_FEATURE_NAME));
+        features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
 
         ConfigurationService cfg
                 = JigasiBundleActivator.getConfigurationService();
@@ -211,26 +208,13 @@ public class JvbConference
             logger.info("ICE feature will not be advertised");
         }
 
-        if (JigasiBundleActivator.isSipStartMutedEnabled())
+        ExtensionElement audioMuteFeature = AudioModeration.addSupportedFeatures(meetTools);
+        if (audioMuteFeature != null)
         {
-            meetTools.addSupportedFeature(MUTED_FEATURE_NAME);
-            features.addChildExtension(createFeature(MUTED_FEATURE_NAME));
+            features.addChildExtension(audioMuteFeature);
         }
 
         return features;
-    }
-
-    /**
-     * Creates a feature xmpp extension, that can be added to features and used in presence.
-     * @param var the value to be added.
-     * @return the extension element.
-     */
-    private static ExtensionElement createFeature(String var)
-    {
-        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
-        feature.setAttribute("var", var);
-
-        return feature;
     }
 
     /**
@@ -242,7 +226,7 @@ public class JvbConference
     /**
      * Whether to auto stop when only jigasi are left in the room.
      */
-    private boolean allowOnlyJigasiInRoom = false;
+    private final boolean allowOnlyJigasiInRoom;
 
     /**
      * The XMPP account used for the call handled by this instance.
@@ -319,12 +303,11 @@ public class JvbConference
      * joins, but still if none joined and no jingle session was initiated
      * for some time we want to drop the call.
      */
-    private JvbConferenceStopTimeout
-        inviteTimeout = new JvbConferenceStopTimeout(
-            "JvbInviteTimeout",
-            "No invite from conference focus",
-            "Did not received session invite"
-        );
+    private final JvbConferenceStopTimeout inviteTimeout = new JvbConferenceStopTimeout(
+        "JvbInviteTimeout",
+        "No invite from conference focus",
+        "Did not received session invite"
+    );
 
     /**
      * The last status we sent in the conference using setPresenceStatus.
@@ -337,12 +320,12 @@ public class JvbConference
     private final Object statusSync = new Object();
 
     /**
-     * Call hang up reason string that will be sent to the SIP peer.
+     * Call hangs up reason string that will be sent to the SIP peer.
      */
     private String endReason;
 
     /**
-     * Call hang up reason code that will be sent to the SIP peer.
+     * Call hangs up reason code that will be sent to the SIP peer.
      */
     private int endReasonCode;
 
@@ -352,21 +335,16 @@ public class JvbConference
     private StatsHandler statsHandler = null;
 
     /**
-     * Whether we had send indication that connection had failed
+     * Whether we had sent indication that connection had failed
      * for this conference.
      */
     private boolean connFailedStatsSent = false;
 
     /**
-     * Whether we had send indication that XMPP connection terminated and
-     * the gateway session waiting for new XMPP call to be connected.
+     * Whether we had sent indication that XMPP connection terminated and
+     * the gateway session waiting for new XMPP calls to be connected.
      */
     private boolean gwSesisonWaitingStatsSent = false;
-
-    /**
-     * The mute IQ handler if enabled.
-     */
-    private MuteIqHandler muteIqHandler = null;
 
     /**
      * The lobby room instance for the room if any.
@@ -391,7 +369,7 @@ public class JvbConference
     /**
      * Up-to-date list of participants in the room that are jigasi.
      */
-    private List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
+    private final List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
 
     /**
      * Creates new instance of <tt>JvbConference</tt>
@@ -405,9 +383,23 @@ public class JvbConference
         this.callContext = ctx;
         this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
+
+        if (this.gatewaySession instanceof SipGatewaySession)
+        {
+            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
+        }
+        else
+        {
+            this.audioModeration = null;
+        }
     }
 
-    private Localpart getResourceIdentifier()
+    public AudioModeration getAudioModeration()
+    {
+        return audioModeration;
+    }
+
+    public Localpart getResourceIdentifier()
     {
         Localpart resourceIdentifier = null;
         if (JigasiBundleActivator.getConfigurationService()
@@ -428,8 +420,7 @@ public class JvbConference
             // be applied without failing.
             //
             // Given the above uncertainty, we made the decision to replace
-            // anything that is not in the this regex class A-Za-z0-9- with a
-            // dash.
+            // anything that is not in this regex class A-Za-z0-9- with a dash.
 
             String resourceIdentBuilder = gatewaySession.getMucDisplayName();
             if (!StringUtils.isNullOrEmpty(resourceIdentBuilder))
@@ -566,17 +557,7 @@ public class JvbConference
             telephony = null;
         }
 
-        if (muteIqHandler != null)
-        {
-            // we need to remove it from the connection, or we break some Smack
-            // weak references map where the key is connection and the value
-            // holds a connection and we leak connection/conferences.
-            XMPPConnection connection = getConnection();
-            if (connection != null)
-            {
-                connection.unregisterIQRequestHandler(muteIqHandler);
-            }
-        }
+        this.audioModeration.clean();
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
@@ -622,7 +603,7 @@ public class JvbConference
     private synchronized void setXmppProvider(
             ProtocolProviderService xmppProvider)
     {
-        if(this.xmppProvider != null)
+        if (this.xmppProvider != null)
             throw new IllegalStateException("unexpected");
 
         if (!xmppProvider.getAccountID().getAccountUniqueID()
@@ -655,6 +636,11 @@ public class JvbConference
         }
     }
 
+    public ProtocolProviderService getXmppProvider()
+    {
+        return xmppProvider;
+    }
+
     @Override
     public synchronized void registrationStateChanged(
             RegistrationStateChangeEvent evt)
@@ -663,13 +649,13 @@ public class JvbConference
             && mucRoom == null
             && evt.getNewState() == RegistrationState.REGISTERED)
         {
+            this.getAudioModeration().xmppProviderRegistered();
+
             // Join the MUC
             joinConferenceRoom();
 
             XMPPConnection connection = getConnection();
-            if (xmppProvider != null
-                && connection != null
-                && connection instanceof XMPPBOSHConnection)
+            if (xmppProvider != null && connection instanceof XMPPBOSHConnection)
             {
                 Object sessionId = Util.getConnSessionId(connection);
                 if (sessionId != null)
@@ -700,15 +686,13 @@ public class JvbConference
             leaveConferenceRoom();
 
             // as this is connection failed and provider will reconnect
-            // we want to update local resource after leaving the room
+            // we want to update local resource after leaving the room,
             // so we can eventually join second time before the previous
             // participant been removed due to inactivity (bosh-timeout)
             callContext.updateCallResource();
 
-            // let's hangup this call, a new one will be established
-            // once we are back in the room
-            CallManager.hangupCall(jvbCall,
-                502, "Connection failed");
+            // let us hangup this call, a new one will be established once we are back in the room
+            CallManager.hangupCall(jvbCall, 502, "Connection failed");
         }
         else
         {
@@ -740,12 +724,10 @@ public class JvbConference
         ExtensionElement features
             = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
 
-        OperationSetMultiUserChat muc
-            = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
+        OperationSetMultiUserChat muc = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.addPresenceListener(this);
 
-        OperationSetIncomingDTMF opSet
-            = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
+        OperationSetIncomingDTMF opSet = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
         if (opSet != null)
             opSet.addDTMFListener(gatewaySession);
 
@@ -796,7 +778,7 @@ public class JvbConference
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if(!StringUtils.isNullOrEmpty(region))
+                if (!StringUtils.isNullOrEmpty(region))
                 {
                     RegionPacketExtension rpe = new RegionPacketExtension();
                     rpe.setRegionId(region);
@@ -831,16 +813,10 @@ public class JvbConference
                     });
                 if (initiator.getChildExtensions().size() > 0)
                 {
-                    ((ChatRoomJabberImpl)mucRoom)
-                        .addPresencePacketExtensions(initiator);
+                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initiator);
                 }
 
                 ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
-
-                // we always start the call unmuted
-                AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
-                audioMutedExtension.setAudioMuted(false);
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(audioMutedExtension);
             }
             else
             {
@@ -849,15 +825,7 @@ public class JvbConference
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
-            if (JigasiBundleActivator.isSipStartMutedEnabled())
-            {
-                if (muteIqHandler == null)
-                {
-                    muteIqHandler = new MuteIqHandler();
-                }
-
-                getConnection().registerIQRequestHandler(muteIqHandler);
-            }
+            this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
 
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
@@ -888,13 +856,7 @@ public class JvbConference
 
             mucRoom.addMemberPresenceListener(this);
 
-            // Announce that we're connecting to JVB conference
-            // (waiting for invite)
-            //sendPresenceExtension(
-              //  gatewaySession.createPresenceExtension(
-                //    SipGatewayExtension.STATE_CONNECTING_JVB, null));
-
-            if(gatewaySession.getDefaultInitStatus() != null)
+            if (gatewaySession.getDefaultInitStatus() != null)
             {
                 setPresenceStatus(gatewaySession.getDefaultInitStatus());
             }
@@ -923,98 +885,73 @@ public class JvbConference
             {
                 OperationFailedException opex = (OperationFailedException)e;
 
-                switch(opex.getErrorCode())
+                // Thrown when lobby is enabled.
+                if (opex.getErrorCode() == OperationFailedException.REGISTRATION_REQUIRED)
                 {
-                    /**
-                     * Thrown when lobby is enabled.
-                     */
-                    case OperationFailedException.REGISTRATION_REQUIRED:
+                    // Lobby functionality is only supported for <tt>SipGatewaySession</tt>.
+                    if (this.gatewaySession != null && this.gatewaySession instanceof SipGatewaySession)
                     {
-                        /**
-                         * Lobby functionality is only supported for <tt>SipGatewaySession</tt>.
-                         */
-                        if (this.gatewaySession != null && this.gatewaySession instanceof SipGatewaySession)
+                        try
                         {
-                            try
+                            this.audioModeration.clean();
+
+                            if (this.mucRoom != null)
                             {
-                                if (JigasiBundleActivator.isSipStartMutedEnabled())
-                                {
-                                    if (this.muteIqHandler != null)
-                                    {
-                                        getConnection().unregisterIQRequestHandler(this.muteIqHandler);
-                                    }
-                                }
-
-                                if (this.mucRoom != null)
-                                {
-                                    this.mucRoom.removeMemberPresenceListener(this);
-                                }
-
-                                if (muc != null)
-                                {
-                                    muc.removePresenceListener(this);
-                                }
-
-                                if (opSet != null)
-                                {
-                                    opSet.removeDTMFListener(this.gatewaySession);
-                                }
-
-                                if (this.jitsiMeetTools != null)
-                                {
-                                    this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
-                                }
-
-                                DataObject dataObject = opex.getDataObject();
-
-                                if (dataObject != null)
-                                {
-                                    Jid lobbyJid = (Jid)dataObject.getData("lobbyroomjid");
-
-                                    if (lobbyJid != null)
-                                    {
-                                        EntityFullJid lobbyFullJid =
-                                                JidCreate.fullFrom(lobbyJid.asEntityBareJidOrThrow(),
-                                                        Resourcepart.from(lobbyLocalpart.toString()));
-
-                                        Jid mainRoomJid = null;
-
-                                        if (roomName != null)
-                                        {
-                                            mainRoomJid = JidCreate.entityBareFrom(roomName);
-                                        }
-
-                                        this.lobby = new Lobby(this.xmppProvider,
-                                                this.callContext,
-                                                lobbyFullJid,
-                                                mainRoomJid,
-                                                this,
-                                                (SipGatewaySession)this.gatewaySession);
-
-                                        logger.info(
-                                            callContext + " Lobby enabled by moderator! Will try to join lobby!");
-
-                                        this.lobby.join();
-
-                                        this.setLobbyEnabled(true);
-
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        logger.error(callContext + " No required lobby jid!");
-                                    }
-                                }
+                                this.mucRoom.removeMemberPresenceListener(this);
                             }
-                            catch(Exception ex)
+
+                           muc.removePresenceListener(this);
+
+                            if (opSet != null)
                             {
-                                logger.error(callContext + " Failed to join lobby room!", ex);
+                                opSet.removeDTMFListener(this.gatewaySession);
+                            }
+
+                            if (this.jitsiMeetTools != null)
+                            {
+                                this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
+                            }
+
+                            DataObject dataObject = opex.getDataObject();
+
+                            if (dataObject != null)
+                            {
+                                Jid lobbyJid = (Jid)dataObject.getData("lobbyroomjid");
+
+                                if (lobbyJid != null)
+                                {
+                                    EntityFullJid lobbyFullJid =
+                                            JidCreate.fullFrom(lobbyJid.asEntityBareJidOrThrow(),
+                                                    Resourcepart.from(lobbyLocalpart.toString()));
+
+                                    Jid mainRoomJid = JidCreate.entityBareFrom(roomName);
+
+                                    this.lobby = new Lobby(this.xmppProvider,
+                                            this.callContext,
+                                            lobbyFullJid,
+                                            mainRoomJid,
+                                            this,
+                                            (SipGatewaySession)this.gatewaySession);
+
+                                    logger.info(
+                                        callContext + " Lobby enabled by moderator! Will try to join lobby!");
+
+                                    this.lobby.join();
+
+                                    this.setLobbyEnabled(true);
+
+                                    return;
+                                }
+                                else
+                                {
+                                    logger.error(callContext + " No required lobby jid!");
+                                }
                             }
                         }
-                    }
-                    default:
-                    {
-                        break;
+                        catch(Exception ex)
+                        {
+                            logger.error(callContext + " Failed to join lobby room!", ex);
+                        }
                     }
                 }
             }
@@ -1033,8 +970,7 @@ public class JvbConference
             logger.error(this.callContext + " " + e.getMessage(), e);
 
             // inform that this session had failed
-            gatewaySession.getGateway()
-                .fireGatewaySessionFailed(gatewaySession);
+            gatewaySession.getGateway().fireGatewaySessionFailed(gatewaySession);
 
             stop();
         }
@@ -1077,8 +1013,7 @@ public class JvbConference
         {
             // if leave timeout is 0 or less we will not wait for new invite
             // and let's stop the call
-            if(AbstractGateway.getJvbInviteTimeout() <= 0
-                || !gatewaySession.hasCallResumeSupport())
+            if (AbstractGateway.getJvbInviteTimeout() <= 0 || !gatewaySession.hasCallResumeSupport())
             {
                 stop();
             }
@@ -1093,10 +1028,7 @@ public class JvbConference
                     gwSesisonWaitingStatsSent = true;
                 }
 
-                if (this.gatewaySession != null)
-                {
-                    this.gatewaySession.onJvbCallEnded();
-                }
+                this.gatewaySession.onJvbCallEnded();
             }
         }
     }
@@ -1192,7 +1124,7 @@ public class JvbConference
             {
                 gatewaySession.notifyChatRoomMemberJoined(member);
             }
-            else if(ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
+            else if (ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
                     .equals(eventType))
             {
                 if (member instanceof ChatRoomMemberJabberImpl)
@@ -1222,6 +1154,30 @@ public class JvbConference
                             + " " + member.getContactAddress());
 
             jigasiChatRoomMembers.remove(member.getName());
+
+            CallPeer peer;
+            if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
+            {
+                MediaAwareCallPeer<?, ?, ?> peerMedia = (MediaAwareCallPeer<?, ?, ?>) peer;
+                peerMedia.getConferenceMembers().stream().forEach(confMember ->
+                {
+                    String address = confMember.getAddress();
+                    if (address != null && !address.equals("jvb"))
+                    {
+                        try
+                        {
+                            if (JidCreate.from(address).getResourceOrEmpty().equals(member.getName()))
+                            {
+                                peerMedia.removeConferenceMember(confMember);
+                            }
+                        }
+                        catch(Exception e)
+                        {
+                            logger.error(this.callContext + " Error removing conference member=" + member.getName());
+                        }
+                    }
+                });
+            }
         }
 
         // process member left if it is not focus
@@ -1242,7 +1198,7 @@ public class JvbConference
             return;
         }
 
-        // if it is the focus leaving and we are not in the middle of hangup
+        // if it is the focus leaving, and we are not in the middle of hangup
         // we leave this here before checking connection to make tests happy
         if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
@@ -1259,11 +1215,9 @@ public class JvbConference
             return;
         }
 
-        // if lobby is not enabled or single moderator mode is detected
-        // there is nothing to process
+        // if lobby is not enabled or single moderator mode is detected there is nothing to process,
         // but otherwise we will check whether there are jigasi participants
-        // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi
-        // leaving it
+        // and jigasi cannot moderate those from lobby, we need to end the conference by all jigasi leaving it
         if ((this.lobbyEnabled && !this.singleModeratorEnabled) || !this.allowOnlyJigasiInRoom)
         {
             boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
@@ -1286,7 +1240,7 @@ public class JvbConference
                 // let's play something
                 if (this.gatewaySession instanceof SipGatewaySession)
                 {
-                    // This will hangup the call at the end
+                    // This will hang up the call at the end
                     ((SipGatewaySession) this.gatewaySession)
                         .getSoundNotificationManager().notifyLobbyRoomDestroyed();
                 }
@@ -1356,7 +1310,7 @@ public class JvbConference
 
     /**
      * Listens for transport replace - migrating to a new bridge.
-     * For now we just leave the room(xmpp call) and join again to be re-invited.
+     * For now, we just leave the room(xmpp call) and join again to be re-invited.
      * @param evt the event for CallPeer change.
      */
     @Override
@@ -1430,38 +1384,30 @@ public class JvbConference
             setJvbCall(jvbCall);
             jvbCall.setData(CallContext.class, callContext);
 
-            if (peer != null)
+            peer.addCallPeerConferenceListener(JvbConference.this);
+            peer.addPropertyChangeListener(JvbConference.this);
+
+            peer.addCallPeerListener(new CallPeerAdapter()
             {
-                peer.addCallPeerConferenceListener(JvbConference.this);
-                peer.addPropertyChangeListener(JvbConference.this);
-
-                peer.addCallPeerListener(new CallPeerAdapter()
+                @Override
+                public void peerStateChanged(CallPeerChangeEvent evt)
                 {
-                    @Override
-                    public void peerStateChanged(CallPeerChangeEvent evt)
+                    CallPeer p = evt.getSourceCallPeer();
+                    CallPeerState peerState = p.getState();
+
+                    if (CallPeerState.CONNECTED.equals(peerState))
                     {
-                        CallPeer p = evt.getSourceCallPeer();
-                        CallPeerState peerState = p.getState();
+                        p.removeCallPeerListener(this);
 
-                        if (CallPeerState.CONNECTED.equals(peerState))
+                        // We set the connected state only for incoming calls
+                        // outgoing calls will set it when the sip side connects
+                        if (callContext.getDestination() == null && gatewaySession instanceof SipGatewaySession)
                         {
-                            p.removeCallPeerListener(this);
-
-                            // We set the connected state only for incoming calls
-                            // outgoing calls will set it when the sip side connects
-                            if (callContext.getDestination() == null && gatewaySession instanceof SipGatewaySession)
-                            {
-                                setPresenceStatus(peerState.getStateString());
-                            }
+                            setPresenceStatus(peerState.getStateString());
                         }
                     }
-                });
-            }
-            else
-            {
-                logger.warn(callContext + " Could not add JvbConference as "
-                    + "CallPeerConferenceListener because CallPeer is null");
-            }
+                }
+            });
 
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
@@ -1506,10 +1452,11 @@ public class JvbConference
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
+                JvbConference.this.getAudioModeration().maybeProcessStartMuted();
 
                 checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
-            else if(jvbCall.getCallState() == CallState.CALL_ENDED)
+            else if (jvbCall.getCallState() == CallState.CALL_ENDED)
             {
                 onJvbCallEnded();
             }
@@ -1562,22 +1509,18 @@ public class JvbConference
             JigasiBundleActivator.getConfigurationService()
                 .getPropertyNamesByPrefix(overridePrefix, false);
 
-        if(gw instanceof SipGateway
-            && Boolean.valueOf(
-                ((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN")))
+        if (gw instanceof SipGateway
+            && Boolean.parseBoolean(((SipGateway) gw).getSipAccountProperty("PREVENT_AUTH_LOGIN")))
         {
             // if we do not want auth login we need to ignore custom USER_ID,
             //PASS, ANONYMOUS_AUTH, ALLOW_NON_SECURE and leave defaults
-            overriddenProps.remove(overridePrefix
-                + "." + ProtocolProviderFactory.USER_ID);
+            overriddenProps.remove(overridePrefix + "." + ProtocolProviderFactory.USER_ID);
             overriddenProps.remove(overridePrefix + ".PASS");
-            overriddenProps.remove(overridePrefix
-                + "." + JabberAccountID.ANONYMOUS_AUTH);
-            overriddenProps.remove(overridePrefix
-                + "." + ProtocolProviderFactory.IS_ALLOW_NON_SECURE);
+            overriddenProps.remove(overridePrefix + "." + JabberAccountID.ANONYMOUS_AUTH);
+            overriddenProps.remove(overridePrefix + "." + ProtocolProviderFactory.IS_ALLOW_NON_SECURE);
         }
 
-        for(String overridenProp : overriddenProps)
+        for (String overridenProp : overriddenProps)
         {
             String key = overridenProp.replace(overridePrefix + ".", "");
             String value = JigasiBundleActivator.getConfigurationService()
@@ -1606,9 +1549,9 @@ public class JvbConference
                 // method can't (and doesn't) work, at least not without
                 // changing the implementation of the loadAccount method.
                 //
-                // To avoid to have to store the dynamic accounts in the
+                // To avoid having to store the dynamic accounts in the
                 // configuration and, consequently, to have to manage them, to
-                // have remove them later, etc. (also NOTE that storing an
+                // have removed them later, etc. (also NOTE that storing an
                 // account WRITES the configuration file), we read the password
                 // from a custom key (and *not* from the standard password key,
                 // otherwise it gets encrypted by the configuration service, see
@@ -1618,11 +1561,11 @@ public class JvbConference
                 //
                 //     ServerSecurityAuthority#obtainCredentials
                 //
-                // method is called when there no password for a specific
+                // method is called when there is no password for a specific
                 // account and there we can alter the connection credentials.
 
                 this.xmppPassword = value;
-                // add password in props so it is available
+                // add password in props, so it is available
                 // for the UIServiceStub and getAccountID().getPassword()
                 // used on reconnect
                 properties.put(ProtocolProviderFactory.PASSWORD, value);
@@ -1656,7 +1599,7 @@ public class JvbConference
 
         // Because some AbstractGatewaySessions needs access to the audio,
         // we can't always use translator
-        if(!gatewaySession.isTranslatorSupported())
+        if (!gatewaySession.isTranslatorSupported())
         {
             properties.put(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
                 "false");
@@ -1796,76 +1739,6 @@ public class JvbConference
     }
 
     /**
-     * Sets the chatroom presence for the participant.
-     *
-     * @param muted <tt>true</tt> for presence as muted,
-     * false otherwise
-     */
-    void setChatRoomAudioMuted(boolean muted)
-    {
-        if (mucRoom != null)
-        {
-            AudioMutedExtension audioMutedExtension = new AudioMutedExtension();
-
-            audioMutedExtension.setAudioMuted(muted);
-
-            OperationSetJitsiMeetTools jitsiMeetTools
-                = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
-
-            jitsiMeetTools
-                .sendPresenceExtension(mucRoom, audioMutedExtension);
-
-        }
-    }
-
-    /**
-     * Request Jicofo on behalf of Jigasi to mute a participant.
-     *
-     * @param bMuted <tt>true</tt> if request is to mute audio,
-     * false otherwise
-     * @return <tt>true</tt> if request succeeded, false
-     * otherwise
-     */
-    public boolean requestAudioMute(boolean bMuted)
-    {
-        StanzaCollector collector = null;
-        try
-        {
-            String roomName = mucRoom.getIdentifier();
-
-            String jidString = roomName  + "/" + getResourceIdentifier().toString();
-            Jid memberJid = JidCreate.from(jidString);
-            String roomJidString = roomName + "/" + this.gatewaySession.getFocusResourceAddr();
-            Jid roomJid = JidCreate.from(roomJidString);
-
-            MuteIq muteIq = new MuteIq();
-            muteIq.setJid(memberJid);
-            muteIq.setMute(bMuted);
-            muteIq.setType(IQ.Type.set);
-            muteIq.setTo(roomJid);;
-
-            collector = getConnection()
-                .createStanzaCollectorAndSend(muteIq);
-
-            collector.nextResultOrThrow();
-        }
-        catch(Exception ex)
-        {
-            logger.error(this.callContext + " " + ex.getMessage());
-            return false;
-        }
-        finally
-        {
-            if (collector != null)
-            {
-                collector.cancel();
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Retrieves the connection from ProtocolProviderService if it is the JabberImpl.
      * @return the XMPPConnection.
      */
@@ -1957,7 +1830,7 @@ public class JvbConference
 
         Thread timeoutThread;
 
-        private String errorLog = null;
+        private final String errorLog;
         private final String endReason;
         private final String name;
 
@@ -2053,8 +1926,8 @@ public class JvbConference
 
         /**
          * Checks whether invite timeout should be scheduled or canceled.
-         * If there is no jvb call instance we want to schedule invite timeout
-         * so we can close the conference if nobody join for certain time
+         * If there is no jvb call instance we want to schedule invite timeout,
+         * so we can close the conference if nobody joins for certain time
          * or if jvbCall is present we want to cancel any pending timeouts.
          */
         void maybeScheduleInviteTimeout()
@@ -2065,7 +1938,7 @@ public class JvbConference
                         && JvbConference.this.started
                         && AbstractGateway.getJvbInviteTimeout() > 0)
                 {
-                    // if no invite comes back we want to hangup the sip call
+                    // if no invite comes back we want to hang up the sip call
                     // and disconnect from the conference
                     this.scheduleTimeout(AbstractGateway.getJvbInviteTimeout());
                 }
@@ -2086,54 +1959,6 @@ public class JvbConference
                 + ", willCauseTimeout:" + willCauseTimeout
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
-        }
-    }
-
-    /**
-     * Handles mute requests received by jicofo if enabled.
-     */
-    private class MuteIqHandler
-        extends AbstractIqRequestHandler
-    {
-        MuteIqHandler()
-        {
-            super(
-                MuteIq.ELEMENT_NAME,
-                MuteIq.NAMESPACE,
-                IQ.Type.set,
-                Mode.sync);
-        }
-
-        @Override
-        public IQ handleIQRequest(IQ iqRequest)
-        {
-            return handleMuteIq((MuteIq) iqRequest);
-        }
-
-        /**
-         * Handles the incoming mute request only if it is from the focus.
-         * @param muteIq the incoming iq.
-         * @return the result iq.
-         */
-        private IQ handleMuteIq(MuteIq muteIq)
-        {
-            Boolean doMute = muteIq.getMute();
-            Jid from = muteIq.getFrom();
-
-            if (doMute == null
-                || !from.getResourceOrEmpty().equals(
-                        gatewaySession.getFocusResourceAddr()))
-            {
-                return IQ.createErrorResponse(muteIq, XMPPError.getBuilder(
-                    XMPPError.Condition.item_not_found));
-            }
-
-            if (doMute)
-            {
-                gatewaySession.mute();
-            }
-
-            return IQ.createResultIQ(muteIq);
         }
     }
 
@@ -2200,7 +2025,7 @@ public class JvbConference
                         try
                         {
                             // if there is no activity on the audio channel this means there is a problem
-                            // establishing the media path with the bridge so we can just fail the call
+                            // establishing the media path with the bridge, so we can just fail the call
                             if (((AudioMediaStreamImpl) stream).getLastInputActivityTime() <= 0)
                             {
                                 dropCall();

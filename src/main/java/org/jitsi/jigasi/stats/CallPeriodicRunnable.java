@@ -114,6 +114,7 @@ public class CallPeriodicRunnable
                 receiveStats.packets = stats.getPackets();
                 receiveStats.packetsLost = stats.getPacketsLost();
                 receiveStats.fractionalPacketLoss = stats.getLossRate();
+                receiveStats.mediaType = "audio";
 
                 if (stats.getJitter() != TrackStats.JITTER_UNSET)
                 {
@@ -135,6 +136,7 @@ public class CallPeriodicRunnable
                 sendStats.packets = stats.getPackets();
                 //sendStats.packetsLost = stats.getPacketsLost();
                 sendStats.fractionalPacketLoss = stats.getLossRate();
+                sendStats.mediaType = "audio";
 
                 if (stats.getJitter() != TrackStats.JITTER_UNSET)
                 {

@@ -131,7 +131,7 @@ public class Transcript
     @Override
     public void notify(TranscriptionResult result)
     {
-        if(started != null && !result.isInterim())
+        if (started != null && !result.isInterim())
         {
             SpeechEvent speechEvent = new SpeechEvent(Instant.now(), result);
             speechEvents.add(speechEvent);
@@ -160,7 +160,7 @@ public class Transcript
      */
     public TranscriptEvent started(List<Participant> initialParticipants)
     {
-        if(started == null)
+        if (started == null)
         {
             this.started
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.START);
@@ -186,7 +186,7 @@ public class Transcript
                                       String roomUrl,
                                       List<Participant> initialParticipants)
     {
-        if(started == null)
+        if (started == null)
         {
             this.roomName = roomName;
             this.roomUrl = roomUrl;
@@ -208,7 +208,7 @@ public class Transcript
      */
     protected TranscriptEvent ended()
     {
-        if(started != null && ended == null)
+        if (started != null && ended == null)
         {
             this.ended
                 = new TranscriptEvent(Instant.now(), TranscriptEventType.END);
@@ -225,7 +225,7 @@ public class Transcript
      */
     public TranscriptEvent willEnd()
     {
-        if(started != null && ended == null)
+        if (started != null && ended == null)
         {
             return new TranscriptEvent(
                 Instant.now(), TranscriptEventType.WILL_END);
@@ -243,7 +243,7 @@ public class Transcript
      */
     public synchronized TranscriptEvent notifyJoined(Participant participant)
     {
-        if(started != null && ended == null)
+        if (started != null && ended == null)
         {
             // do not duplicate join events, can happen on conference start
             // because of WaitForConferenceMemberThread in transcript gw session
@@ -272,7 +272,7 @@ public class Transcript
      */
     public TranscriptEvent notifyLeft(Participant participant)
     {
-        if(started != null && ended == null)
+        if (started != null && ended == null)
         {
             TranscriptEvent event = new TranscriptEvent(
                 Instant.now(), participant, TranscriptEventType.LEAVE);
@@ -293,7 +293,7 @@ public class Transcript
      * */
     public TranscriptEvent notifyRaisedHand(Participant participant)
     {
-        if(started != null && ended == null)
+        if (started != null && ended == null)
         {
             TranscriptEvent event = new TranscriptEvent(
                 Instant.now(), participant, TranscriptEventType.RAISE_HAND);

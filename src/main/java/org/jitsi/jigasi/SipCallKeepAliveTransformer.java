@@ -226,7 +226,7 @@ public class SipCallKeepAliveTransformer
                 {
                     // we may want to send more than one packet
                     // in case they get lost
-                    for(int i=0; i < 3; i++)
+                    for (int i=0; i < 3; i++)
                     {
                         RawPacket packet = Util.makeRTP(
                             stream.getLocalSourceID(),

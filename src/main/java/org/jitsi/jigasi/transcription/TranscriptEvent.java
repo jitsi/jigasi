@@ -72,7 +72,7 @@ public class TranscriptEvent
      */
     TranscriptEvent(Instant timeStamp, Transcript.TranscriptEventType event)
     {
-        if(Transcript.TranscriptEventType.END.equals(event)
+        if (Transcript.TranscriptEventType.END.equals(event)
             || Transcript.TranscriptEventType.WILL_END.equals(event)
             || Transcript.TranscriptEventType.START.equals(event))
         {

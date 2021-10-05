@@ -86,13 +86,13 @@ public class SoundNotificationManager
      * The sound file to use to notify sip participant that a
      * participant has left.
      */
-    private static final String PARTICIPANT_LEFT = "sounds/ParticipantLeft.opus";
+    public static final String PARTICIPANT_LEFT = "sounds/ParticipantLeft.opus";
 
     /**
      * The sound file to use to notify sip partitipant that a
      * new participant has joined.
      */
-    private static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
+    public static final String PARTICIPANT_JOINED = "sounds/ParticipantJoined.opus";
 
     /**
      * The sound file to use to notify the participant that access was granted to join the
@@ -268,13 +268,13 @@ public class SoundNotificationManager
 
         try
         {
-            if(JibriIq.Status.ON.equals(status))
+            if (JibriIq.Status.ON.equals(status))
             {
                 // if call is still not established this will be ignored in
                 // injectSoundFile and nothing will be played
                 playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
             }
-            else if(JibriIq.Status.OFF.equals(status))
+            else if (JibriIq.Status.OFF.equals(status))
             {
                 playbackQueue.queueNext(gatewaySession.getSipCall(), offSound);
             }
@@ -366,11 +366,12 @@ public class SoundNotificationManager
             byte[] data = opusAudioData.getData();
             RawPacket rtp = Util.makeRTP(
                 ssrc, // ssrc
-                pt,// payload
+                pt, // payload
                 seq++, /// seq
                 ts, // ts
                 data.length + RawPacket.FIXED_HEADER_SIZE// len
             );
+            rtp.setSkipStats(true);
 
             System.arraycopy(
                 data, 0, rtp.getBuffer(), rtp.getPayloadOffset(), data.length);

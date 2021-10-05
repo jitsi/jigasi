@@ -19,9 +19,8 @@ package org.jitsi.jigasi.sounds;
 
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.codec.*;
 
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import org.jitsi.utils.logging.Logger;
@@ -101,12 +100,46 @@ class PlaybackQueue
          * @return Call to send audio to.
          */
         Call getPlaybackCall() { return playbackCall; }
+
+        /**
+         * Checks for equals by just checking the filename as this is what is to be played.
+         * Can be passed a String (the filename) and we will also check and that.
+         * @param o the object to check can be PlaybackData or string.
+         * @return true if equals.
+         */
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o)
+            {
+                return true;
+            }
+
+            if (o != null && o instanceof String)
+            {
+                return playbackFileName.equals(o);
+            }
+
+            if (o == null || getClass() != o.getClass())
+            {
+                return false;
+            }
+
+            PlaybackData that = (PlaybackData) o;
+            return playbackFileName.equals(that.playbackFileName);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(playbackFileName, playbackDelegate, playbackCall);
+        }
     }
 
     /**
      * Queue used to schedule sound notifications.
      */
-    private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(20, true);
+    private final BlockingQueue<PlaybackData> playbackQueue = new ArrayBlockingQueue<>(100, true);
 
     /**
      * Flag used to stop the queue thread.
@@ -122,7 +155,7 @@ class PlaybackQueue
      */
     public void queueNext(Call call, String fileName) throws InterruptedException
     {
-        playbackQueue.put(new PlaybackData(fileName, null, call));
+        this.queueNext(call, fileName, null);
     }
 
     /**
@@ -138,6 +171,23 @@ class PlaybackQueue
                           PlaybackDelegate delegate)
         throws InterruptedException
     {
+        if ((fileName.equals(SoundNotificationManager.PARTICIPANT_JOINED)
+            || fileName.equals(SoundNotificationManager.PARTICIPANT_LEFT))
+            && playbackQueue.contains(fileName))
+        {
+            // just in case, we do not want to spam user with leave and join events
+            return;
+        }
+
+        // if the queue has no capacity we will block playing the sound till there is space
+        // and playing may depend on signalling and if we block smack thread we can stop the signalling
+        if (playbackQueue.remainingCapacity() == 0)
+        {
+            Object callContext = call.getData(CallContext.class);
+            logger.warn(callContext + "Not playing sound to avoid blocking:" + fileName);
+            return;
+        }
+
         playbackQueue.put(new PlaybackData(fileName, delegate, call));
     }
 
@@ -157,7 +207,7 @@ class PlaybackQueue
     @Override
     public void run()
     {
-        while(!playbackQueueStopFlag.get())
+        while (!playbackQueueStopFlag.get())
         {
             Call playbackCall = null;
             try
@@ -189,11 +239,11 @@ class PlaybackQueue
                 if (playbackCall != null)
                 {
                     Object callContext = playbackCall.getData(CallContext.class);
-                    logger.error(callContext + " " + ex.toString(), ex);
+                    logger.error(callContext + " " + ex, ex);
                 }
                 else
                 {
-                    logger.error(ex.toString());
+                    logger.error(ex);
                 }
             }
         }

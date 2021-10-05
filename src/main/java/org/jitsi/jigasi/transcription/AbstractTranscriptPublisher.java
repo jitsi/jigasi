@@ -273,13 +273,13 @@ public abstract class AbstractTranscriptPublisher<T>
             directoryName);
 
         // Try to make the root directory
-        if(!createDirectoryIfNotExist(rootDirPath))
+        if (!createDirectoryIfNotExist(rootDirPath))
         {
             return;
         }
 
         // Now try to make the subdirectory directory
-        if(!createDirectoryIfNotExist(subDirectoryPath))
+        if (!createDirectoryIfNotExist(subDirectoryPath))
         {
             return;
         }
@@ -310,9 +310,9 @@ public abstract class AbstractTranscriptPublisher<T>
         File dir = path.toFile();
 
         // Try to make the directory
-        if(!dir.exists())
+        if (!dir.exists())
         {
-            if(!dir.mkdirs())
+            if (!dir.mkdirs())
             {
                 logger.warn("Was unable to make a directory called " + dir);
                 return false;
@@ -321,7 +321,7 @@ public abstract class AbstractTranscriptPublisher<T>
 
         // If there is a file with the directory name, we can't make the
         // directory and thus we cannot save the transcript
-        if(dir.exists() && !dir.isDirectory())
+        if (dir.exists() && !dir.isDirectory())
         {
             logger.warn("Was unable to make a directory because" +
                 " there is a file called " + dir);
@@ -521,7 +521,7 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter startedOn(TranscriptEvent event)
         {
-            if(event != null && event.getEvent().equals(
+            if (event != null && event.getEvent().equals(
                 Transcript.TranscriptEventType.START))
             {
                 this.startInstant = event.getTimeStamp();
@@ -537,7 +537,7 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter tookPlaceInRoom(String roomName)
         {
-            if(roomName != null)
+            if (roomName != null)
             {
                 this.roomName = roomName;
             }
@@ -552,7 +552,7 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter tookPlaceAtUrl(String url)
         {
-            if(url != null)
+            if (url != null)
             {
                 this.roomUrl = url;
             }
@@ -581,9 +581,9 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter speechEvents(List<SpeechEvent> events)
         {
-            for(SpeechEvent e : events)
+            for (SpeechEvent e : events)
             {
-                if(e.getEvent().equals(Transcript.TranscriptEventType.SPEECH))
+                if (e.getEvent().equals(Transcript.TranscriptEventType.SPEECH))
                 {
                     formattedEvents.put(e, formatSpeechEvent(e));
                 }
@@ -601,9 +601,9 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter joinEvents(List<TranscriptEvent> events)
         {
-            for(TranscriptEvent e : events)
+            for (TranscriptEvent e : events)
             {
-                if(e.getEvent().equals(Transcript.TranscriptEventType.JOIN))
+                if (e.getEvent().equals(Transcript.TranscriptEventType.JOIN))
                 {
                     formattedEvents.put(e, formatJoinEvent(e));
                 }
@@ -621,9 +621,9 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter leaveEvents(List<TranscriptEvent> events)
         {
-            for(TranscriptEvent e : events)
+            for (TranscriptEvent e : events)
             {
-                if(e.getEvent().equals(Transcript.TranscriptEventType.LEAVE))
+                if (e.getEvent().equals(Transcript.TranscriptEventType.LEAVE))
                 {
                     formattedEvents.put(e, formatLeaveEvent(e));
                 }
@@ -642,9 +642,9 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter raiseHandEvents(List<TranscriptEvent> events)
         {
-            for(TranscriptEvent e : events)
+            for (TranscriptEvent e : events)
             {
-                if(e.getEvent().equals(
+                if (e.getEvent().equals(
                     Transcript.TranscriptEventType.RAISE_HAND))
                 {
                     formattedEvents.put(e, formatRaisedHandEvent(e));
@@ -664,7 +664,7 @@ public abstract class AbstractTranscriptPublisher<T>
          */
         BaseFormatter endedOn(TranscriptEvent event)
         {
-            if(event != null && event.getEvent().equals(
+            if (event != null && event.getEvent().equals(
                 Transcript.TranscriptEventType.END))
             {
                 this.endInstant = event.getTimeStamp();
@@ -686,7 +686,7 @@ public abstract class AbstractTranscriptPublisher<T>
             Collections.sort(sortedKeys);
 
             List<T> sortedEvents = new ArrayList<>(sortedKeys.size());
-            for(TranscriptEvent event : sortedKeys)
+            for (TranscriptEvent event : sortedKeys)
             {
                 sortedEvents.add(formattedEvents.get(event));
             }
@@ -754,7 +754,7 @@ public abstract class AbstractTranscriptPublisher<T>
         @Override
         public void maybeStartRecording(MediaDevice device)
         {
-            if(shouldRecordAudio())
+            if (shouldRecordAudio())
             {
                 // we need to make sure the directory exists already
                 // so the recorder can write to it
@@ -836,9 +836,8 @@ public abstract class AbstractTranscriptPublisher<T>
                 Path absDirPath =
                     Paths.get(getLogDirPath(), dirName).toAbsolutePath();
 
-                for(String scriptPath : getPathsToScriptsToExecute())
+                for (String scriptPath : getPathsToScriptsToExecute())
                 {
-                    Path absScriptPath = Paths.get(scriptPath).toAbsolutePath();
                     try
                     {
                         logger.info("executing " + scriptPath +
@@ -849,7 +848,7 @@ public abstract class AbstractTranscriptPublisher<T>
 
                         StatsDClient dClient
                             = JigasiBundleActivator.getDataDogClient();
-                        if(dClient != null)
+                        if (dClient != null)
                         {
                             int returnValue;
 
@@ -866,7 +865,7 @@ public abstract class AbstractTranscriptPublisher<T>
                             if (returnValue == 0)
                             {
                                 dClient.increment(DD_ASPECT_SUCCESS);
-                                if(logger.isDebugEnabled())
+                                if (logger.isDebugEnabled())
                                 {
                                     logger.debug("thrown stat: " +
                                         DD_ASPECT_SUCCESS
@@ -876,7 +875,7 @@ public abstract class AbstractTranscriptPublisher<T>
                             else
                             {
                                 dClient.increment(DD_ASPECT_FAIL);
-                                if(logger.isDebugEnabled())
+                                if (logger.isDebugEnabled())
                                 {
                                     logger.debug("thrown stat: " +
                                         DD_ASPECT_FAIL

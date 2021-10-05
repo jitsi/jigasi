@@ -70,7 +70,7 @@ public class TranscriptionRequest
      */
     public long getDurationInMs()
     {
-        if(this.format == null)
+        if (this.format == null)
         {
             return -1;
         }

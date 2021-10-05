@@ -446,11 +446,6 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * If muting is supported will mute the participant.
-     */
-    public abstract void mute();
-
-    /**
      * Whether the gateway implementation supports call resuming. Where we can
      * keep the gateway session while the xmpp call is been disconnected or
      * reconnected and the gateway can wait.

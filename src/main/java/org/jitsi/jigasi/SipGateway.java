@@ -143,7 +143,7 @@ public class SipGateway
      */
     public String getSipAccountProperty(String propertyName)
     {
-        if(sipProvider == null)
+        if (sipProvider == null)
         {
             return null;
         }
