@@ -81,7 +81,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-android-osgi</artifactId>
-      <version>1.0-20190327.160432-3</version>
+      <version>1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${jitsi-desktop.groupId}</groupId>

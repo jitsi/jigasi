@@ -112,75 +112,38 @@ public class JigasiBundleConfig
         String[][] bundles = {
             {
                 LibJitsiActivator.class.getName(),
-            },
-            {
                 ConfigurationActivator.class.getName(),
-            },
-            {
                 UtilActivator.class.getName(),
-            },
-            {
                 DefaultResourcePackActivator.class.getName(),
                 ResourceManagementActivator.class.getName(),
-            },
-            {
                 NotificationServiceActivator.class.getName(),
                 DnsUtilActivator.class.getName(),
-            },
-            {
                 CredentialsStorageActivator.class.getName(),
-            },
-            {
                 NetaddrActivator.class.getName(),
-            },
-            {
                 PacketLoggingActivator.class.getName(),
-            },
-            {
                 GuiServiceActivator.class.getName(),
-            },
-            {
                 ProtocolMediaActivator.class.getName(),
-            },
-            {
                 NeomediaActivator.class.getName(),
-            },
-            {
                 CertificateVerificationActivator.class.getName(),
-            },
-            {
                 VersionActivator.class.getName(),
-            },
-            {
                 ProtocolProviderActivator.class.getName(),
-            },
-            {
                 GlobalDisplayDetailsActivator.class.getName(),
-            },
-            {
                 ReconnectPluginActivator.class.getName(),
-            },
             // Shall we use mock protocol providers ?
-            _useMockProtocols ? mockProtocols : protocols,
-            {
+                (_useMockProtocols ? mockProtocols[0] : null),
+                (!_useMockProtocols ? protocols[0]: null),
+                (!_useMockProtocols ? protocols[1]: null),
                 JigasiBundleActivator.class.getName(),
-            },
-            {
                 RESTBundleActivator.class.getName(),
-            },
-            {
                 TranscriptServerBundleActivator.class.getName(),
-            },
-            {
                 CallControlMucActivator.class.getName(),
-            },
-            {
                 org.jitsi.ddclient.Activator.class.getName(),
             }
         };
 
         return Arrays.stream(bundles)
-            .map(b -> Arrays.stream(b).map(bb -> bb.replace(".", "/")).toArray(String[]::new))
+            .map(b -> Arrays.stream(b).filter(Objects::nonNull)
+            .map(bb -> bb.replace(".", "/")).toArray(String[]::new))
             .toArray(String[][]::new);
     }
 
