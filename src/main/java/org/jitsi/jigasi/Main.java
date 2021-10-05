@@ -196,11 +196,11 @@ public class Main
             ConfigurationService.PNAME_SC_HOME_DIR_NAME,
             configDirName);
 
-        Boolean isConfigReadonly =
-            !Boolean.valueOf(cmdLine.getOptionValue(CONFIG_WRITABLE_ARG_NAME));
+        boolean isConfigReadonly =
+            !Boolean.parseBoolean(cmdLine.getOptionValue(CONFIG_WRITABLE_ARG_NAME));
         System.setProperty(
             ConfigurationService.PNAME_CONFIGURATION_FILE_IS_READ_ONLY,
-            isConfigReadonly.toString());
+            Boolean.toString(isConfigReadonly));
 
         String logdir = cmdLine.getOptionValue(LOGDIR_ARG_NAME);
         if (!StringUtils.isNullOrEmpty(logdir))
