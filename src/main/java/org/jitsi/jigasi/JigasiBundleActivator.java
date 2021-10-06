@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import com.timgroup.statsd.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
+import org.jitsi.jigasi.osgi.*;
 import org.jitsi.meet.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.*;
@@ -29,7 +30,6 @@ import net.java.sip.communicator.service.gui.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
-import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.provider.*;
 import org.osgi.framework.*;
@@ -130,8 +130,6 @@ public class JigasiBundleActivator
      */
     private static boolean shutdownInProgress;
 
-    private UIServiceStub uiServiceStub = new UIServiceStub();
-
     /**
      * Returns <tt>ConfigurationService</tt> instance.
      * @return <tt>ConfigurationService</tt> instance.
@@ -191,8 +189,6 @@ public class JigasiBundleActivator
         throws Exception
     {
         osgiContext = bundleContext;
-
-        bundleContext.registerService(UIService.class, uiServiceStub, null);
 
         if (isSipEnabled())
         {

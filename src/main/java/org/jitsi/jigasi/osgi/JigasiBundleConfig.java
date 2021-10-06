@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi.osgi;
 
-import java.util.stream.Collectors;
 import net.java.sip.communicator.impl.certificate.CertificateVerificationActivator;
 import net.java.sip.communicator.impl.configuration.ConfigurationActivator;
 import net.java.sip.communicator.impl.credentialsstorage.CredentialsStorageActivator;
@@ -26,16 +25,16 @@ import net.java.sip.communicator.impl.globaldisplaydetails.GlobalDisplayDetailsA
 import net.java.sip.communicator.impl.neomedia.NeomediaActivator;
 import net.java.sip.communicator.impl.netaddr.NetaddrActivator;
 import net.java.sip.communicator.impl.packetlogging.PacketLoggingActivator;
+import net.java.sip.communicator.impl.phonenumbers.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 
 import net.java.sip.communicator.impl.protocol.sip.SipActivator;
 import net.java.sip.communicator.impl.resources.ResourceManagementActivator;
-import net.java.sip.communicator.impl.sysactivity.SysActivityActivator;
 import net.java.sip.communicator.plugin.defaultresourcepack.*;
 import net.java.sip.communicator.plugin.reconnectplugin.ReconnectPluginActivator;
 import net.java.sip.communicator.service.gui.internal.GuiServiceActivator;
 import net.java.sip.communicator.service.notification.NotificationServiceActivator;
-import net.java.sip.communicator.service.protocol.ProtocolProviderActivator;
+import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.ProtocolMediaActivator;
 import net.java.sip.communicator.util.UtilActivator;
 import org.jitsi.impl.neomedia.*;
@@ -129,10 +128,14 @@ public class JigasiBundleConfig
                 ProtocolProviderActivator.class.getName(),
                 GlobalDisplayDetailsActivator.class.getName(),
                 ReconnectPluginActivator.class.getName(),
+                PhoneNumberServiceActivator.class.getName(),
+                EmptyHidServiceActivator.class.getName(),
+                EmptyUiServiceActivator.class.getName(),
+                EmptyMasterPasswordInputServiceActivator.class.getName(),
+            },
             // Shall we use mock protocol providers ?
-                (_useMockProtocols ? mockProtocols[0] : null),
-                (!_useMockProtocols ? protocols[0]: null),
-                (!_useMockProtocols ? protocols[1]: null),
+            _useMockProtocols ? mockProtocols : protocols,
+            {
                 JigasiBundleActivator.class.getName(),
                 RESTBundleActivator.class.getName(),
                 TranscriptServerBundleActivator.class.getName(),
@@ -142,8 +145,10 @@ public class JigasiBundleConfig
         };
 
         return Arrays.stream(bundles)
-            .map(b -> Arrays.stream(b).filter(Objects::nonNull)
-            .map(bb -> bb.replace(".", "/")).toArray(String[]::new))
+            .map(b -> Arrays.stream(b)
+                .filter(Objects::nonNull)
+                .map(bb -> bb.replace(".", "/"))
+                .toArray(String[]::new))
             .toArray(String[][]::new);
     }
 

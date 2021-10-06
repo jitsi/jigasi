@@ -17,7 +17,7 @@
     <jitsi-desktop.version>2.14-SNAPSHOT</jitsi-desktop.version>
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <slf4j.version>1.7.30</slf4j.version>
+    <slf4j.version>1.7.32</slf4j.version>
     <smack.version>4.2.4-4fa73bd</smack.version>
     <!-- Match jicoco's jetty version. TODO: update jicoco -->
     <jicoco.version>1.1-22-gbec9167</jicoco.version>
@@ -184,14 +184,15 @@
       <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
-      <groupId>${jitsi-desktop.groupId}</groupId>
-      <artifactId>service-argdelegation</artifactId>
-      <version>${jitsi-desktop.version}</version>
-    </dependency>
-    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
       <version>1.0-8-gb408c35</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-simple</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <!--
@@ -308,6 +309,11 @@
       <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
+      <groupId>${jitsi-desktop.groupId}</groupId>
+      <artifactId>jitsi-phonenumbers</artifactId>
+      <version>${jitsi-desktop.version}</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-webrtcvadwrapper</artifactId>
       <version>1.0-20200414.144800-2</version>
@@ -318,23 +324,48 @@
       <version>1.0-21-g3651d97</version>
     </dependency>
     <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>osgi.core</artifactId>
-      <version>8.0.0</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
-      <scope>runtime</scope>
     </dependency>
+
+    <!-- For logging via java.util.logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-jdk14</artifactId>
       <version>${slf4j.version}</version>
       <scope>runtime</scope>
     </dependency>
+
+    <!-- For logging via Logback (remove slf4j-jdk14 when enabling this)
+    Add as the first lines of main(String[] args):
+    SLF4JBridgeHandler.removeHandlersForRootLogger();
+    SLF4JBridgeHandler.install();
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    -->
 
     <!-- test -->
     <dependency>
