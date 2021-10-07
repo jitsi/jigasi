@@ -223,6 +223,12 @@ public class Main
                 ".SKIP_REINVITE_ON_FOCUS_CHANGE_PROP",
             "true");
 
+        // Those are not used so disable them
+        String deviceSystemPackage = "org.jitsi.impl.neomedia.device";
+        System.setProperty(deviceSystemPackage + ".MacCoreaudioSystem.disabled", "true");
+        System.setProperty(deviceSystemPackage + ".PulseAudioSystem.disabled", "true");
+        System.setProperty(deviceSystemPackage + ".PortAudioSystem.disabled", "true");
+
         // disable smack packages before loading smack
         disableSmackProviders();
 
