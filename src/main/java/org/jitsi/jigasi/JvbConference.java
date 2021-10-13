@@ -1058,7 +1058,12 @@ public class JvbConference
 
         if (this.roomConfigurationListener != null)
         {
-            getConnection().removeAsyncStanzaListener(roomConfigurationListener);
+            XMPPConnection connection = getConnection();
+            if (connection != null)
+            {
+                connection.removeAsyncStanzaListener(roomConfigurationListener);
+            }
+
             this.roomConfigurationListener = null;
         }
 
