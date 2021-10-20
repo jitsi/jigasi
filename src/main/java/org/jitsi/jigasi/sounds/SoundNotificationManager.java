@@ -270,9 +270,13 @@ public class SoundNotificationManager
         {
             if (JibriIq.Status.ON.equals(status))
             {
-                // if call is still not established this will be ignored in
-                // injectSoundFile and nothing will be played
-                playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+                // if call is still not established ignore it
+                if (gatewaySession.getSipCall().getCallPeers().hasNext()
+                    && gatewaySession.getSipCall().getCallPeers().next()
+                        .getState().equals(CallPeerState.CONNECTED))
+                {
+                    playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
+                }
             }
             else if (JibriIq.Status.OFF.equals(status))
             {
