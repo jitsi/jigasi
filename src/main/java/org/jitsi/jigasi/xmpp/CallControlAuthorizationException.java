@@ -21,7 +21,7 @@ import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
 
-import static org.jivesoftware.smack.packet.XMPPError.Condition.forbidden;
+import static org.jivesoftware.smack.packet.StanzaError.Condition.forbidden;
 
 /**
  * This exception is thrown when a request is not from a permitted entity.
@@ -55,7 +55,7 @@ public class CallControlAuthorizationException
     /**
      * Gets an error IQ based on the IQ that failed the validation with
      * a condition of
-     * {@link org.jivesoftware.smack.packet.XMPPError.Condition#forbidden}.
+     * {@link org.jivesoftware.smack.packet.StanzaError.Condition#forbidden}.
      *
      * @return an error stanza.
      */

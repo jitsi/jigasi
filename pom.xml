@@ -18,7 +18,8 @@
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.32</slf4j.version>
-    <smack.version>4.2.4-4fa73bd</smack.version>
+    <smack.version>4.4.4-SNAPSHOT</smack.version>
+    <jxmppVersion>1.0.2</jxmppVersion>
     <!-- Match jicoco's jetty version. TODO: update jicoco -->
     <jicoco.version>1.1-22-gbec9167</jicoco.version>
     <jetty.version>9.4.15.v20190215</jetty.version>
@@ -26,9 +27,19 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.jxmpp</groupId>
+      <artifactId>jxmpp-core</artifactId>
+      <version>${jxmppVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jxmpp</groupId>
+      <artifactId>jxmpp-jid</artifactId>
+      <version>${jxmppVersion}</version>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>30.0-jre</version>
+      <version>31.0.1-jre</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
@@ -141,7 +152,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-88-g9bdd2a7</version>
+      <version>1.0-98-g6a75684</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -245,12 +256,6 @@
       <version>4.5.13</version>
       <scope>runtime</scope>
     </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.68</version>
-      <scope>runtime</scope>
-    </dependency>
     <!-- org.jitsi runtime-->
     <dependency>
       <groupId>${jitsi-desktop.groupId}</groupId>
@@ -326,7 +331,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-21-g3651d97</version>
+      <version>1.0-29-g3c269f8</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -511,6 +516,16 @@
       <url>
         https://raw.github.com/jitsi/jitsi-maven-repository/master/snapshots/
       </url>
+    </repository>
+    <repository>
+      <id>oss.sonatype.org-snapshot</id>
+      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
   <profiles>

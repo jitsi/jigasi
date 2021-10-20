@@ -27,6 +27,7 @@ import java.util.stream.*;
 
 import javax.servlet.http.*;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.version.*;
@@ -527,7 +528,7 @@ public class Statistics
                 stats.addStat(sipgwStat);
 
                 threadPool.submit(
-                    () -> pps.getOperationSet(OperationSetJitsiMeetTools.class)
+                    () -> pps.getOperationSet(OperationSetJitsiMeetToolsJabber.class)
                             .sendPresenceExtension(mucRoom, stats));
             }
             catch (Exception e)

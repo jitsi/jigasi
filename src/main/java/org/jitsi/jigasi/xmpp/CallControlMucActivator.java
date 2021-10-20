@@ -593,8 +593,8 @@ public class CallControlMucActivator
             {
                 logger.error(ctx + " Failed to handle incoming dialIQ:" + packet.toXML());
 
-                return IQ.createErrorResponse(packet, XMPPError.from(
-                    XMPPError.Condition.internal_server_error, e.getMessage()));
+                return IQ.createErrorResponse(packet, StanzaError.from(
+                    StanzaError.Condition.internal_server_error, e.getMessage()));
             }
 
             return null;
@@ -625,8 +625,8 @@ public class CallControlMucActivator
             catch (Exception e)
             {
                 logger.error(ctx + " Error processing RayoIq", e);
-                return IQ.createErrorResponse(packet, XMPPError.from(
-                    XMPPError.Condition.internal_server_error, e.getMessage()));
+                return IQ.createErrorResponse(packet, StanzaError.from(
+                    StanzaError.Condition.internal_server_error, e.getMessage()));
             }
         }
 

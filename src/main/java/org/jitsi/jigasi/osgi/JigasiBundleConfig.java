@@ -68,15 +68,6 @@ public class JigasiBundleConfig
     private static boolean _useMockProtocols = false;
 
     /**
-     * Indicates whether mock protocol providers should be used instead of
-     * original Jitsi protocol providers.
-     */
-    public static boolean isUseMockProtocols()
-    {
-        return _useMockProtocols;
-    }
-
-    /**
      * Make OSGi use mock protocol providers instead of original Jitsi protocols
      * implementation.
      * @param useMockProtocols <tt>true</tt> if Jitsi protocol providers should

@@ -21,13 +21,14 @@ import net.java.sip.communicator.impl.configuration.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 
+import org.apache.commons.lang3.*;
 import org.jitsi.cmd.*;
 import org.jitsi.jigasi.osgi.*;
 import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.utils.*;
 import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.debugger.*;
 import org.jivesoftware.smack.tcp.*;
 
 /**
@@ -203,7 +204,7 @@ public class Main
             Boolean.toString(isConfigReadonly));
 
         String logdir = cmdLine.getOptionValue(LOGDIR_ARG_NAME);
-        if (!StringUtils.isNullOrEmpty(logdir))
+        if (StringUtils.isNotEmpty(logdir))
         {
             System.setProperty(PNAME_SC_LOG_DIR_LOCATION, logdir);
             // set it same as cache dir so if something is written lets write it
@@ -232,6 +233,7 @@ public class Main
         // disable smack packages before loading smack
         disableSmackProviders();
 
+        ReflectionDebuggerFactory.setDebuggerClass(JulDebugger.class);
         SmackConfiguration.setDefaultReplyTimeout(15000);
 
         // Disable stream management as it could lead to unexpected behaviour,
