@@ -24,18 +24,19 @@ import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.DataObject;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
@@ -423,7 +424,7 @@ public class JvbConference
             // anything that is not in this regex class A-Za-z0-9- with a dash.
 
             String resourceIdentBuilder = gatewaySession.getMucDisplayName();
-            if (!StringUtils.isNullOrEmpty(resourceIdentBuilder))
+            if (StringUtils.isNotEmpty(resourceIdentBuilder))
             {
                 int idx = resourceIdentBuilder.indexOf('@');
                 if (idx != -1)
@@ -751,7 +752,7 @@ public class JvbConference
                 String mucService
                     = JigasiBundleActivator.getConfigurationService()
                         .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
-                if (!StringUtils.isNullOrEmpty(mucService))
+                if (StringUtils.isNotEmpty(mucService))
                 {
                     roomName = roomName + "@" + mucService;
                 }
@@ -778,7 +779,7 @@ public class JvbConference
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if (!StringUtils.isNullOrEmpty(region))
+                if (StringUtils.isNotEmpty(region))
                 {
                     RegionPacketExtension rpe = new RegionPacketExtension();
                     rpe.setRegionId(region);
@@ -842,7 +843,7 @@ public class JvbConference
             // the room)
             inviteTimeout.scheduleTimeout();
 
-            if (StringUtils.isNullOrEmpty(roomPassword))
+            if (StringUtils.isEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
             }
@@ -1159,7 +1160,7 @@ public class JvbConference
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
             {
                 MediaAwareCallPeer<?, ?, ?> peerMedia = (MediaAwareCallPeer<?, ?, ?>) peer;
-                peerMedia.getConferenceMembers().stream().forEach(confMember ->
+                peerMedia.getConferenceMembers().forEach(confMember ->
                 {
                     String address = confMember.getAddress();
                     if (address != null && !address.equals("jvb"))
@@ -1575,7 +1576,7 @@ public class JvbConference
             {
                 // do not override boshURL with the global setting if
                 // we already have a value
-                if (StringUtils.isNullOrEmpty(ctx.getBoshURL()))
+                if (StringUtils.isEmpty(ctx.getBoshURL()))
                     ctx.setBoshURL(value);
             }
             else
@@ -1585,7 +1586,7 @@ public class JvbConference
         }
 
         String boshUrl = ctx.getBoshURL();
-        if (!StringUtils.isNullOrEmpty(boshUrl))
+        if (StringUtils.isNotEmpty(boshUrl))
         {
             boshUrl = boshUrl.replace(
                 "{roomName}", callContext.getConferenceName());
