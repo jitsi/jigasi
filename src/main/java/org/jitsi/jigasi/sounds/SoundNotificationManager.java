@@ -160,6 +160,11 @@ public class SoundNotificationManager
     private SoundRateLimiter participantJoinedRateLimiterLazy = null;
 
     /**
+     * Rate limiter of recording on sound notification.
+     */
+    private SoundRateLimiter recordingOnRateLimiterLazy = null;
+
+    /**
      * Timeout of rate limiter for participant alone notification.
      */
     private static final long PARTICIPANT_ALONE_TIMEOUT_MS = 15000;
@@ -168,6 +173,11 @@ public class SoundNotificationManager
      * Timeout of rate limiter for participant left notification.
      */
     private static final long PARTICIPANT_LEFT_RATE_TIMEOUT_MS = 30000;
+
+    /**
+     * Timeout of rate limiter for recording on.
+     */
+    private static final long RECORDING_ON_RATE_TIMEOUT_MS = 10000;
 
     /**
      * Timeout of rate limiter for participant joined notification.
@@ -268,15 +278,9 @@ public class SoundNotificationManager
 
         try
         {
-            if (JibriIq.Status.ON.equals(status))
+            if (JibriIq.Status.ON.equals(status) && !getRecordingOnRateLimiter().on())
             {
-                // if call is still not established ignore it
-                if (gatewaySession.getSipCall().getCallPeers().hasNext()
-                    && gatewaySession.getSipCall().getCallPeers().next()
-                        .getState().equals(CallPeerState.CONNECTED))
-                {
-                    playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
-                }
+                playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
             }
             else if (JibriIq.Status.OFF.equals(status))
             {
@@ -422,7 +426,7 @@ public class SoundNotificationManager
         {
             try
             {
-                if (currentJibriStatus.equals(JibriIq.Status.ON))
+                if (currentJibriStatus.equals(JibriIq.Status.ON) && !getRecordingOnRateLimiter().on())
                 {
                     playbackQueue.queueNext(gatewaySession.getSipCall(), currentJibriOnSound);
                 }
@@ -572,6 +576,11 @@ public class SoundNotificationManager
         if (this.participantLeftRateLimiterLazy != null)
         {
             participantLeftRateLimiterLazy.reset();
+        }
+
+        if (this.recordingOnRateLimiterLazy != null)
+        {
+            this.recordingOnRateLimiterLazy.reset();
         }
     }
 
@@ -842,6 +851,21 @@ public class SoundNotificationManager
         }
 
         return this.participantJoinedRateLimiterLazy;
+    }
+
+    /**
+     * Returns new SoundRateLimiter to be used for recording on if not created already.
+     *
+     * @return recordingOnRateLimiterLazy
+     */
+    private SoundRateLimiter getRecordingOnRateLimiter()
+    {
+        if (this.recordingOnRateLimiterLazy == null)
+        {
+            this.recordingOnRateLimiterLazy = new SoundRateLimiter(RECORDING_ON_RATE_TIMEOUT_MS);
+        }
+
+        return this.recordingOnRateLimiterLazy;
     }
 
     /**
