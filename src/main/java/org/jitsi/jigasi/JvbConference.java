@@ -841,6 +841,8 @@ public class JvbConference
             // the room)
             inviteTimeout.scheduleTimeout();
 
+            mucRoom.addMemberPresenceListener(this);
+
             if (StringUtils.isNullOrEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
@@ -852,8 +854,6 @@ public class JvbConference
             }
 
             this.mucRoom = mucRoom;
-
-            mucRoom.addMemberPresenceListener(this);
 
             if (gatewaySession.getDefaultInitStatus() != null)
             {

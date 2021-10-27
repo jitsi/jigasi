@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -1002,9 +1003,18 @@ public class SipGatewaySession
     {
         super.notifyChatRoomMemberJoined(member);
 
-        if (soundNotificationManager != null)
+        if (soundNotificationManager != null && member instanceof ChatRoomMemberJabberImpl)
         {
-            soundNotificationManager.notifyChatRoomMemberJoined(member);
+            Presence presence = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+
+            if (getFocusResourceAddr().equals(presence.getFrom().getResourceOrEmpty().toString()))
+            {
+                soundNotificationManager.process(presence);
+            }
+            else
+            {
+                soundNotificationManager.notifyChatRoomMemberJoined(member);
+            }
         }
     }
 
