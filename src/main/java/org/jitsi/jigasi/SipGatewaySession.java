@@ -703,7 +703,10 @@ public class SipGatewaySession
     {
         if (this.jvbConference != null)
         {
-            this.jvbConference.getAudioModeration().setStartAudioMuted(startMutedFlags[0]);
+            if (this.jvbConference.getAudioModeration() != null)
+            {
+                this.jvbConference.getAudioModeration().setStartAudioMuted(startMutedFlags[0]);
+            }
         }
         else
         {
@@ -735,7 +738,11 @@ public class SipGatewaySession
 
         if (this.jvbConference != null)
         {
-            this.jvbConference.getAudioModeration().onJSONReceived(callPeer, jsonObject, params);
+            AudioModeration avMod = this.jvbConference.getAudioModeration();
+            if (avMod != null)
+            {
+                avMod.onJSONReceived(callPeer, jsonObject, params);
+            }
         }
         else
         {
@@ -1340,7 +1347,10 @@ public class SipGatewaySession
                 logger.info(SipGatewaySession.this.callContext + " SIP call format used: "
                     + Util.getFirstPeerMediaFormat(call));
 
-                jvbConference.getAudioModeration().maybeProcessStartMuted();
+                if (jvbConference.getAudioModeration() != null)
+                {
+                    jvbConference.getAudioModeration().maybeProcessStartMuted();
+                }
             }
             else if (call.getCallState() == CallState.CALL_ENDED)
             {

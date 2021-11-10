@@ -648,7 +648,10 @@ public class JvbConference
             && mucRoom == null
             && evt.getNewState() == RegistrationState.REGISTERED)
         {
-            this.getAudioModeration().xmppProviderRegistered();
+            if (this.getAudioModeration() != null)
+            {
+                this.getAudioModeration().xmppProviderRegistered();
+            }
 
             // Join the MUC
             joinConferenceRoom();
@@ -1456,7 +1459,12 @@ public class JvbConference
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
-                JvbConference.this.getAudioModeration().maybeProcessStartMuted();
+
+                AudioModeration avMod = JvbConference.this.getAudioModeration();
+                if (avMod != null)
+                {
+                    avMod.maybeProcessStartMuted();
+                }
 
                 checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
