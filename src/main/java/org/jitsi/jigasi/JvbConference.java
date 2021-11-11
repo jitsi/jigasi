@@ -556,7 +556,10 @@ public class JvbConference
             telephony = null;
         }
 
-        this.audioModeration.clean();
+        if (this.audioModeration != null)
+        {
+            this.audioModeration.clean();
+        }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
@@ -827,7 +830,10 @@ public class JvbConference
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
-            this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
+            if (this.audioModeration != null)
+            {
+                this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
+            }
 
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
