@@ -17,41 +17,13 @@
  */
 package org.jitsi.jigasi.osgi;
 
-import net.java.sip.communicator.impl.certificate.CertificateVerificationActivator;
-import net.java.sip.communicator.impl.configuration.ConfigurationActivator;
-import net.java.sip.communicator.impl.credentialsstorage.CredentialsStorageActivator;
-import net.java.sip.communicator.impl.dns.DnsUtilActivator;
-import net.java.sip.communicator.impl.globaldisplaydetails.GlobalDisplayDetailsActivator;
-import net.java.sip.communicator.impl.neomedia.NeomediaActivator;
-import net.java.sip.communicator.impl.netaddr.NetaddrActivator;
-import net.java.sip.communicator.impl.packetlogging.PacketLoggingActivator;
-import net.java.sip.communicator.impl.phonenumbers.*;
+import java.util.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
-
-import net.java.sip.communicator.impl.protocol.sip.SipActivator;
-import net.java.sip.communicator.impl.resources.ResourceManagementActivator;
-import net.java.sip.communicator.plugin.defaultresourcepack.*;
-import net.java.sip.communicator.plugin.reconnectplugin.ReconnectPluginActivator;
-import net.java.sip.communicator.service.gui.internal.GuiServiceActivator;
-import net.java.sip.communicator.service.notification.NotificationServiceActivator;
-import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.media.ProtocolMediaActivator;
-import net.java.sip.communicator.util.UtilActivator;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
-import org.jitsi.impl.osgi.framework.launch.*;
-import org.jitsi.jigasi.JigasiBundleActivator;
-import org.jitsi.jigasi.rest.RESTBundleActivator;
-import org.jitsi.jigasi.rest.TranscriptServerBundleActivator;
-import org.jitsi.jigasi.version.VersionActivator;
-import org.jitsi.jigasi.xmpp.CallControlMucActivator;
-import org.jitsi.meet.*;
 import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.LibJitsiActivator;
 import org.jitsi.stats.media.*;
-
-import java.util.*;
 
 /**
  * Jigasi OSGi bundle config
@@ -59,100 +31,37 @@ import java.util.*;
  * @author Pawel Domas
  */
 public class JigasiBundleConfig
-    extends OSGiBundleConfig
 {
-    /**
-     * Indicates whether 'mock' protocol providers should be used instead of
-     * original Jitsi protocol providers. For the purpose of unit testing.
-     */
-    private static boolean _useMockProtocols = false;
-
-    /**
-     * Make OSGi use mock protocol providers instead of original Jitsi protocols
-     * implementation.
-     * @param useMockProtocols <tt>true</tt> if Jitsi protocol providers should
-     *                         be replaced with mock version.
-     */
-    public static void setUseMockProtocols(boolean useMockProtocols)
+    private JigasiBundleConfig()
     {
-        _useMockProtocols = useMockProtocols;
+        // prevent instances
     }
 
     /**
-     * The locations of the OSGi bundles (or rather of the class files of their
-     * <tt>BundleActivator</tt> implementations) comprising Jitsi Videobridge.
-     * An element of the <tt>BUNDLES</tt> array is an array of <tt>String</tt>s
-     * and represents an OSGi start level.
+     * Returns a {@code Map} which contains default system properties common to
+     * all server components. Currently, we have the following values there:
+     * <li>{@link ConfigurationService#PNAME_CONFIGURATION_FILE_IS_READ_ONLY}
+     * = true</li>
+     * <li>{@link MediaServiceImpl#DISABLE_AUDIO_SUPPORT_PNAME} = true</li>
+     * <li>{@link MediaServiceImpl#DISABLE_VIDEO_SUPPORT_PNAME} = true</li>
+     *
+     * @return a {@code Map} which contains default system properties common to
+     * all server components
      */
-    @Override
-    protected String[][] getBundlesImpl()
+    private static Map<String, String> getSystemPropertyDefaults()
     {
+        // XXX A default System property value specified bellow will eventually
+        // be set only if the System property in question does not have a value
+        // set yet.
 
-        String[] protocols =
-            {
-                SipActivator.class.getName(),
-                JabberActivator.class.getName(),
-            };
-
-        String[] mockProtocols =
-            {
-                "net/java/sip/communicator/service/protocol/mock/MockActivator"
-            };
-
-        String[][] bundles = {
-            {
-                LibJitsiActivator.class.getName(),
-                ConfigurationActivator.class.getName(),
-                UtilActivator.class.getName(),
-                DefaultResourcePackActivator.class.getName(),
-                ResourceManagementActivator.class.getName(),
-                NotificationServiceActivator.class.getName(),
-                DnsUtilActivator.class.getName(),
-                CredentialsStorageActivator.class.getName(),
-                NetaddrActivator.class.getName(),
-                PacketLoggingActivator.class.getName(),
-                GuiServiceActivator.class.getName(),
-                ProtocolMediaActivator.class.getName(),
-                NeomediaActivator.class.getName(),
-                CertificateVerificationActivator.class.getName(),
-                VersionActivator.class.getName(),
-                ProtocolProviderActivator.class.getName(),
-                GlobalDisplayDetailsActivator.class.getName(),
-                ReconnectPluginActivator.class.getName(),
-                PhoneNumberServiceActivator.class.getName(),
-                EmptyHidServiceActivator.class.getName(),
-                EmptyUiServiceActivator.class.getName(),
-                EmptyMasterPasswordInputServiceActivator.class.getName(),
-            },
-            // Shall we use mock protocol providers ?
-            _useMockProtocols ? mockProtocols : protocols,
-            {
-                JigasiBundleActivator.class.getName(),
-                RESTBundleActivator.class.getName(),
-                TranscriptServerBundleActivator.class.getName(),
-                CallControlMucActivator.class.getName(),
-                org.jitsi.ddclient.Activator.class.getName(),
-            }
-        };
-
-        return Arrays.stream(bundles)
-            .map(b -> Arrays.stream(b)
-                .filter(Objects::nonNull)
-                .map(bb -> bb.replace(".", "/"))
-                .toArray(String[]::new))
-            .toArray(String[][]::new);
-    }
-
-    @Override
-    protected Map<String, String> getSystemPropertyDefaults()
-    {
-        // FIXME: some threads must be kept alive that prevent JVM
-        // from shutting down
-        FrameworkImpl.killAfterShutdown = true;
-
-        Map<String, String> defaults = super.getSystemPropertyDefaults();
+        Map<String, String> defaults = new HashMap<>();
         String true_ = Boolean.toString(true);
         String false_ = Boolean.toString(false);
+
+        // Disable Video
+        defaults.put(
+            "net.java.sip.communicator.service.media.DISABLE_VIDEO_SUPPORT",
+            true_);
 
         // Audio system should not be disabled
         defaults.put(
@@ -200,5 +109,23 @@ public class JigasiBundleConfig
         Utils.getCallStatsJavaSDKSystemPropertyDefaults(defaults);
 
         return defaults;
+    }
+
+    /**
+     * Sets default system properties required to run Jitsi libraries inside of
+     * a server component. The purpose of that is to disable audio/video input
+     * devices etc.
+     */
+    public static void setSystemPropertyDefaults()
+    {
+        Map<String, String> defaults = getSystemPropertyDefaults();
+
+        for (Map.Entry<String, String> e : defaults.entrySet())
+        {
+            String key = e.getKey();
+
+            if (System.getProperty(key) == null)
+                System.setProperty(key, e.getValue());
+        }
     }
 }

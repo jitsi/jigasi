@@ -370,8 +370,8 @@ public class Participant
      */
     private IdentityPacketExtension getIdentityExtensionOrNull(Presence p)
     {
-        return p.getExtension(IdentityPacketExtension.ELEMENT_NAME,
-            IdentityPacketExtension.NAME_SPACE);
+        return p.getExtension(IdentityPacketExtension.ELEMENT,
+            IdentityPacketExtension.NAMESPACE);
     }
 
     /**
@@ -383,15 +383,15 @@ public class Participant
      */
     private AvatarIdPacketExtension getAvatarIdExtensionOrNull(Presence p)
     {
-        return p.getExtension(AvatarIdPacketExtension.ELEMENT_NAME,
-            AvatarIdPacketExtension.NAME_SPACE);
+        return p.getExtension(AvatarIdPacketExtension.ELEMENT,
+            AvatarIdPacketExtension.NAMESPACE);
     }
 
     private TranscriptionRequestExtension
                 getTranscriptionRequestExtensionOrNull(Presence p)
     {
         return p != null
-                ? p.getExtension(TranscriptionRequestExtension.ELEMENT_NAME,
+                ? p.getExtension(TranscriptionRequestExtension.ELEMENT,
                               TranscriptionRequestExtension.NAMESPACE)
                 : null;
     }

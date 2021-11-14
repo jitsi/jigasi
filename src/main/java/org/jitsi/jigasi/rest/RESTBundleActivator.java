@@ -18,7 +18,6 @@
 package org.jitsi.jigasi.rest;
 
 import org.eclipse.jetty.server.*;
-import org.jitsi.rest.*;
 import org.osgi.framework.*;
 
 /**
@@ -61,7 +60,7 @@ public class RESTBundleActivator
      */
     public RESTBundleActivator()
     {
-        super(REST_API_PNAME);
+        super(REST_API_PNAME, REST_API_PNAME);
     }
 
     /**
@@ -69,30 +68,10 @@ public class RESTBundleActivator
      */
     @Override
     protected Handler initializeHandlerList(BundleContext bundleContext,
-        Server server) throws Exception
+        Server server)
     {
         return new HandlerImpl(bundleContext,
-            getCfgBoolean(ENABLE_REST_SHUTDOWN_PNAME, false));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected int getDefaultPort()
-    {
-        // a default port that is not clashing other components ports
-        return 8788;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected int getDefaultTlsPort()
-    {
-        // a default port that is not clashing other components ports
-        return 8743;
+            getConfigService().getBoolean(ENABLE_REST_SHUTDOWN_PNAME, false));
     }
 
     /**

@@ -17,25 +17,23 @@
  */
 package org.jitsi.jigasi.xmpp.rayo;
 
+import static org.custommonkey.xmlunit.XMLAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import org.custommonkey.xmlunit.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.xmpp.util.*;
-import org.junit.*;
-import org.junit.runner.*;
-import org.junit.runners.*;
+import org.junit.jupiter.api.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
-
-import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Tests parsing of RefIQs.
  *
  * @author Pawel Domas
  */
-@RunWith(JUnit4.class)
 public class RefIqProviderTest
 {
     @Test
@@ -46,23 +44,21 @@ public class RefIqProviderTest
         String iqXml = getRefIqXML(uri);
 
         RayoIqProvider provider = new RayoIqProvider();
-        RayoIqProvider.RefIq dialIq
-            = (RayoIqProvider.RefIq) IQUtils.parse(iqXml, provider);
+        RefIq dialIq
+            = (RefIq) IQUtils.parse(iqXml, provider);
 
         assertEquals(uri, dialIq.getUri());
 
         assertNotNull(IQUtils.parse(getRefIqXML("someUri"), provider));
 
-        assertEquals(
-            null, IQUtils.parse(getRefIqXML(""), provider));
+        assertNull(IQUtils.parse(getRefIqXML(""), provider));
 
-        assertEquals(
-            null, IQUtils.parse(getRefIqXML(null), provider));
+        assertNull(IQUtils.parse(getRefIqXML(null), provider));
     }
 
     private String getRefIqXML(String uri) throws XmppStringprepException
     {
-        RayoIqProvider.RefIq iq = RayoIqProvider.RefIq.create(uri);
+        RefIq iq = RefIq.create(uri);
         iq.setFrom(JidCreate.from("from@example.org"));
         iq.setTo(JidCreate.from("to@example.org"));
         return iq.toXML().toString();
@@ -73,14 +69,14 @@ public class RefIqProviderTest
     {
         String uri = "from23dfsr";
 
-        RayoIqProvider.RefIq refIq = RayoIqProvider.RefIq.create(uri);
+        RefIq refIq = RefIq.create(uri);
 
         String id = refIq.getStanzaId();
         String type = refIq.getType().toString();
 
         assertXMLEqual(new Diff(
             String.format(
-                "<iq id=\"%s\" type=\"%s\">" +
+                "<iq id=\"%s\" type=\"%s\" xmlns=\"jabber:client\">" +
                     "<ref xmlns='urn:xmpp:rayo:1'" +
                     " uri='%s' />" +
                     "</iq>",

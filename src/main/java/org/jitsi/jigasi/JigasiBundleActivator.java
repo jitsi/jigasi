@@ -18,7 +18,7 @@
 package org.jitsi.jigasi;
 
 import com.timgroup.statsd.*;
-import net.java.sip.communicator.util.osgi.ServiceUtils;
+import net.java.sip.communicator.util.osgi.*;
 import org.jitsi.jigasi.osgi.*;
 import org.jitsi.meet.*;
 import org.jitsi.utils.logging.Logger;
@@ -48,8 +48,8 @@ import java.util.*;
  * @author Nik Vaessen
  */
 public class JigasiBundleActivator
-    implements BundleActivator,
-               ServiceListener
+    extends DependentActivator
+    implements ServiceListener
 {
     /**
      * The logger
@@ -130,14 +130,15 @@ public class JigasiBundleActivator
      */
     private static boolean shutdownInProgress;
 
+    private static ConfigurationService configService;
+
     /**
      * Returns <tt>ConfigurationService</tt> instance.
      * @return <tt>ConfigurationService</tt> instance.
      */
     public static ConfigurationService getConfigurationService()
     {
-        return ServiceUtils.getService(
-            osgiContext, ConfigurationService.class);
+        return configService;
     }
 
     /**
@@ -184,11 +185,16 @@ public class JigasiBundleActivator
         return ServiceUtils.getService(osgiContext, StatsDClient.class);
     }
 
+    public JigasiBundleActivator()
+    {
+        super(ConfigurationService.class);
+    }
+
     @Override
-    public void start(final BundleContext bundleContext)
-        throws Exception
+    public void startWithServices(final BundleContext bundleContext)
     {
         osgiContext = bundleContext;
+        configService = getService(ConfigurationService.class);
 
         if (isSipEnabled())
         {
@@ -196,7 +202,7 @@ public class JigasiBundleActivator
 
             // recording status, to detect recording start/stop
             ProviderManager.addExtensionProvider(
-                RecordingStatus.ELEMENT_NAME,
+                RecordingStatus.ELEMENT,
                 RecordingStatus.NAMESPACE,
                 new DefaultPacketExtensionProvider<>(RecordingStatus.class)
             );
@@ -361,7 +367,6 @@ public class JigasiBundleActivator
 
     /**
      * Returns the list of enabled gateways.
-     * @return
      */
     public static List<AbstractGateway> getAvailableGateways()
     {

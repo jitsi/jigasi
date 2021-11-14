@@ -16,7 +16,6 @@
 package org.jitsi.jigasi.version;
 
 import org.jitsi.utils.version.*;
-import org.jitsi.version.*;
 
 /**
  * Extends {@link AbstractVersionActivator} in order to provider the

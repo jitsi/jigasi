@@ -223,7 +223,7 @@ public class SoundNotificationManager
     public void process(Presence presence)
     {
         RecordingStatus rs = presence.getExtension(
-            RecordingStatus.ELEMENT_NAME,
+            RecordingStatus.ELEMENT,
             RecordingStatus.NAMESPACE);
 
         if (rs != null

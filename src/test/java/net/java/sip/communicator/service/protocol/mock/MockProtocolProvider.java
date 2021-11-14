@@ -17,6 +17,7 @@
  */
 package net.java.sip.communicator.service.protocol.mock;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.mock.muc.*;
@@ -127,7 +128,13 @@ public class MockProtocolProvider
             new MockMultiUserChatOpSet(this));
     }
 
-    public void includeJitsiMeetTools()
+    public void includeJitsiMeetToolsJabber()
+    {
+        addSupportedOperationSet(
+            OperationSetJitsiMeetToolsJabber.class,
+            new MockJitsiMeetTools(this));
+    }
+    public void includeJitsiMeetToolsSip()
     {
         addSupportedOperationSet(
             OperationSetJitsiMeetTools.class,

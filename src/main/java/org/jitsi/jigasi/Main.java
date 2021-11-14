@@ -17,19 +17,45 @@
  */
 package org.jitsi.jigasi;
 
+import java.util.*;
+import net.java.sip.communicator.impl.certificate.*;
 import net.java.sip.communicator.impl.configuration.*;
+import net.java.sip.communicator.impl.credentialsstorage.*;
+import net.java.sip.communicator.impl.dns.*;
+import net.java.sip.communicator.impl.globaldisplaydetails.*;
+import net.java.sip.communicator.impl.neomedia.*;
+import net.java.sip.communicator.impl.netaddr.*;
+import net.java.sip.communicator.impl.packetlogging.*;
+import net.java.sip.communicator.impl.phonenumbers.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.sip.*;
+import net.java.sip.communicator.impl.resources.*;
+import net.java.sip.communicator.plugin.defaultresourcepack.*;
+import net.java.sip.communicator.plugin.reconnectplugin.*;
+import net.java.sip.communicator.service.gui.internal.*;
+import net.java.sip.communicator.service.notification.*;
 import net.java.sip.communicator.service.protocol.*;
 
+import net.java.sip.communicator.service.protocol.media.*;
+import net.java.sip.communicator.util.*;
 import org.apache.commons.lang3.*;
 import org.jitsi.cmd.*;
+import org.jitsi.impl.osgi.framework.launch.*;
+import org.jitsi.jigasi.ddclient.*;
 import org.jitsi.jigasi.osgi.*;
-import org.jitsi.meet.*;
+import org.jitsi.jigasi.rest.*;
+import org.jitsi.jigasi.version.*;
+import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.osgi.framework.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.debugger.*;
 import org.jivesoftware.smack.tcp.*;
+import org.osgi.framework.*;
+import org.osgi.framework.launch.*;
+import org.osgi.framework.startlevel.*;
 
 /**
  * The gateway for Jitsi Videobridge conferences. Requires one SIP
@@ -138,7 +164,7 @@ public class Main
         };
 
     public static void main(String[] args)
-        throws ParseException
+        throws ParseException, BundleException, InterruptedException
     {
         // Parse the command-line arguments.
         CmdLine cmdLine = new CmdLine();
@@ -241,9 +267,65 @@ public class Main
         XMPPTCPConnection.setUseStreamManagementDefault(false);
         XMPPTCPConnection.setUseStreamManagementResumptionDefault(false);
 
-        ComponentMain main = new ComponentMain();
+        JigasiBundleConfig.setSystemPropertyDefaults();
+        List<Class<? extends BundleActivator>> protocols = List.of(
+            SipActivator.class,
+            JabberActivator.class);
+        var fw = start(protocols);
+        fw.waitForStop(0);
+    }
 
-        main.runMainProgramLoop(new JigasiBundleConfig());
+    public static Framework start(List<Class<? extends BundleActivator>> protocols)
+        throws BundleException, InterruptedException
+    {
+        List<Class<? extends BundleActivator>> activators = new ArrayList<>(List.of(
+            LibJitsiActivator.class,
+            ConfigurationActivator.class,
+            UtilActivator.class,
+            DefaultResourcePackActivator.class,
+            ResourceManagementActivator.class,
+            NotificationServiceActivator.class,
+            DnsUtilActivator.class,
+            CredentialsStorageActivator.class,
+            NetaddrActivator.class,
+            PacketLoggingActivator.class,
+            GuiServiceActivator.class,
+            ProtocolMediaActivator.class,
+            NeomediaActivator.class,
+            CertificateVerificationActivator.class,
+            VersionActivator.class,
+            ProtocolProviderActivator.class,
+            GlobalDisplayDetailsActivator.class,
+            ReconnectPluginActivator.class,
+            PhoneNumberServiceActivator.class,
+            EmptyHidServiceActivator.class,
+            EmptyUiServiceActivator.class,
+            EmptyMasterPasswordInputServiceActivator.class
+        ));
+        activators.addAll(protocols);
+        activators.addAll(List.of(
+            JigasiBundleActivator.class,
+            RESTBundleActivator.class,
+            TranscriptServerBundleActivator.class,
+            CallControlMucActivator.class,
+            DdClientActivator.class
+        ));
+        var options = new HashMap<String, String>();
+        options.put(Constants.FRAMEWORK_BEGINNING_STARTLEVEL, "3");
+        Framework fw = new FrameworkImpl(options, Main.class.getClassLoader());
+        fw.init();
+        var bundleContext = fw.getBundleContext();
+        for (Class<? extends BundleActivator> activator : activators)
+        {
+            var url = activator.getProtectionDomain().getCodeSource().getLocation().toString();
+            var bundle = bundleContext.installBundle(url);
+            var startLevel = bundle.adapt(BundleStartLevel.class);
+            startLevel.setStartLevel(2);
+            var bundleActivator = bundle.adapt(BundleActivatorHolder.class);
+            bundleActivator.addBundleActivator(activator);
+        }
+        fw.start();
+        return fw;
     }
 
     /**

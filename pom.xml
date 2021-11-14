@@ -18,11 +18,12 @@
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.32</slf4j.version>
+    <junit.version>5.8.1</junit.version>
     <smack.version>4.4.4</smack.version>
-    <jxmppVersion>1.0.2</jxmppVersion>
-    <!-- Match jicoco's jetty version. TODO: update jicoco -->
-    <jicoco.version>1.1-22-gbec9167</jicoco.version>
-    <jetty.version>9.4.15.v20190215</jetty.version>
+    <jxmppVersion>1.0.3</jxmppVersion>
+    <!-- Match jicoco's jetty version. -->
+    <jicoco.version>1.1-SNAPSHOT</jicoco.version>
+    <jetty.version>9.4.44.v20210927</jetty.version>
   </properties>
 
   <dependencies>
@@ -50,6 +51,11 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-translate</artifactId>
       <version>1.94.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datadoghq</groupId>
+      <artifactId>java-dogstatsd-client</artifactId>
+      <version>3.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.igniterealtime.smack</groupId>
@@ -92,7 +98,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-android-osgi</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>2.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${jitsi-desktop.groupId}</groupId>
@@ -152,22 +158,22 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-98-g6a75684</version>
+      <version>1.0-108-g480acf0</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.0-desktop-SNAPSHOT</version>
+      <version>1.1-0-g19f651af</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0.1-jitsi</version>
+      <version>1.0.2-jitsi</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>ice4j</artifactId>
-      <version>3.0-28-gf6550a8</version>
+      <version>3.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sip</groupId>
@@ -226,18 +232,18 @@
     <dependency>
       <groupId>io.sentry</groupId>
       <artifactId>sentry</artifactId>
-      <version>1.7.30</version>
+      <version>5.3.0</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
-      <version>20180130</version>
+      <version>20210307</version>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
+      <version>4.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -327,11 +333,17 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-webrtcvadwrapper</artifactId>
       <version>1.0-20200414.144800-2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-29-g3c269f8</version>
+      <version>1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -379,15 +391,21 @@
 
     <!-- test -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-videobridge</artifactId>
-      <version>1.1-20190408.175802-112</version>
+      <version>2.1-585-g21b6c20d</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -405,8 +423,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>11</source>
+          <target>11</target>
           <compilerArgs>
             <arg>-Xlint:all</arg>
           </compilerArgs>
@@ -531,15 +549,12 @@
   <profiles>
     <profile>
       <id>coverage</id>
-      <properties>
-        <jacoco.version>0.8.6</jacoco.version>
-      </properties>
       <build>
         <plugins>
           <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>${jacoco.version}</version>
+            <version>0.8.7</version>
             <executions>
               <execution>
                 <goals>

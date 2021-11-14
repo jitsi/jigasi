@@ -520,7 +520,7 @@ public class AudioModeration
         public MuteIqHandler(AbstractGatewaySession gatewaySession)
         {
             super(
-                MuteIq.ELEMENT_NAME,
+                MuteIq.ELEMENT,
                 MuteIq.NAMESPACE,
                 IQ.Type.set,
                 Mode.sync);

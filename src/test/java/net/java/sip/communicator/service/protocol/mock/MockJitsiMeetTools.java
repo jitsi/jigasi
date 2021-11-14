@@ -17,8 +17,10 @@
  */
 package net.java.sip.communicator.service.protocol.mock;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.utils.logging.Logger;
+import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 
 import java.util.*;
@@ -28,7 +30,7 @@ import java.util.concurrent.*;
  * @author Pawel Domas
  */
 public class MockJitsiMeetTools
-    implements OperationSetJitsiMeetTools
+    implements OperationSetJitsiMeetTools, OperationSetJitsiMeetToolsJabber
 {
     /**
      * The logger used by this class.
@@ -101,5 +103,37 @@ public class MockJitsiMeetTools
     @Override
     public void sendJSON(CallPeer callPeer, JSONObject jsonObject, Map<String, Object> map)
     {
+    }
+
+    @Override
+    public void addSupportedFeature(String featureName)
+    {
+        
+    }
+
+    @Override
+    public void removeSupportedFeature(String featureName)
+    {
+
+    }
+
+    @Override
+    public void sendPresenceExtension(ChatRoom chatRoom,
+        ExtensionElement extension)
+    {
+
+    }
+
+    @Override
+    public void removePresenceExtension(ChatRoom chatRoom,
+        ExtensionElement extension)
+    {
+
+    }
+
+    @Override
+    public void setPresenceStatus(ChatRoom chatRoom, String statusMessage)
+    {
+
     }
 }

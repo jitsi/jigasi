@@ -28,7 +28,7 @@ import java.util.*;
  *
  * @author Pawel Domas
  */
-public class MockActivator
+public class MockProtocolProviderFactoriesActivator
     implements BundleActivator
 {
     private ServiceRegistration<?> xmppRegistration;
@@ -37,7 +37,6 @@ public class MockActivator
 
     @Override
     public void start(BundleContext bundleContext)
-        throws Exception
     {
         MockProtocolProviderFactory sipFactory
             = new MockProtocolProviderFactory(
@@ -68,7 +67,6 @@ public class MockActivator
 
     @Override
     public void stop(BundleContext bundleContext)
-        throws Exception
     {
         if (xmppRegistration != null)
             xmppRegistration.unregister();

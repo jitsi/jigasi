@@ -20,6 +20,7 @@ package org.jitsi.jigasi.transcription;
 import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.Message;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
