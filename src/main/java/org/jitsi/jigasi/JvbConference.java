@@ -559,7 +559,10 @@ public class JvbConference
             telephony = null;
         }
 
-        this.audioModeration.clean();
+        if (this.audioModeration != null)
+        {
+            this.audioModeration.clean();
+        }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
@@ -651,7 +654,10 @@ public class JvbConference
             && mucRoom == null
             && evt.getNewState() == RegistrationState.REGISTERED)
         {
-            this.getAudioModeration().xmppProviderRegistered();
+            if (this.getAudioModeration() != null)
+            {
+                this.getAudioModeration().xmppProviderRegistered();
+            }
 
             // Join the MUC
             joinConferenceRoom();
@@ -827,7 +833,10 @@ public class JvbConference
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
-            this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
+            if (this.audioModeration != null)
+            {
+                this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
+            }
 
             // we invite focus and wait for its response
             // to be sure that if it is not in the room, the focus will be the
@@ -844,6 +853,8 @@ public class JvbConference
             // the room)
             inviteTimeout.scheduleTimeout();
 
+            mucRoom.addMemberPresenceListener(this);
+
             if (StringUtils.isEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
@@ -855,8 +866,6 @@ public class JvbConference
             }
 
             this.mucRoom = mucRoom;
-
-            mucRoom.addMemberPresenceListener(this);
 
             if (gatewaySession.getDefaultInitStatus() != null)
             {
@@ -1063,7 +1072,12 @@ public class JvbConference
 
         if (this.roomConfigurationListener != null)
         {
-            getConnection().removeAsyncStanzaListener(roomConfigurationListener);
+            XMPPConnection connection = getConnection();
+            if (connection != null)
+            {
+                connection.removeAsyncStanzaListener(roomConfigurationListener);
+            }
+
             this.roomConfigurationListener = null;
         }
 
@@ -1456,7 +1470,12 @@ public class JvbConference
             {
                 logger.info(callContext + " JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
-                JvbConference.this.getAudioModeration().maybeProcessStartMuted();
+
+                AudioModeration avMod = JvbConference.this.getAudioModeration();
+                if (avMod != null)
+                {
+                    avMod.maybeProcessStartMuted();
+                }
 
                 checkReceivedMediaTimer.schedule(new MediaActivityChecker(), JVB_ACTIVITY_CHECK_DELAY);
             }
@@ -1905,10 +1924,10 @@ public class JvbConference
                     = OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT;
 
                 stop();
-
-                timeoutThread = null;
-                logger.debug("Timeout thread is done " + this);
             }
+
+            timeoutThread = null;
+            logger.debug("Timeout thread is done " + this);
         }
 
         private void cancel()
@@ -1918,7 +1937,9 @@ public class JvbConference
                 willCauseTimeout = false;
 
                 if (timeoutThread == null)
+                {
                     return;
+                }
 
                 logger.debug("Trying to cancel " + this);
 
@@ -1960,7 +1981,7 @@ public class JvbConference
         public String toString()
         {
             return "JvbConferenceStopTimeout[" + callContext
-                + ", willCauseTimeout:" + willCauseTimeout
+                + ", willCauseTimeout:" + willCauseTimeout + " details:"
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
         }

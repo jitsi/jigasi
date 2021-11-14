@@ -468,6 +468,13 @@ public class AudioModeration
             try
             {
                 long startQuery = System.currentTimeMillis();
+
+                // in case when running unittests
+                if (this.jvbConference.getConnection() == null)
+                {
+                    return;
+                }
+
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.jvbConference.getConnection())
                     .discoverInfo(JidCreate.domainBareFrom(this.callContext.getDomain()));
 

@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
@@ -702,7 +703,10 @@ public class SipGatewaySession
     {
         if (this.jvbConference != null)
         {
-            this.jvbConference.getAudioModeration().setStartAudioMuted(startMutedFlags[0]);
+            if (this.jvbConference.getAudioModeration() != null)
+            {
+                this.jvbConference.getAudioModeration().setStartAudioMuted(startMutedFlags[0]);
+            }
         }
         else
         {
@@ -734,7 +738,11 @@ public class SipGatewaySession
 
         if (this.jvbConference != null)
         {
-            this.jvbConference.getAudioModeration().onJSONReceived(callPeer, jsonObject, params);
+            AudioModeration avMod = this.jvbConference.getAudioModeration();
+            if (avMod != null)
+            {
+                avMod.onJSONReceived(callPeer, jsonObject, params);
+            }
         }
         else
         {
@@ -1002,9 +1010,18 @@ public class SipGatewaySession
     {
         super.notifyChatRoomMemberJoined(member);
 
-        if (soundNotificationManager != null)
+        if (soundNotificationManager != null && member instanceof ChatRoomMemberJabberImpl)
         {
-            soundNotificationManager.notifyChatRoomMemberJoined(member);
+            Presence presence = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+
+            if (getFocusResourceAddr().equals(presence.getFrom().getResourceOrEmpty().toString()))
+            {
+                soundNotificationManager.process(presence);
+            }
+            else
+            {
+                soundNotificationManager.notifyChatRoomMemberJoined(member);
+            }
         }
     }
 
@@ -1330,7 +1347,10 @@ public class SipGatewaySession
                 logger.info(SipGatewaySession.this.callContext + " SIP call format used: "
                     + Util.getFirstPeerMediaFormat(call));
 
-                jvbConference.getAudioModeration().maybeProcessStartMuted();
+                if (jvbConference.getAudioModeration() != null)
+                {
+                    jvbConference.getAudioModeration().maybeProcessStartMuted();
+                }
             }
             else if (call.getCallState() == CallState.CALL_ENDED)
             {
