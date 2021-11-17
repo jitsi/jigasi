@@ -343,7 +343,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>1.0-33-g9f660fa</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
