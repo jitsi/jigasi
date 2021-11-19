@@ -410,31 +410,29 @@ public class SipGatewaySession
         if (destination == null)
         {
             incomingCall.setConference(sipCall.getConference());
+        }
 
-            boolean useTranslator = incomingCall.getProtocolProvider()
-                .getAccountID().getAccountPropertyBoolean(
-                    ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
-                    false);
-            CallPeer peer = incomingCall.getCallPeers().next();
-            // if useTranslator is enabled add a ssrc rewriter
-            if (useTranslator && !addSsrcRewriter(peer))
+        boolean useTranslator = incomingCall.getProtocolProvider().getAccountID()
+            .getAccountPropertyBoolean(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, false);
+        CallPeer peer = incomingCall.getCallPeers().next();
+        // if useTranslator is enabled add a ssrc rewriter
+        if (useTranslator && !addSsrcRewriter(peer))
+        {
+            peer.addCallPeerListener(new CallPeerAdapter()
             {
-                peer.addCallPeerListener(new CallPeerAdapter()
+                @Override
+                public void peerStateChanged(CallPeerChangeEvent evt)
                 {
-                    @Override
-                    public void peerStateChanged(CallPeerChangeEvent evt)
-                    {
-                        CallPeer peer = evt.getSourceCallPeer();
-                        CallPeerState peerState = peer.getState();
+                    CallPeer peer = evt.getSourceCallPeer();
+                    CallPeerState peerState = peer.getState();
 
-                        if (CallPeerState.CONNECTED.equals(peerState))
-                        {
-                            peer.removeCallPeerListener(this);
-                            addSsrcRewriter(peer);
-                        }
+                    if (CallPeerState.CONNECTED.equals(peerState))
+                    {
+                        peer.removeCallPeerListener(this);
+                        addSsrcRewriter(peer);
                     }
-                });
-            }
+                }
+            });
         }
 
         Exception error = this.onConferenceCallStarted(incomingCall);
