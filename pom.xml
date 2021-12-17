@@ -198,19 +198,6 @@
       <artifactId>jitsi-lgpl-dependencies</artifactId>
       <version>1.1-20190327.160813-5</version>
     </dependency>
-    <!-- runtime -->
-    <dependency>
-      <groupId>rusv</groupId>
-      <artifactId>agafua-syslog</artifactId>
-      <version>0.4</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.sentry</groupId>
-      <artifactId>sentry</artifactId>
-      <version>1.7.30</version>
-      <scope>runtime</scope>
-    </dependency>
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
@@ -221,6 +208,7 @@
       <artifactId>javax.servlet-api</artifactId>
       <version>3.1.0</version>
     </dependency>
+    <!-- runtime -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
