@@ -8,4 +8,3 @@ script/collect-dump-logs.sh                 usr/share/jigasi
 
 # callstats-java-sdk
 jigasi-home/callstats-java-sdk.properties   etc/jitsi/jigasi
-log4j2.xml                                  etc/jitsi/jigasi
