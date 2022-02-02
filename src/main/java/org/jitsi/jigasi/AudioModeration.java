@@ -276,7 +276,7 @@ public class AudioModeration
                     if (this.requestAudioMuteByJicofo(bAudioMute))
                     {
                         // Send response through sip, respondRemoteAudioMute
-                        this.gatewaySession.sendJson(callPeer,
+                        this.gatewaySession.sendJson(
                             SipInfoJsonProtocol.createSIPJSONAudioMuteResponse(bAudioMute, true, id));
 
                         // Send presence if response succeeded
@@ -284,7 +284,7 @@ public class AudioModeration
                     }
                     else
                     {
-                        this.gatewaySession.sendJson(callPeer,
+                        this.gatewaySession.sendJson(
                             SipInfoJsonProtocol.createSIPJSONAudioMuteResponse(bAudioMute, false, id));
                     }
                 }
@@ -438,15 +438,12 @@ public class AudioModeration
         if (!isMutingSupported())
             return;
 
-        // Notify peer
-        CallPeer callPeer = this.gatewaySession.getSipCall().getCallPeers().next();
-
         try
         {
             logger.info(this.callContext + " Sending mute request avModeration:" + this.avModerationEnabled
                 + " allowed to unmute:" + this.isAllowedToUnmute);
 
-            this.gatewaySession.sendJson(callPeer, SipInfoJsonProtocol.createSIPJSONAudioMuteRequest(true));
+            this.gatewaySession.sendJson(SipInfoJsonProtocol.createSIPJSONAudioMuteRequest(true));
         }
         catch (Exception ex)
         {
