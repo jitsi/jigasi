@@ -378,7 +378,10 @@ class SipHealthPeriodicChecker
         {
             logger.error("Outgoing health check failed. " + (debugEnabled ? getThreadDumb() : ""));
 
-            throw new Exception("Health check call failed with no media!");
+            String sessionInfo = (String)call.getData("X-session-info");
+
+            throw new Exception("Health check call failed with no media! "
+                + sessionInfo != null ? "Session info:" + sessionInfo: "");
         }
     }
 
