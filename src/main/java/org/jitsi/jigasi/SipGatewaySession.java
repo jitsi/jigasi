@@ -1466,7 +1466,7 @@ public class SipGatewaySession
             List<JSONObject> toProcess;
 
             // let's process any json messages that are queued
-            synchronized(jsonToSendQueue)
+            synchronized(jsonToSendLock)
             {
                 toProcess = new LinkedList<>(jsonToSendQueue);
                 jsonToSendQueue.clear();
