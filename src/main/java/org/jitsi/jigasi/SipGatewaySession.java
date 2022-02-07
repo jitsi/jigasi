@@ -251,6 +251,17 @@ public class SipGatewaySession
     private final SipInfoJsonProtocol sipInfoJsonProtocol;
 
     /**
+     * The queue to order json elements to be sent as sip info messages if sending is not possible yet (outgoing call
+     * still not created or no peers).
+     */
+    private final LinkedList<JSONObject> jsonToSendQueue = new LinkedList<>();
+
+    /**
+     * Protects reading and writing in the jsonToSendQueue.
+     */
+    private final Object jsonToSendLock = new Object();
+
+    /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -1137,7 +1148,7 @@ public class SipGatewaySession
      * @param jsonObject JSONObject to be sent.
      * @throws OperationFailedException failed sending the json.
      */
-    public void sendJson(CallPeer callPeer, JSONObject jsonObject)
+    private void sendJson(CallPeer callPeer, JSONObject jsonObject)
         throws OperationFailedException
     {
         this.sipInfoJsonProtocol.sendJson(callPeer, jsonObject);
@@ -1152,6 +1163,20 @@ public class SipGatewaySession
     public void sendJson(JSONObject jsonObject)
         throws OperationFailedException
     {
+        synchronized(jsonToSendLock)
+        {
+            // if there is no sip call, the case for outgoing calls, let's queue it till it is connected
+            // if we had already queued messages continue doing that till the call is connected and the queue is
+            // processed and emptied. We are preserving order this way.
+            if (sipCall == null || !sipCall.getCallPeers().hasNext() || !jsonToSendQueue.isEmpty())
+            {
+                // queue the object to be processed
+                jsonToSendQueue.offer(jsonObject);
+
+                return;
+            }
+        }
+
         this.sendJson(sipCall.getCallPeers().next(), jsonObject);
     }
 
@@ -1421,6 +1446,8 @@ public class SipGatewaySession
                     && destination != null)
             {
                 jvbConference.setPresenceStatus(stateString);
+
+                processJsonSendQueue();
             }
 
             soundNotificationManager.process(callPeerState);
@@ -1429,6 +1456,32 @@ public class SipGatewaySession
         void unregister()
         {
             thePeer.removeCallPeerListener(this);
+        }
+
+        /**
+         * Sends all queued json messages if any.
+         */
+        private void processJsonSendQueue()
+        {
+            List<JSONObject> toProcess;
+
+            // let's process any json messages that are queued
+            synchronized(jsonToSendLock)
+            {
+                toProcess = new LinkedList<>(jsonToSendQueue);
+                jsonToSendQueue.clear();
+            }
+
+            toProcess.forEach(json -> {
+                try
+                {
+                    SipGatewaySession.this.sendJson(thePeer, json);
+                }
+                catch(OperationFailedException e)
+                {
+                    logger.error(SipGatewaySession.this.callContext + " Error processing json ", e);
+                }
+            });
         }
     }
 
