@@ -747,6 +747,7 @@ public class JvbConference
 
         String roomName = null;
 
+        ChatRoom mucRoom = null;
         try
         {
             roomName = callContext.getRoomName();
@@ -765,7 +766,7 @@ public class JvbConference
 
             logger.info(this.callContext + " Joining JVB conference room: " + roomName);
 
-            ChatRoom mucRoom = muc.findRoom(roomName);
+            mucRoom = muc.findRoom(roomName);
 
             if (mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -903,9 +904,10 @@ public class JvbConference
                         {
                             this.audioModeration.clean();
 
-                            if (this.mucRoom != null)
+                            if (mucRoom != null)
                             {
-                                this.mucRoom.removeMemberPresenceListener(this);
+                                mucRoom.removeMemberPresenceListener(this);
+                                mucRoom.leave();
                             }
 
                            muc.removePresenceListener(this);
@@ -1059,12 +1061,6 @@ public class JvbConference
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
 
-        if (mucRoom == null)
-        {
-            logger.warn(this.callContext + " MUC room is null");
-            return;
-        }
-
         if (this.roomConfigurationListener != null)
         {
             XMPPConnection connection = getConnection();
@@ -1076,17 +1072,15 @@ public class JvbConference
             this.roomConfigurationListener = null;
         }
 
-        mucRoom.leave();
-
         // remove listener needs to be after leave,
         // to catch all member left events
         // and when focus is leaving we will call again leaveConferenceRoom making mucRoom, so we need another check
         if (mucRoom != null)
         {
+            mucRoom.leave();
             mucRoom.removeMemberPresenceListener(this);
+            mucRoom = null;
         }
-
-        mucRoom = null;
 
         if (this.lobby != null)
         {
