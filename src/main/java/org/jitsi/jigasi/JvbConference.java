@@ -559,6 +559,7 @@ public class JvbConference
         if (this.audioModeration != null)
         {
             this.audioModeration.clean();
+            this.audioModeration.cleanXmppProvider();
         }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
