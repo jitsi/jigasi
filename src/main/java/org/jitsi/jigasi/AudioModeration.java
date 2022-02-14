@@ -160,8 +160,6 @@ public class AudioModeration
             // holds a connection and we leak connection/conferences.
             connection.unregisterIQRequestHandler(muteIqHandler);
         }
-
-        connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
     /**
@@ -506,6 +504,24 @@ public class AudioModeration
                 logger.error("Error adding AV moderation listener", e);
             }
         }
+    }
+
+    /**
+     * We want to remove avModerationListener only when we are cleaning resources, the JvbConference is stopping.
+     * It is added the moment the provider registers and should not be removed
+     * while moving between lobby and conference.
+     */
+    public void cleanXmppProvider()
+    {
+        XMPPConnection connection = jvbConference.getConnection();
+
+        if (connection == null)
+        {
+            // if there is no connection nothing to clear
+            return;
+        }
+
+        connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
     /**
