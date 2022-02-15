@@ -630,7 +630,8 @@ public class Participant
                    }
                    else if (silenceFilter.newSpeech())
                    {
-                       buffer.clear();
+                       // we need to cast here to keep compatability when moving between java8 and java11
+                       ((Buffer) buffer).clear();
                        toBuffer = silenceFilter.getSpeechWindow();
                    }
                    else
