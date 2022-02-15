@@ -656,7 +656,8 @@ public class Participant
                if (spaceLeft < EXPECTED_AUDIO_LENGTH)
                {
                    sendRequest(buffer.array());
-                   buffer.clear();
+                   // we need to cast here to keep compatability when moving between java8 and java11
+                   ((Buffer) buffer).clear();
                }
            });
     }
