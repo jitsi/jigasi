@@ -571,7 +571,7 @@ public class CallControlMucActivator
         {
             try
             {
-                threadPool.submit(
+                threadPool.execute(
                     () -> {
                         IQ result = processIQInternal(packet, ctx);
                         if (result != null)

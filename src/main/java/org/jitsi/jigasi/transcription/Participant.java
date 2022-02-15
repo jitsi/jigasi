@@ -618,7 +618,7 @@ public class Participant
     {
         // note: the executorService is single-threaded and thus order
         //       is preserved, even though there are multiple participants.
-        transcriber.executorService.submit(() ->
+        transcriber.executorService.execute(() ->
            {
                byte[] toBuffer;
                if (silenceFilter != null)
@@ -671,7 +671,7 @@ public class Participant
      */
     private void sendRequest(byte[] audio)
     {
-        transcriber.executorService.submit(() ->
+        transcriber.executorService.execute(() ->
         {
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
