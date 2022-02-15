@@ -451,7 +451,7 @@ public class GoogleCloudTranscriptionService
         @Override
         public void sendRequest(final TranscriptionRequest request)
         {
-            this.service.submit(() -> {
+            this.service.execute(() -> {
                 try
                 {
                     requestManager.sentRequest(request);
