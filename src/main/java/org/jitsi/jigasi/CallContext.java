@@ -63,18 +63,13 @@ public class CallContext
     private String domain;
 
     /**
-     * Sub-domain that this instance is handling.
-     * This property is optional.
+     * The tenant that this instance is handling.
      *
      * In case of deployments where multiple domains are managed, the value is
      * subtracted from the full conference room name
-     * 'roomName@conference.subdomain.domain'.
-     *
-     * Also used in deployments where we use jigasi as xmpp component
-     * and the value is the one that is passed as command line parameter
-     * '--subdomain'.
+     * 'roomName@conference.tenant.domain'.
      */
-    private String subDomain;
+    private String tenant;
 
     /**
      * Optional password required to enter MUC room.
@@ -215,23 +210,23 @@ public class CallContext
     }
 
     /**
-     * Sets the sub domain to use when creating a call resource or to be used
+     * Sets the tenant to use when creating a call resource or to be used
      * when updating bosh url.
-     * @param subDomain the subdomain to use.
+     * @param tenant the tenant to use.
      */
-    public void setSubDomain(String subDomain)
+    public void setTenant(String tenant)
     {
-        this.subDomain = subDomain;
+        this.tenant = tenant;
         updateCallResource();
     }
 
     /**
-     * Returns sub domain that this call instance is handling.
-     * @return sub domain that this call instance is handling.
+     * Returns tenant that this call instance is handling.
+     * @return tenant that this call instance is handling.
      */
-    public String getSubDomain()
+    public String getTenant()
     {
-        return subDomain;
+        return tenant;
     }
 
     /**
@@ -250,14 +245,6 @@ public class CallContext
     public void setRoomPassword(String roomPassword)
     {
         this.roomPassword = roomPassword;
-    }
-
-    /**
-     * Auth token to enter MUC room, optional.
-     * @return the token or null.
-     */
-    public String getAuthToken() {
-        return authToken;
     }
 
     /**
@@ -364,7 +351,7 @@ public class CallContext
                 this.callResource = JidCreate.entityBareFrom(
                     String.format("%8h", random).replace(' ', '0')
                     + "@"
-                    + (this.subDomain != null ? this.subDomain + "." : "")
+                    + (this.tenant != null ? this.tenant + "." : "")
                     + this.domain);
             }
             catch (XmppStringprepException e)
@@ -410,26 +397,22 @@ public class CallContext
         if (roomName != null && roomName.contains("@"))
         {
             String mucAddress = roomName.substring(roomName.indexOf("@") + 1);
-            String mucAddressPrefix = this.mucAddressPrefix != null ?
-                this.mucAddressPrefix : "conference";
+            String mucAddressPrefix = this.mucAddressPrefix != null ? this.mucAddressPrefix : "conference";
 
             // checks whether the string starts and ends with expected strings
             // and also checks the length of strings that we will extract are not
             // longer than the actual length
-            if (mucAddress.startsWith(mucAddressPrefix)
-                && mucAddress.endsWith(domain))
+            if (mucAddress.startsWith(mucAddressPrefix) && mucAddress.endsWith(domain))
             {
                 // mucAddress not matching settings and passed domain, so skipping
-                if (mucAddressPrefix.length() + domain.length() + 2
-                    < mucAddress.length())
+                if (mucAddressPrefix.length() + domain.length() + 2 < mucAddress.length())
                 {
                     // the pattern expects no / between host and subdomain, so we add it
                     // extracting prefix + suffix plus two dots
-                    subdomain =
-                        mucAddress.substring(
-                            mucAddressPrefix.length() + 1,
-                            mucAddress.length() - domain.length() - 1);
-                    this.subDomain = subdomain;
+                    subdomain =mucAddress.substring(
+                        mucAddressPrefix.length() + 1,
+                        mucAddress.length() - domain.length() - 1);
+                    this.tenant = subdomain;
                     subdomain = "/" + subdomain;
                 }
             }
