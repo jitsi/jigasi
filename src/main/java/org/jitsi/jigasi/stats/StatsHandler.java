@@ -338,22 +338,11 @@ public class StatsHandler
             return;
         }
 
-        EntityBareJid roomJid;
-        try
-        {
-            roomJid = JidCreate.entityBareFrom(callContext.getRoomName());
-        }
-        catch(XmppStringprepException e)
-        {
-            logger.warn("Not stating stats handler as provided roomName is not a jid:" + callContext.getRoomName(), e);
-            return;
-        }
-
         CallPeriodicRunnable cpr = StatsHandler.this.theStatsReporter = new CallPeriodicRunnable(
             call,
             this.statsService.interval,
             this.statsService.service,
-            roomJid,
+            this.callContext.getRoomJid(),
             this.statsService.conferenceIDPrefix,
             DEFAULT_JIGASI_ID + "-" + originID,
             remoteEndpointID);

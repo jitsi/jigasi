@@ -137,7 +137,7 @@ public class TranscriptionGatewaySession
         // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
         transcriber.addTranslationListener(this);
-        transcriber.setRoomName(getJvbRoomName());
+        transcriber.setRoomName(this.getCallContext().getRoomJid().toString());
         transcriber.setRoomUrl(getMeetingUrl());
 
         // We create a MediaWareCallConference whose MediaDevice

@@ -456,7 +456,8 @@ public class AudioModeration
     {
         // we are here in the RegisterThread, and it is safe to query and wait
         // Uses disco info to discover the AV moderation address.
-        if (this.callContext.getDomain() != null)
+        // we need to query the domain part extracted from room jid
+        if (this.callContext.getRoomJidDomain() != null)
         {
             try
             {
@@ -469,7 +470,7 @@ public class AudioModeration
                 }
 
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.jvbConference.getConnection())
-                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getDomain()));
+                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
 
                 DiscoverInfo.Identity avIdentity =
                     info.getIdentities().stream().
