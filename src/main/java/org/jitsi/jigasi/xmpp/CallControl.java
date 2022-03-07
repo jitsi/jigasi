@@ -176,7 +176,14 @@ public class CallControl
                 if (ROOM_NAME_HEADER.equals(name))
                 {
                     roomName = value;
-                    ctx.setRoomName(roomName);
+                    try
+                    {
+                        ctx.setRoomName(roomName);
+                    }
+                    catch(XmppStringprepException e)
+                    {
+                        throw new RuntimeException("Malformed JvbRoomName header found " + roomName, e);
+                    }
                 }
                 else if (ROOM_PASSWORD_HEADER.equals(name))
                 {

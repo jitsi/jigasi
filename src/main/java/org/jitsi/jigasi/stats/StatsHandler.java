@@ -338,14 +338,11 @@ public class StatsHandler
             return;
         }
 
-        EntityBareJid roomJid;
-        try
+        EntityBareJid roomJid = this.callContext.getRoomJid();
+
+        if (roomJid == null)
         {
-            roomJid = JidCreate.entityBareFrom(callContext.getRoomName());
-        }
-        catch(XmppStringprepException e)
-        {
-            logger.warn("Not stating stats handler as provided roomName is not a jid:" + callContext.getRoomName(), e);
+            logger.warn(this.callContext + " Not stating stats handler as roomJid missing.");
             return;
         }
 

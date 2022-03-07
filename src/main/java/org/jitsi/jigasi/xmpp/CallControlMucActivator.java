@@ -773,7 +773,7 @@ public class CallControlMucActivator
             ctx.setBoshURL(acc.getAccountPropertyString(
                 CallContext.BOSH_URL_ACCOUNT_PROP));
             ctx.setMucAddressPrefix(acc.getAccountPropertyString(
-                CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
+                CallContext.MUC_DOMAIN_PREFIX_PROP, null));
 
             return processIQ((T)iqRequest, ctx);
         }

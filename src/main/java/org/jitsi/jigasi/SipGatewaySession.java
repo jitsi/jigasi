@@ -32,6 +32,7 @@ import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
+import org.jxmpp.stringprep.*;
 
 import java.io.*;
 import java.text.*;
@@ -106,7 +107,7 @@ public class SipGatewaySession
     private final String domainBaseHeaderName;
 
     /**
-     * Defult value optional INVITE header which specifies the base domain
+     * Default value optional INVITE header which specifies the base domain
      * to be used to extract the subdomain from the roomname in order
      * to construct custom bosh URL to enter MUC room that is hosting
      * the Jitsi Meet conference.
@@ -119,6 +120,25 @@ public class SipGatewaySession
      */
     private static final String JITSI_MEET_DOMAIN_BASE_HEADER_PROPERTY
         = "JITSI_MEET_DOMAIN_BASE_HEADER_NAME";
+
+    /**
+     * The name of the header to search in the INVITE headers for domain tenant to be used.
+     * Tenant is used to construct custom bosh URL to enter MUC room that is hosting
+     * the Jitsi Meet conference.
+     */
+    private final String domainTenantHeaderName;
+
+    /**
+     * Default value optional INVITE header which specifies the domain tenant to be used.
+     */
+    public static final String JITSI_MEET_DOMAIN_TENANT_HEADER_DEFAULT
+        = "Jitsi-Conference-Domain-Tenant";
+
+    /**
+     * The account property to use to set custom header name for domain tenant.
+     */
+    private static final String JITSI_MEET_DOMAIN_TENANT_HEADER_PROPERTY
+        = "JITSI_MEET_DOMAIN_TENANT_HEADER_NAME";
 
     /**
      * Default status of our participant before we get any state from
@@ -316,6 +336,11 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_MEET_DOMAIN_BASE_HEADER_PROPERTY,
                 JITSI_MEET_DOMAIN_BASE_HEADER_DEFAULT);
+
+        domainTenantHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(
+                JITSI_MEET_DOMAIN_TENANT_HEADER_PROPERTY,
+                JITSI_MEET_DOMAIN_TENANT_HEADER_DEFAULT);
 
         this.sipInfoJsonProtocol = new SipInfoJsonProtocol(jitsiMeetTools);
     }
@@ -537,33 +562,22 @@ public class SipGatewaySession
                 @Override
                 public void outgoingCallCreated(CallEvent callEvent)
                 {
-                    String roomName = getJvbRoomName();
+                    String roomName = getCallContext().getRoomJid().toString();
                     if (roomName != null)
                     {
                         Call call = callEvent.getSourceCall();
                         AtomicInteger headerCount = new AtomicInteger(0);
-                        call.setData(
-                            "EXTRA_HEADER_NAME." + headerCount.addAndGet(1),
-                            sipProvider.getAccountID()
-                                .getAccountPropertyString(
-                                    JITSI_MEET_ROOM_HEADER_PROPERTY,
-                                    "Jitsi-Conference-Room"));
-                        call.setData(
-                            "EXTRA_HEADER_VALUE." + headerCount.get(),
-                            roomName);
+                        call.setData("EXTRA_HEADER_NAME." + headerCount.addAndGet(1),
+                            sipProvider.getAccountID().getAccountPropertyString(
+                                JITSI_MEET_ROOM_HEADER_PROPERTY, "Jitsi-Conference-Room"));
+                        call.setData("EXTRA_HEADER_VALUE." + headerCount.get(), roomName);
 
                         // passes all extra headers to the outgoing call
                         callContext.getExtraHeaders().forEach(
                             (key, value) ->
                             {
-                                call.setData(
-                                    "EXTRA_HEADER_NAME."
-                                        + headerCount.addAndGet(1),
-                                    key);
-                                call.setData(
-                                    "EXTRA_HEADER_VALUE."
-                                        + headerCount.get(),
-                                    value);
+                                call.setData("EXTRA_HEADER_NAME." + headerCount.addAndGet(1), key);
+                                call.setData("EXTRA_HEADER_VALUE." + headerCount.get(), value);
                             });
                     }
 
@@ -679,25 +693,32 @@ public class SipGatewaySession
     public void onJoinJitsiMeetRequest(
         Call call, String room, Map<String, String> data)
     {
-        if (jvbConference == null && this.sipCall == call)
+        try
         {
-            if (room != null)
+            if (jvbConference == null && this.sipCall == call)
             {
-                callContext.setRoomName(room);
-                callContext.setRoomPassword(data.get(roomPassHeaderName));
-                callContext.setDomain(data.get(domainBaseHeaderName));
-                callContext.setAuthToken(data.get(authTokenHeaderName));
-                callContext.setMucAddressPrefix(sipProvider.getAccountID()
-                    .getAccountPropertyString(
-                        CallContext.MUC_DOMAIN_PREFIX_PROP, "conference"));
+                if (room != null)
+                {
+                    callContext.setRoomName(room);
+                    callContext.setRoomPassword(data.get(roomPassHeaderName));
+                    callContext.setDomain(data.get(domainBaseHeaderName));
+                    callContext.setTenant(data.get(domainTenantHeaderName));
+                    callContext.setAuthToken(data.get(authTokenHeaderName));
+                    callContext.setMucAddressPrefix(sipProvider.getAccountID()
+                        .getAccountPropertyString(CallContext.MUC_DOMAIN_PREFIX_PROP, null));
 
-                joinJvbConference(callContext);
+                    joinJvbConference(callContext);
+                }
+                else
+                {
+                    logger.warn("No JVB room name provided in INVITE header.");
+                    logger.info("Count of headers received:" + (data != null ? data.size() : 0));
+                }
             }
-            else
-            {
-                logger.warn("No JVB room name provided in INVITE header.");
-                logger.info("Count of headers received:" + (data != null ? data.size() : 0));
-            }
+        }
+        catch(XmppStringprepException e)
+        {
+            logger.error("Malformed JVB room name provided:" + room, e);
         }
     }
 
@@ -1509,8 +1530,7 @@ public class SipGatewaySession
                         return;
                     }
 
-                    if (getJvbRoomName() == null
-                           && !CallState.CALL_ENDED.equals(sipCall.getCallState()))
+                    if (getCallContext().getRoomJid() == null && !CallState.CALL_ENDED.equals(sipCall.getCallState()))
                     {
                         String defaultRoom
                             = JigasiBundleActivator.getConfigurationService()
@@ -1529,10 +1549,8 @@ public class SipGatewaySession
                         }
                         else
                         {
-                            logger.warn(
-                                SipGatewaySession.this.callContext
-                                + " No JVB room name provided in INVITE header"
-                            );
+                            logger.warn(SipGatewaySession.this.callContext
+                                + " No JVB room name provided in INVITE header");
 
                             hangUp(OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE, "No JVB room name provided");
                         }
@@ -1541,6 +1559,12 @@ public class SipGatewaySession
                 catch (InterruptedException e)
                 {
                     Thread.currentThread().interrupt();
+                }
+                catch(XmppStringprepException e)
+                {
+                    logger.error(SipGatewaySession.this.callContext + " Malformed default JVB room name.", e);
+
+                    hangUp(OperationSetBasicTelephony.HANGUP_REASON_BUSY_HERE, "No JVB room name provided");
                 }
             }
         }
