@@ -338,11 +338,19 @@ public class StatsHandler
             return;
         }
 
+        EntityBareJid roomJid = this.callContext.getRoomJid();
+
+        if (roomJid == null)
+        {
+            logger.warn(this.callContext + " Not stating stats handler as roomJid missing.");
+            return;
+        }
+
         CallPeriodicRunnable cpr = StatsHandler.this.theStatsReporter = new CallPeriodicRunnable(
             call,
             this.statsService.interval,
             this.statsService.service,
-            this.callContext.getRoomJid(),
+            roomJid,
             this.statsService.conferenceIDPrefix,
             DEFAULT_JIGASI_ID + "-" + originID,
             remoteEndpointID);
