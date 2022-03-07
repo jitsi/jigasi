@@ -174,10 +174,9 @@ public class CallContext
     }
 
     /**
-     * The room name of the MUC room that holds JVB conference call.
-     * Can just room name or the jid (roomname@conference.tenant.domain.net).
+     * The room MUC bare jid (roomname@conference.tenant.domain.net or roomname@conference.domain.net).
      *
-     * @return the room name or jid.
+     * @return the room jid.
      */
     public EntityBareJid getRoomJid()
     {
