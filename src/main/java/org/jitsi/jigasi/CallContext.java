@@ -449,7 +449,8 @@ public class CallContext
                         && strippedMucAddress.length() > this.domain.length() + 1)
                     {
                         this.roomJidDomain = this.domain;
-                        this.tenant = strippedMucAddress.substring(0, this.domain.length() - 1);
+                        this.tenant = strippedMucAddress.substring(
+                            0, strippedMucAddress.indexOf(this.domain) - 1);
                     }
                     else
                     {
