@@ -298,6 +298,15 @@ public class CallContext
     }
 
     /**
+     * Whether auth token is set.
+     * @return true if set, false otherwise.
+     */
+    public boolean hasAuthToken()
+    {
+        return this.authToken != null;
+    }
+
+    /**
      * Bosh url that we use to join a room with the xmpp account.
      * @return the bosh url to use or null.
      */

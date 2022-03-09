@@ -1455,9 +1455,7 @@ public class JvbConference
 
         String domain = ctx.getRoomJidDomain();
 
-        String userID = resourceName + "@" + domain;
-
-        properties.put(ProtocolProviderFactory.USER_ID, userID);
+        properties.put(ProtocolProviderFactory.USER_ID, resourceName + "@" + domain);
         properties.put(ProtocolProviderFactory.SERVER_ADDRESS, domain);
         properties.put(ProtocolProviderFactory.SERVER_PORT, "5222");
 
@@ -1574,11 +1572,19 @@ public class JvbConference
             boshUrl = boshUrl.replace(
                 "{roomName}", callContext.getConferenceName());
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
+
+            String boshAuthUserId = JigasiBundleActivator.getConfigurationService()
+                .getString(overridePrefix + ".BOSH_AUTH_USER_ID");
+
+            if (ctx.hasAuthToken() &&  boshAuthUserId != null)
+            {
+                properties.put(ProtocolProviderFactory.USER_ID, boshAuthUserId);
+            }
         }
 
         // Necessary when doing authenticated XMPP login, otherwise the dynamic
         // accounts get assigned the same ACCOUNT_UID which leads to problems.
-        String accountUID = "Jabber:" + userID + "/" + resourceName;
+        String accountUID = "Jabber:" + properties.get(ProtocolProviderFactory.USER_ID) + "/" + resourceName;
         properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
         // Because some AbstractGatewaySessions needs access to the audio,
