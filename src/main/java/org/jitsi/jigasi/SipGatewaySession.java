@@ -99,6 +99,23 @@ public class SipGatewaySession
         = "Jitsi-Auth-Token";
 
     /**
+     * Name of the header that holds the auth user ID.
+     */
+    private final String authUserIdHeaderName;
+
+    /**
+     * Property that holds the name of the auth user ID header.
+     */
+    private static final String JITSI_AUTH_USER_ID_HEADER_PROPERTY
+        = "JITSI_AUTH_USER_ID_HEADER_NAME";
+
+    /**
+     * Default value of the header that specifies the auth user id.
+     */
+    private static final String JITSI_AUTH_USER_ID_HEADER_NAME_DEFAULT
+        = "Jitsi-User-ID-Token";
+
+    /**
      * The name of the header to search in the INVITE headers for base domain
      * to be used to extract the subdomain from the roomname in order
      * to construct custom bosh URL to enter MUC room that is hosting
@@ -330,6 +347,12 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_AUTH_TOKEN_HEADER_PROPERTY,
                 JITSI_AUTH_TOKEN_HEADER_NAME_DEFAULT);
+
+        // check for custom header name for auth user Id header.
+        authUserIdHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(
+                JITSI_AUTH_USER_ID_HEADER_PROPERTY,
+                JITSI_AUTH_USER_ID_HEADER_NAME_DEFAULT);
 
         // check for custom header name for domain base header
         domainBaseHeaderName = sipProvider.getAccountID()
@@ -704,6 +727,7 @@ public class SipGatewaySession
                     callContext.setDomain(data.get(domainBaseHeaderName));
                     callContext.setTenant(data.get(domainTenantHeaderName));
                     callContext.setAuthToken(data.get(authTokenHeaderName));
+                    callContext.setAuthUserId(data.get(authUserIdHeaderName));
                     callContext.setMucAddressPrefix(sipProvider.getAccountID()
                         .getAccountPropertyString(CallContext.MUC_DOMAIN_PREFIX_PROP, null));
 

@@ -106,6 +106,11 @@ public class CallContext
     private String authToken;
 
     /**
+     * Optional user Id to use when token based authentication is used.
+     */
+    private String authUserId;
+
+    /**
      * Optional bosh url that we use to join a room with the
      * xmpp account.
      * The bosh URL is a pattern:
@@ -290,11 +295,40 @@ public class CallContext
 
     /**
      * Set the auth token required to enter MUC room
-     * when using token based authenitcation.
+     * when using token based authentication.
      * @param token the token.
      */
-    public void setAuthToken(String token) {
+    public void setAuthToken(String token)
+    {
         this.authToken = token;
+    }
+
+    /**
+     * Whether auth token is set.
+     * @return true if set, false otherwise.
+     */
+    public boolean hasAuthToken()
+    {
+        return this.authToken != null;
+    }
+
+    /**
+     * Set the auth user Id required to connect when using token based
+     * authentication.
+     * @param userId the user Id.
+     */
+    public void setAuthUserId(String userId)
+    {
+        this.authUserId = userId;
+    }
+
+    /**
+     * Returns the auth user Id if any.
+     * @return the user Id.
+     */
+    public String getAuthUserId()
+    {
+        return this.authUserId;
     }
 
     /**
