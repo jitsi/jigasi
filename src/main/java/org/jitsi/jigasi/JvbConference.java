@@ -1571,6 +1571,8 @@ public class JvbConference
         {
             boshUrl = boshUrl.replace(
                 "{roomName}", callContext.getConferenceName());
+
+            logger.info(ctx + " Using bosh url:" + boshUrl);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
 
             if (ctx.hasAuthToken() &&  ctx.getAuthUserId() != null)
