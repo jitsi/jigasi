@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi;
 
+import com.google.common.base.*;
+
 import net.java.sip.communicator.util.*;
 import org.jitsi.utils.*;
 import org.jxmpp.jid.*;
@@ -46,6 +48,17 @@ public class CallContext
      * the address.
      */
     private static final String P_NAME_MUC_SERVICE_ADDRESS = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
+
+    /**
+     * Property that can hold serverdomain.com=overridedomain.com,server2.net=server2different.com
+     * It is used to override the host that is used in the bosh url.
+     */
+    private static final String P_NAME_BOSH_HOST_OVERRIDE = "org.jitsi.jigasi.BOSH_HOST_OVERRIDE";
+
+    /**
+     * The map holding the value parsed P_NAME_BOSH_HOST_OVERRIDE.
+     */
+    private static Map<String, String> boshHostsOverrides = null;
 
     /**
      * The account property to search in configuration service for the custom
@@ -176,6 +189,21 @@ public class CallContext
         this.source = source;
         this.timestamp = System.currentTimeMillis();
         this.ctxId = this.timestamp + String.valueOf(super.hashCode());
+
+        if (boshHostsOverrides == null)
+        {
+            String stringMap = JigasiBundleActivator.getConfigurationService()
+                .getString(P_NAME_BOSH_HOST_OVERRIDE, null);
+            if (stringMap != null)
+            {
+                // we assume that there is at least one key value pair
+                boshHostsOverrides = Splitter.on(",").withKeyValueSeparator("=").split(stringMap);
+            }
+            else
+            {
+                boshHostsOverrides = new HashMap<>();
+            }
+        }
     }
 
     /**
@@ -508,8 +536,16 @@ public class CallContext
             // if boshURL or domain missing, do nothing
             if (boshURL != null && !StringUtils.isNullOrEmpty(domain))
             {
-                // we have domain let's update it
-                boshURL = boshURL.replace("{host}", domain);
+                String boshHost = domain;
+
+                // we have domain let's update it, but first let's check for override
+                String override = boshHostsOverrides.get(domain);
+                if (override != null && override.length() > 0)
+                {
+                    boshHost = override;
+                }
+
+                boshURL = boshURL.replace("{host}", boshHost);
 
                 // update subdomain only when roomName is provided
                 // otherwise subdomain will be empty and we will loose the template,
