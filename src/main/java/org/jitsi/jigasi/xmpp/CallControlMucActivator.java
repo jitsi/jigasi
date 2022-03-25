@@ -104,11 +104,9 @@ public class CallControlMucActivator
             initializeNewProvider(osgiContext.getService(ref));
         }
 
-        SipGateway sipGateway = ServiceUtils.getService(
-            bundleContext, SipGateway.class);
+        SipGateway sipGateway = ServiceUtils.getService(bundleContext, SipGateway.class);
 
-        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(
-                bundleContext, TranscriptionGateway.class);
+        TranscriptionGateway transcriptionGateway = ServiceUtils.getService(bundleContext, TranscriptionGateway.class);
 
         this.callControl = new CallControl(config);
 
@@ -135,9 +133,7 @@ public class CallControlMucActivator
         osgiContext.removeServiceListener(this);
 
         Collection<ServiceReference<ProtocolProviderService>> refs
-            = ServiceUtils.getServiceReferences(
-                osgiContext,
-                ProtocolProviderService.class);
+            = ServiceUtils.getServiceReferences(osgiContext, ProtocolProviderService.class);
 
         for (ServiceReference<ProtocolProviderService> ref : refs)
         {
@@ -162,8 +158,7 @@ public class CallControlMucActivator
      */
     private static ConfigurationService getConfigurationService()
     {
-        return ServiceUtils.getService(
-            osgiContext, ConfigurationService.class);
+        return ServiceUtils.getService(osgiContext, ConfigurationService.class);
     }
 
     /**
@@ -197,8 +192,7 @@ public class CallControlMucActivator
 
             if (this.callControl == null)
             {
-                this.callControl = new CallControl(
-                        gateway, getConfigurationService());
+                this.callControl = new CallControl(gateway, getConfigurationService());
             }
             else
             {
@@ -212,8 +206,7 @@ public class CallControlMucActivator
 
             if (this.callControl == null)
             {
-                this.callControl = new CallControl(
-                        gateway, getConfigurationService());
+                this.callControl = new CallControl(gateway, getConfigurationService());
             }
             else
             {
@@ -230,8 +223,7 @@ public class CallControlMucActivator
     {
         // we are interested only in XMPP accounts with BREWERY property
         if (!ProtocolNames.JABBER.equals(pps.getProtocolName())
-            || pps.getAccountID()
-                .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) == null)
+            || pps.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) == null)
         {
             return;
         }
@@ -239,12 +231,9 @@ public class CallControlMucActivator
         pps.addRegistrationStateChangeListener(this);
 
         ProtocolProviderFactory xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(
-                osgiContext, ProtocolNames.JABBER);
+            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
 
-        new RegisterThread(
-            pps, xmppProviderFactory.loadPassword(pps.getAccountID()))
-                .start();
+        new RegisterThread(pps, xmppProviderFactory.loadPassword(pps.getAccountID())).start();
     }
 
     /**
@@ -260,11 +249,9 @@ public class CallControlMucActivator
 
         if (logger.isDebugEnabled()
             && provider instanceof ProtocolProviderServiceJabberImpl
-            && provider.getAccountID()
-                .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) != null)
+            && provider.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) != null)
         {
-            logger.debug("Got control muc provider " + provider
-                + " new state -> " + evt.getNewState() );
+            logger.debug("Got control muc provider " + provider + " new state -> " + evt.getNewState() );
         }
 
         if (evt.getNewState() == RegistrationState.REGISTERED)
@@ -283,13 +270,11 @@ public class CallControlMucActivator
      */
     private void joinCommonRoom(ProtocolProviderService pps)
     {
-        String roomName = pps.getAccountID()
-            .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
+        String roomName = pps.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
 
         try
         {
-            logger.info(
-                "Joining call control room: " + roomName + " pps:" + pps);
+            logger.info("Joining call control room: " + roomName + " pps:" + pps);
             Resourcepart connectionResource = null;
 
             // getting direct access to the xmpp connection in order to add
@@ -300,16 +285,14 @@ public class CallControlMucActivator
                 // as its added to the connection, if the protocol provider
                 // gets disconnected and connects again it should create new
                 // connection and scrap old
-                XMPPConnection conn =
-                    ((ProtocolProviderServiceJabberImpl) pps).getConnection();
+                XMPPConnection conn = ((ProtocolProviderServiceJabberImpl) pps).getConnection();
                 conn.registerIQRequestHandler(new DialIqHandler(pps));
                 conn.registerIQRequestHandler(new HangUpIqHandler(pps));
 
                 connectionResource = conn.getUser().getResourceOrNull();
             }
 
-            OperationSetMultiUserChat muc
-                = pps.getOperationSet(OperationSetMultiUserChat.class);
+            OperationSetMultiUserChat muc = pps.getOperationSet(OperationSetMultiUserChat.class);
 
             ChatRoom mucRoom = muc.findRoom(roomName);
             if (connectionResource != null)
@@ -323,8 +306,7 @@ public class CallControlMucActivator
 
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
-            Statistics.updatePresenceStatusForXmppProviders(
-                Collections.singletonList(pps));
+            Statistics.updatePresenceStatusForXmppProviders(Collections.singletonList(pps));
         }
         catch (Exception e)
         {
@@ -338,8 +320,7 @@ public class CallControlMucActivator
      */
     private void leaveCommonRoom(ProtocolProviderService pps)
     {
-        String roomName = pps.getAccountID()
-            .getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
+        String roomName = pps.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP);
 
         if (roomName == null)
         {
@@ -353,8 +334,7 @@ public class CallControlMucActivator
             logger.info(
                 "Leaving call control room: " + roomName + " pps:" + pps);
 
-            OperationSetMultiUserChat muc
-                = pps.getOperationSet(OperationSetMultiUserChat.class);
+            OperationSetMultiUserChat muc = pps.getOperationSet(OperationSetMultiUserChat.class);
 
             ChatRoom mucRoom = muc.findRoom(roomName);
             if (mucRoom != null)
@@ -420,21 +400,31 @@ public class CallControlMucActivator
             Map<String, String> properties)
         throws OperationFailedException
     {
+        ConfigurationService config = JigasiBundleActivator.getConfigurationService();
+        ProtocolProviderFactory xmppProviderFactory
+            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
+        AccountManager accountManager = ProtocolProviderActivator.getAccountManager();
+
+        String propPrefix = accountManager.getFactoryImplPackageName(xmppProviderFactory);
+        String accountConfigPrefix = propPrefix + "." + id;
         if (listCallControlMucAccounts().contains(id))
         {
-            logger.warn("Account already exists id:" + id);
-            return;
+            String storedAccountUid
+                = config.getString(accountConfigPrefix + "." + ProtocolProviderFactory.ACCOUNT_UID);
+
+            if (storedAccountUid.equals(properties.get(ProtocolProviderFactory.ACCOUNT_UID)))
+            {
+                logger.warn("Account already exists id:" + id);
+                return;
+            }
+            else
+            {
+                // let's remove it first
+                removeCallControlMucAccount(id);
+            }
         }
 
-        ConfigurationService config
-            = JigasiBundleActivator.getConfigurationService();
-        ProtocolProviderFactory xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(
-                osgiContext, ProtocolNames.JABBER);
-        AccountManager accountManager
-            = ProtocolProviderActivator.getAccountManager();
-        AccountID xmppAccount
-            = xmppProviderFactory.createAccount(properties);
+        AccountID xmppAccount = xmppProviderFactory.createAccount(properties);
 
         // A small workaround to make sure we use the id for the
         // account that is provided, this is in case we want to
@@ -442,13 +432,8 @@ public class CallControlMucActivator
         // We use the fact that account manager will reuse the id if found
         // to store the properties (like edit of an account).
         {
-            String accountConfigPrefix = accountManager
-                .getFactoryImplPackageName(xmppProviderFactory) + "." + id;
-
             config.setProperty(accountConfigPrefix, id);
-            config.setProperty(
-                accountConfigPrefix
-                    + "." + ProtocolProviderFactory.ACCOUNT_UID,
+            config.setProperty(accountConfigPrefix + "." + ProtocolProviderFactory.ACCOUNT_UID,
                 xmppAccount.getAccountUniqueID());
         }
 
@@ -456,14 +441,12 @@ public class CallControlMucActivator
         // it may happen that the server is in the process of spinning up
         // and we need to be patient
         config.setProperty(
-            ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "."
-                + xmppAccount.getAccountUniqueID(),
+            ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "." + xmppAccount.getAccountUniqueID(),
             Boolean.TRUE.toString());
 
         accountManager.loadAccount(xmppAccount);
 
-        logger.info("Added new control muc account:" + id
-            + " -> " + xmppAccount);
+        logger.info("Added new control muc account:" + id + " -> " + xmppAccount);
     }
 
     /**
@@ -474,17 +457,13 @@ public class CallControlMucActivator
      */
     public synchronized static boolean removeCallControlMucAccount(String id)
     {
-        ConfigurationService config
-            = JigasiBundleActivator.getConfigurationService();
+        ConfigurationService config = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(
-                osgiContext, ProtocolNames.JABBER);
-        AccountManager accountManager
-            = ProtocolProviderActivator.getAccountManager();
+            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
+        AccountManager accountManager = ProtocolProviderActivator.getAccountManager();
 
-        String accountIDStr = config.getString(
-            accountManager.getFactoryImplPackageName(xmppProviderFactory)
-                + "." + id + "." + ProtocolProviderFactory.ACCOUNT_UID);
+        String accountIDStr = config.getString(accountManager.getFactoryImplPackageName(xmppProviderFactory)
+            + "." + id + "." + ProtocolProviderFactory.ACCOUNT_UID);
 
         AccountID accountID = accountManager.getStoredAccounts().stream()
             .filter(a -> a.getAccountUniqueID().equals(accountIDStr))
@@ -492,30 +471,13 @@ public class CallControlMucActivator
 
         if (accountID != null)
         {
-            ServiceReference<ProtocolProviderService> serRef
-                = xmppProviderFactory.getProviderForAccount(accountID);
-            if (serRef != null)
-            {
-                try
-                {
-                    osgiContext.getService(serRef).unregister(true);
-                }
-                catch(OperationFailedException e)
-                {
-                    logger.error("Error unregistering provider "
-                        + id + " / " + accountID);
-                }
-            }
-
-            boolean result
-                = xmppProviderFactory.uninstallAccount(accountID);
-            logger.info("Removing muc control account: "
-                + id + ", " + accountID + ", successful:" + result);
+            // uninstall will first unregister the account
+            boolean result = xmppProviderFactory.uninstallAccount(accountID);
+            logger.info("Removing muc control account: " + id + ", " + accountID + ", successful:" + result);
 
             // cleanup
             config.removeProperty(
-                ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "."
-                    + accountID.getAccountUniqueID());
+                ReconnectPluginActivator.ATLEAST_ONE_CONNECTION_PROP + "." + accountID.getAccountUniqueID());
 
             return result;
         }
@@ -532,16 +494,12 @@ public class CallControlMucActivator
      */
     public synchronized static List<String> listCallControlMucAccounts()
     {
-        ConfigurationService config
-            = JigasiBundleActivator.getConfigurationService();
+        ConfigurationService config = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(
-            osgiContext, ProtocolNames.JABBER);
-        AccountManager accountManager
-            = ProtocolProviderActivator.getAccountManager();
+            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
+        AccountManager accountManager = ProtocolProviderActivator.getAccountManager();
 
-        String propPrefix
-            = accountManager.getFactoryImplPackageName(xmppProviderFactory);
+        String propPrefix = accountManager.getFactoryImplPackageName(xmppProviderFactory);
 
         return
             config.getPropertyNamesByPrefix(propPrefix, false)
@@ -672,11 +630,9 @@ public class CallControlMucActivator
 
             response.setUri("xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
 
-            final XMPPConnection roomConnection
-                = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
-                    .getConnection();
-            roomConnection.registerIQRequestHandler(
-                new HangUpIqHandler(room.getParentProvider()));
+            final XMPPConnection roomConnection = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
+                .getConnection();
+            roomConnection.registerIQRequestHandler(new HangUpIqHandler(room.getParentProvider()));
         }
     }
 
@@ -743,8 +699,7 @@ public class CallControlMucActivator
         @Override
         public IQ processIQ(HangUp iqRequest, CallContext ctx)
         {
-            final AbstractGatewaySession session =
-                callControl.getSession(ctx.getCallResource());
+            final AbstractGatewaySession session = callControl.getSession(ctx.getCallResource());
             session.hangUp();
             return IQ.createResultIQ(iqRequest);
         }
@@ -768,12 +723,9 @@ public class CallControlMucActivator
             AccountID acc = pps.getAccountID();
 
             final CallContext ctx = new CallContext(pps);
-            ctx.setDomain(acc.getAccountPropertyString(
-                CallContext.DOMAIN_BASE_ACCOUNT_PROP));
-            ctx.setBoshURL(acc.getAccountPropertyString(
-                CallContext.BOSH_URL_ACCOUNT_PROP));
-            ctx.setMucAddressPrefix(acc.getAccountPropertyString(
-                CallContext.MUC_DOMAIN_PREFIX_PROP, null));
+            ctx.setDomain(acc.getAccountPropertyString(CallContext.DOMAIN_BASE_ACCOUNT_PROP));
+            ctx.setBoshURL(acc.getAccountPropertyString(CallContext.BOSH_URL_ACCOUNT_PROP));
+            ctx.setMucAddressPrefix(acc.getAccountPropertyString(CallContext.MUC_DOMAIN_PREFIX_PROP, null));
 
             return processIQ((T)iqRequest, ctx);
         }
