@@ -400,16 +400,30 @@ public class CallControlMucActivator
             Map<String, String> properties)
         throws OperationFailedException
     {
-        if (listCallControlMucAccounts().contains(id))
-        {
-            logger.warn("Account already exists id:" + id);
-            return;
-        }
-
         ConfigurationService config = JigasiBundleActivator.getConfigurationService();
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
         AccountManager accountManager = ProtocolProviderActivator.getAccountManager();
+
+        String propPrefix = accountManager.getFactoryImplPackageName(xmppProviderFactory);
+        String accountConfigPrefix = propPrefix + "." + id;
+        if (listCallControlMucAccounts().contains(id))
+        {
+            String storedAccountUid
+                = config.getString(accountConfigPrefix + "." + ProtocolProviderFactory.ACCOUNT_UID);
+
+            if (storedAccountUid.equals(properties.get(ProtocolProviderFactory.ACCOUNT_UID)))
+            {
+                logger.warn("Account already exists id:" + id);
+                return;
+            }
+            else
+            {
+                // let's remove it first
+                removeCallControlMucAccount(id);
+            }
+        }
+
         AccountID xmppAccount = xmppProviderFactory.createAccount(properties);
 
         // A small workaround to make sure we use the id for the
@@ -418,8 +432,6 @@ public class CallControlMucActivator
         // We use the fact that account manager will reuse the id if found
         // to store the properties (like edit of an account).
         {
-            String accountConfigPrefix = accountManager.getFactoryImplPackageName(xmppProviderFactory) + "." + id;
-
             config.setProperty(accountConfigPrefix, id);
             config.setProperty(accountConfigPrefix + "." + ProtocolProviderFactory.ACCOUNT_UID,
                 xmppAccount.getAccountUniqueID());
@@ -459,20 +471,7 @@ public class CallControlMucActivator
 
         if (accountID != null)
         {
-            ServiceReference<ProtocolProviderService> serRef = xmppProviderFactory.getProviderForAccount(accountID);
-            if (serRef != null)
-            {
-                try
-                {
-                    osgiContext.getService(serRef).unregister(true);
-                }
-                catch(OperationFailedException e)
-                {
-                    logger.error("Error unregistering provider "
-                        + id + " / " + accountID);
-                }
-            }
-
+            // uninstall will first unregister the account
             boolean result = xmppProviderFactory.uninstallAccount(accountID);
             logger.info("Removing muc control account: " + id + ", " + accountID + ", successful:" + result);
 
