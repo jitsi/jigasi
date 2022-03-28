@@ -77,7 +77,7 @@ public class CallControlMucActivator
     /**
      * The thread pool to serve all call control operations.
      */
-    private static ExecutorService threadPool = Util.createNewThreadPool(10, "jigasi-callcontrol");
+    private static ExecutorService threadPool = Util.createNewThreadPool("jigasi-callcontrol");
 
     /**
      * Starts muc control component. Finds all xmpp accounts and listen for
