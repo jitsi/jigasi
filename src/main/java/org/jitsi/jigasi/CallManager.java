@@ -38,15 +38,12 @@ public class CallManager
 {
     private final static Logger logger = Logger.getLogger(CallManager.class);
 
-    private static final int POOL_MAX_SIZE = 20;
-
     private static final String POOL_THREADS_PREFIX = "jigasi-callManager";
 
     /**
      * The thread pool to serve all call operations like answer and hangup.
-     * We initialize it with the 1 thread and can grow up to POOL_MAX_SIZE.
      */
-    private static ExecutorService threadPool = Util.createNewThreadPool(POOL_MAX_SIZE, POOL_THREADS_PREFIX);
+    private static ExecutorService threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
 
     private static boolean healthy = true;
 
@@ -692,6 +689,6 @@ public class CallManager
         if (!threadPool.isTerminated())
             throw new TimeoutException();
 
-        threadPool = Util.createNewThreadPool(POOL_MAX_SIZE, POOL_THREADS_PREFIX);
+        threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
     }
 }

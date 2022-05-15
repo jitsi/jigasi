@@ -17,7 +17,9 @@
  */
 package org.jitsi.jigasi;
 
-import org.jitsi.jigasi.util.*;
+import com.google.common.base.*;
+
+import net.java.sip.communicator.util.*;
 import org.jitsi.utils.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -33,6 +35,31 @@ import java.util.*;
  */
 public class CallContext
 {
+    private final static Logger logger = Logger.getLogger(CallContext.class);
+
+    /**
+     * The name of the property that is used to define the MUC service address.
+     * There are cases when authentication is used the authenticated user is
+     * using domain auth.main.domain and the muc service is under
+     * conference.main.domain. Then when joining a room without specifying
+     * the full address we will try searching using disco info for muc service
+     * under the domain auth.main.domain which will fail.
+     * We will use this property to fix those cases by manually configuring
+     * the address.
+     */
+    private static final String P_NAME_MUC_SERVICE_ADDRESS = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
+
+    /**
+     * Property that can hold serverdomain.com=overridedomain.com,server2.net=server2different.com
+     * It is used to override the host that is used in the bosh url.
+     */
+    private static final String P_NAME_BOSH_HOST_OVERRIDE = "org.jitsi.jigasi.BOSH_HOST_OVERRIDE";
+
+    /**
+     * The map holding the value parsed P_NAME_BOSH_HOST_OVERRIDE.
+     */
+    private static Map<String, String> boshHostsOverrides = null;
+
     /**
      * The account property to search in configuration service for the custom
      * bosh URL pattern which will be used when xmpp provider joins a room.
@@ -55,7 +82,16 @@ public class CallContext
     /**
      * The room name of the MUC room that holds JVB conference call.
      */
-    private String roomName;
+    private EntityBareJid roomJid;
+
+    /**
+     * The domain extracted from the room jid, without the tenant part.
+     * e.g. if room jid is roomname@muc.tenant.domain.com or roomname@muc.domain.com then <tt>roomJidDomain</tt> will
+     * have the value of domain.com.
+     * In case of docker <tt>domain</tt> can be the domain name of the deployment (used to construct the bosh url),
+     * but the room jid can be roomname@muc.tenant.meet.jitsi or roomname@muc.meet.jitsi.
+     */
+    private String roomJidDomain;
 
     /**
      * Domain that this call instance is handling.
@@ -63,18 +99,13 @@ public class CallContext
     private String domain;
 
     /**
-     * Sub-domain that this instance is handling.
-     * This property is optional.
+     * The tenant that this instance is handling.
      *
      * In case of deployments where multiple domains are managed, the value is
      * subtracted from the full conference room name
-     * 'roomName@conference.subdomain.domain'.
-     *
-     * Also used in deployments where we use jigasi as xmpp component
-     * and the value is the one that is passed as command line parameter
-     * '--subdomain'.
+     * 'roomName@conference.tenant.domain'.
      */
-    private String subDomain;
+    private String tenant;
 
     /**
      * Optional password required to enter MUC room.
@@ -86,6 +117,11 @@ public class CallContext
      * when using token based authentication.
      */
     private String authToken;
+
+    /**
+     * Optional user Id to use when token based authentication is used.
+     */
+    private String authUserId;
 
     /**
      * Optional bosh url that we use to join a room with the
@@ -105,11 +141,11 @@ public class CallContext
     private String destination;
 
     /**
-     * Muc address prefix, default is 'conference'.
-     * Used when parsing subdomain out of the full
+     * Muc address prefixes, default is 'conference' and 'muc'.
+     * Used when parsing tenant out of the full
      * room name 'roomName@conference.subdomain.domain'.
      */
-    private String mucAddressPrefix;
+    private List<String> mucAddressPrefixes = Arrays.asList(new String[]{"conference", "muc"}) ;
 
     /**
      * A timestamp when this context was created, used to construct the
@@ -153,24 +189,54 @@ public class CallContext
         this.source = source;
         this.timestamp = System.currentTimeMillis();
         this.ctxId = this.timestamp + String.valueOf(super.hashCode());
+
+        if (boshHostsOverrides == null)
+        {
+            String stringMap = JigasiBundleActivator.getConfigurationService()
+                .getString(P_NAME_BOSH_HOST_OVERRIDE, null);
+            if (stringMap != null)
+            {
+                // we assume that there is at least one key value pair
+                boshHostsOverrides = Splitter.on(",").withKeyValueSeparator("=").split(stringMap);
+            }
+            else
+            {
+                boshHostsOverrides = new HashMap<>();
+            }
+        }
     }
 
     /**
-     * The room name of the MUC room that holds JVB conference call.
-     * @return the room name.
+     * The room MUC bare jid (roomname@conference.tenant.domain.net or roomname@conference.domain.net).
+     *
+     * @return the room jid.
      */
-    public String getRoomName()
+    public EntityBareJid getRoomJid()
     {
-        return roomName;
+        return this.roomJid;
     }
 
     /**
      * Sets the room name.
+     * Can just room name or the jid (roomname@conference.tenant.domain.net).
      * @param roomName the room name to use.
      */
     public void setRoomName(String roomName)
+        throws XmppStringprepException
     {
-        this.roomName = roomName;
+        if (!roomName.contains("@"))
+        {
+            // we check for optional muc service
+            String mucService = JigasiBundleActivator.getConfigurationService()
+                .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
+            if (mucService != null)
+            {
+                roomName = roomName + "@" + mucService;
+            }
+        }
+
+        this.roomJid = JidCreate.entityBareFrom(roomName);
+
         update();
     }
 
@@ -180,12 +246,7 @@ public class CallContext
      */
     public String getConferenceName()
     {
-        if (this.roomName.contains("@"))
-        {
-            return Util.extractCallIdFromResource(this.roomName);
-        }
-
-        return this.roomName;
+        return this.roomJid.getLocalpart().toString();
     }
 
     /**
@@ -211,27 +272,35 @@ public class CallContext
 
         this.domain = domain;
         update();
-        updateCallResource();
     }
 
     /**
-     * Sets the sub domain to use when creating a call resource or to be used
+     * The domain from the room jid that this call instance is handling.
+     * @return domain extracted from the room jid.
+     */
+    public String getRoomJidDomain()
+    {
+        return this.roomJidDomain;
+    }
+
+    /**
+     * Sets the tenant to use when creating a call resource or to be used
      * when updating bosh url.
-     * @param subDomain the subdomain to use.
+     * @param tenant the tenant to use.
      */
-    public void setSubDomain(String subDomain)
+    public void setTenant(String tenant)
     {
-        this.subDomain = subDomain;
-        updateCallResource();
+        this.tenant = tenant;
+        update();
     }
 
     /**
-     * Returns sub domain that this call instance is handling.
-     * @return sub domain that this call instance is handling.
+     * Returns tenant that this call instance is handling.
+     * @return tenant that this call instance is handling.
      */
-    public String getSubDomain()
+    public String getTenant()
     {
-        return subDomain;
+        return tenant;
     }
 
     /**
@@ -253,20 +322,41 @@ public class CallContext
     }
 
     /**
-     * Auth token to enter MUC room, optional.
-     * @return the token or null.
+     * Set the auth token required to enter MUC room
+     * when using token based authentication.
+     * @param token the token.
      */
-    public String getAuthToken() {
-        return authToken;
+    public void setAuthToken(String token)
+    {
+        this.authToken = token;
     }
 
     /**
-     * Set the auth token required to enter MUC room
-     * when using token based authenitcation.
-     * @param token the token.
+     * Whether auth token is set.
+     * @return true if set, false otherwise.
      */
-    public void setAuthToken(String token) {
-        this.authToken = token;
+    public boolean hasAuthToken()
+    {
+        return this.authToken != null;
+    }
+
+    /**
+     * Set the auth user Id required to connect when using token based
+     * authentication.
+     * @param userId the user Id.
+     */
+    public void setAuthUserId(String userId)
+    {
+        this.authUserId = userId;
+    }
+
+    /**
+     * Returns the auth user Id if any.
+     * @return the user Id.
+     */
+    public String getAuthUserId()
+    {
+        return this.authUserId;
     }
 
     /**
@@ -312,7 +402,13 @@ public class CallContext
      */
     public void setMucAddressPrefix(String mucAddressPrefix)
     {
-        this.mucAddressPrefix = mucAddressPrefix;
+        if (mucAddressPrefix == null)
+        {
+            return;
+        }
+
+        this.mucAddressPrefixes = Arrays.asList(mucAddressPrefix.split(","));
+
         update();
     }
 
@@ -352,7 +448,7 @@ public class CallContext
      */
     void updateCallResource()
     {
-        if (this.domain != null)
+        if (this.roomJidDomain != null)
         {
             try
             {
@@ -364,8 +460,8 @@ public class CallContext
                 this.callResource = JidCreate.entityBareFrom(
                     String.format("%8h", random).replace(' ', '0')
                     + "@"
-                    + (this.subDomain != null ? this.subDomain + "." : "")
-                    + this.domain);
+                    + (this.tenant != null ? this.tenant + "." : "")
+                    + this.roomJidDomain);
             }
             catch (XmppStringprepException e)
             {
@@ -390,64 +486,81 @@ public class CallContext
      *
      * If room address is just the node (roomname without @.... part) than
      * we just replace {host} with domain and {subdomain} with ''.
-     *
-     * If bosh URL pattern is missing or we are missing domain, we do not update
-     * anything.
      */
     private void update()
     {
-        // boshURL or domain missing, do nothing
-        if (boshURL == null
-            || StringUtils.isNullOrEmpty(domain))
-        {
-            return;
-        }
-
-        // we have domain let's update it
-        boshURL = boshURL.replace("{host}", domain);
-
         String subdomain = "";
-        if (roomName != null && roomName.contains("@"))
-        {
-            String mucAddress = roomName.substring(roomName.indexOf("@") + 1);
-            String mucAddressPrefix = this.mucAddressPrefix != null ?
-                this.mucAddressPrefix : "conference";
 
-            // checks whether the string starts and ends with expected strings
-            // and also checks the length of strings that we will extract are not
-            // longer than the actual length
-            if (mucAddress.startsWith(mucAddressPrefix)
-                && mucAddress.endsWith(domain))
-            {
-                // mucAddress not matching settings and passed domain, so skipping
-                if (mucAddressPrefix.length() + domain.length() + 2
-                    < mucAddress.length())
+        if (this.getRoomJid() != null)
+        {
+
+            String mucAddress = this.getRoomJid().getDomain().toString();
+
+            // checks whether the string starts and ends with any of the expected strings
+            mucAddressPrefixes.forEach(prefix -> {
+                if (mucAddress.startsWith(prefix))
                 {
-                    // the pattern expects no / between host and subdomain, so we add it
-                    // extracting prefix + suffix plus two dots
-                    subdomain =
-                        mucAddress.substring(
-                            mucAddressPrefix.length() + 1,
-                            mucAddress.length() - domain.length() - 1);
-                    this.subDomain = subdomain;
-                    subdomain = "/" + subdomain;
+                    String strippedMucAddress =  mucAddress.substring(prefix.length() + 1);
+
+                    if (this.tenant != null && strippedMucAddress.startsWith(this.tenant))
+                    {
+                        this.roomJidDomain = strippedMucAddress.substring(this.tenant.length() + 1);
+                    }
+                    // if it ends with the domain and the length indicates there is a tenant extract it
+                    else if (this.domain != null && strippedMucAddress.endsWith(this.domain)
+                        && strippedMucAddress.length() > this.domain.length() + 1)
+                    {
+                        this.roomJidDomain = this.domain;
+                        this.tenant = strippedMucAddress.substring(
+                            0, strippedMucAddress.indexOf(this.domain) - 1);
+                    }
+                    else
+                    {
+                        // not tenant
+                        this.roomJidDomain = strippedMucAddress;
+                    }
                 }
-            }
+            });
 
-            // update subdomain only when roomName is provided
-            // otherwise subdomain will be empty and we will loose the template,
-            // before we have a chance to check for subdomain in the
-            // target room name
-            boshURL = boshURL.replace("{subdomain}", subdomain);
-        }
-
-        if (this.authToken != null)
-        {
-            if (!boshURL.contains("&token="))
+            if (this.tenant != null)
             {
-                boshURL = boshURL + "&token=" + this.authToken;
+                subdomain = "/" + this.tenant;
+            }
+
+            if (this.roomJidDomain == null)
+            {
+                logger.warn("No roomJidDomain extracted from roomJid:" + this.getRoomJid() + ", tenant:" + this.tenant);
+                this.roomJidDomain = this.domain;
+            }
+
+            // if boshURL or domain missing, do nothing
+            if (boshURL != null && !StringUtils.isNullOrEmpty(domain))
+            {
+                String boshHost = domain;
+
+                // we have domain let's update it, but first let's check for override
+                String override = boshHostsOverrides.get(domain);
+                if (override != null && override.length() > 0)
+                {
+                    boshHost = override;
+                }
+
+                boshURL = boshURL.replace("{host}", boshHost);
+
+                // update subdomain only when roomName is provided
+                // otherwise subdomain will be empty and we will loose the template,
+                // before we have a chance to check for subdomain in the
+                // target room name
+                boshURL = boshURL.replace("{subdomain}", subdomain);
             }
         }
+
+        if (this.authToken != null && boshURL != null && !boshURL.contains("&token="))
+        {
+            boshURL = boshURL + "&token=" + this.authToken;
+        }
+
+        this.updateCallResource();
     }
 
     /**
@@ -467,7 +580,7 @@ public class CallContext
     public String getMeetingUrl()
     {
         String url = getBoshURL();
-        String room = getRoomName();
+        String room = getConferenceName();
 
         if (url == null || room == null)
         {
@@ -475,7 +588,6 @@ public class CallContext
         }
 
         url = url.substring(0, url.indexOf("/http-bind"));
-        room = room.substring(0, room.indexOf("@"));
 
         return url + "/" + room;
     }

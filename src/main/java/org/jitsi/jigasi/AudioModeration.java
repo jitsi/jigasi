@@ -160,8 +160,6 @@ public class AudioModeration
             // holds a connection and we leak connection/conferences.
             connection.unregisterIQRequestHandler(muteIqHandler);
         }
-
-        connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
     /**
@@ -276,7 +274,7 @@ public class AudioModeration
                     if (this.requestAudioMuteByJicofo(bAudioMute))
                     {
                         // Send response through sip, respondRemoteAudioMute
-                        this.gatewaySession.sendJson(callPeer,
+                        this.gatewaySession.sendJson(
                             SipInfoJsonProtocol.createSIPJSONAudioMuteResponse(bAudioMute, true, id));
 
                         // Send presence if response succeeded
@@ -284,7 +282,7 @@ public class AudioModeration
                     }
                     else
                     {
-                        this.gatewaySession.sendJson(callPeer,
+                        this.gatewaySession.sendJson(
                             SipInfoJsonProtocol.createSIPJSONAudioMuteResponse(bAudioMute, false, id));
                     }
                 }
@@ -440,15 +438,12 @@ public class AudioModeration
         if (!isMutingSupported())
             return;
 
-        // Notify peer
-        CallPeer callPeer = this.gatewaySession.getSipCall().getCallPeers().next();
-
         try
         {
             logger.info(this.callContext + " Sending mute request avModeration:" + this.avModerationEnabled
                 + " allowed to unmute:" + this.isAllowedToUnmute);
 
-            this.gatewaySession.sendJson(callPeer, SipInfoJsonProtocol.createSIPJSONAudioMuteRequest(true));
+            this.gatewaySession.sendJson(SipInfoJsonProtocol.createSIPJSONAudioMuteRequest(true));
         }
         catch (Exception ex)
         {
@@ -463,7 +458,8 @@ public class AudioModeration
     {
         // we are here in the RegisterThread, and it is safe to query and wait
         // Uses disco info to discover the AV moderation address.
-        if (this.callContext.getDomain() != null)
+        // we need to query the domain part extracted from room jid
+        if (this.callContext.getRoomJidDomain() != null)
         {
             try
             {
@@ -476,7 +472,7 @@ public class AudioModeration
                 }
 
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.jvbConference.getConnection())
-                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getDomain()));
+                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
 
                 DiscoverInfo.Identity avIdentity =
                     info.getIdentities().stream().
@@ -511,6 +507,24 @@ public class AudioModeration
                 logger.error("Error adding AV moderation listener", e);
             }
         }
+    }
+
+    /**
+     * We want to remove avModerationListener only when we are cleaning resources, the JvbConference is stopping.
+     * It is added the moment the provider registers and should not be removed
+     * while moving between lobby and conference.
+     */
+    public void cleanXmppProvider()
+    {
+        XMPPConnection connection = jvbConference.getConnection();
+
+        if (connection == null)
+        {
+            // if there is no connection nothing to clear
+            return;
+        }
+
+        connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
     /**

@@ -618,7 +618,7 @@ public class Participant
     {
         // note: the executorService is single-threaded and thus order
         //       is preserved, even though there are multiple participants.
-        transcriber.executorService.submit(() ->
+        transcriber.executorService.execute(() ->
            {
                byte[] toBuffer;
                if (silenceFilter != null)
@@ -630,7 +630,8 @@ public class Participant
                    }
                    else if (silenceFilter.newSpeech())
                    {
-                       buffer.clear();
+                       // we need to cast here to keep compatability when moving between java8 and java11
+                       ((Buffer) buffer).clear();
                        toBuffer = silenceFilter.getSpeechWindow();
                    }
                    else
@@ -656,7 +657,8 @@ public class Participant
                if (spaceLeft < EXPECTED_AUDIO_LENGTH)
                {
                    sendRequest(buffer.array());
-                   buffer.clear();
+                   // we need to cast here to keep compatability when moving between java8 and java11
+                   ((Buffer) buffer).clear();
                }
            });
     }
@@ -670,7 +672,7 @@ public class Participant
      */
     private void sendRequest(byte[] audio)
     {
-        transcriber.executorService.submit(() ->
+        transcriber.executorService.execute(() ->
         {
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,

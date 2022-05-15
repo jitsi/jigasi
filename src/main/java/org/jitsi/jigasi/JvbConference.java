@@ -122,19 +122,6 @@ public class JvbConference
         = "org.jitsi.jigasi.USE_SIP_USER_AS_XMPP_RESOURCE";
 
     /**
-     * The name of the property that is used to define the MUC service address.
-     * There are cases when authentication is used the authenticated user is
-     * using domain auth.main.domain and the muc service is under
-     * conference.main.domain. Then when joining a room without specifying
-     * the full address we will try searching using disco info for muc service
-     * under the domain auth.main.domain which will fail.
-     * We will use this property to fix those cases by manually configuring
-     * the address.
-     */
-    private static final String P_NAME_MUC_SERVICE_ADDRESS
-        = "org.jitsi.jigasi.MUC_SERVICE_ADDRESS";
-
-    /**
      * The name of the property that is used to define whether the
      * max occupant limit reach is notified or not.
      */
@@ -484,8 +471,7 @@ public class JvbConference
             logger.error(this.callContext + " Already started !");
             return;
         }
-        logger.info(this.callContext + " Starting JVB conference room: "
-            + this.callContext.getRoomName());
+        logger.info(this.callContext + " Starting JVB conference room: " + this.callContext.getRoomJid());
 
         Localpart resourceIdentifier = getResourceIdentifier();
 
@@ -562,6 +548,7 @@ public class JvbConference
         if (this.audioModeration != null)
         {
             this.audioModeration.clean();
+            this.audioModeration.cleanXmppProvider();
         }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
@@ -683,7 +670,7 @@ public class JvbConference
         }
         else if (evt.getNewState() == RegistrationState.CONNECTION_FAILED)
         {
-            logger.error(this.callContext + " XMPP Connection failed.");
+            logger.error(this.callContext + " XMPP Connection failed. " + evt);
 
             if (!connFailedStatsSent)
             {
@@ -699,8 +686,19 @@ public class JvbConference
             // participant been removed due to inactivity (bosh-timeout)
             callContext.updateCallResource();
 
-            // let us hangup this call, a new one will be established once we are back in the room
-            CallManager.hangupCall(jvbCall, 502, "Connection failed");
+            // ugly hack to detect wrong xmpp jid used, to drop the call(xmpp and sip one) and give up
+            if (evt.getReasonCode() == RegistrationStateChangeEvent.REASON_INTERNAL_ERROR
+                && evt.getReason().contains("No supported and enabled SASL Mechanism provided by server"))
+            {
+                // probably wrong roomName or domain/tenant combination, we will drop the call
+                logger.error("Server didn't like our xmpp configs, we are giving up!    ");
+                stop();
+            }
+            else
+            {
+                // let us hangup this call, a new one will be established once we are back in the room
+                CallManager.hangupCall(jvbCall, 502, "Connection failed");
+            }
         }
         else
         {
@@ -748,27 +746,15 @@ public class JvbConference
 
         Localpart lobbyLocalpart = null;
 
-        String roomName = null;
-
+        ChatRoom mucRoom = null;
         try
         {
-            roomName = callContext.getRoomName();
-            if (!roomName.contains("@"))
-            {
-                // we check for optional muc service
-                String mucService
-                    = JigasiBundleActivator.getConfigurationService()
-                        .getString(P_NAME_MUC_SERVICE_ADDRESS, null);
-                if (StringUtils.isNotEmpty(mucService))
-                {
-                    roomName = roomName + "@" + mucService;
-                }
-            }
+            String roomName = callContext.getRoomJid().toString();
             String roomPassword = callContext.getRoomPassword();
 
             logger.info(this.callContext + " Joining JVB conference room: " + roomName);
 
-            ChatRoom mucRoom = muc.findRoom(roomName);
+            mucRoom = muc.findRoom(roomName);
 
             if (mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -906,9 +892,10 @@ public class JvbConference
                         {
                             this.audioModeration.clean();
 
-                            if (this.mucRoom != null)
+                            if (mucRoom != null)
                             {
-                                this.mucRoom.removeMemberPresenceListener(this);
+                                mucRoom.removeMemberPresenceListener(this);
+                                mucRoom.leave();
                             }
 
                            muc.removePresenceListener(this);
@@ -937,12 +924,10 @@ public class JvbConference
                                             Resourcepart.from(
                                                 lobbyLocalpart.toString()));
 
-                                    Jid mainRoomJid = JidCreate.entityBareFrom(roomName);
-
                                     this.lobby = new Lobby(this.xmppProvider,
                                             this.callContext,
                                             lobbyFullJid,
-                                            mainRoomJid,
+                                            this.callContext.getRoomJid(),
                                             this,
                                             (SipGatewaySession)this.gatewaySession);
 
@@ -1064,12 +1049,6 @@ public class JvbConference
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
 
-        if (mucRoom == null)
-        {
-            logger.warn(this.callContext + " MUC room is null");
-            return;
-        }
-
         if (this.roomConfigurationListener != null)
         {
             XMPPConnection connection = getConnection();
@@ -1081,17 +1060,15 @@ public class JvbConference
             this.roomConfigurationListener = null;
         }
 
-        mucRoom.leave();
-
         // remove listener needs to be after leave,
         // to catch all member left events
         // and when focus is leaving we will call again leaveConferenceRoom making mucRoom, so we need another check
         if (mucRoom != null)
         {
+            mucRoom.leave();
             mucRoom.removeMemberPresenceListener(this);
+            mucRoom = null;
         }
-
-        mucRoom = null;
 
         if (this.lobby != null)
         {
@@ -1305,24 +1282,12 @@ public class JvbConference
     }
 
     /**
-     * Returns the name of the chat room that holds JVB conference in which this
-     * instance is participating.
-     * @return the name of the chat room that holds JVB conference in which this
-     * instance is participating.
-     */
-    public String getRoomName()
-    {
-        return callContext.getRoomName();
-    }
-
-    /**
      * Returns the URL of the meeting
      *
      * @return the URL of the meeting
      */
     public String getMeetingUrl()
     {
-
         return callContext.getMeetingUrl();
     }
 
@@ -1489,16 +1454,14 @@ public class JvbConference
     /**
      * FIXME: temporary
      */
-    private Map<String, String> createAccountPropertiesForCallId(
-            CallContext ctx,
-            String resourceName)
+    private Map<String, String> createAccountPropertiesForCallId(CallContext ctx, String resourceName)
     {
         HashMap<String, String> properties = new HashMap<>();
 
-        String userID = resourceName + "@" + ctx.getDomain();
+        String domain = ctx.getRoomJidDomain();
 
-        properties.put(ProtocolProviderFactory.USER_ID, userID);
-        properties.put(ProtocolProviderFactory.SERVER_ADDRESS, ctx.getDomain());
+        properties.put(ProtocolProviderFactory.USER_ID, resourceName + "@" + domain);
+        properties.put(ProtocolProviderFactory.SERVER_ADDRESS, domain);
         properties.put(ProtocolProviderFactory.SERVER_PORT, "5222");
 
         properties.put(ProtocolProviderFactory.RESOURCE, resourceName);
@@ -1593,13 +1556,14 @@ public class JvbConference
                 // used on reconnect
                 properties.put(ProtocolProviderFactory.PASSWORD, value);
             }
-            else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN"
-                        .equals(overridenProp))
+            else if ("org.jitsi.jigasi.xmpp.acc.BOSH_URL_PATTERN".equals(overridenProp))
             {
                 // do not override boshURL with the global setting if
                 // we already have a value
                 if (StringUtils.isEmpty(ctx.getBoshURL()))
+                {
                     ctx.setBoshURL(value);
+                }
             }
             else
             {
@@ -1612,12 +1576,19 @@ public class JvbConference
         {
             boshUrl = boshUrl.replace(
                 "{roomName}", callContext.getConferenceName());
+
+            logger.info(ctx + " Using bosh url:" + boshUrl);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
+
+            if (ctx.hasAuthToken() &&  ctx.getAuthUserId() != null)
+            {
+                properties.put(ProtocolProviderFactory.USER_ID, ctx.getAuthUserId());
+            }
         }
 
         // Necessary when doing authenticated XMPP login, otherwise the dynamic
         // accounts get assigned the same ACCOUNT_UID which leads to problems.
-        String accountUID = "Jabber:" + userID + "/" + resourceName;
+        String accountUID = "Jabber:" + properties.get(ProtocolProviderFactory.USER_ID) + "/" + resourceName;
         properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
         // Because some AbstractGatewaySessions needs access to the audio,
@@ -1680,7 +1651,7 @@ public class JvbConference
      */
     private void inviteFocus(final EntityBareJid roomIdentifier)
     {
-        if (callContext == null || callContext.getDomain() == null)
+        if (callContext == null || callContext.getRoomJidDomain() == null)
         {
             logger.error(this.callContext
                 + " No domain name info to use for inviting focus!"
@@ -1694,9 +1665,9 @@ public class JvbConference
         try
         {
             focusInviteIQ.setType(IQ.Type.set);
+            // use the part from the muc jid
             focusInviteIQ.setTo(JidCreate.domainBareFrom(
-                gatewaySession.getFocusResourceAddr()
-                    + "." + callContext.getDomain()));
+                gatewaySession.getFocusResourceAddr() + "." + callContext.getRoomJidDomain()));
         }
         catch (XmppStringprepException e)
         {

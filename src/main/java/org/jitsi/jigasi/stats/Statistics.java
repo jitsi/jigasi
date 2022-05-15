@@ -527,7 +527,7 @@ public class Statistics
                 stats.addStat(transcriberStat);
                 stats.addStat(sipgwStat);
 
-                threadPool.submit(
+                threadPool.execute(
                     () -> pps.getOperationSet(OperationSetJitsiMeetToolsJabber.class)
                             .sendPresenceExtension(mucRoom, stats));
             }

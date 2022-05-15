@@ -123,18 +123,6 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * Returns the name of the chat room that holds current JVB conference or
-     * <tt>null</tt> we're not in any room.
-     *
-     * @return the name of the chat room that holds current JVB conference or
-     *         <tt>null</tt> we're not in any room.
-     */
-    public String getJvbRoomName()
-    {
-        return jvbConference != null ? jvbConference.getRoomName() : null;
-    }
-
-    /**
      * Returns the url of the conference or null if we're not in a meeting
      *
      * @return the url or null

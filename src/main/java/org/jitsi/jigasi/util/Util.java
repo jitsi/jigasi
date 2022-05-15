@@ -84,19 +84,6 @@ public class Util
     }
 
     /**
-     * Call resource currently has the form of e23gr547@callcontro.server.net.
-     * This methods extract random call id part before '@' sign. In the example
-     * above it is 'e23gr547'.
-     * @param callResource the call resource/URI from which the call ID part
-     *                     will be extracted.
-     * @return extracted random call ID part from full call resource string.
-     */
-    public static String extractCallIdFromResource(String callResource)
-    {
-        return callResource.substring(0, callResource.indexOf("@"));
-    }
-
-    /**
      * Get the md5 hash of a string
      *
      * received from:
@@ -248,17 +235,16 @@ public class Util
     }
 
     /**
-     * Creates new thread pool.
-     * @param size the pool size.
+     * Creates new thread pool with one initial thread and can grow up.
      * @param name the threads name prefix.
      * @return the newly created pool.
      */
-    public static ExecutorService createNewThreadPool(int size, String name)
+    public static ExecutorService createNewThreadPool(String name)
     {
         return new ThreadPoolExecutor(
-            1, size,
+            1, 1000, // a pretty big thread pool size to avoid reaching capacity
             60L, TimeUnit.SECONDS, // time to wait before clearing threads
-            new LinkedBlockingQueue<>(),
+            new SynchronousQueue<>(),
             new CustomizableThreadFactory(name, true));
     }
 
