@@ -17,9 +17,9 @@
  */
 package org.jitsi.jigasi;
 
-import net.java.sip.communicator.service.protocol.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static org.junit.Assert.assertTrue;
+import net.java.sip.communicator.service.protocol.*;
 
 /**
  * Class encapsulates some assertions about {@link SipGatewaySession}.

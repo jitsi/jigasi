@@ -31,9 +31,9 @@ public class OutCallListener
 {
     private Call outgoingCall;
 
-    private OperationSetBasicTelephony telephony;
+    private OperationSetBasicTelephony<?> telephony;
 
-    public void bind(OperationSetBasicTelephony telephony)
+    public void bind(OperationSetBasicTelephony<?> telephony)
     {
         this.telephony = telephony;
 
