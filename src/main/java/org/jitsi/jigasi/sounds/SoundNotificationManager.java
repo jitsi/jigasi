@@ -19,7 +19,6 @@ package org.jitsi.jigasi.sounds;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.*;
 import org.gagravarr.ogg.*;
 import org.gagravarr.opus.*;
 import org.jitsi.impl.neomedia.*;
@@ -29,6 +28,7 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jivesoftware.smack.packet.*;
 
@@ -233,7 +233,7 @@ public class SoundNotificationManager
     public void process(Presence presence)
     {
         RecordingStatus rs = presence.getExtension(
-            RecordingStatus.ELEMENT_NAME,
+            RecordingStatus.ELEMENT,
             RecordingStatus.NAMESPACE);
 
         if (rs != null

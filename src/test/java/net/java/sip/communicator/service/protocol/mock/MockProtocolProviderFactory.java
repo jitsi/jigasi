@@ -79,11 +79,11 @@ public class MockProtocolProviderFactory
         if (ProtocolNames.JABBER.equals(getProtocolName()))
         {
             protocolProvider.includeMultiUserChatOpSet();
-            protocolProvider.includeJitsiMeetTools();
+            protocolProvider.includeJitsiMeetToolsJabber();
         }
         if (ProtocolNames.SIP.equals(getProtocolName()))
         {
-            protocolProvider.includeJitsiMeetTools();
+            protocolProvider.includeJitsiMeetToolsSip();
         }
 
         return protocolProvider;

@@ -17,10 +17,9 @@
  */
 package org.jitsi.jigasi.xmpp;
 
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
-import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.packet.*;
 import org.jxmpp.jid.*;
@@ -211,7 +210,7 @@ public class CallControl
                     + " Cannot accept dial request " + to + " because"
                     + " the TranscriptionGateway is disabled");
                 return RefIq.createResult(iq,
-                    XMPPError.Condition.not_acceptable.toString());
+                    StanzaError.Condition.not_acceptable.toString());
             }
 
             session = transcriptionGateway.createOutgoingCall(ctx);
@@ -224,7 +223,7 @@ public class CallControl
                     + " Cannot accept dial request " + to + " because"
                     + " the SipGateway is disabled");
                 return RefIq.createResult(iq,
-                    XMPPError.Condition.not_acceptable.toString());
+                    StanzaError.Condition.not_acceptable.toString());
             }
 
             session = sipGateway.createOutgoingCall(ctx);

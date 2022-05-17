@@ -17,16 +17,18 @@
  */
 package org.jitsi.jigasi.xmpp;
 
+import static org.jivesoftware.smack.packet.StanzaError.Condition.internal_server_error;
+
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.plugin.reconnectplugin.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
-import org.jitsi.xmpp.extensions.rayo.RayoIqProvider.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.iqrequest.*;
@@ -49,8 +51,8 @@ import java.util.stream.*;
  * @author Nik Vaessen
  */
 public class CallControlMucActivator
-    implements BundleActivator,
-               ServiceListener,
+    extends DependentActivator
+    implements ServiceListener,
                RegistrationStateChangeListener,
                GatewaySessionListener,
                GatewayListener
@@ -74,23 +76,28 @@ public class CallControlMucActivator
      */
     private CallControl callControl = null;
 
+    private ConfigurationService configService;
+    
     /**
      * The thread pool to serve all call control operations.
      */
     private static ExecutorService threadPool = Util.createNewThreadPool("jigasi-callcontrol");
 
+    public CallControlMucActivator()
+    {
+        super(ConfigurationService.class);
+    }
+    
     /**
      * Starts muc control component. Finds all xmpp accounts and listen for
      * new ones registered.
      * @param bundleContext the bundle context
      */
     @Override
-    public void start(final BundleContext bundleContext)
-        throws Exception
+    public void startWithServices(final BundleContext bundleContext)
     {
         osgiContext = bundleContext;
-
-        ConfigurationService config = getConfigurationService();
+        configService = getService(ConfigurationService.class);
 
         osgiContext.addServiceListener(this);
 
@@ -108,7 +115,7 @@ public class CallControlMucActivator
 
         TranscriptionGateway transcriptionGateway = ServiceUtils.getService(bundleContext, TranscriptionGateway.class);
 
-        this.callControl = new CallControl(config);
+        this.callControl = new CallControl(configService);
 
         if (sipGateway != null)
         {
@@ -153,15 +160,6 @@ public class CallControlMucActivator
     }
 
     /**
-     * Returns <tt>ConfigurationService</tt> instance.
-     * @return <tt>ConfigurationService</tt> instance.
-     */
-    private static ConfigurationService getConfigurationService()
-    {
-        return ServiceUtils.getService(osgiContext, ConfigurationService.class);
-    }
-
-    /**
      * Returns timeout value for room join waiting.
      */
     public static long getMucJoinWaitTimeout()
@@ -192,7 +190,7 @@ public class CallControlMucActivator
 
             if (this.callControl == null)
             {
-                this.callControl = new CallControl(gateway, getConfigurationService());
+                this.callControl = new CallControl(gateway, configService);
             }
             else
             {
@@ -206,7 +204,7 @@ public class CallControlMucActivator
 
             if (this.callControl == null)
             {
-                this.callControl = new CallControl(gateway, getConfigurationService());
+                this.callControl = new CallControl(gateway, configService);
             }
             else
             {
@@ -521,7 +519,7 @@ public class CallControlMucActivator
     {
         DialIqHandler(ProtocolProviderService pps)
         {
-            super(DialIq.ELEMENT_NAME, IQ.Type.set, pps);
+            super(DialIq.ELEMENT, IQ.Type.set, pps);
         }
 
         @Override
@@ -546,12 +544,14 @@ public class CallControlMucActivator
                         }
                     });
             }
-            catch(RejectedExecutionException e)
+            catch (RejectedExecutionException e)
             {
                 logger.error(ctx + " Failed to handle incoming dialIQ:" + packet.toXML());
 
-                return IQ.createErrorResponse(packet, XMPPError.from(
-                    XMPPError.Condition.internal_server_error, e.getMessage()));
+                return IQ.createErrorResponse(packet, StanzaError.getBuilder()
+                    .setCondition(internal_server_error)
+                    .setConditionText(e.getMessage())
+                    .build());
             }
 
             return null;
@@ -582,8 +582,8 @@ public class CallControlMucActivator
             catch (Exception e)
             {
                 logger.error(ctx + " Error processing RayoIq", e);
-                return IQ.createErrorResponse(packet, XMPPError.from(
-                    XMPPError.Condition.internal_server_error, e.getMessage()));
+                return IQ.createErrorResponse(packet, StanzaError.from(
+                    StanzaError.Condition.internal_server_error, e.getMessage()));
             }
         }
 
@@ -693,7 +693,7 @@ public class CallControlMucActivator
     {
         HangUpIqHandler(ProtocolProviderService pps)
         {
-            super(HangUp.ELEMENT_NAME, IQ.Type.set, pps);
+            super(HangUp.ELEMENT, IQ.Type.set, pps);
         }
 
         @Override
@@ -705,7 +705,7 @@ public class CallControlMucActivator
         }
     }
 
-    private abstract class RayoIqHandler<T extends RayoIq>
+    private static abstract class RayoIqHandler<T extends RayoIq>
         extends AbstractIqRequestHandler
     {
         protected ProtocolProviderService pps;

@@ -325,12 +325,12 @@ public class Transcriber
 
                 TranscriptionLanguageExtension transcriptionLanguageExtension
                     = presence.getExtension(
-                        TranscriptionLanguageExtension.ELEMENT_NAME,
+                        TranscriptionLanguageExtension.ELEMENT,
                         TranscriptionLanguageExtension.NAMESPACE);
 
                 TranslationLanguageExtension translationLanguageExtension
                     = presence.getExtension(
-                        TranslationLanguageExtension.ELEMENT_NAME,
+                        TranslationLanguageExtension.ELEMENT,
                         TranslationLanguageExtension.NAMESPACE);
 
                 if (transcriptionLanguageExtension != null)

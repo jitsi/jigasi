@@ -21,7 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.service.protocol.mock.muc.*;
-import net.java.sip.communicator.util.*;
+import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 
 /**

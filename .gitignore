@@ -5,6 +5,7 @@ dist
 *.jar
 
 .idea/*
+jigasi-home/
 jigasi.iml
 
 target

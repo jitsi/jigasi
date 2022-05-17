@@ -19,9 +19,7 @@ package org.jitsi.jigasi.rest;
 
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
-import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.*;
-import org.jitsi.rest.*;
 import org.osgi.framework.*;
 
 /**
@@ -49,25 +47,7 @@ public class TranscriptServerBundleActivator
      */
     public TranscriptServerBundleActivator()
     {
-        super(JETTY_PROPERTY_PREFIX);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected int getDefaultPort()
-    {
-        return -1;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected int getDefaultTlsPort()
-    {
-        return -1;
+        super(JETTY_PROPERTY_PREFIX, JETTY_PROPERTY_PREFIX);
     }
 
     /**
@@ -76,7 +56,6 @@ public class TranscriptServerBundleActivator
     @Override
     protected Handler initializeHandlerList(BundleContext bundleContext,
                                             Server server)
-        throws Exception
     {
         ResourceHandler fileHandler = new ResourceHandler();
 

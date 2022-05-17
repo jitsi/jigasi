@@ -19,9 +19,9 @@ package net.java.sip.communicator.service.protocol.mock.muc;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.util.*;
 
 import java.util.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * The purpose of this class is to simulate mock room joined by all

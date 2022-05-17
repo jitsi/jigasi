@@ -22,19 +22,21 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.Logger;
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.DataObject;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.utils.*;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
@@ -43,6 +45,7 @@ import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.disco.*;
 import org.jivesoftware.smackx.disco.packet.*;
 import org.jivesoftware.smackx.muc.packet.*;
+import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -54,7 +57,7 @@ import java.beans.*;
 import java.io.*;
 import java.util.*;
 
-import static org.jivesoftware.smack.packet.XMPPError.Condition.*;
+import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
 
 /**
  * Class takes care of handling Jitsi Videobridge conference. Currently, it waits
@@ -165,7 +168,7 @@ public class JvbConference
      * @return Returns the 'features' extension element that can be added to presence.
      */
     private static ExtensionElement addSupportedFeatures(
-            OperationSetJitsiMeetTools meetTools)
+            OperationSetJitsiMeetToolsJabber meetTools)
     {
         AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
 
@@ -409,7 +412,7 @@ public class JvbConference
             // anything that is not in this regex class A-Za-z0-9- with a dash.
 
             String resourceIdentBuilder = gatewaySession.getMucDisplayName();
-            if (!StringUtils.isNullOrEmpty(resourceIdentBuilder))
+            if (StringUtils.isNotEmpty(resourceIdentBuilder))
             {
                 int idx = resourceIdentBuilder.indexOf('@');
                 if (idx != -1)
@@ -725,7 +728,7 @@ public class JvbConference
     {
         // Advertise gateway feature before joining
         ExtensionElement features
-            = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class));
+            = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class));
 
         OperationSetMultiUserChat muc = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.addPresenceListener(this);
@@ -769,7 +772,7 @@ public class JvbConference
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if (!StringUtils.isNullOrEmpty(region))
+                if (StringUtils.isNotEmpty(region))
                 {
                     RegionPacketExtension rpe = new RegionPacketExtension();
                     rpe.setRegionId(region);
@@ -838,7 +841,7 @@ public class JvbConference
 
             mucRoom.addMemberPresenceListener(this);
 
-            if (StringUtils.isNullOrEmpty(roomPassword))
+            if (StringUtils.isEmpty(roomPassword))
             {
                 mucRoom.joinAs(resourceIdentifier.toString());
             }
@@ -916,8 +919,10 @@ public class JvbConference
                                 if (lobbyJid != null)
                                 {
                                     EntityFullJid lobbyFullJid =
-                                            JidCreate.fullFrom(lobbyJid.asEntityBareJidOrThrow(),
-                                                    Resourcepart.from(lobbyLocalpart.toString()));
+                                        JidCreate.entityFullFrom(
+                                            lobbyJid.asEntityBareJidOrThrow(),
+                                            Resourcepart.from(
+                                                lobbyLocalpart.toString()));
 
                                     this.lobby = new Lobby(this.xmppProvider,
                                             this.callContext,
@@ -954,7 +959,7 @@ public class JvbConference
                 if (JigasiBundleActivator.getConfigurationService()
                         .getBoolean(P_NAME_NOTIFY_MAX_OCCUPANTS, true)
                     && ((XMPPException.XMPPErrorException)e.getCause())
-                        .getXMPPError().getCondition() == service_unavailable)
+                        .getStanzaError().getCondition() == service_unavailable)
                 {
                     gatewaySession.handleMaxOccupantsLimitReached();
                 }
@@ -984,9 +989,9 @@ public class JvbConference
         if (mucRoom != null)
         {
             // Send presence status update
-            OperationSetJitsiMeetTools jitsiMeetTools
+            OperationSetJitsiMeetToolsJabber jitsiMeetTools
                 = xmppProvider.getOperationSet(
-                    OperationSetJitsiMeetTools.class);
+                OperationSetJitsiMeetToolsJabber.class);
 
             jitsiMeetTools.setPresenceStatus(mucRoom, statusMsg);
         }
@@ -1149,7 +1154,7 @@ public class JvbConference
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
             {
                 MediaAwareCallPeer<?, ?, ?> peerMedia = (MediaAwareCallPeer<?, ?, ?>) peer;
-                peerMedia.getConferenceMembers().stream().forEach(confMember ->
+                peerMedia.getConferenceMembers().forEach(confMember ->
                 {
                     String address = confMember.getAddress();
                     if (address != null && !address.equals("jvb"))
@@ -1268,9 +1273,9 @@ public class JvbConference
         if (mucRoom != null)
         {
             // Send presence update
-            OperationSetJitsiMeetTools jitsiMeetTools
+            OperationSetJitsiMeetToolsJabber jitsiMeetTools
                 = xmppProvider.getOperationSet(
-                    OperationSetJitsiMeetTools.class);
+                OperationSetJitsiMeetToolsJabber.class);
 
             jitsiMeetTools.sendPresenceExtension(mucRoom, extension);
         }
@@ -1555,7 +1560,7 @@ public class JvbConference
             {
                 // do not override boshURL with the global setting if
                 // we already have a value
-                if (StringUtils.isNullOrEmpty(ctx.getBoshURL()))
+                if (StringUtils.isEmpty(ctx.getBoshURL()))
                 {
                     ctx.setBoshURL(value);
                 }
@@ -1567,7 +1572,7 @@ public class JvbConference
         }
 
         String boshUrl = ctx.getBoshURL();
-        if (!StringUtils.isNullOrEmpty(boshUrl))
+        if (StringUtils.isNotEmpty(boshUrl))
         {
             boshUrl = boshUrl.replace(
                 "{roomName}", callContext.getConferenceName());

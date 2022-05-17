@@ -19,11 +19,12 @@ package org.jitsi.jigasi.stats;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.stats.media.*;
 import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.Logger;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;

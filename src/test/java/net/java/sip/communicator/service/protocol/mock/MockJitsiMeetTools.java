@@ -17,8 +17,9 @@
  */
 package net.java.sip.communicator.service.protocol.mock;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
+import org.jitsi.utils.logging.Logger;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.*;
  * @author Pawel Domas
  */
 public class MockJitsiMeetTools
-    implements OperationSetJitsiMeetTools
+    implements OperationSetJitsiMeetTools, OperationSetJitsiMeetToolsJabber
 {
     /**
      * The logger used by this class.
@@ -43,7 +44,7 @@ public class MockJitsiMeetTools
      * The list of {@link JitsiMeetRequestListener}.
      */
     private final List<JitsiMeetRequestListener> requestHandlers
-        = new CopyOnWriteArrayList<JitsiMeetRequestListener>();
+        = new CopyOnWriteArrayList<>();
 
     public MockJitsiMeetTools(MockProtocolProvider protocolProvider)
     {
@@ -54,38 +55,6 @@ public class MockJitsiMeetTools
     {
         return protocolProvider.getTelephony()
                 .mockIncomingGatewayCall(uri, roomName);
-    }
-
-    @Override
-    public void addSupportedFeature(String featureName)
-    {
-        //FIXME: to be implemented and used in tests
-    }
-
-    @Override
-    public void removeSupportedFeature(String featureName)
-    {
-
-    }
-
-    @Override
-    public void sendPresenceExtension(ChatRoom chatRoom,
-                                      ExtensionElement extension)
-    {
-        //FIXME: to be tested
-    }
-
-    @Override
-    public void removePresenceExtension(
-        ChatRoom chatRoom, ExtensionElement packetExtension)
-    {
-        //FIXME: to be tested
-    }
-
-    @Override
-    public void setPresenceStatus(ChatRoom chatRoom, String statusName)
-    {
-        //FIXME: to be tested
     }
 
     /**
@@ -120,7 +89,7 @@ public class MockJitsiMeetTools
         for (JitsiMeetRequestListener l : requestHandlers)
         {
             l.onJoinJitsiMeetRequest(
-                call, jitsiMeetRoom, new HashMap<String, String>());
+                call, jitsiMeetRoom, new HashMap<>());
             handled = true;
         }
         if (!handled)
@@ -133,7 +102,38 @@ public class MockJitsiMeetTools
 
     @Override
     public void sendJSON(CallPeer callPeer, JSONObject jsonObject, Map<String, Object> map)
-        throws OperationFailedException
     {
+    }
+
+    @Override
+    public void addSupportedFeature(String featureName)
+    {
+        
+    }
+
+    @Override
+    public void removeSupportedFeature(String featureName)
+    {
+
+    }
+
+    @Override
+    public void sendPresenceExtension(ChatRoom chatRoom,
+        ExtensionElement extension)
+    {
+
+    }
+
+    @Override
+    public void removePresenceExtension(ChatRoom chatRoom,
+        ExtensionElement extension)
+    {
+
+    }
+
+    @Override
+    public void setPresenceStatus(ChatRoom chatRoom, String statusMessage)
+    {
+
     }
 }

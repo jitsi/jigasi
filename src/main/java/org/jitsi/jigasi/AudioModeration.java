@@ -19,9 +19,9 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.utils.logging.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.*;
@@ -129,7 +129,7 @@ public class AudioModeration
      * @param meetTools the <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the features extension element that can be added to presence.
      */
-    static ExtensionElement addSupportedFeatures(OperationSetJitsiMeetTools meetTools)
+    static ExtensionElement addSupportedFeatures(OperationSetJitsiMeetToolsJabber meetTools)
     {
         if (isMutingSupported())
         {
@@ -322,8 +322,9 @@ public class AudioModeration
 
             audioMutedExtension.setAudioMuted(muted);
 
-            OperationSetJitsiMeetTools jitsiMeetTools
-                = this.jvbConference.getXmppProvider().getOperationSet(OperationSetJitsiMeetTools.class);
+            OperationSetJitsiMeetToolsJabber jitsiMeetTools
+                = this.jvbConference.getXmppProvider()
+                .getOperationSet(OperationSetJitsiMeetToolsJabber.class);
 
             jitsiMeetTools.sendPresenceExtension(mucRoom, audioMutedExtension);
         }
@@ -343,8 +344,9 @@ public class AudioModeration
 
         if (!bMuted && this.avModerationEnabled && !isAllowedToUnmute)
         {
-            OperationSetJitsiMeetTools jitsiMeetTools
-                = this.jvbConference.getXmppProvider().getOperationSet(OperationSetJitsiMeetTools.class);
+            OperationSetJitsiMeetToolsJabber jitsiMeetTools
+                = this.jvbConference.getXmppProvider()
+                .getOperationSet(OperationSetJitsiMeetToolsJabber.class);
 
             if (mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -539,7 +541,7 @@ public class AudioModeration
         public MuteIqHandler(AbstractGatewaySession gatewaySession)
         {
             super(
-                MuteIq.ELEMENT_NAME,
+                MuteIq.ELEMENT,
                 MuteIq.NAMESPACE,
                 IQ.Type.set,
                 Mode.sync);
@@ -565,7 +567,9 @@ public class AudioModeration
 
             if (doMute == null || !from.getResourceOrEmpty().equals(this.gatewaySession.getFocusResourceAddr()))
             {
-                return IQ.createErrorResponse(muteIq, XMPPError.getBuilder(XMPPError.Condition.item_not_found));
+                return IQ.createErrorResponse(muteIq,
+                    StanzaError.getBuilder(StanzaError.Condition.item_not_found)
+                        .build());
             }
 
             if (doMute)
@@ -624,8 +628,8 @@ public class AudioModeration
         @Override
         public void processStanza(Stanza packet)
         {
-            JsonMessageExtension jsonMsg = packet.getExtension(
-                JsonMessageExtension.ELEMENT_NAME, JsonMessageExtension.NAMESPACE);
+            JsonMessageExtension jsonMsg =
+                packet.getExtension(JsonMessageExtension.class);
 
             if (jsonMsg == null)
             {

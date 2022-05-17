@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi.transcription.action;
 
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.utils.logging.Logger;

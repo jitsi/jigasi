@@ -17,18 +17,16 @@
  */
 package org.jitsi.jigasi;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
-import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.xmpp.extensions.rayo.*;
-import org.jitsi.xmpp.util.*;
-import org.jivesoftware.smack.packet.*;
-import org.junit.*;
-import org.junit.Test;
-import org.junit.runner.*;
-import org.junit.runners.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -37,8 +35,7 @@ import org.osgi.framework.*;
 import java.lang.*;
 import java.util.*;
 import java.util.concurrent.*;
-
-import static org.junit.Assert.*;
+import org.osgi.framework.launch.*;
 
 /**
  * Test various call situations(not all :P).
@@ -46,7 +43,6 @@ import static org.junit.Assert.*;
  * @author Pawel Domas
  * @author Nik Vaessen
  */
-@RunWith(JUnit4.class)
 public class CallsHandlingTest
 {
     private static OSGiHandler osgi;
@@ -62,24 +58,25 @@ public class CallsHandlingTest
     /**
      * Initializes OSGi and the videobridge.
      */
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass()
-        throws InterruptedException
+        throws InterruptedException, BundleException
     {
         osgi = new OSGiHandler();
-
-        osgi.init();
-
-        // give some time to osgi
-        Object o = new Object();
-        synchronized (o)
+        var fw = osgi.init();
+        var start = System.nanoTime();
+        Thread.sleep(5000);
+        while (fw.getState() != Framework.ACTIVE)
         {
-            o.wait(1500);
+            if (System.nanoTime() - start > TimeUnit.SECONDS.toNanos(5))
+            {
+                throw new BundleException("Failed to start framework");
+            }
         }
     }
 
-    @Before
-    public void setUp()
+    @BeforeEach
+    public void setUp() throws InvalidSyntaxException
     {
         sipProvider = osgi.getSipProvider();
 
@@ -88,7 +85,7 @@ public class CallsHandlingTest
         this.focus = new MockJvbConferenceFocus(roomName);
     }
 
-    @After
+    @AfterEach
     public void tearDown()
         throws InterruptedException, TimeoutException
     {
@@ -159,13 +156,17 @@ public class CallsHandlingTest
 
         callStateWatch.waitForState(
             session.getJvbCall(), CallState.CALL_ENDED, 1000);
-        assertEquals(false, jvbConfRoom.isJoined());
+        assertFalse(jvbConfRoom.isJoined());
     }
 
     //@Test //is called from test multiple time
     public void testOutgoingSipCall()
-        throws InterruptedException, OperationFailedException,
-               OperationNotSupportedException, XmppStringprepException
+        throws
+        InterruptedException,
+        OperationFailedException,
+        OperationNotSupportedException,
+        XmppStringprepException,
+        InvalidSyntaxException
     {
         String destination = "sip-destination";
 
@@ -211,7 +212,7 @@ public class CallsHandlingTest
         Call jvbCall = session.getJvbCall();
 
         assertNotNull(chatRoom);
-        assertEquals(true, chatRoom.isJoined());
+        assertTrue(chatRoom.isJoined());
         callStateWatch.waitForState(jvbCall, CallState.CALL_IN_PROGRESS, 1000);
         assertEquals(CallState.CALL_IN_PROGRESS, jvbCall.getCallState());
 
@@ -222,14 +223,12 @@ public class CallsHandlingTest
 
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(jvbCall, CallState.CALL_ENDED, 1000);
-        assertEquals(false, chatRoom.isJoined());
+        assertFalse(chatRoom.isJoined());
     }
 
     /**
      * Runs in sequence {@link #testIncomingSipCall()} to check
      * reinitialization.
-     *
-     * @throws Exception
      */
     @Test
     public void testMultipleTime()
@@ -261,8 +260,7 @@ public class CallsHandlingTest
     @Test
     public void testFocusLeftTheRoomWithNoResume()
         throws OperationFailedException,
-               OperationNotSupportedException, InterruptedException,
-               TimeoutException
+               OperationNotSupportedException, InterruptedException
     {
         long origValue = AbstractGateway.getJvbInviteTimeout();
         AbstractGateway.setJvbInviteTimeout(-1);
@@ -289,8 +287,7 @@ public class CallsHandlingTest
     @Test
     public void testFocusLeftTheRoomWithResume()
         throws OperationFailedException,
-               OperationNotSupportedException, InterruptedException,
-               TimeoutException
+               OperationNotSupportedException, InterruptedException
     {
         long origValue = AbstractGateway.getJvbInviteTimeout();
         AbstractGateway.setJvbInviteTimeout(AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
@@ -334,8 +331,8 @@ public class CallsHandlingTest
         OutCallListener outCallWatch = new OutCallListener();
         outCallWatch.bind(sipProvider.getTelephony());
 
-        RayoIqProvider.DialIq dialIq
-            = RayoIqProvider.DialIq.create(to.toString(), from.toString());
+        DialIq dialIq
+            = DialIq.create(to.toString(), from.toString());
 
         dialIq.setFrom(from);
 
@@ -348,9 +345,9 @@ public class CallsHandlingTest
 
         org.jivesoftware.smack.packet.IQ result = callControl.handleDialIq(dialIq, ctx, null);
 
-        assertTrue(result instanceof RayoIqProvider.RefIq);
+        assertNotNull(result);
 
-        RayoIqProvider.RefIq callRef = (RayoIqProvider.RefIq) result;
+        RefIq callRef = (RefIq) result;
 
         String callUri = callRef.getUri();
         assertEquals("xmpp:", callUri.substring(0, 5));
@@ -385,8 +382,8 @@ public class CallsHandlingTest
         ChatRoom conferenceChatRoom = session.getJvbChatRoom();
 
         // Now tear down
-        RayoIqProvider.HangUp hangUp
-            = RayoIqProvider.HangUp.create(
+        HangUp hangUp
+            = HangUp.create(
                     from, callResource);
 
         // FIXME: validate result
@@ -399,7 +396,6 @@ public class CallsHandlingTest
 
     /**
      * Tests default JVB room name configuration property.
-     * @throws Exception
      */
     @Test
     public void testDefaultJVbRoomProperty()
@@ -441,7 +437,7 @@ public class CallsHandlingTest
 
         callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
-        assertEquals(false, jvbRoom.isJoined());
+        assertFalse(jvbRoom.isJoined());
     }
 
     @Test
@@ -483,9 +479,9 @@ public class CallsHandlingTest
         ChatRoom jvbRoom2 = sessions.get(1).getJvbChatRoom();
         ChatRoom jvbRoom3 = sessions.get(2).getJvbChatRoom();
 
-        assertEquals(true, jvbRoom1.isJoined());
-        assertEquals(true, jvbRoom2.isJoined());
-        assertEquals(true, jvbRoom3.isJoined());
+        assertTrue(jvbRoom1.isJoined());
+        assertTrue(jvbRoom2.isJoined());
+        assertTrue(jvbRoom3.isJoined());
 
         // After hangup all calls are ended and rooms left
         Call jvbCall1 = sessions.get(0).getJvbCall();
@@ -504,9 +500,9 @@ public class CallsHandlingTest
         assertEquals(CallState.CALL_ENDED, sipCall2.getCallState());
         assertEquals(CallState.CALL_ENDED, sipCall3.getCallState());
 
-        assertEquals(false, jvbRoom1.isJoined());
-        assertEquals(false, jvbRoom2.isJoined());
-        assertEquals(false, jvbRoom3.isJoined());
+        assertFalse(jvbRoom1.isJoined());
+        assertFalse(jvbRoom2.isJoined());
+        assertFalse(jvbRoom3.isJoined());
     }
 
     @Test
@@ -547,7 +543,7 @@ public class CallsHandlingTest
 
         // We entered the room where there is no focus
         ChatRoom jvbRoom1 = session1.getJvbChatRoom();
-        assertEquals(true, jvbRoom1.isJoined());
+        assertTrue(jvbRoom1.isJoined());
         assertEquals(1, jvbRoom1.getMembersCount());
 
         // There is no call cause the focus did not invited
@@ -557,7 +553,7 @@ public class CallsHandlingTest
         callStateWatch.waitForState(
             sipCall1, CallState.CALL_ENDED, jvbInviteTimeout + 200);
 
-        assertEquals(false, jvbRoom1.isJoined());
+        assertFalse(jvbRoom1.isJoined());
 
         AbstractGateway.setJvbInviteTimeout(
             AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
