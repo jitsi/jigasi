@@ -302,6 +302,16 @@ public class CallControlMucActivator
                 mucRoom.join();
             }
 
+            XMPPConnection connection;
+            Object boshSessionId = null;
+            if (pps instanceof ProtocolProviderServiceJabberImpl &&
+                (connection = ((ProtocolProviderServiceJabberImpl) pps).getConnection()) != null)
+            {
+                boshSessionId = Util.getConnSessionId(connection);
+            }
+            logger.info("Joined call control room: " + roomName + " pps:" + pps
+                + " nickname:" + mucRoom.getUserNickname() + " sessionId:" + boshSessionId);
+
             // sends initial stats, used some kind of advertising
             // so jicofo can recognize us as real jigasi and load balance us
             Statistics.updatePresenceStatusForXmppProviders(Collections.singletonList(pps));
