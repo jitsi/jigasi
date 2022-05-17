@@ -442,8 +442,9 @@
             </goals>
             <configuration>
               <appendAssemblyId>false</appendAssemblyId>
-              <descriptor>src/assembly/linux-x64-bin-archive.xml
-              </descriptor>
+              <descriptors>
+                <descriptor>src/assembly/linux-x64-bin-archive.xml</descriptor>
+              </descriptors>
               <finalName>
                 ${project.artifactId}-linux-x64-${project.version}
               </finalName>
