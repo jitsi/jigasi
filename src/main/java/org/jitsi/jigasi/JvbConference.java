@@ -170,7 +170,7 @@ public class JvbConference
     private static ExtensionElement addSupportedFeatures(
             OperationSetJitsiMeetToolsJabber meetTools)
     {
-        AbstractPacketExtension features = new AbstractPacketExtension(DiscoverInfo.NAMESPACE, "features"){};
+        FeaturesExtension features = new FeaturesExtension();
 
         meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
         features.addChildExtension(Util.createFeature(SIP_GATEWAY_FEATURE_NAME));

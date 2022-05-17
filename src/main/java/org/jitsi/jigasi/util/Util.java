@@ -24,7 +24,7 @@ import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.logging.Logger;
-import org.jitsi.xmpp.extensions.*;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.packet.*;
 
@@ -255,7 +255,7 @@ public class Util
      */
     public static ExtensionElement createFeature(String var)
     {
-        AbstractPacketExtension feature = new AbstractPacketExtension(null, "feature"){};
+        FeatureExtension feature = new FeatureExtension();
         feature.setAttribute("var", var);
 
         return feature;
