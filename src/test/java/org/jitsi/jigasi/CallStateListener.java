@@ -47,25 +47,21 @@ public class CallStateListener
     }
 
     public void waitForState(Call      watchedCall,
-                             CallState targetState,
-                             long      timeout)
+                             CallState targetState)
         throws InterruptedException
     {
         this.targetState = targetState;
 
-        // FIXME: we can miss call state anyway ?(but timeout will release)
+        watchedCall.addCallChangeListener(this);
         if (!targetState.equals(watchedCall.getCallState()))
         {
             synchronized (this)
             {
-                watchedCall.addCallChangeListener(this);
-
-                this.wait(timeout);
+                this.wait();
             }
         }
 
         watchedCall.removeCallChangeListener(this);
-
         assertEquals(targetState, watchedCall.getCallState());
     }
 }

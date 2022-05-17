@@ -78,8 +78,15 @@ public class MockCall
         return super.toString() + " " + getProtocolProvider().getProtocolName();
     }
 
-    public void setCallState(CallState newState)
+    public synchronized void setInProgress()
     {
-        super.setCallState(newState);
+        if (getCallState() != CallState.CALL_ENDED)
+        {
+            setCallState(CallState.CALL_IN_PROGRESS);
+        }
+        else
+        {
+            throw new RuntimeException("Call already ended");
+        }
     }
 }
