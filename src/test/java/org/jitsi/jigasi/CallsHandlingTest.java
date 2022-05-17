@@ -176,7 +176,7 @@ public class CallsHandlingTest
 
         CallStateListener callStateWatch = new CallStateListener();
 
-        OperationSetBasicTelephony sipTele
+        OperationSetBasicTelephony<?> sipTele
             = osgi.getSipProvider()
                     .getOperationSet(OperationSetBasicTelephony.class);
 

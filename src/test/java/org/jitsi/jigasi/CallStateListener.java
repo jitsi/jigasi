@@ -17,10 +17,10 @@
  */
 package org.jitsi.jigasi;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Class used to encapsulate the process of waiting for some <tt>CallState</tt>
