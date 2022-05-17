@@ -19,8 +19,8 @@ package org.jitsi.jigasi;
 
 import com.google.common.base.*;
 
-import net.java.sip.communicator.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;

@@ -135,7 +135,7 @@ public abstract class AbstractVersionActivator
             Matcher matcher
                 = PARSE_VERSION_STRING_PATTERN.matcher(versionString);
 
-            if(matcher.matches() && matcher.groupCount() == 3)
+            if (matcher.matches() && matcher.groupCount() == 3)
             {
                 return new VersionImpl(
                     version.getApplicationName(),

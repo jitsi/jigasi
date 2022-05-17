@@ -23,8 +23,8 @@ import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 import org.osgi.framework.*;
 
-import javax.servlet.*;
-import javax.servlet.http.*;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.io.*;
 
 /**

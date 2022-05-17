@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.stream.*;
 
-import javax.servlet.http.*;
+import jakarta.servlet.http.*;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;

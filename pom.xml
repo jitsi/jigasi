@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.14-SNAPSHOT</jitsi-desktop.version>
+    <jitsi-desktop.version>2.14.caac5f877</jitsi-desktop.version>
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.36</slf4j.version>
@@ -22,8 +22,8 @@
     <smack.version>4.4.5</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
-    <jicoco.version>1.1-SNAPSHOT</jicoco.version>
-    <jetty.version>9.4.46.v20220331</jetty.version>
+    <jicoco.version>1.1-107-gfb316f8</jicoco.version>
+    <jetty.version>11.0.9</jetty.version>
   </properties>
 
   <dependencies>
@@ -92,7 +92,7 @@
     <!-- Used by the Vosk transcription service -->
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-client</artifactId>
+      <artifactId>websocket-jetty-client</artifactId>
       <version>${jetty.version}</version>
     </dependency>
 
@@ -180,7 +180,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>ice4j</artifactId>
-      <version>3.0-SNAPSHOT</version>
+      <version>3.0-59-g71e244d</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sip</groupId>
@@ -211,17 +211,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-stats</artifactId>
       <version>1.0-15-ga3c317f</version>
-    </dependency>
-    <dependency>
-      <!--
-      The libjitsi Maven artifact optionally depends on the
-      jitsi-lgpl-dependencies Maven artifact and the jitsi-videobridge project
-      may require the latter at runtime (e.g. for legacy purposes such as audio
-      mixing).
-      -->
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-lgpl-dependencies</artifactId>
-      <version>1.1-20190327.160813-5</version>
     </dependency>
     <!-- runtime -->
     <dependency>
@@ -414,9 +403,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-videobridge</artifactId>
-      <version>2.1-585-g21b6c20d</version>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

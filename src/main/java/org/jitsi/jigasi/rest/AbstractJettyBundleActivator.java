@@ -265,18 +265,26 @@ public abstract class AbstractJettyBundleActivator
                */
             /* TLS 1.3 requires Java 11 or later. */
             String version = System.getProperty("java.version");
-            if (version.startsWith("1.")) {
+            if (version.startsWith("1."))
+            {
                 version = version.substring(2, 3);
-            } else {
+            }
+            else
+            {
                 int dot = version.indexOf(".");
-                if (dot != -1) { version = version.substring(0, dot); }
+                if (dot != -1)
+                {
+                    version = version.substring(0, dot);
+                }
             }
             int javaVersion = Integer.parseInt(version);
 
-            if (javaVersion >= 11) {
+            if (javaVersion >= 11)
+            {
                 sslContextFactory.setIncludeProtocols("TLSv1.2", "TLSv1.3");
             }
-            else {
+            else
+            {
                 sslContextFactory.setIncludeProtocols("TLSv1.2");
             }
             sslContextFactory.setIncludeCipherSuites(
@@ -292,24 +300,18 @@ public abstract class AbstractJettyBundleActivator
             sslContextFactory.setRenegotiationAllowed(false);
             if (config.getKeyStorePassword() != null)
             {
-                sslContextFactory.setKeyStorePassword(
-                    config.getKeyStorePassword());
+                sslContextFactory.setKeyStorePassword(config.getKeyStorePassword());
             }
-            sslContextFactory.setKeyStorePath(
-                sslContextFactoryKeyStoreFile.getPath());
-            sslContextFactory.setNeedClientAuth(
-                config.getNeedClientAuth());
+            sslContextFactory.setKeyStorePath(sslContextFactoryKeyStoreFile.getPath());
+            sslContextFactory.setNeedClientAuth(config.getNeedClientAuth());
 
             HttpConfiguration httpsCfg = new HttpConfiguration(httpCfg);
 
             httpsCfg.addCustomizer(new SecureRequestCustomizer());
 
-            connector
-                = new ServerConnector(
+            connector = new ServerConnector(
                 server,
-                new SslConnectionFactory(
-                    sslContextFactory,
-                    "http/1.1"),
+                new SslConnectionFactory(sslContextFactory, "http/1.1"),
                 new HttpConnectionFactory(httpsCfg));
         }
 
@@ -318,7 +320,9 @@ public abstract class AbstractJettyBundleActivator
 
         // host
         if (config.getHost() != null)
+        {
             setHost(connector, config.getHost());
+        }
 
         return connector;
     }

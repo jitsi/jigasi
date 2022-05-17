@@ -21,15 +21,14 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import javax.servlet.*;
-import javax.servlet.http.*;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.health.Health;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;
-import org.jitsi.rest.*;
 
 import org.eclipse.jetty.server.*;
 import org.jitsi.utils.logging.Logger;
