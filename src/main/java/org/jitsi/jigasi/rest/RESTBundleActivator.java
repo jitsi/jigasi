@@ -73,22 +73,4 @@ public class RESTBundleActivator
         return new HandlerImpl(bundleContext,
             getConfigService().getBoolean(ENABLE_REST_SHUTDOWN_PNAME, false));
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void doStop(BundleContext bundleContext)
-        throws Exception
-    {
-        if (server != null)
-        {
-            // FIXME graceful Jetty shutdown
-            // When shutdown request is accepted, empty response is sent back
-            // instead of 200, because Jetty is not being shutdown gracefully.
-            Thread.sleep(1000);
-        }
-
-        super.doStop(bundleContext);
-    }
 }
