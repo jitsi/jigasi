@@ -381,7 +381,7 @@ class SipHealthPeriodicChecker
             String sessionInfo = (String)call.getData("X-session-info");
 
             throw new Exception("Health check call failed with no media! "
-                + sessionInfo != null ? "Session info:" + sessionInfo: "");
+                + (sessionInfo != null ? "Session info:" + sessionInfo: ""));
         }
     }
 
