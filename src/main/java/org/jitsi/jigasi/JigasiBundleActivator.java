@@ -349,7 +349,7 @@ public class JigasiBundleActivator
         {
             gateways.forEach(AbstractGateway::stop);
 
-            ShutdownService shutdownService = ServiceUtils.getService(osgiContext,ShutdownService.class);
+            ShutdownService shutdownService = ServiceUtils.getService(osgiContext, ShutdownService.class);
 
             logger.info("Jigasi is shutting down NOW");
             shutdownService.beginShutdown();
