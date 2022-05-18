@@ -46,6 +46,7 @@ import org.jitsi.jigasi.osgi.*;
 import org.jitsi.jigasi.rest.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.jigasi.xmpp.*;
+import org.jitsi.meet.*;
 import org.jitsi.osgi.framework.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
@@ -272,6 +273,26 @@ public class Main
             SipActivator.class,
             JabberActivator.class);
         var fw = start(protocols);
+
+        // register shutdown service so we can cleanly stop the framework
+        fw.getBundleContext().registerService(
+            ShutdownService.class, () -> {
+                try
+                {
+                    fw.stop();
+
+                    // give some time to tear down everything before exiting
+                    Thread.sleep(3000);
+
+                    System.exit(0);
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+
+                    System.exit(-1);
+                }
+            }, null);
         fw.waitForStop(0);
     }
 

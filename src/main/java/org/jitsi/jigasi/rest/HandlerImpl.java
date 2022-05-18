@@ -241,8 +241,11 @@ public class HandlerImpl
 
             if (POST_HTTP_METHOD.equals(request.getMethod()))
             {
-                // Update graceful shutdown state
-                JigasiBundleActivator.enableGracefulShutdownMode();
+                response.setStatus(HttpServletResponse.SC_OK);
+
+                // Update graceful shutdown state in new thread, so we can finish and return a response to the
+                // http request
+                new Thread(JigasiBundleActivator::enableGracefulShutdownMode).start();
             }
             else
             {
@@ -462,7 +465,6 @@ public class HandlerImpl
         else
         {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            return;
         }
     }
 }
