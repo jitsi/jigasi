@@ -416,11 +416,8 @@ public class AudioModeration
             && sipCall != null
             && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
         {
-            // we do not want to process start muted if AV moderation is enabled, as we are already muted
-            if (!this.avModerationEnabled && this.requestAudioMuteByJicofo(true))
-            {
-                mute();
-            }
+            // inform the sip side that our state is muted (av moderation or not)
+            mute();
 
             // in case we reconnect start muted maybe no-longer set
             this.startAudioMuted = false;
@@ -565,7 +562,8 @@ public class AudioModeration
             Boolean doMute = muteIq.getMute();
             Jid from = muteIq.getFrom();
 
-            if (doMute == null || !from.getResourceOrEmpty().equals(this.gatewaySession.getFocusResourceAddr()))
+            if (doMute == null || !from.getResourceOrEmpty().toString()
+                    .equals(this.gatewaySession.getFocusResourceAddr()))
             {
                 return IQ.createErrorResponse(muteIq,
                     StanzaError.getBuilder(StanzaError.Condition.item_not_found)
