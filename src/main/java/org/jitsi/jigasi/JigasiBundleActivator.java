@@ -196,7 +196,11 @@ public class JigasiBundleActivator
 
         if (isSipEnabled())
         {
-            MuteIqProvider.registerMuteIqProvider();
+            if (isSipStartMutedEnabled())
+            {
+                StartMutedProvider.registerStartMutedProvider();
+                MuteIqProvider.registerMuteIqProvider();
+            }
 
             // recording status, to detect recording start/stop
             ProviderManager.addExtensionProvider(

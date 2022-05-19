@@ -737,7 +737,7 @@ public class JvbConference
         if (opSet != null)
             opSet.addDTMFListener(gatewaySession);
 
-        this.jitsiMeetTools = xmppProvider.getOperationSet(OperationSetJitsiMeetTools.class);
+        this.jitsiMeetTools = xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class);
 
         if (this.jitsiMeetTools != null)
         {
