@@ -416,6 +416,14 @@ public class AudioModeration
             && sipCall != null
             && sipCall.getCallState() == CallState.CALL_IN_PROGRESS)
         {
+            if (!this.avModerationEnabled)
+            {
+                // in case of startAudioMuted, we want jicofo to stop the bridge from sending our audio
+                // a specific case for jigasi as it doesn't do local muting
+                // in case of av-moderation jicofo has done that already for us
+                this.requestAudioMuteByJicofo(true);
+            }
+
             // inform the sip side that our state is muted (av moderation or not)
             mute();
 
