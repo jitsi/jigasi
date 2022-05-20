@@ -17,9 +17,9 @@
  */
 package org.jitsi.jigasi;
 
+import org.apache.commons.lang3.StringUtils;
 import com.google.common.base.*;
 
-import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
@@ -534,7 +534,7 @@ public class CallContext
             }
 
             // if boshURL or domain missing, do nothing
-            if (boshURL != null && !StringUtils.isNullOrEmpty(domain))
+            if (boshURL != null && StringUtils.isNotEmpty(StringUtils.trim(domain)))
             {
                 String boshHost = domain;
 

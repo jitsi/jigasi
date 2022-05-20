@@ -232,9 +232,7 @@ public class SoundNotificationManager
      */
     public void process(Presence presence)
     {
-        RecordingStatus rs = presence.getExtension(
-            RecordingStatus.ELEMENT,
-            RecordingStatus.NAMESPACE);
+        RecordingStatus rs = presence.getExtension(RecordingStatus.class);
 
         if (rs != null
             && gatewaySession.getFocusResourceAddr().equals(

@@ -95,7 +95,7 @@ public class TranscriptionGateway
             try
             {
                 service = (TranscriptionService)Class.forName(
-                    customTranscriptionServiceClass).newInstance();
+                    customTranscriptionServiceClass).getDeclaredConstructor().newInstance();
             }
             catch(Exception e)
             {

@@ -29,9 +29,9 @@ import jakarta.servlet.http.*;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
+import org.apache.commons.lang3.*;
 import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.version.*;
-import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 import org.json.simple.*;
@@ -496,7 +496,7 @@ public class Statistics
 
                 String region = JigasiBundleActivator.getConfigurationService()
                     .getString(LOCAL_REGION_PNAME);
-                if (!StringUtils.isNullOrEmpty(region))
+                if (StringUtils.isNotEmpty(StringUtils.trim(region)))
                 {
                     stats.addStat(new ColibriStatsExtension.Stat(
                         REGION,

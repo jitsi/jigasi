@@ -593,7 +593,7 @@ public class CallControlMucActivator
             {
                 logger.error(ctx + " Error processing RayoIq", e);
                 return IQ.createErrorResponse(packet, StanzaError.from(
-                    StanzaError.Condition.internal_server_error, e.getMessage()));
+                    StanzaError.Condition.internal_server_error, e.getMessage()).build());
             }
         }
 

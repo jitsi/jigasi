@@ -370,8 +370,7 @@ public class Participant
      */
     private IdentityPacketExtension getIdentityExtensionOrNull(Presence p)
     {
-        return p.getExtension(IdentityPacketExtension.ELEMENT,
-            IdentityPacketExtension.NAMESPACE);
+        return p.getExtension(IdentityPacketExtension.class);
     }
 
     /**
@@ -383,16 +382,14 @@ public class Participant
      */
     private AvatarIdPacketExtension getAvatarIdExtensionOrNull(Presence p)
     {
-        return p.getExtension(AvatarIdPacketExtension.ELEMENT,
-            AvatarIdPacketExtension.NAMESPACE);
+        return p.getExtension(AvatarIdPacketExtension.class);
     }
 
     private TranscriptionRequestExtension
                 getTranscriptionRequestExtensionOrNull(Presence p)
     {
         return p != null
-                ? p.getExtension(TranscriptionRequestExtension.ELEMENT,
-                              TranscriptionRequestExtension.NAMESPACE)
+                ? p.getExtension(TranscriptionRequestExtension.class)
                 : null;
     }
 
@@ -471,16 +468,6 @@ public class Participant
     }
 
     /**
-     * Get the {@link ConferenceMember} belonging to this participant
-     *
-     * @return the conference member
-     */
-    public ConferenceMember getConfMember()
-    {
-        return confMember;
-    }
-
-    /**
      * Set the {@link ChatRoomMember} belonging to this participant
      *
      * @param chatMember the chatroom member
@@ -488,16 +475,6 @@ public class Participant
     public void setChatMember(ChatRoomMember chatMember)
     {
         this.chatMember = chatMember;
-    }
-
-    /**
-     * Get the {@link ChatRoomMember} belonging to this participant
-     *
-     * @return the chatroom member
-     */
-    public ChatRoomMember getChatMember()
-    {
-        return chatMember;
     }
 
     /**

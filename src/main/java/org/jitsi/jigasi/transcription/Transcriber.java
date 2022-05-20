@@ -324,14 +324,10 @@ public class Transcriber
                 Presence presence = ((ChatRoomMemberJabberImpl) chatRoomMember).getLastPresence();
 
                 TranscriptionLanguageExtension transcriptionLanguageExtension
-                    = presence.getExtension(
-                        TranscriptionLanguageExtension.ELEMENT,
-                        TranscriptionLanguageExtension.NAMESPACE);
+                    = presence.getExtension(TranscriptionLanguageExtension.class);
 
                 TranslationLanguageExtension translationLanguageExtension
-                    = presence.getExtension(
-                        TranslationLanguageExtension.ELEMENT,
-                        TranslationLanguageExtension.NAMESPACE);
+                    = presence.getExtension(TranslationLanguageExtension.class);
 
                 if (transcriptionLanguageExtension != null)
                 {

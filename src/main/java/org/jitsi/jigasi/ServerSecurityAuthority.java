@@ -18,8 +18,8 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.apache.commons.lang3.*;
 import org.jitsi.utils.logging.*;
-import org.jitsi.utils.*;
 
 /**
  * No UI just returns default credentials.
@@ -63,7 +63,7 @@ public class ServerSecurityAuthority
             return null;
         }
 
-        if (!StringUtils.isNullOrEmpty(password))
+        if (StringUtils.isNotEmpty(StringUtils.trim(password)))
         {
             defaultValues.setPassword(password.toCharArray());
         }

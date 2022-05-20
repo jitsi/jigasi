@@ -21,6 +21,7 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
+import org.apache.commons.lang3.StringUtils;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.sounds.*;
@@ -1438,7 +1439,7 @@ public class SipGatewaySession
                     && jvbConference != null && jvbConference.isInTheRoom())
                 {
                     // Show reason instead of disconnected
-                    if (!StringUtils.isNullOrEmpty(cause.getReasonString()))
+                    if (StringUtils.isNotEmpty(StringUtils.trim(cause.getReasonString())))
                     {
                         jvbConference.setPresenceStatus(
                             cause.getReasonString());

@@ -1967,7 +1967,8 @@ public class JvbConference
         @Override
         public void processStanza(Stanza stanza)
         {
-            MUCUser mucUser = stanza.getExtension(MUCInitialPresence.ELEMENT, MUCInitialPresence.NAMESPACE);
+            MUCUser mucUser = stanza.getExtension(MUCUser.class);
+
             if (mucUser == null)
             {
                 return;

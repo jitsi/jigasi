@@ -240,8 +240,7 @@ public class GoogleCloudTranscriptionService
 
         // Set the sampling rate and encoding of the audio
         AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(new Double(format.getSampleRate())
-            .intValue());
+        builder.setSampleRateHertz(Double.valueOf(format.getSampleRate()).intValue());
         switch(format.getEncoding())
         {
             case "LINEAR":
