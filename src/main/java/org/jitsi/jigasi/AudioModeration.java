@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.logging.*;
@@ -42,6 +43,7 @@ import java.util.*;
  * Handles all the mute/unmute/startMuted logic.
  */
 public class AudioModeration
+    implements ChatRoomLocalUserRoleListener
 {
     /**
      * The logger.
@@ -147,6 +149,11 @@ public class AudioModeration
     {
         XMPPConnection connection = jvbConference.getConnection();
 
+        if (jvbConference.getJvbRoom() != null)
+        {
+            jvbConference.getJvbRoom().removelocalUserRoleListener(this);
+        }
+
         if (connection == null)
         {
             // if there is no connection nothing to clear
@@ -173,6 +180,8 @@ public class AudioModeration
             // we always start the call unmuted
             ((ChatRoomJabberImpl) mucRoom).addPresencePacketExtensions(initialAudioMutedExtension);
         }
+
+        mucRoom.addLocalUserRoleListener(this);
 
         if (isMutingSupported())
         {
@@ -532,6 +541,41 @@ public class AudioModeration
         connection.removeAsyncStanzaListener(this.avModerationListener);
     }
 
+    @Override
+    public void localUserRoleChanged(ChatRoomLocalUserRoleChangeEvent evt)
+    {
+        // handling role change only in case of av moderation enabled
+        if (!avModerationEnabled || evt.getNewRole().equals(evt.getPreviousRole()))
+        {
+            return;
+        }
+
+        boolean signalAvModerationEnabled = true;
+        if (evt.getNewRole().equals(ChatRoomMemberRole.OWNER) || evt.getNewRole().equals(ChatRoomMemberRole.MODERATOR))
+        {
+            isAllowedToUnmute = true;
+
+            signalAvModerationEnabled = false;
+        }
+        else
+        {
+            isAllowedToUnmute = false;
+        }
+
+        // in case av moderation was on and we were granted moderator - signal to IVR that
+        // we can unmute without raising a hand, but if we were moderator and our permissions were revoked
+        // do the opposite
+        try
+        {
+            gatewaySession.sendJson(
+                SipInfoJsonProtocol.createAVModerationEnabledNotification(signalAvModerationEnabled));
+        }
+        catch(OperationFailedException e)
+        {
+            logger.info(callContext + " Error sending av moderation enable/disable notification", e);
+        }
+    }
+
     /**
      * Handles mute requests received by jicofo if enabled.
      */
@@ -668,11 +712,18 @@ public class AudioModeration
                             avModerationEnabled = (Boolean) enabledObj;
                             logger.info(callContext + " AV moderation has been enabled:" + avModerationEnabled);
 
-                            // we will receive separate message when we are allowed to unmute
-                            isAllowedToUnmute = false;
+                            // if jigasi is moderator there are no restrictions of muting and unmuting
+                            // so we skip sending the notifications to the sip side to avoid activating the
+                            // av moderation logic
+                            ChatRoomMemberRole role = jvbConference.getJvbRoom().getUserRole();
+                            if (!role.equals(ChatRoomMemberRole.OWNER) && !role.equals(ChatRoomMemberRole.MODERATOR))
+                            {
+                                // we will receive separate message when we are allowed to unmute
+                                isAllowedToUnmute = false;
 
-                            gatewaySession.sendJson(
-                                SipInfoJsonProtocol.createAVModerationEnabledNotification(avModerationEnabled));
+                                gatewaySession.sendJson(
+                                    SipInfoJsonProtocol.createAVModerationEnabledNotification(avModerationEnabled));
+                            }
                         }
                         else if (removedObj != null && (Boolean) removedObj)
                         {
