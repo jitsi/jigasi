@@ -774,7 +774,7 @@ public class JvbConference
                     .getString(LOCAL_REGION_PNAME);
                 if (StringUtils.isNotEmpty(region))
                 {
-                    RegionPacketExtension rpe = new RegionPacketExtension();
+                    JitsiParticipantRegionPacketExtension rpe = new JitsiParticipantRegionPacketExtension();
                     rpe.setRegionId(region);
 
                     ((ChatRoomJabberImpl)mucRoom)
