@@ -31,6 +31,7 @@ import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.service.configuration.*;
 import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jxmpp.jid.parts.*;
@@ -223,6 +224,11 @@ public class CallControlMucActivator
         if (!ProtocolNames.JABBER.equals(pps.getProtocolName())
             || pps.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) == null)
         {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Drop provider - not xmpp or no room name account property:" + pps);
+            }
+
             return;
         }
 
@@ -230,6 +236,11 @@ public class CallControlMucActivator
 
         ProtocolProviderFactory xmppProviderFactory
             = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Will register new control muc provider:" + pps);
+        }
 
         new RegisterThread(pps, xmppProviderFactory.loadPassword(pps.getAccountID())).start();
     }
@@ -305,7 +316,8 @@ public class CallControlMucActivator
             XMPPConnection connection;
             Object boshSessionId = null;
             if (pps instanceof ProtocolProviderServiceJabberImpl &&
-                (connection = ((ProtocolProviderServiceJabberImpl) pps).getConnection()) != null)
+                (connection = ((ProtocolProviderServiceJabberImpl) pps).getConnection()) != null
+                && connection instanceof XMPPBOSHConnection)
             {
                 boshSessionId = Util.getConnSessionId(connection);
             }
