@@ -159,6 +159,16 @@ public class SipGatewaySession
         = "JITSI_MEET_DOMAIN_TENANT_HEADER_NAME";
 
     /**
+     * The account property to use to set outbound prefix to be added to all outgoing calls.
+     */
+    private static final String OUTBOUND_PREFIX_PROPERTY = "OUTBOUND_PREFIX";
+
+    /**
+     * Outbound prefix to add to all outbound calls.
+     */
+    private final String outboundPrefix;
+
+    /**
      * Default status of our participant before we get any state from
      * the <tt>CallPeer</tt>.
      */
@@ -365,6 +375,9 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_MEET_DOMAIN_TENANT_HEADER_PROPERTY,
                 JITSI_MEET_DOMAIN_TENANT_HEADER_DEFAULT);
+
+        // defaults to none
+        outboundPrefix = sipProvider.getAccountID().getAccountPropertyString(OUTBOUND_PREFIX_PROPERTY, "");
 
         this.sipInfoJsonProtocol = new SipInfoJsonProtocol(jitsiMeetTools);
     }
@@ -616,7 +629,7 @@ public class SipGatewaySession
             });
             try
             {
-                this.sipCall = tele.createCall(destination);
+                this.sipCall = tele.createCall(outboundPrefix + destination);
                 this.initSipCall();
 
                 // Outgoing SIP connection mode sets common conference object
