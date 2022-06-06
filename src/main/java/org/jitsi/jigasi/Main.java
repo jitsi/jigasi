@@ -262,6 +262,8 @@ public class Main
 
         ReflectionDebuggerFactory.setDebuggerClass(JulDebugger.class);
         SmackConfiguration.setDefaultReplyTimeout(15000);
+        // temporary workaround for stalled bosh connections that can block smack, will be removed in 4.5.
+        SmackConfiguration.TRUELY_ASYNC_SENDS = true;
 
         // Disable stream management as it could lead to unexpected behaviour,
         // because we do not account for that to happen.
