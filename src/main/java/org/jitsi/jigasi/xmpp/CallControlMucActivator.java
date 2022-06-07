@@ -61,8 +61,7 @@ public class CallControlMucActivator
     /**
      * The logger
      */
-    private final static Logger logger
-        = Logger.getLogger(CallControlMucActivator.class);
+    private final static Logger logger = Logger.getLogger(CallControlMucActivator.class);
 
     private static BundleContext osgiContext;
 
@@ -239,7 +238,7 @@ public class CallControlMucActivator
 
         if (logger.isDebugEnabled())
         {
-            logger.debug("Will register new control muc provider:" + pps);
+            logger.debug("Will register new control muc provider:" + describeProvider(pps));
         }
 
         new RegisterThread(pps, xmppProviderFactory.loadPassword(pps.getAccountID())).start();
@@ -260,7 +259,8 @@ public class CallControlMucActivator
             && provider instanceof ProtocolProviderServiceJabberImpl
             && provider.getAccountID().getAccountPropertyString(ROOM_NAME_ACCOUNT_PROP) != null)
         {
-            logger.debug("Got control muc provider " + provider + " new state -> " + evt.getNewState() );
+            logger.debug("Got control muc provider " + describeProvider(provider)
+                + " new state -> " + evt.getNewState(), new Exception());
         }
 
         if (evt.getNewState() == RegistrationState.REGISTERED)
@@ -283,7 +283,7 @@ public class CallControlMucActivator
 
         try
         {
-            logger.info("Joining call control room: " + roomName + " pps:" + pps);
+            logger.info("Joining call control room: " + roomName + " pps:" + describeProvider(pps));
             Resourcepart connectionResource = null;
 
             // getting direct access to the xmpp connection in order to add
@@ -321,7 +321,7 @@ public class CallControlMucActivator
             {
                 boshSessionId = Util.getConnSessionId(connection);
             }
-            logger.info("Joined call control room: " + roomName + " pps:" + pps
+            logger.info("Joined call control room: " + roomName + " pps:" + describeProvider(pps)
                 + " nickname:" + mucRoom.getUserNickname() + " sessionId:" + boshSessionId);
 
             // sends initial stats, used some kind of advertising
@@ -351,8 +351,7 @@ public class CallControlMucActivator
 
         try
         {
-            logger.info(
-                "Leaving call control room: " + roomName + " pps:" + pps);
+            logger.info("Leaving call control room: " + roomName + " pps:" + describeProvider(pps));
 
             OperationSetMultiUserChat muc = pps.getOperationSet(OperationSetMultiUserChat.class);
 
@@ -492,8 +491,9 @@ public class CallControlMucActivator
         if (accountID != null)
         {
             // uninstall will first unregister the account
+            logger.info("Removing muc control account: " + id + ", " + accountID);
             boolean result = xmppProviderFactory.uninstallAccount(accountID);
-            logger.info("Removing muc control account: " + id + ", " + accountID + ", successful:" + result);
+            logger.info("Removed muc control account: " + id + ", " + accountID + ", successful:" + result);
 
             // cleanup
             config.removeProperty(
@@ -529,6 +529,37 @@ public class CallControlMucActivator
                 propPrefix.length() + 1, // the prefix and '.'
                 p.indexOf(ROOM_NAME_ACCOUNT_PROP) - 1)) // property and the '.'
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns descriptive string for the provider, including the id from the config.
+     * @param provider the provider.
+     * @return the description string to print.
+     */
+    private static String describeProvider(ProtocolProviderService provider)
+    {
+        AccountID acc = provider.getAccountID();
+        ConfigurationService config = JigasiBundleActivator.getConfigurationService();
+        ProtocolProviderFactory xmppProviderFactory
+            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
+        AccountManager accountManager = ProtocolProviderActivator.getAccountManager();
+
+        String propPrefix = accountManager.getFactoryImplPackageName(xmppProviderFactory);
+
+        String id = config.getPropertyNamesByPrefix(propPrefix, false)
+            .stream()
+            // we get any account id property
+            .filter(p -> p.endsWith(ProtocolProviderFactory.ACCOUNT_UID))
+            // we check for the value of account id
+            .filter(p -> config.getString(p).equals(acc.getAccountUniqueID()))
+            // get the id
+            .map(p -> p.substring(
+                propPrefix.length() + 1, // the prefix and '.'
+                p.indexOf(ProtocolProviderFactory.ACCOUNT_UID) - 1))
+            .findFirst().orElse(null); // property and the '.'
+
+
+        return provider + ", id:" + id;
     }
 
     /**
