@@ -233,15 +233,12 @@ public class CallControlMucActivator
 
         pps.addRegistrationStateChangeListener(this);
 
-        ProtocolProviderFactory xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(osgiContext, ProtocolNames.JABBER);
-
         if (logger.isDebugEnabled())
         {
             logger.debug("Will register new control muc provider:" + describeProvider(pps));
         }
 
-        new RegisterThread(pps, xmppProviderFactory.loadPassword(pps.getAccountID())).start();
+        new RegisterThread(pps, pps.getAccountID().getPassword()).start();
     }
 
     /**
