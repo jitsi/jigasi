@@ -185,9 +185,21 @@ public class GoogleCloudTranscriptionService
         = "org.jitsi.jigasi.transcription.USE_VIDEO_MODEL";
 
     /**
+     * Property name to determine whether the Google Speech API should get
+     * automatic punctuation
+     */
+    private final static String P_NAME_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION
+        = "org.jitsi.jigasi.transcription.ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION";
+
+    /**
      * The default value for the property USE_VIDEO_MODEL
      */
     private final static boolean DEFAULT_VALUE_USE_VIDEO_MODEL = false;
+
+    /**
+     * The default value for the property ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION
+     */
+    private final static boolean DEFAULT_VALUE_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION = false;
 
     /**
      * Check whether the given string contains a supported language tag
@@ -223,6 +235,11 @@ public class GoogleCloudTranscriptionService
      * requests.
      */
     private boolean useVideoModel;
+
+    /**
+     * Whether to get automatic punctuation
+     */
+    private boolean enableAutomaticPunctuation;
 
     /**
      * Creates the RecognitionConfig the Google service uses based
@@ -263,6 +280,9 @@ public class GoogleCloudTranscriptionService
             builder.setModel("video");
         }
 
+        // set punctuation mode
+        builder.setEnableAutomaticPunctuation(enableAutomaticPunctuation);
+
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();
         validateLanguageTag(languageTag);
@@ -284,6 +304,9 @@ public class GoogleCloudTranscriptionService
     {
         useVideoModel = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_USE_VIDEO_MODEL, DEFAULT_VALUE_USE_VIDEO_MODEL);
+
+        enableAutomaticPunctuation = JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION, DEFAULT_VALUE_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION);
     }
 
     /**
