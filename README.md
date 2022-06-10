@@ -131,8 +131,11 @@ By default, the properties
 `org.jitsi.jigasi.transcription.ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION=false`
 and
 `org.jitsi.jigasi.transcription.ENABLE_GOOGLE_PROFANITY_FILTER=false`
+and
+`org.jitsi.jigasi.transcription.ENABLE_GOOGLE_INTERIM_RESULTS=false`
 in
 `jigasi-home/sip-communicator.properties`
+disable automatic punctuation, profanity filter and interim results for the transcription.
 To change this, simply set the desired property to `true` or `false`.
 
 Vosk configuration
