@@ -129,6 +129,8 @@ gcloud auth application-default login
 It is possible to enable or disable the functionality of Google Cloud Speech to Text.
 By default, the properties
 `org.jitsi.jigasi.transcription.ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION=false`
+and
+`org.jitsi.jigasi.transcription.ENABLE_GOOGLE_PROFANITY_FILTER=false`
 in
 `jigasi-home/sip-communicator.properties`
 To change this, simply set the desired property to `true` or `false`.

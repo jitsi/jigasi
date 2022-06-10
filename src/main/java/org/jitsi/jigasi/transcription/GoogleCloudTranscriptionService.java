@@ -192,6 +192,13 @@ public class GoogleCloudTranscriptionService
         = "org.jitsi.jigasi.transcription.ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION";
 
     /**
+     * Property name to determine whether the Google Speech API should censor
+     * profane words
+     */
+    private final static String P_NAME_ENABLE_GOOGLE_PROFANITY_FILTER
+        = "org.jitsi.jigasi.transcription.ENABLE_GOOGLE_PROFANITY_FILTER";
+
+    /**
      * The default value for the property USE_VIDEO_MODEL
      */
     private final static boolean DEFAULT_VALUE_USE_VIDEO_MODEL = false;
@@ -200,6 +207,11 @@ public class GoogleCloudTranscriptionService
      * The default value for the property ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION
      */
     private final static boolean DEFAULT_VALUE_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION = false;
+
+    /**
+     * The default value for the property ENABLE_GOOGLE_PROFANITY_FILTER
+     */
+    private final static boolean DEFAULT_VALUE_ENABLE_GOOGLE_PROFANITY_FILTER = false;
 
     /**
      * Check whether the given string contains a supported language tag
@@ -240,6 +252,11 @@ public class GoogleCloudTranscriptionService
      * Whether to get automatic punctuation
      */
     private boolean enableAutomaticPunctuation;
+
+    /**
+     * Wheteher to enable profanity filter
+     */
+    private boolean enableProfanityFilter;
 
     /**
      * Creates the RecognitionConfig the Google service uses based
@@ -283,6 +300,9 @@ public class GoogleCloudTranscriptionService
         // set punctuation mode
         builder.setEnableAutomaticPunctuation(enableAutomaticPunctuation);
 
+        // set profanity filter
+        builder.setProfanityFilter(enableProfanityFilter);
+
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();
         validateLanguageTag(languageTag);
@@ -307,6 +327,9 @@ public class GoogleCloudTranscriptionService
 
         enableAutomaticPunctuation = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION, DEFAULT_VALUE_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION);
+
+        enableProfanityFilter = JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_GOOGLE_PROFANITY_FILTER, DEFAULT_VALUE_ENABLE_GOOGLE_PROFANITY_FILTER);
     }
 
     /**
