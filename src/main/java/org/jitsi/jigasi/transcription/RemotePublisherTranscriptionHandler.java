@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.jigasi.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.json.*;
 
@@ -32,9 +33,25 @@ public class RemotePublisherTranscriptionHandler
     implements TranscriptionEventListener
 {
     /**
+     * Property name to determine whether to send the interim results
+     */
+    private final static String P_NAME_ENABLE_INTERIM_RESULTS
+        = "org.jitsi.jigasi.transcription.ENABLE_INTERIM_RESULTS";
+
+    /**
+     * The default value for the property ENABLE_INTERIM_RESULTS
+     */
+    private final static boolean DEFAULT_VALUE_ENABLE_INTERIM_RESULTS = false;
+
+    /**
      * List of remote services to notify for transcriptions.
      */
     private List<String> urls = new ArrayList<>();
+
+    /**
+     * Whether to send interim non-final results
+     */
+    private boolean enableInterimResults;
 
     /**
      * Constructs RemotePublisherTranscriptionHandler, initializing its config.
@@ -52,12 +69,15 @@ public class RemotePublisherTranscriptionHandler
         {
             urls.add(tokens.nextToken().trim());
         }
+
+        enableInterimResults = JigasiBundleActivator.getConfigurationService()
+            .getBoolean(P_NAME_ENABLE_INTERIM_RESULTS, DEFAULT_VALUE_ENABLE_INTERIM_RESULTS);
     }
 
     @Override
     public void publish(ChatRoom room, TranscriptionResult result)
     {
-        if (result.isInterim())
+        if (!enableInterimResults && result.isInterim())
             return;
 
         JSONObject eventObject = createTranscriptionJSONObject(result);

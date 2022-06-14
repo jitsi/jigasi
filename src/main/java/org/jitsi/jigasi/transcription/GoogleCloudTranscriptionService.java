@@ -185,12 +185,6 @@ public class GoogleCloudTranscriptionService
         = "org.jitsi.jigasi.transcription.USE_VIDEO_MODEL";
 
     /**
-     * Property name to determine whether to send the interim results
-     */
-    private final static String P_NAME_ENABLE_GOOGLE_INTERIM_RESULTS
-        = "org.jitsi.jigasi.transcription.ENABLE_GOOGLE_INTERIM_RESULTS";
-
-    /**
      * Property name to determine whether the Google Speech API should get
      * automatic punctuation
      */
@@ -208,11 +202,6 @@ public class GoogleCloudTranscriptionService
      * The default value for the property USE_VIDEO_MODEL
      */
     private final static boolean DEFAULT_VALUE_USE_VIDEO_MODEL = false;
-
-    /**
-     * The default value for the property ENABLE_GOOGLE_INTERIM_RESULTS
-     */
-    private final static boolean DEFAULT_VALUE_ENABLE_GOOGLE_INTERIM_RESULTS = false;
 
     /**
      * The default value for the property ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION
@@ -258,11 +247,6 @@ public class GoogleCloudTranscriptionService
      * requests.
      */
     private boolean useVideoModel;
-
-    /**
-     * Whether to send interim non-final results
-     */
-    private boolean enableInterimResults;
 
     /**
      * Whether to get automatic punctuation
@@ -340,9 +324,6 @@ public class GoogleCloudTranscriptionService
     {
         useVideoModel = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_USE_VIDEO_MODEL, DEFAULT_VALUE_USE_VIDEO_MODEL);
-
-        enableInterimResults = JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_ENABLE_GOOGLE_INTERIM_RESULTS, DEFAULT_VALUE_ENABLE_GOOGLE_INTERIM_RESULTS);
 
         enableAutomaticPunctuation = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION, DEFAULT_VALUE_ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION);
@@ -745,8 +726,7 @@ public class GoogleCloudTranscriptionService
                 new ResponseApiStreamingObserver<StreamingRecognizeResponse>(
                     this,
                     config.getLanguageCode(),
-                    debugName,
-                    enableInterimResults);
+                    debugName);
 
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
@@ -928,11 +908,6 @@ public class GoogleCloudTranscriptionService
         private UUID messageID;
 
         /**
-         * Whether to send interim results
-         */
-        private Boolean enableInterimResults;
-
-        /**
          * Google provides multiple results per API response where the first one
          * contains the most stable part of the sentence and freshly transcribed
          * text is included in subsequent result structures marked as unstable.
@@ -951,13 +926,11 @@ public class GoogleCloudTranscriptionService
          */
         ResponseApiStreamingObserver(RequestApiStreamObserverManager manager,
                                      String languageTag,
-                                     String debugName,
-                                     Boolean enableInterimResults)
+                                     String debugName)
         {
             this.requestManager = manager;
             this.languageTag = languageTag;
             this.debugName = debugName;
-            this.enableInterimResults = enableInterimResults;
 
             messageID = UUID.randomUUID();
         }
@@ -1091,7 +1064,7 @@ public class GoogleCloudTranscriptionService
             TranscriptionResult transcriptionResult = new TranscriptionResult(
                 null,
                 this.messageID,
-                !enableInterimResults && !result.getIsFinal(),
+                !result.getIsFinal(),
                 this.languageTag,
                 result.getStability(),
                 new TranscriptionAlternative(
