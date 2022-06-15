@@ -8,7 +8,7 @@ Standards-Version: 3.9.3
 Homepage: https://jitsi.org
 
 Package: jigasi
-Architecture: any
+Architecture: all
 Depends: ${misc:Depends}, default-jre-headless (>= 2:1.11), openssl, ruby-hocon
 Description: Jitsi Gateway for SIP
  Jitsi Meet is a WebRTC JavaScript application that uses Jitsi
