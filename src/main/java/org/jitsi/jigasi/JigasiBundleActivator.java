@@ -194,11 +194,12 @@ public class JigasiBundleActivator
         osgiContext = bundleContext;
         configService = getService(ConfigurationService.class);
 
+        StartMutedProvider.registerStartMutedProvider();
+
         if (isSipEnabled())
         {
             if (isSipStartMutedEnabled())
             {
-                StartMutedProvider.registerStartMutedProvider();
                 MuteIqProvider.registerMuteIqProvider();
             }
 
