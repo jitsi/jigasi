@@ -361,6 +361,11 @@ public class JvbConference
     private final List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
 
     /**
+     * The features for the current xmpp provider we will use later adding to the room presence we send.
+     */
+    private ExtensionElement features = null;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -611,6 +616,9 @@ public class JvbConference
 
         this.xmppProvider = xmppProvider;
 
+        // Advertise gateway features before joining and if possible before connecting
+        this.features = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class));
+
         xmppProvider.addRegistrationStateChangeListener(this);
 
         this.telephony
@@ -726,10 +734,6 @@ public class JvbConference
 
     public void joinConferenceRoom()
     {
-        // Advertise gateway feature before joining
-        ExtensionElement features
-            = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class));
-
         OperationSetMultiUserChat muc = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.addPresenceListener(this);
 
@@ -810,7 +814,7 @@ public class JvbConference
                     ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initiator);
                 }
 
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(features);
+                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(this.features);
             }
             else
             {
