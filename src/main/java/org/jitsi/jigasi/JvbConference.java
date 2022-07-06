@@ -96,25 +96,6 @@ public class JvbConference
             = "urn:xmpp:jingle:dtmf:0";
 
     /**
-     * The name of the XMPP feature for rtcpmux.
-     */
-    public static final String RTCPMUX_FEATURE_NAME
-            = "urn:ietf:rfc:5761";
-
-    /**
-     * The name of the XMPP feature for bundle.
-     */
-    public static final String BUNDLE_FEATURE_NAME
-            = "urn:ietf:rfc:5888";
-
-    /**
-     * The name of the property which can be used to disable advertising of
-     * rtcpmux support.
-     */
-    public static final String P_NAME_DISABLE_RTCPMUX
-            = "org.jitsi.jigasi.DISABLE_RTCPMUX";
-
-    /**
      * The name of the property that is used to define whether the SIP user of
      * the incoming/outgoing SIP URI should be used as the XMPP resource or not.
      */
@@ -179,14 +160,6 @@ public class JvbConference
 
         ConfigurationService cfg
                 = JigasiBundleActivator.getConfigurationService();
-
-        if (!cfg.getBoolean(P_NAME_DISABLE_RTCPMUX, false))
-        {
-            // We need to advertise both rtcp-mux and bundle for jicofo to
-            // use rtcpmux.
-            meetTools.addSupportedFeature(RTCPMUX_FEATURE_NAME);
-            meetTools.addSupportedFeature(BUNDLE_FEATURE_NAME);
-        }
 
         // Remove ICE support from features list ?
         if (cfg.getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
