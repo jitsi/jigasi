@@ -296,6 +296,8 @@ public class TranscriptionGatewaySession
     void notifyChatRoomMemberUpdated(ChatRoomMember chatMember, Presence presence)
     {
         super.notifyChatRoomMemberUpdated(chatMember, presence);
+        String identifier = getParticipantIdentifier(chatMember);
+        this.transcriber.updateParticipant(identifier, chatMember);
 
         if (transcriber.isTranscribing() &&
             !transcriber.isAnyParticipantRequestingTranscription())
