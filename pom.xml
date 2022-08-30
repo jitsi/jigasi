@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.14.c7330c51f</jitsi-desktop.version>
+    <jitsi-desktop.version>2.14.08fd0a8ee</jitsi-desktop.version>
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.36</slf4j.version>
