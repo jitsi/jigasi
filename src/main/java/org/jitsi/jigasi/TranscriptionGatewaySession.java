@@ -297,6 +297,11 @@ public class TranscriptionGatewaySession
     {
         super.notifyChatRoomMemberUpdated(chatMember, presence);
 
+        //This needed for the translation language change.
+        //update a language change coming in the presence
+        String identifier = getParticipantIdentifier(chatMember);
+        this.transcriber.updateParticipant(identifier, chatMember);
+
         if (transcriber.isTranscribing() &&
             !transcriber.isAnyParticipantRequestingTranscription())
         {
