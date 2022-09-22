@@ -168,6 +168,8 @@ public class VoskTranscriptionService
         private double sampleRate = -1.0;
         /* Last returned result so we do not return the same string twice */
         private String lastResult = "";
+        /* Last used UUID so it is kept stable between interim results */
+        private UUID lastUUID = UUID.randomUUID();
 
         /**
          * List of TranscriptionListeners which will be notified when a
@@ -204,6 +206,7 @@ public class VoskTranscriptionService
             if (logger.isDebugEnabled())
                 logger.debug(debugName + "Recieved response: " + msg);
             JSONObject obj = new JSONObject(msg);
+            UUID msgUUID = lastUUID;
             if (obj.has("partial"))
             {
                 result = obj.getString("partial");
@@ -212,15 +215,16 @@ public class VoskTranscriptionService
             {
                 partial = false;
                 result = obj.getString("text");
+                lastUUID = UUID.randomUUID();
             }
-            if (!result.isEmpty() && !result.equals(lastResult))
+            if (!result.isEmpty() && (!partial || !result.equals(lastResult)))
             {
                 lastResult = result;
                 for (TranscriptionListener l : listeners)
                 {
                     l.notify(new TranscriptionResult(
                             null,
-                            UUID.randomUUID(),
+                            msgUUID,
                             partial,
                             "C",
                             1.0,
