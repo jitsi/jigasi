@@ -343,7 +343,8 @@ public class Transcriber
                     String language
                         = translationLanguageExtension.getTranslationLanguage();
 
-                    if(!participant.getSourceLanguage().equals(language)) {
+                    if (!participant.getSourceLanguage().equals(language))
+                    {
                         this.updateParticipantTargetLanguage(identifier, language);
                     }
                 }
