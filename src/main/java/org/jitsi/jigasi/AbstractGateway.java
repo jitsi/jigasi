@@ -18,6 +18,8 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
+
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jxmpp.jid.*;
 import org.osgi.framework.*;
@@ -102,6 +104,12 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      * @return whether this gateway is ready to create sessions.
      */
     public abstract boolean isReady();
+
+    public OrderedJsonObject getDebugState()
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        return debugState;
+    }
 
     /**
      * Notified that current call has ended.
