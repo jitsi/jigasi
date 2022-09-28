@@ -106,8 +106,8 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     public abstract boolean isReady();
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> that holds debug information for
-     * this instance.
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
      */
     public OrderedJsonObject getDebugState()
     {

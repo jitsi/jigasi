@@ -1264,8 +1264,8 @@ public class JvbConference
     }
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> that holds debug information for
-     * this instance.
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
      */
     public OrderedJsonObject getDebugState()
     {

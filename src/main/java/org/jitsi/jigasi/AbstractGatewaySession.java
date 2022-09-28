@@ -99,8 +99,8 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> that holds debug information for
-     * this instance.
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
      */
     public OrderedJsonObject getDebugState()
     {
