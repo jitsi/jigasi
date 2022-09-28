@@ -47,6 +47,7 @@ import org.jivesoftware.smackx.disco.packet.*;
 import org.jivesoftware.smackx.muc.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
+import org.jivesoftware.smackx.xdata.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -126,6 +127,11 @@ public class JvbConference
      */
     public static final String LOCAL_REGION_PNAME
         = "org.jitsi.jigasi.LOCAL_REGION";
+
+    /**
+     * The name of the (unique) meeting id field in the MUC data form.
+     */
+    private static final String DATA_FORM_MEETING_ID_FIELD_NAME = "meeting_id";
 
     /**
      * The milliseconds to wait before check the jvb side of the call for activity.
@@ -1792,8 +1798,12 @@ public class JvbConference
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
             boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
             boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
-            meetingId = df.getField("meeting_id").getFirstValue();
 
+            FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
+            if (meetingIdField != null)
+            {
+                meetingId = meetingIdField.getFirstValue();
+            }
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
         }
