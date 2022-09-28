@@ -113,7 +113,12 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
         sessions.forEach((callContext, session) -> {
-            debugState.put(session.hashCode(), session.getDebugState());
+            String displayName = session.getMucDisplayName();
+            if (displayName == null || displayName.trim() == "")
+            {
+                displayName = Integer.toString(session.hashCode());
+            }
+            debugState.put(displayName, session.getDebugState());
         });
 
         return debugState;
