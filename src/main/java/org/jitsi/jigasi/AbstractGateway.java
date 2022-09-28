@@ -108,6 +108,10 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     public OrderedJsonObject getDebugState()
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
+        sessions.forEach((callContext, session) -> {
+            debugState.put(session.hashCode(), session.getDebugState());
+        });
+
         return debugState;
     }
 

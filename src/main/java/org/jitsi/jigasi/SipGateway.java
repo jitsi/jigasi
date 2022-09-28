@@ -20,11 +20,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 
-import java.lang.ref.*;
-import java.util.*;
-
 import org.jitsi.jigasi.util.*;
-import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 
@@ -193,30 +189,7 @@ public class SipGateway
         outgoingSession.addListener(this);
         outgoingSession.createOutgoingCall();
 
-        weakSessions.add(new WeakReference<SipGatewaySession>(outgoingSession));
-        if (weakSessions.size() > 100) {
-            // periodically remove the weakreferences as they get cleared.
-            weakSessions.removeIf(ref -> ref.get() == null);
-        }
-
         return outgoingSession;
-    }
-
-    private final List<WeakReference<SipGatewaySession>> weakSessions
-        = Collections.synchronizedList(new ArrayList<WeakReference<SipGatewaySession>>());
-    
-    @Override
-    public OrderedJsonObject getDebugState()
-    {
-        OrderedJsonObject debugState = super.getDebugState();
-        weakSessions.forEach(ref -> {
-            SipGatewaySession session = ref.get();
-            if (session != null) {
-                debugState.put(session.hashCode(), session.getDebugState());
-            }
-        });
-
-        return debugState;
     }
 
     class SipCallListener
@@ -249,13 +222,6 @@ public class SipGateway
                 incomingSession.addListener(SipGateway.this);
 
                 incomingSession.initIncomingCall();
-
-                weakSessions.add(new WeakReference<SipGatewaySession>(incomingSession));
-                if (weakSessions.size() > 100)
-                {
-                    // periodically remove the weakreferences as they get cleared.
-                    weakSessions.removeIf(ref -> ref.get() == null);
-                }
             }
         }
 
