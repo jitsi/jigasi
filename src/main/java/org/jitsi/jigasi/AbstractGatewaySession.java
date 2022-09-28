@@ -98,9 +98,17 @@ public abstract class AbstractGatewaySession
 
     }
 
+    /**
+     * @return an <tt>OrderedJsonObject</tt> that holds debug information for
+     * this instance.
+     */
     public OrderedJsonObject getDebugState()
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
+        if (jvbConference != null)
+        {
+            debugState.put("jvbConference", jvbConference.getDebugState());
+        }
         return debugState;
     }
 

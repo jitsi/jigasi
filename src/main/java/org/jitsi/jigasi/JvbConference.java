@@ -144,6 +144,11 @@ public class JvbConference
     private final AudioModeration audioModeration;
 
     /**
+     * The (unique) meeting id of this conference.
+     */
+    private String meetingId;
+
+    /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the 'features' extension element that can be added to presence.
@@ -1259,6 +1264,18 @@ public class JvbConference
     }
 
     /**
+     * @return an <tt>OrderedJsonObject</tt> that holds debug information for
+     * this instance.
+     */
+    public OrderedJsonObject getDebugState()
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        debugState.put("meetingUrl", getMeetingUrl());
+        debugState.put("meetingId", meetingId);
+        return debugState;
+    }
+
+    /**
      * Returns the URL of the meeting
      *
      * @return the URL of the meeting
@@ -1775,6 +1792,7 @@ public class JvbConference
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
             boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
             boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
+            meetingId = df.getField("meeting_id").getFirstValue();
 
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;

@@ -477,13 +477,6 @@ public class SipGatewaySession
         jvbConference.start();
     }
 
-    public OrderedJsonObject getDebugState()
-    {
-        OrderedJsonObject debugState = new OrderedJsonObject();
-        // debugState.put("meetingUniqueId", jvbConference.getMeetingUniqueId());
-        return debugState;
-    }
-
     void onConferenceCallInvited(Call incomingCall)
     {
         // Incoming SIP connection mode sets common conference here
