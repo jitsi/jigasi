@@ -131,7 +131,7 @@ public class JvbConference
     /**
      * The name of the (unique) meeting id field in the MUC data form.
      */
-    private static final String DATA_FORM_MEETING_ID_FIELD_NAME = "meeting_id";
+    private static final String DATA_FORM_MEETING_ID_FIELD_NAME = "muc#roominfo_meetingId";
 
     /**
      * The milliseconds to wait before check the jvb side of the call for activity.
@@ -854,6 +854,9 @@ public class JvbConference
                 updateFromRoomConfiguration();
             }
 
+            // set the unique meeting id from the muc configuration.
+            updateMeetingId();
+
             // let's listen for any future changes in room configuration, whether lobby will be enabled/disabled
             if (roomConfigurationListener == null && mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -1276,8 +1279,15 @@ public class JvbConference
     public OrderedJsonObject getDebugState()
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
-        debugState.put("meetingUrl", getMeetingUrl());
-        debugState.put("meetingId", meetingId);
+        String meetingUrl = getMeetingUrl();
+        if (meetingUrl != null && meetingUrl.trim() != "")
+        {
+            debugState.put("meetingUrl", getMeetingUrl());
+        }
+        if (meetingId != null && meetingId.trim() != "")
+        {
+            debugState.put("meetingId", meetingId);
+        }
         return debugState;
     }
 
@@ -1785,6 +1795,29 @@ public class JvbConference
     }
 
     /**
+     * Updates the (unique) meeting id from the muc configuration.
+     */
+    private void updateMeetingId()
+    {
+        try
+        {
+            DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
+                discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
+
+            DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
+            FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
+            if (meetingIdField != null)
+            {
+                this.meetingId = meetingIdField.getFirstValue();
+            }
+        }
+        catch(Exception e)
+        {
+            logger.error(this.callContext + " Error checking room configuration", e);
+        }
+    }
+
+    /**
      * Discovers the room configuration and checks the values of whether lobby is enabled and whether
      * single moderator is set.
      */
@@ -1798,12 +1831,6 @@ public class JvbConference
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
             boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
             boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
-
-            FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
-            if (meetingIdField != null)
-            {
-                meetingId = meetingIdField.getFirstValue();
-            }
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
         }
@@ -1982,6 +2009,7 @@ public class JvbConference
             if (mucUser.getStatus().contains(MUCUser.Status.create(104)))
             {
                 updateFromRoomConfiguration();
+                updateMeetingId();
             }
         }
     }
