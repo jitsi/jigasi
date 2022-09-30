@@ -326,7 +326,7 @@ public class HandlerImpl
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
-        out.print(debugState.toString());
+        out.print(debugState.toJSONString());
     }
     /**
      * Gets a JSON representation of the <tt>Statistics</tt> of (the
