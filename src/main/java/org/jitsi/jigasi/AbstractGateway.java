@@ -112,6 +112,8 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     public OrderedJsonObject getDebugState()
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
+        OrderedJsonObject sessionsJson = new OrderedJsonObject();
+        debugState.put("sessions", sessionsJson);
         synchronized (sessions)
         {
             sessions.forEach((callContext, session) -> {
@@ -120,7 +122,7 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
                 {
                     displayName = Integer.toString(session.hashCode());
                 }
-                debugState.put(displayName, session.getDebugState());
+                sessionsJson.put(displayName, session.getDebugState());
             });
         }
 
