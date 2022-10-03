@@ -175,6 +175,8 @@ public class VoskTranscriptionService
          */
         private final List<TranscriptionListener> listeners = new ArrayList<>();
 
+        private UUID uuid = UUID.randomUUID();
+
         VoskWebsocketStreamingSession(String debugName)
             throws Exception
         {
@@ -213,6 +215,7 @@ public class VoskTranscriptionService
                 partial = false;
                 result = obj.getString("text");
             }
+
             if (!result.isEmpty() && !result.equals(lastResult))
             {
                 lastResult = result;
@@ -220,12 +223,17 @@ public class VoskTranscriptionService
                 {
                     l.notify(new TranscriptionResult(
                             null,
-                            UUID.randomUUID(),
+                            this.uuid,
                             partial,
                             "C",
                             1.0,
                             new TranscriptionAlternative(result)));
                 }
+            }
+
+            if (!partial)
+            {
+                this.uuid = UUID.randomUUID();
             }
         }
 
