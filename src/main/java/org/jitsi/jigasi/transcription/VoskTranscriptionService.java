@@ -220,7 +220,7 @@ public class VoskTranscriptionService
                 result = obj.getString("text");
             }
 
-            if (!result.isEmpty() && !result.equals(lastResult))
+            if (!result.isEmpty() && (!partial || !result.equals(lastResult)))
             {
                 lastResult = result;
                 for (TranscriptionListener l : listeners)
