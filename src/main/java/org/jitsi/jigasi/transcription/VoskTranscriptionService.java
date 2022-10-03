@@ -175,6 +175,10 @@ public class VoskTranscriptionService
          */
         private final List<TranscriptionListener> listeners = new ArrayList<>();
 
+        /**
+         *  Latest assigned UUID to a transcription result.
+         *  A new one has to be generated whenever a definitive result is received.
+         */
         private UUID uuid = UUID.randomUUID();
 
         VoskWebsocketStreamingSession(String debugName)
