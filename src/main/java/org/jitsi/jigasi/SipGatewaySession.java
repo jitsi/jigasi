@@ -270,16 +270,6 @@ public class SipGatewaySession
     private WaitForJvbRoomNameThread waitThread;
 
     /**
-     * The stats handler that handles statistics on the sip side.
-     */
-    private StatsHandler statsHandler = null;
-
-    /**
-     * The default remote endpoint id to use for statistics.
-     */
-    public static final String DEFAULT_STATS_REMOTE_ID = "sip";
-
-    /**
      * A transformer that monitors RTP and RTCP traffic going and coming
      * from the sip direction. Skips forwarding RTCP traffic which is not
      * intended for that direction (particularly we had seen RTCP.BYE for
@@ -463,17 +453,7 @@ public class SipGatewaySession
     private void joinJvbConference(CallContext ctx)
     {
         cancelWaitThread();
-
-        // let's add callstats to the call
-        if (statsHandler == null)
-        {
-            String sipCallIdentifier = this.getMucDisplayName();
-            statsHandler = new StatsHandler(
-                sipCall, sipCallIdentifier, DEFAULT_STATS_REMOTE_ID + "-" + sipCallIdentifier);
-        }
-
         jvbConference = new JvbConference(this, ctx);
-
         jvbConference.start();
     }
 
@@ -694,12 +674,6 @@ public class SipGatewaySession
         logger.info(this.callContext + " Sip call ended: " + sipCall);
 
         sipCall.removeCallChangeListener(callStateListener);
-
-        if (statsHandler != null)
-        {
-            statsHandler.dispose();
-            statsHandler = null;
-        }
 
         jitsiMeetTools.removeRequestListener(SipGatewaySession.this);
 

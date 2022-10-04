@@ -5,6 +5,3 @@ jigasi.jar                                  usr/share/jigasi
 jigasi.sh                                   usr/share/jigasi
 script/graceful_shutdown.sh                 usr/share/jigasi
 script/collect-dump-logs.sh                 usr/share/jigasi
-
-# callstats-java-sdk
-jigasi-home/callstats-java-sdk.properties   etc/jitsi/jigasi

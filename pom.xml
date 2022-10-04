@@ -214,11 +214,6 @@
       <artifactId>jitsi-packetlogging</artifactId>
       <version>${jitsi-desktop.version}</version>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-stats</artifactId>
-      <version>1.0-15-ga3c317f</version>
-    </dependency>
     <!-- runtime -->
     <dependency>
       <groupId>rusv</groupId>
