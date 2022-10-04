@@ -23,7 +23,6 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.service.configuration.*;
-import org.jitsi.stats.media.*;
 
 /**
  * Jigasi OSGi bundle config
@@ -104,9 +103,6 @@ public class JigasiBundleConfig
             System.getProperty(
                 ConfigurationService.PNAME_CONFIGURATION_FILE_IS_READ_ONLY,
                 true_));
-
-        // java-stats(stats-java-sdk)
-        Utils.getCallStatsJavaSDKSystemPropertyDefaults(defaults);
 
         return defaults;
     }

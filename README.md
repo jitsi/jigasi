@@ -278,17 +278,6 @@ That room needs to be configured in jicofo with the following property:
 `hocon -f /etc/jitsi/jicofo/jicofo.conf set jicofo.jigasi.brewery-jid '"JigasiBrewery@internal.auth.meet.example.com"'`
 Where prosody needs to have a registered muc component: `internal.auth.meet.example.com`.
 
-You can configure and per XMPP account callstats account, a jigasi instance can 
-serve several deployments/domains:
-```
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.appId=...
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyId=...
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.keyPath=/etc/jitsi/jigasi/ecpriv.jwk
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.conferenceIDPrefix=meet.example.com
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.jigasiId=<id-of-this-instance-visible-in-callstats>
-net.java.sip.communicator.impl.protocol.jabber.acc-xmpp-1.CallStats.STATISTICS_INTERVAL=60000
-``` 
-
 The configuration for the XMPP control MUCs that jigasi uses can be modified at 
 run time using REST calls to `/configure/`.
 

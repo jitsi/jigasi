@@ -303,11 +303,6 @@ public class JvbConference
     private int endReasonCode;
 
     /**
-     * The stats handler that handles statistics on the jvb side.
-     */
-    private StatsHandler statsHandler = null;
-
-    /**
      * Whether we had sent indication that connection had failed
      * for this conference.
      */
@@ -1410,12 +1405,6 @@ public class JvbConference
 
             jvbCall.addCallChangeListener(callChangeListener);
 
-            if (statsHandler == null)
-            {
-                statsHandler = new StatsHandler(
-                    jvbCall, gatewaySession.getMucDisplayName(), DEFAULT_BRIDGE_ID);
-            }
-
             gatewaySession.onConferenceCallInvited(jvbCall);
         }
 
@@ -1727,11 +1716,6 @@ public class JvbConference
                 if (this.jvbCall != null)
                 {
                     this.jvbCall.removeCallChangeListener(callChangeListener);
-                }
-                if (statsHandler != null)
-                {
-                    statsHandler.dispose();
-                    statsHandler = null;
                 }
             }
 
