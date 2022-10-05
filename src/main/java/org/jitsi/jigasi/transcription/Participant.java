@@ -660,9 +660,15 @@ public class Participant
             {
                 session.sendRequest(request);
             }
+            else if (transcriber.getTranscriptionService().supportsStreamRecognition())
+            // re-establish prematurely ended streaming session
+            {
+                session = transcriber.getTranscriptionService()
+                        .initStreamingSession(this);
+                session.addTranscriptionListener(this);
+            }
             else
             // fallback if TranscriptionService does not support streams
-            // or session got ended prematurely
             {
                 // FIXME: 22/07/17 This just assumes given BUFFER_LENGTH
                 // is long enough to get decent audio length. Also does
