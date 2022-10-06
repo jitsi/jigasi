@@ -133,7 +133,14 @@ public class VoskTranscriptionService
     {
         try
         {
-            return new VoskWebsocketStreamingSession(participant.getDebugName());
+            VoskWebsocketStreamingSession streamingSession = new VoskWebsocketStreamingSession(
+                    participant.getDebugName());
+            streamingSession.transcriptionTag = participant.getTranslationLanguage();
+            if (streamingSession.transcriptionTag == null)
+            {
+                streamingSession.transcriptionTag = participant.getSourceLanguage();
+            }
+            return streamingSession;
         }
         catch (Exception e)
         {
@@ -168,6 +175,8 @@ public class VoskTranscriptionService
         private double sampleRate = -1.0;
         /* Last returned result so we do not return the same string twice */
         private String lastResult = "";
+        /* Transcription language requested by the user who requested the transcription */
+        private String transcriptionTag = "en-US";
 
         /**
          * List of TranscriptionListeners which will be notified when a
@@ -227,9 +236,9 @@ public class VoskTranscriptionService
                 {
                     l.notify(new TranscriptionResult(
                             null,
-                            this.uuid,
+                            uuid,
                             partial,
-                            "C",
+                            transcriptionTag,
                             1.0,
                             new TranscriptionAlternative(result)));
                 }
