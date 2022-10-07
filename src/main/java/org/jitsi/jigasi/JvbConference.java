@@ -854,9 +854,6 @@ public class JvbConference
                 updateFromRoomConfiguration();
             }
 
-            // set the unique meeting id from the muc configuration.
-            updateMeetingId();
-
             // let's listen for any future changes in room configuration, whether lobby will be enabled/disabled
             if (roomConfigurationListener == null && mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -1284,9 +1281,11 @@ public class JvbConference
         {
             debugState.put("meetingUrl", getMeetingUrl());
         }
-        if (meetingId != null && meetingId.trim() != "")
+
+        String meetingIdCopy = getMeetingId();
+        if (meetingIdCopy != null && meetingIdCopy.trim() != "")
         {
-            debugState.put("meetingId", meetingId);
+            debugState.put("meetingId", meetingIdCopy);
         }
         return debugState;
     }
@@ -1795,26 +1794,31 @@ public class JvbConference
     }
 
     /**
-     * Updates the (unique) meeting id from the muc configuration.
+     * @return the (unique) meeting id from the muc configuration.
      */
-    private void updateMeetingId()
+    private String getMeetingId()
     {
-        try
+        if (this.meetingId == null)
         {
-            DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
-                discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
-
-            DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
-            FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
-            if (meetingIdField != null)
+            try
             {
-                this.meetingId = meetingIdField.getFirstValue();
+                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection())
+                    .discoverInfo(((ChatRoomJabberImpl) this.mucRoom).getIdentifierAsJid());
+
+                DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
+                FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
+                if (meetingIdField != null)
+                {
+                    this.meetingId = meetingIdField.getFirstValue();
+                }
+            }
+            catch (Exception e)
+            {
+                logger.error(this.callContext + " Error checking room configuration", e);
             }
         }
-        catch(Exception e)
-        {
-            logger.error(this.callContext + " Error checking room configuration", e);
-        }
+
+        return this.meetingId;
     }
 
     /**
@@ -2009,7 +2013,6 @@ public class JvbConference
             if (mucUser.getStatus().contains(MUCUser.Status.create(104)))
             {
                 updateFromRoomConfiguration();
-                updateMeetingId();
             }
         }
     }
