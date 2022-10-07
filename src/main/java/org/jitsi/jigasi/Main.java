@@ -257,6 +257,13 @@ public class Main
         System.setProperty(deviceSystemPackage + ".PulseAudioSystem.disabled", "true");
         System.setProperty(deviceSystemPackage + ".PortAudioSystem.disabled", "true");
 
+        System.setProperty("jdk.xml.entityExpansionLimit", "0");
+        System.setProperty("jdk.xml.maxOccurLimit", "0");
+        System.setProperty("jdk.xml.elementAttributeLimit", "524288");
+        System.setProperty("jdk.xml.totalEntitySizeLimit", "0");
+        System.setProperty("jdk.xml.maxXMLNameLimit", "524288");
+        System.setProperty("jdk.xml.entityReplacementLimit", "0");
+
         // disable smack packages before loading smack
         disableSmackProviders();
 

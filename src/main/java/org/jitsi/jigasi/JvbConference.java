@@ -47,6 +47,7 @@ import org.jivesoftware.smackx.disco.packet.*;
 import org.jivesoftware.smackx.muc.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
+import org.jivesoftware.smackx.xdata.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -128,6 +129,11 @@ public class JvbConference
         = "org.jitsi.jigasi.LOCAL_REGION";
 
     /**
+     * The name of the (unique) meeting id field in the MUC data form.
+     */
+    private static final String DATA_FORM_MEETING_ID_FIELD_NAME = "muc#roominfo_meetingId";
+
+    /**
      * The milliseconds to wait before check the jvb side of the call for activity.
      */
     private static final int JVB_ACTIVITY_CHECK_DELAY = 5000;
@@ -142,6 +148,11 @@ public class JvbConference
      * Handles all the audio mute/unmute logic.
      */
     private final AudioModeration audioModeration;
+
+    /**
+     * The (unique) meeting id of this conference.
+     */
+    private String meetingId;
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -1259,6 +1270,27 @@ public class JvbConference
     }
 
     /**
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
+     */
+    public OrderedJsonObject getDebugState()
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        String meetingUrl = getMeetingUrl();
+        if (meetingUrl != null && meetingUrl.trim() != "")
+        {
+            debugState.put("meetingUrl", getMeetingUrl());
+        }
+
+        String meetingIdCopy = getMeetingId();
+        if (meetingIdCopy != null && meetingIdCopy.trim() != "")
+        {
+            debugState.put("meetingId", meetingIdCopy);
+        }
+        return debugState;
+    }
+
+    /**
      * Returns the URL of the meeting
      *
      * @return the URL of the meeting
@@ -1762,6 +1794,34 @@ public class JvbConference
     }
 
     /**
+     * @return the (unique) meeting id from the muc configuration.
+     */
+    private String getMeetingId()
+    {
+        if (this.meetingId == null)
+        {
+            try
+            {
+                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection())
+                    .discoverInfo(((ChatRoomJabberImpl) this.mucRoom).getIdentifierAsJid());
+
+                DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
+                FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
+                if (meetingIdField != null)
+                {
+                    this.meetingId = meetingIdField.getFirstValue();
+                }
+            }
+            catch (Exception e)
+            {
+                logger.error(this.callContext + " Error checking room configuration", e);
+            }
+        }
+
+        return this.meetingId;
+    }
+
+    /**
      * Discovers the room configuration and checks the values of whether lobby is enabled and whether
      * single moderator is set.
      */
@@ -1775,7 +1835,6 @@ public class JvbConference
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
             boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
             boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
-
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
         }

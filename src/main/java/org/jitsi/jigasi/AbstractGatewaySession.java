@@ -20,6 +20,7 @@ package org.jitsi.jigasi;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.lobby.*;
+import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
@@ -95,6 +96,20 @@ public abstract class AbstractGatewaySession
         this.focusResourceAddr = JigasiBundleActivator.getConfigurationService()
             .getString(FOCUSE_RESOURCE_PROP, "focus");
 
+    }
+
+    /**
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
+     */
+    public OrderedJsonObject getDebugState()
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        if (jvbConference != null)
+        {
+            debugState.put("jvbConference", jvbConference.getDebugState());
+        }
+        return debugState;
     }
 
     /**
