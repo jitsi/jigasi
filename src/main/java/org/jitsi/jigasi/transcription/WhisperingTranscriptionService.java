@@ -92,10 +92,12 @@ public class WhisperingTranscriptionService
     public void sendSingleRequest(final TranscriptionRequest request,
                                   final Consumer<TranscriptionResult> resultConsumer) {
         // Try to create the client, which can throw an IOException
-        try {
+        try
+        {
             // Set the sampling rate and encoding of the audio
             AudioFormat format = request.getFormat();
-            if (!format.getEncoding().equals("LINEAR")) {
+            if (!format.getEncoding().equals("LINEAR"))
+            {
                 throw new IllegalArgumentException("Given AudioFormat" +
                         "has unexpected" +
                         "encoding");
@@ -114,7 +116,9 @@ public class WhisperingTranscriptionService
                             request.getLocale().toLanguageTag(),
                             0,
                             new TranscriptionAlternative(socket.getResult())));
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             logger.error("Error sending single req", e);
         }
     }
@@ -122,15 +126,19 @@ public class WhisperingTranscriptionService
     @Override
     public StreamingRecognitionSession initStreamingSession(Participant participant)
             throws UnsupportedOperationException {
-        try {
+        try
+        {
             WhisperingWebsocketStreamingSession streamingSession = new WhisperingWebsocketStreamingSession(
                     participant.getDebugName());
             streamingSession.transcriptionTag = participant.getTranslationLanguage();
-            if (streamingSession.transcriptionTag == null) {
+            if (streamingSession.transcriptionTag == null)
+            {
                 streamingSession.transcriptionTag = participant.getSourceLanguage();
             }
             return streamingSession;
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new UnsupportedOperationException("Failed to create streaming session", e);
         }
     }
@@ -183,10 +191,13 @@ public class WhisperingTranscriptionService
         public void onConnect(Session session) {
             logger.info("CONNECTED TO WHISPERING WEBSOCKET.");
             this.session = session;
-            try {
+            try
+            {
                 WhisperingContext ctx = new WhisperingContext(0.0);
                 session.getRemote().sendString(ctx.toJSON().toString());
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 logger.error("Error while sending context to Whispering server " + debugName, e);
             }
         }
@@ -218,7 +229,8 @@ public class WhisperingTranscriptionService
             logger.info("SENDING REQUEST");
             logger.info(request.getFormat().getSampleRate());
             logger.info(request.getDurationInMs());
-            try {
+            try
+            {
                 //if (sampleRate < 0)
                 //{
                 //    sampleRate = request.getFormat().getSampleRate();
@@ -226,7 +238,9 @@ public class WhisperingTranscriptionService
                 //}
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
                 session.getRemote().sendBytes(audioBuffer);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 logger.error("Error to send websocket request for participant " + debugName, e);
             }
         }
@@ -236,9 +250,12 @@ public class WhisperingTranscriptionService
         }
 
         public void end() {
-            try {
+            try
+            {
                 session.getRemote().sendString(EOF_MESSAGE);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 logger.error("Error to finalize websocket connection for participant " + debugName, e);
             }
         }
@@ -275,14 +292,17 @@ public class WhisperingTranscriptionService
 
         @OnWebSocketConnect
         public void onConnect(Session session) {
-            try {
+            try
+            {
                 AudioFormat format = request.getFormat();
                 WhisperingContext ctx = new WhisperingContext(0.0);
                 session.getRemote().sendString(ctx.toJSON().toString());
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
                 session.getRemote().sendBytes(audioBuffer);
                 session.getRemote().sendString(EOF_MESSAGE);
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 logger.error("Error to transcribe audio", e);
             }
         }
