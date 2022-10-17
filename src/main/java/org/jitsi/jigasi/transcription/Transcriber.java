@@ -248,18 +248,13 @@ public class Transcriber
     }
 
     /**
-     * Create the translationManager using the custom translation service
-     * configured by the user.
-     * Fallback to GoogleTranslationService if no custom translation service
-     * configuration.
+     * Create the translationManager using the custom translation service configured by the user.
+     * Fallback to GoogleTranslationService if no custom translation service configuration.
      */
     public void configureTranslationManager()
     {
-        String customTranslationServiceClass
-                = JigasiBundleActivator.getConfigurationService()
-                .getString(
-                        CUSTOM_TRANSLATION_SERVICE_PROP,
-                        null);
+        String customTranslationServiceClass = JigasiBundleActivator.getConfigurationService()
+                .getString(CUSTOM_TRANSLATION_SERVICE_PROP, null);
 
         TranslationService translationService = null;
         if (customTranslationServiceClass != null)
@@ -282,8 +277,7 @@ public class Transcriber
             translationService = new GoogleCloudTranslationService();
         }
 
-        translationManager
-                = new TranslationManager(translationService);
+        translationManager = new TranslationManager(translationService);
     }
 
     /**
