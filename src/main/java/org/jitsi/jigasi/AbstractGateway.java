@@ -18,6 +18,8 @@
 package org.jitsi.jigasi;
 
 import net.java.sip.communicator.service.protocol.*;
+
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jxmpp.jid.*;
 import org.osgi.framework.*;
@@ -102,6 +104,30 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      * @return whether this gateway is ready to create sessions.
      */
     public abstract boolean isReady();
+
+    /**
+     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * information for this instance.
+     */
+    public OrderedJsonObject getDebugState()
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        OrderedJsonObject sessionsJson = new OrderedJsonObject();
+        debugState.put("sessions", sessionsJson);
+        synchronized (sessions)
+        {
+            sessions.forEach((callContext, session) -> {
+                String displayName = session.getMucDisplayName();
+                if (displayName == null || displayName.trim() == "")
+                {
+                    displayName = Integer.toString(session.hashCode());
+                }
+                sessionsJson.put(displayName, session.getDebugState());
+            });
+        }
+
+        return debugState;
+    }
 
     /**
      * Notified that current call has ended.

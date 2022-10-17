@@ -31,6 +31,7 @@ import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;
 
 import org.eclipse.jetty.server.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.json.simple.*;
 import org.json.simple.parser.*;
@@ -141,6 +142,12 @@ public class HandlerImpl
      * <tt>Statistics</tt>s of <tt>Jigasi</tt>.
      */
     private static final String STATISTICS_TARGET = "/about/stats";
+
+    /**
+     * The HTTP resource which lists debug information about this Jigasi
+     * instance in JSON format.
+     */
+    private static final String DEBUG_TARGET = "/debug";
 
     /**
      * Indicates if graceful shutdown mode is enabled. If not then
@@ -264,6 +271,18 @@ public class HandlerImpl
                 response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         }
+        else if (DEBUG_TARGET.equals(target))
+        {
+            if (GET_HTTP_METHOD.equals(request.getMethod()))
+            {
+                // Get the conferences of Jigasi
+                doGetDebugJSON(baseRequest, request, response);
+            }
+            else
+            {
+                response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            }
+        }
         else if (target.startsWith(CONFIGURE_MUC_TARGET + "/"))
         {
             doHandleConfigureMucRequest(
@@ -287,6 +306,28 @@ public class HandlerImpl
         }
     }
 
+    /**
+     * 
+     * @throws IOException
+     */
+    private void doGetDebugJSON(
+            Request baseRequest,
+            HttpServletRequest request,
+            HttpServletResponse response)
+        throws IOException
+    {
+        OrderedJsonObject debugState = new OrderedJsonObject();
+        JSONObject gatewaysJson = new JSONObject();
+        debugState.put("gateways", gatewaysJson);
+        List<AbstractGateway> gateways
+            = JigasiBundleActivator.getAvailableGateways();
+        gateways.forEach(gw -> gatewaysJson.put(gw.hashCode(), gw.getDebugState()));
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
+        out.print(debugState.toJSONString());
+    }
     /**
      * Gets a JSON representation of the <tt>Statistics</tt> of (the
      * associated) <tt>Jigasi</tt>.
