@@ -361,6 +361,7 @@ public class WhisperingTranscriptionService
             ctx.put("no_speech_threshold", 0.6);
             ctx.put("buffer_threshold", 0.5);
             ctx.put("vad_threshold", 0.5);
+            ctx.put("data_type", "int64");
 
             JSONObject res = new JSONObject();
             res.put("context", ctx);
