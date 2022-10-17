@@ -148,12 +148,14 @@ public class Transcriber
     private TranscribingAudioMixerMediaDevice mediaDevice
         = new TranscribingAudioMixerMediaDevice(this);
 
+    private static final String CUSTOM_TRANSLATION_SERVICE_PROP
+            = "org.jitsi.jigasi.transcription.translationService";
+
     /**
      * The TranslationManager and the TranslationService which will be used
      * for managing translations.
      */
-    private TranslationManager translationManager
-        = new TranslationManager(new GoogleCloudTranslationService());
+    private TranslationManager translationManager = null;
 
     /**
      * Every listener which will be notified when a new result comes in
@@ -223,6 +225,7 @@ public class Transcriber
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
 
+        configureTranslationManager();
         if (isTranslationEnabled())
         {
             addTranscriptionListener(this.translationManager);
@@ -242,6 +245,39 @@ public class Transcriber
     public Transcriber(TranscriptionService service)
     {
         this(null, null, service);
+    }
+
+    /**
+     * Create the translationManager using the custom translation service configured by the user.
+     * Fallback to GoogleTranslationService if no custom translation service configuration.
+     */
+    public void configureTranslationManager()
+    {
+        String customTranslationServiceClass = JigasiBundleActivator.getConfigurationService()
+                .getString(CUSTOM_TRANSLATION_SERVICE_PROP, null);
+
+        TranslationService translationService = null;
+        if (customTranslationServiceClass != null)
+        {
+            try
+            {
+                translationService = (TranslationService)Class
+                        .forName(customTranslationServiceClass)
+                        .getDeclaredConstructor()
+                        .newInstance();
+            }
+            catch(Exception e)
+            {
+                logger.error("Cannot instantiate custom translation service");
+            }
+        }
+
+        if (translationService == null)
+        {
+            translationService = new GoogleCloudTranslationService();
+        }
+
+        translationManager = new TranslationManager(translationService);
     }
 
     /**
