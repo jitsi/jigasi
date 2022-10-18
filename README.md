@@ -101,7 +101,7 @@ Using Jigasi to transcribe a Jitsi Meet conference
 ==================================================
 
 It is also possible to use Jigasi as a provider of nearly real-time transcription
-while a conference is ongoing as well as serving a complete transcription
+as well as translation while a conference is ongoing as well as serving a complete transcription
 after the conference is over. This can be done by using the SIP dial button and 
 using the URI `jitsi_meet_transcribe`. 
 Currently Jigasi can send speech-to-text results to
@@ -127,7 +127,7 @@ gcloud init
 gcloud auth application-default login
 ```
 
-Vosk configuration
+Vosk configuration for transcription
 ==================
 
 To use [Vosk speech recognition server](https://github.com/alphacep/vosk-server)
@@ -142,6 +142,25 @@ Then configure the transcription class with the following properly in `~/jigasi/
 ```
 org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.VoskTranscriptionService
 ```
+LibreTranslate configuration for translation
+==================
+
+To use [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)
+for translation, configure the following properties in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+```
+org.jitsi.jigasi.transcription.translationService=org.jitsi.jigasi.transcription.LibreTranslateTranslationService
+org.jitsi.jigasi.transcription.libreTranslate.api_url=http://localhost:5000/translate
+```
+
+Run the docker container along with Jigasi:
+```
+docker run -d -p 5000:5000 libretranslate/libretranslate
+```
+Note that by default, the LibreTranslate server downloads all language models
+before starting to listen to requests. You may refer to the 
+[documentation](https://github.com/LibreTranslate/LibreTranslate/blob/main/README.md)
+to set up a volume or set the available languages to reduce download time.
 
 Transcription options
 =====================
