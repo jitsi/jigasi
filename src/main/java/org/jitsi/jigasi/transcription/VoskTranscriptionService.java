@@ -55,7 +55,7 @@ public class VoskTranscriptionService
             = Logger.getLogger(VoskTranscriptionService.class);
 
     /**
-     * The URL of the websocket service speech-to-text service.
+     * The config key of the websocket to the speech-to-text service.
      */
     public final static String WEBSOCKET_URL
             = "org.jitsi.jigasi.transcription.vosk.websocket_url";
@@ -64,8 +64,14 @@ public class VoskTranscriptionService
 
     private final static String EOF_MESSAGE = "{\"eof\" : 1}";
 
+    /**
+     * The config value of the websocket to the speech-to-text service.
+     */
     private String websocketUrlConfig;
 
+    /**
+     * The URL of the websocket to the speech-to-text service.
+     */
     private String websocketUrl;
 
     /**

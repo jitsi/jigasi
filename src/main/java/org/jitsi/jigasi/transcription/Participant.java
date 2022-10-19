@@ -533,8 +533,7 @@ public class Participant
      */
     public void left()
     {
-        TranscriptionService.StreamingRecognitionSession
-                session = sessions.getOrDefault(getLanguageKey(), null);
+        TranscriptionService.StreamingRecognitionSession session = sessions.getOrDefault(getLanguageKey(), null);
         if (session != null)
         {
             session.end();
@@ -673,8 +672,7 @@ public class Participant
     {
         transcriber.executorService.execute(() ->
         {
-            TranscriptionService.StreamingRecognitionSession
-                    session = sessions.getOrDefault(getLanguageKey(), null);
+            TranscriptionService.StreamingRecognitionSession session = sessions.getOrDefault(getLanguageKey(), null);
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
                                            audioFormat,
