@@ -23,8 +23,6 @@ import org.eclipse.jetty.websocket.client.*;
 import org.json.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.utils.logging.*;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import javax.media.format.*;
 import java.io.*;
@@ -73,13 +71,15 @@ public class VoskTranscriptionService
     /**
      * Assigns the websocketUrl to use to websocketUrl by reading websocketUrlConfig;
      */
-    private void generateWebsocketUrl(Participant participant) throws ParseException {
+    private void generateWebsocketUrl(Participant participant)
+        throws org.json.simple.parser.ParseException
+    {
         if (!supportsLanguageRouting())
         {
             websocketUrl = websocketUrlConfig;
         }
 
-        JSONParser jsonParser = new JSONParser();
+        org.json.simple.parser.JSONParser jsonParser = new org.json.simple.parser.JSONParser();
         Object obj = jsonParser.parse(websocketUrlConfig);
         JSONObject languageMap = (JSONObject) obj;
         websocketUrl = languageMap.optString(participant.getSourceLanguage());
