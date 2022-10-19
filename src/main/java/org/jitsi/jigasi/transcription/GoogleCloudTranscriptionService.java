@@ -212,6 +212,14 @@ public class GoogleCloudTranscriptionService
     }
 
     /**
+     * Language routing is handled by Google directly
+     */
+    public boolean supportsLanguageRouting()
+    {
+        return false;
+    }
+
+    /**
      * List of <tt>SpeechContext</tt>s to be inserted in
      * the <tt>RecognitionConfig</tt>. This is a list of phrases to be used as
      * a dictionary to assist the speech recognition.

@@ -23,6 +23,8 @@ import org.eclipse.jetty.websocket.client.*;
 import org.json.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.utils.logging.*;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import javax.media.format.*;
 import java.io.*;
@@ -64,15 +66,32 @@ public class VoskTranscriptionService
 
     private final static String EOF_MESSAGE = "{\"eof\" : 1}";
 
-    private final String websocketUrl;
+    private String websocketUrlConfig;
+
+    private String websocketUrl;
 
     /**
-     * Create a TranscriptionService which will send audio to the google cloud
+     * Assigns the websocketUrl to use to websocketUrl by reading websocketUrlConfig;
+     */
+    private void generateWebsocketUrl(Participant participant) throws ParseException {
+        if (!supportsLanguageRouting())
+        {
+            websocketUrl = websocketUrlConfig;
+        }
+
+        JSONParser jsonParser = new JSONParser();
+        Object obj = jsonParser.parse(websocketUrlConfig);
+        JSONObject languageMap = (JSONObject) obj;
+        websocketUrl = languageMap.optString(participant.getSourceLanguage());
+    }
+
+    /**
+     * Create a TranscriptionService which will send audio to the VOSK service
      * platform to get a transcription
      */
     public VoskTranscriptionService()
     {
-        websocketUrl = JigasiBundleActivator.getConfigurationService()
+        websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
     }
 
@@ -82,6 +101,14 @@ public class VoskTranscriptionService
     public boolean isConfiguredProperly()
     {
         return true;
+    }
+
+    /**
+     * If the websocket url is a JSON, language routing is supported
+     */
+    public boolean supportsLanguageRouting()
+    {
+        return websocketUrlConfig.trim().startsWith("{");
     }
 
     /**
@@ -106,7 +133,6 @@ public class VoskTranscriptionService
                         "has unexpected" +
                         "encoding");
             }
-
             WebSocketClient ws = new WebSocketClient();
             VoskWebsocketSession socket = new VoskWebsocketSession(request);
             ws.start();
@@ -133,6 +159,7 @@ public class VoskTranscriptionService
     {
         try
         {
+            generateWebsocketUrl(participant);
             VoskWebsocketStreamingSession streamingSession = new VoskWebsocketStreamingSession(
                     participant.getDebugName());
             streamingSession.transcriptionTag = participant.getTranslationLanguage();

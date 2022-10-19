@@ -65,6 +65,14 @@ public interface TranscriptionService
     boolean supportsStreamRecognition();
 
     /**
+     * Get whether this TranscriptionService supports language routing to
+     * redirect data to different websockets
+     *
+     * @return true when language routing is supported, false otherwise
+     */
+    boolean supportsLanguageRouting();
+
+    /**
      * Initialise a session which sends a continuous stream of audio to the
      * service to be transcribed
      *
