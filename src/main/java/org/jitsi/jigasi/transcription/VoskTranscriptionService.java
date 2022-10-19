@@ -88,7 +88,7 @@ public class VoskTranscriptionService
         org.json.simple.parser.JSONParser jsonParser = new org.json.simple.parser.JSONParser();
         Object obj = jsonParser.parse(websocketUrlConfig);
         JSONObject languageMap = (JSONObject) obj;
-        websocketUrl = languageMap.optString(participant.getSourceLanguage());
+        websocketUrl = languageMap.optString(participant.getSourceLanguage(), "en");
     }
 
     /**
