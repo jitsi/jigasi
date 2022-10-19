@@ -23,6 +23,7 @@ import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.utils.logging.*;
 import org.jivesoftware.smack.packet.*;
+import org.objectweb.asm.Handle;
 
 import javax.media.format.*;
 import java.nio.*;
@@ -113,7 +114,7 @@ public class Participant
     /**
      * The streaming session which will constantly receive audio
      */
-    private TranscriptionService.StreamingRecognitionSession session;
+    private HashMap<String, TranscriptionService.StreamingRecognitionSession> sessions = new HashMap<>();
 
     /**
      * A buffer which is used to locally store audio before sending
@@ -341,6 +342,21 @@ public class Participant
     }
 
     /**
+     * Get the key to access the transcription session when language
+     * routing is supported
+     *
+     * @return the key of the Hashmap
+     */
+    public String getLanguageKey()
+    {
+        if (transcriber.getTranscriptionService().supportsLanguageRouting())
+        {
+            return this.getSourceLanguage();
+        }
+        return "global";
+    }
+
+    /**
      * Get the group id in the identity presence, if present
      *
      * @return the group id or null
@@ -493,6 +509,9 @@ public class Participant
      */
     void joined()
     {
+        TranscriptionService.StreamingRecognitionSession
+                session = sessions.getOrDefault(getLanguageKey(), null);
+
         if (session != null && !session.ended())
         {
             return; // no need to create new session
@@ -503,6 +522,7 @@ public class Participant
             session = transcriber.getTranscriptionService()
                 .initStreamingSession(this);
             session.addTranscriptionListener(this);
+            sessions.put(getLanguageKey(), session);
             isCompleted = false;
         }
     }
@@ -513,6 +533,7 @@ public class Participant
      */
     public void left()
     {
+        TranscriptionService.StreamingRecognitionSession session = sessions.getOrDefault(getLanguageKey(), null);
         if (session != null)
         {
             session.end();
@@ -651,6 +672,7 @@ public class Participant
     {
         transcriber.executorService.execute(() ->
         {
+            TranscriptionService.StreamingRecognitionSession session = sessions.getOrDefault(getLanguageKey(), null);
             TranscriptionRequest request
                 = new TranscriptionRequest(audio,
                                            audioFormat,

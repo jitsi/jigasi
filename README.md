@@ -162,6 +162,19 @@ before starting to listen to requests. You may refer to the
 [documentation](https://github.com/LibreTranslate/LibreTranslate/blob/main/README.md)
 to set up a volume or set the available languages to reduce download time.
 
+Finally, configure the websocket URL of the VOSK service in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+If you only have one VOSK service:
+
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url=ws://localhost:2700
+```
+
+If you have multiple VOSK services:
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url={"en": "ws://localhost:2700", "fr": "ws://localhost:2710"}
+```
+
 Transcription options
 =====================
 
