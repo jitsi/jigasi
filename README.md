@@ -143,6 +143,19 @@ Then configure the transcription class with the following properly in `~/jigasi/
 org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.VoskTranscriptionService
 ```
 
+Finally, configure the websocket URL of the VOSK service in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+If you only have one VOSK service:
+
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url=ws://localhost:2700
+```
+
+If you have multiple VOSK services:
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url={"en": "ws://localhost:2700", "fr": "ws://localhost:2710"}
+```
+
 Transcription options
 =====================
 
