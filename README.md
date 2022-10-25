@@ -175,6 +175,21 @@ If you have multiple VOSK services:
 # org.jitsi.jigasi.transcription.vosk.websocket_url={"en": "ws://localhost:2700", "fr": "ws://localhost:2710"}
 ```
 
+Whispering configuration
+==================
+
+To use [Whispering](https://github.com/shirayu/whispering) follow the setup instruction the repo's [README](https://github.com/shirayu/whispering/#example-of-web-socket).
+
+```
+whispering --language en --model tiny --host 0.0.0.0 --port 8000
+```
+
+Then configure the transcription class with the following properly in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+```
+org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperingTranscriptionService
+```
+
 Transcription options
 =====================
 
