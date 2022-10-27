@@ -83,6 +83,7 @@ public class VoskTranscriptionService
         if (!supportsLanguageRouting())
         {
             websocketUrl = websocketUrlConfig;
+            return;
         }
 
         org.json.simple.parser.JSONParser jsonParser = new org.json.simple.parser.JSONParser();
