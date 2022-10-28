@@ -142,6 +142,21 @@ Then configure the transcription class with the following properly in `~/jigasi/
 ```
 org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.VoskTranscriptionService
 ```
+
+Finally, configure the websocket URL of the VOSK service in `~/jigasi/jigasi-home/sip-communicator.properties`:
+
+If you only have one instance of VOSK server:
+
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url=ws://localhost:2700
+```
+
+If you have multiple instances of VOSK for transcribing different languages, configure
+the URLs of different VOSK instances in JSON format:
+```
+# org.jitsi.jigasi.transcription.vosk.websocket_url={"en": "ws://localhost:2700", "fr": "ws://localhost:2710"}
+```
+
 LibreTranslate configuration for translation
 ==================
 
@@ -161,19 +176,6 @@ Note that by default, the LibreTranslate server downloads all language models
 before starting to listen to requests. You may refer to the 
 [documentation](https://github.com/LibreTranslate/LibreTranslate/blob/main/README.md)
 to set up a volume or set the available languages to reduce download time.
-
-Finally, configure the websocket URL of the VOSK service in `~/jigasi/jigasi-home/sip-communicator.properties`:
-
-If you only have one VOSK service:
-
-```
-# org.jitsi.jigasi.transcription.vosk.websocket_url=ws://localhost:2700
-```
-
-If you have multiple VOSK services:
-```
-# org.jitsi.jigasi.transcription.vosk.websocket_url={"en": "ws://localhost:2700", "fr": "ws://localhost:2710"}
-```
 
 Transcription options
 =====================
