@@ -99,6 +99,11 @@ public class Statistics
     public static final String TOTAL_CALLS_JVB_NO_MEDIA = "total_calls_jvb_no_media";
 
     /**
+     * The name of the number of conferences for which we did not receive response to the sip heartbeat.
+     */
+    public static final String TOTAL_CALLS_NO_HEARTBEAT = "total_calls_no_heartbeat_response";
+
+    /**
      * The name of the property that holds the normalizing constant that is used to reduce the number of
      * current conferences to a stress level metric {@link #CONFERENCES_THRESHOLD}.
      */
@@ -173,6 +178,11 @@ public class Statistics
     private static AtomicLong totalCallsJvbNoMedia = new AtomicLong();
 
     /**
+     * Total number of calls dropped due to no response to sip heartbeat.
+     */
+    private static AtomicLong totalCallsWithNoHeartBeatResponse = new AtomicLong();
+
+    /**
      * Cumulative number of seconds of all conferences.
      */
     private static long cumulativeConferenceSeconds = 0;
@@ -242,6 +252,7 @@ public class Statistics
             totalCallsWithSipCalReconnected.get());
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
+        stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS,
             JigasiBundleActivator.isShutdownInProgress());
@@ -383,6 +394,14 @@ public class Statistics
     public static void incrementTotalCallsJvbNoMedia()
     {
         totalCallsJvbNoMedia.incrementAndGet();
+    }
+
+    /**
+     * Increment the value of total number of sip calls with no heartbeat.
+     */
+    public static void incrementTotalCallsWithNoSipHeartbeat()
+    {
+        totalCallsWithNoHeartBeatResponse.incrementAndGet();
     }
 
     /**

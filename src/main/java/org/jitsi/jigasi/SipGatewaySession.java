@@ -38,6 +38,7 @@ import org.jxmpp.stringprep.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
@@ -300,6 +301,26 @@ public class SipGatewaySession
     private final Object jsonToSendLock = new Object();
 
     /**
+     * The heartbeat runnable for the call.
+     */
+    private final CallHeartbeat callHeartbeat = new CallHeartbeat();
+
+    /**
+     * The executor scheduling the heartbeat task.
+     */
+    private ScheduledExecutorService heartbeatExecutor = null;
+
+    /**
+     * Heartbeat period, -1 by default as disabled.
+     */
+    private int heartbeatPeriodInSec = -1;
+
+    /**
+     * The account property to use to set the seconds for a call heartbeat.
+     */
+    private static final String HEARTBEAT_SECONDS_PROPERTY = "HEARTBEAT_SECONDS";
+
+    /**
      * Creates new <tt>SipGatewaySession</tt> for given <tt>callResource</tt>
      * and <tt>sipCall</tt>. We already have SIP call instance, so this session
      * can be considered "incoming" SIP session(was created after incoming call
@@ -365,6 +386,9 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_MEET_DOMAIN_TENANT_HEADER_PROPERTY,
                 JITSI_MEET_DOMAIN_TENANT_HEADER_DEFAULT);
+
+        heartbeatPeriodInSec = sipProvider.getAccountID()
+            .getAccountPropertyInt(HEARTBEAT_SECONDS_PROPERTY, heartbeatPeriodInSec);
 
         // defaults to none
         outboundPrefix = sipProvider.getAccountID().getAccountPropertyString(OUTBOUND_PREFIX_PROPERTY, "");
@@ -698,6 +722,11 @@ public class SipGatewaySession
         {
             allCallsEnded();
         }
+
+        if (heartbeatExecutor != null)
+        {
+            heartbeatExecutor.shutdown();
+        }
     }
 
     @Override
@@ -779,6 +808,13 @@ public class SipGatewaySession
             return;
         }
 
+        if (jsonObject.containsKey("t")
+            && ((Long)jsonObject.get("t")).intValue() == SipInfoJsonProtocol.MESSAGE_TYPE.SIP_CALL_HEARTBEAT)
+        {
+            this.callHeartbeat.response();
+            return;
+        }
+
         if (this.jvbConference != null)
         {
             AudioModeration avMod = this.jvbConference.getAudioModeration();
@@ -851,6 +887,16 @@ public class SipGatewaySession
                     }
                 }
             });
+        }
+
+        if (heartbeatPeriodInSec > 0)
+        {
+            // Add a heartbeat task to execute every X minutes
+            // and if we have two not received responses we will tear down the call
+            heartbeatExecutor = Executors.newScheduledThreadPool(1,
+                new CustomizableThreadFactory("sip-call-heartbeat", true));
+            heartbeatExecutor.scheduleAtFixedRate(
+                callHeartbeat, heartbeatPeriodInSec, heartbeatPeriodInSec, TimeUnit.SECONDS);
         }
     }
 
@@ -1603,6 +1649,55 @@ public class SipGatewaySession
             catch (InterruptedException e)
             {
                 Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Counts sent heartbeats and replies. If we reach to sent with no replay
+     * on the third attempt it will tear down the current sip call.
+     */
+    private class CallHeartbeat
+        implements Runnable
+    {
+        private AtomicLong counter = new AtomicLong();
+
+        void response()
+        {
+            counter.decrementAndGet();
+        }
+
+        @Override
+        public void run()
+        {
+            // if the call was stopped ignore
+            if (sipCall == null)
+            {
+                return;
+            }
+
+            if (counter.get() >= 2)
+            {
+                // two consecutive requests with no responses let's clean up
+                heartbeatExecutor.shutdown();
+
+                Statistics.incrementTotalCallsWithNoSipHeartbeat();
+
+                CallManager.hangupCall(getSipCall(),
+                    OperationSetBasicTelephony.HANGUP_REASON_TIMEOUT,
+                    "No response on heartbeat");
+
+                return;
+            }
+
+            try
+            {
+                counter.incrementAndGet();
+                SipGatewaySession.this.sendJson(SipInfoJsonProtocol.createSIPCallHeartBeat());
+            }
+            catch(OperationFailedException ex)
+            {
+                logger.error("Cannot send heartbeat", ex);
             }
         }
     }
