@@ -64,6 +64,7 @@ public class SipInfoJsonProtocol
         public static final int AV_MODERATION_ENABLED = 8;
         public static final int AV_MODERATION_APPROVED = 9;
         public static final int AV_MODERATION_DENIED = 10;
+        public static final int SIP_CALL_HEARTBEAT = 11;
     }
 
     private static class MESSAGE_HEADER
@@ -290,6 +291,20 @@ public class SipInfoJsonProtocol
         JSONObject obj = new JSONObject();
 
         obj.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.AV_MODERATION_DENIED);
+
+        return obj;
+    }
+
+    /**
+     * Creates new JSONObject for sip call heartbeat..
+     *
+     * @return JSONObject representing a message to be sent over SIP.
+     */
+    public static JSONObject createSIPCallHeartBeat()
+    {
+        JSONObject obj = new JSONObject();
+
+        obj.put(MESSAGE_HEADER.MESSAGE_TYPE, MESSAGE_TYPE.SIP_CALL_HEARTBEAT);
 
         return obj;
     }
