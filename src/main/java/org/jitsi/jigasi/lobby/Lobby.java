@@ -22,7 +22,6 @@ import org.jitsi.jigasi.*;
 
 import org.jitsi.jigasi.sounds.*;
 import org.jitsi.utils.logging.Logger;
-import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.parts.*;
@@ -226,7 +225,7 @@ public class Lobby
         }
         catch (Exception ex)
         {
-            logger.error(getCallContext() + " " + ex.toString(), ex);
+            logger.error(getCallContext() + " " + ex, ex);
         }
     }
 
@@ -258,9 +257,8 @@ public class Lobby
                 SoundNotificationManager soundManager = this.sipGatewaySession.getSoundNotificationManager();
                 if (evt.getEventType().equals(LOCAL_USER_KICKED))
                 {
-                    /**
-                     * Lobby access denied.
-                     */
+
+                    // Lobby access denied.
                     soundManager.notifyLobbyAccessDenied();
 
                     sipGatewaySession.notifyLobbyRejectedJoin();
@@ -272,9 +270,7 @@ public class Lobby
 
                 if (evt.getEventType().equals(LOCAL_USER_LEFT))
                 {
-                    /**
-                     * Lobby access granted.
-                     */
+                    // Lobby access granted.
                     String alternateAddress = evt.getAlternateAddress();
 
                     if (alternateAddress != null)
@@ -287,9 +283,8 @@ public class Lobby
 
                 if (evt.getEventType().equals(LOCAL_USER_JOIN_FAILED))
                 {
-                    /**
-                     * If join has failed playback the meeting ended notification.
-                     */
+
+                    //If join has failed playback the meeting ended notification.
                     logger.error("Failed to join lobby!");
 
                     return;
@@ -305,9 +300,7 @@ public class Lobby
                     }
                     else
                     {
-                        /**
-                         * Lobby access granted by disabling the lobby.
-                         */
+                        // Lobby access granted by disabling the lobby.
                         accessGranted(alternateAddress);
                     }
                 }
@@ -315,7 +308,7 @@ public class Lobby
         }
         catch (Exception ex)
         {
-            logger.error(getCallContext() + " " + ex.toString(), ex);
+            logger.error(getCallContext() + " " + ex, ex);
         }
     }
 
@@ -350,9 +343,7 @@ public class Lobby
 
         this.notifyAccessGranted();
 
-        /**
-         * The left event is used here in case the lobby is disabled.
-         */
+        // The left event is used here in case the lobby is disabled.
         if (this.jvbConference != null)
         {
             this.jvbConference.setLobbyEnabled(false);
@@ -382,16 +373,6 @@ public class Lobby
     public Jid getRoomJid()
     {
         return this.roomJid;
-    }
-
-    /**
-     * Returns the used protocol provider.
-     *
-     * @return <tt>ProtocolProviderService</tt> registered protocol provider.
-     */
-    public ProtocolProviderService getProtocolProvider()
-    {
-        return this.xmppProvider;
     }
 
     /**

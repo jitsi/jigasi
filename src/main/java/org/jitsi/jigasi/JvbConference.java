@@ -58,6 +58,7 @@ import java.beans.*;
 import java.io.*;
 import java.util.*;
 
+import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
 
 /**
@@ -116,11 +117,6 @@ public class JvbConference
      */
     public static final String P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM
         = "org.jitsi.jigasi.ALLOW_ONLY_JIGASIS_IN_ROOM";
-
-    /**
-     * The default bridge id to use.
-     */
-    public static final String DEFAULT_BRIDGE_ID = "jitsi";
 
     /**
      * The name of the property which configured the local region.
@@ -1232,18 +1228,26 @@ public class JvbConference
     }
 
     /**
-     * Handles when user is kicked to stop the conference.
+     * Handles when user is kicked or room is destroyed to stop the conference.
      * @param evt the event
      */
     @Override
-    public void localUserPresenceChanged(
-        LocalUserChatRoomPresenceChangeEvent evt)
+    public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
     {
-        if (evt.getChatRoom().equals(JvbConference.this.mucRoom)
-            && Objects.equals(evt.getEventType(),
-                    LocalUserChatRoomPresenceChangeEvent.LOCAL_USER_KICKED))
+        try
         {
-            this.stop();
+            if (evt.getChatRoom().equals(JvbConference.this.mucRoom))
+            {
+                if (Objects.equals(evt.getEventType(), LOCAL_USER_KICKED)
+                    || Objects.equals(evt.getEventType(), LOCAL_USER_ROOM_DESTROYED))
+                {
+                    this.stop();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error(callContext + " " + ex, ex);
         }
     }
 
@@ -1272,13 +1276,13 @@ public class JvbConference
     {
         OrderedJsonObject debugState = new OrderedJsonObject();
         String meetingUrl = getMeetingUrl();
-        if (meetingUrl != null && meetingUrl.trim() != "")
+        if (StringUtils.isNotEmpty(meetingUrl))
         {
             debugState.put("meetingUrl", getMeetingUrl());
         }
 
         String meetingIdCopy = getMeetingId();
-        if (meetingIdCopy != null && meetingIdCopy.trim() != "")
+        if (StringUtils.isNotEmpty(meetingUrl))
         {
             debugState.put("meetingId", meetingIdCopy);
         }
