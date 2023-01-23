@@ -1140,7 +1140,8 @@ public class JvbConference
                     {
                         try
                         {
-                            if (JidCreate.from(address).getResourceOrEmpty().equals(member.getName()))
+                            if (JidCreate.from(address).getResourceOrEmpty().equals(member.getName())
+                                || address.equals(member.getName()))
                             {
                                 peerMedia.removeConferenceMember(confMember);
                             }

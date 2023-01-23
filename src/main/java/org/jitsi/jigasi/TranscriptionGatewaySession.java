@@ -542,6 +542,7 @@ public class TranscriptionGatewaySession
     {
         // assume address is in the form
         // <room_name>@conference.<jitsi_meet_domain>/<some_unique_id>
+        // or just <some_unique_id>
         try
         {
             Jid jid = JidCreate.from(member.getAddress());
@@ -549,6 +550,10 @@ public class TranscriptionGatewaySession
             if (jid.hasResource())
             {
                 return jid.getResourceOrThrow().toString();
+            }
+            else
+            {
+                return jid.toString();
             }
         }
         catch (XmppStringprepException e)
