@@ -102,6 +102,11 @@
       <artifactId>websocket-jetty-client</artifactId>
       <version>${jetty.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.uuid</groupId>
+      <artifactId>java-uuid-generator</artifactId>
+      <version>4.1.0</version>
+    </dependency>
 
     <!-- org.jitsi -->
     <dependency>

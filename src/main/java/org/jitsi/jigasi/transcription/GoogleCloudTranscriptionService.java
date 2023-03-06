@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import com.fasterxml.uuid.*;
 import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
 import com.google.cloud.speech.v1.*;
@@ -894,7 +895,7 @@ public class GoogleCloudTranscriptionService
             this.languageTag = languageTag;
             this.debugName = debugName;
 
-            messageID = UUID.randomUUID();
+            messageID = Generators.timeBasedReorderedGenerator().generate();
         }
 
         @Override
