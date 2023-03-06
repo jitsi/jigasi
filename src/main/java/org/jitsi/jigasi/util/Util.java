@@ -31,9 +31,6 @@ import org.jivesoftware.smack.packet.*;
 import java.lang.reflect.*;
 import java.util.*;
 
-import javax.xml.transform.*;
-import javax.xml.transform.stream.*;
-import java.io.*;
 import java.math.*;
 import java.security.*;
 import java.util.concurrent.*;
@@ -121,37 +118,6 @@ public class Util
         }
 
         return null;
-    }
-
-    /**
-     * Pretty print an XML string into human-readable format
-     * (by adding indentation)
-     *
-     * Retrieved from: https://stackoverflow.com/a/1264912
-     *
-     * @param input the XML to format, as String
-     * @param indent the indent to apply to the XML
-     * @return the formatted String
-     */
-    public static String prettyFormatXMLString(String input, int indent)
-    {
-        try
-        {
-            Source xmlInput = new StreamSource(new StringReader(input));
-            StringWriter stringWriter = new StringWriter();
-            StreamResult xmlOutput = new StreamResult(stringWriter);
-            TransformerFactory transformerFactory
-                = TransformerFactory.newInstance();
-            transformerFactory.setAttribute("indent-number", indent);
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.transform(xmlInput, xmlOutput);
-            return xmlOutput.getWriter().toString();
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
     }
 
     /**
