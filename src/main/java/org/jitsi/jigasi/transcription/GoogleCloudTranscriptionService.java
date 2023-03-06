@@ -355,7 +355,7 @@ public class GoogleCloudTranscriptionService
             resultConsumer.accept(
                     new TranscriptionResult(
                             null,
-                            UUID.randomUUID(),
+                            Generators.timeBasedReorderedGenerator().generate(),
                             false,
                             request.getLocale().toLanguageTag(),
                             0,
@@ -868,7 +868,7 @@ public class GoogleCloudTranscriptionService
          * A {@link UUID} which identifies the results (interim and final) of
          * the current session
          */
-        private UUID messageID;
+        private final UUID messageID;
 
         /**
          * Google provides multiple results per API response where the first one
