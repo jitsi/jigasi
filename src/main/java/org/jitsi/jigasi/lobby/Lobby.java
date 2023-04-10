@@ -243,7 +243,7 @@ public class Lobby
 
     /**
      * Participant is kicked if rejected on join and this method handles the lobby rejection and lobby room destruction.
-     * Participant receives LOCAL_USER_LEFT if lobby is disabled.
+     * Participant receives LOCAL_USER_ROOM_DESTROYED if lobby is disabled.
      *
      * @param evt <tt>LocalUserChatRoomPresenceChangeEvent</tt> contains reason.
      */
