@@ -29,6 +29,7 @@ import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.utils.logging.*;
 
 import java.io.*;
+import java.nio.charset.*;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -287,7 +288,7 @@ public abstract class AbstractTranscriptPublisher<T>
 
         // and finally we can save the transcript
         File t = new File(subDirectoryPath.toString(), fileName);
-        try(FileWriter writer = new FileWriter(t))
+        try(FileWriter writer = new FileWriter(t, StandardCharsets.UTF_8))
         {
             writer.write(transcript);
             logger.info("Wrote final transcript to " + t);
