@@ -102,6 +102,12 @@
       <artifactId>websocket-jetty-client</artifactId>
       <version>${jetty.version}</version>
     </dependency>
+    <!-- Used by the Vosk transcription service -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-util</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.fasterxml.uuid</groupId>
       <artifactId>java-uuid-generator</artifactId>
