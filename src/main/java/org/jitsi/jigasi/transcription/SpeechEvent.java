@@ -36,13 +36,11 @@ public class SpeechEvent
     /**
      * Create a ResultHolder with a given TranscriptionResult and timestamp
      *
-     * @param timeStamp the time when the result was received
      * @param result the result which was received
      */
-    SpeechEvent(Instant timeStamp, TranscriptionResult result)
+    SpeechEvent(TranscriptionResult result)
     {
-        super(timeStamp, result.getParticipant(),
-            Transcript.TranscriptEventType.SPEECH);
+        super(result.getTimeStamp(), result.getParticipant(), Transcript.TranscriptEventType.SPEECH);
         this.result = result;
     }
 

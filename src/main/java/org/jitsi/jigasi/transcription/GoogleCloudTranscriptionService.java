@@ -29,6 +29,7 @@ import org.jitsi.utils.logging.*;
 
 import javax.media.format.*;
 import java.io.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
@@ -329,6 +330,7 @@ public class GoogleCloudTranscriptionService
         // Try to create the client, which can throw an IOException
         try
         {
+            Instant timeRequestReceived = Instant.now();
             SpeechClient client = SpeechClient.create();
 
             RecognitionConfig config = getRecognitionConfig(request);
@@ -356,6 +358,7 @@ public class GoogleCloudTranscriptionService
                     new TranscriptionResult(
                             null,
                             Generators.timeBasedReorderedGenerator().generate(),
+                            timeRequestReceived,
                             false,
                             request.getLocale().toLanguageTag(),
                             0,
@@ -871,6 +874,12 @@ public class GoogleCloudTranscriptionService
         private final UUID messageID;
 
         /**
+         * The time when the current session started.
+         * The UI and handlers are interested when the audio that is transcribing started.
+         */
+        final private Instant timeStamp;
+
+        /**
          * Google provides multiple results per API response where the first one
          * contains the most stable part of the sentence and freshly transcribed
          * text is included in subsequent result structures marked as unstable.
@@ -894,8 +903,8 @@ public class GoogleCloudTranscriptionService
             this.requestManager = manager;
             this.languageTag = languageTag;
             this.debugName = debugName;
-
-            messageID = Generators.timeBasedReorderedGenerator().generate();
+            this.messageID = Generators.timeBasedReorderedGenerator().generate();
+            this.timeStamp = Instant.now();
         }
 
         @Override
@@ -1027,6 +1036,7 @@ public class GoogleCloudTranscriptionService
             TranscriptionResult transcriptionResult = new TranscriptionResult(
                 null,
                 this.messageID,
+                this.timeStamp,
                 !result.getIsFinal(),
                 this.languageTag,
                 result.getStability(),

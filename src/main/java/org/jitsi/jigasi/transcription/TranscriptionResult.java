@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import java.time.*;
 import java.util.*;
 
 /**
@@ -45,20 +46,26 @@ public class TranscriptionResult
      * true new result, which can either also be interim or final and which
      * belong to this result, are expected to have the same UUID
      */
-    private UUID messageID;
+    final private UUID messageID;
+
+    /**
+     * The time when the audio started for this result.
+     */
+    final private Instant timeStamp;
+
 
     /**
      * Whether this result is an interim result, and thus it should be expected
      * that other {@link TranscriptionResult}s have the same
      * {@link this#messageID} value
      */
-    private boolean isInterim;
+    final private boolean isInterim;
 
     /**
      * The language, expected to be represented as a BCP-47 tag, of this
      * result's text.
      */
-    private String language;
+    final private String language;
 
     /**
      * The stability of this result. It is an estimate of the likelihood that
@@ -67,7 +74,7 @@ public class TranscriptionResult
      * This field is only provided for interim results.
      * The default of 0.0 is a sentinel value indicating stability was not set.
      */
-    private double stability;
+    final private double stability;
 
     /**
      * Create a TranscriptionResult
@@ -75,6 +82,7 @@ public class TranscriptionResult
      * @param participant the participant whose audio was transcribed.
      * @param isInterim whether this result is an interim result
      * @param messageID uuid of this result
+     * @param timeStamp the timestamp when the audio for this transcript started.
      * @param language the language of the text of this result
      * @param alternative the single alternative to add
      * @param stability the stability if this result. Only > 0 when
@@ -83,12 +91,13 @@ public class TranscriptionResult
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
+        Instant timeStamp,
         boolean isInterim,
         String language,
         double stability,
         TranscriptionAlternative alternative)
     {
-        this(participant, messageID, isInterim, language, stability);
+        this(participant, messageID, timeStamp, isInterim, language, stability);
         if (alternative != null)
         {
             this.alternatives.add(alternative);
@@ -101,6 +110,7 @@ public class TranscriptionResult
      * @param participant the participant whose audio was transcribed.
      * @param isInterim whether this result is an interim result
      * @param messageID uuid of this result
+     * @param timeStamp the timestamp when the audio for this transcript started.
      * @param language the language of the text of this result
      * @param alternatives the alternative transcriptions.
      * @param stability the stability if this result. Only > 0 when
@@ -109,12 +119,13 @@ public class TranscriptionResult
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
+        Instant timeStamp,
         boolean isInterim,
         String language,
         double stability,
         Collection<TranscriptionAlternative> alternatives)
     {
-        this(participant, messageID, isInterim, language, stability);
+        this(participant, messageID, timeStamp, isInterim, language, stability);
         if (alternatives != null)
         {
             this.alternatives.addAll(alternatives);
@@ -127,6 +138,7 @@ public class TranscriptionResult
      * @param participant the participant whose audio was transcribed.
      * @param isInterim whether this result is an interim result
      * @param messageID uuid of this result
+     * @param timeStamp the timestamp when the audio for this transcript started.
      * @param language the language of the text of this result
      * @param stability the stability if this result. Only > 0 when
      * {@link this#isInterim()} is true
@@ -134,12 +146,14 @@ public class TranscriptionResult
     public TranscriptionResult(
         Participant participant,
         UUID messageID,
+        Instant timeStamp,
         boolean isInterim,
         String language,
         double stability)
     {
         this.participant = participant;
         this.messageID = messageID;
+        this.timeStamp = timeStamp;
         this.isInterim = isInterim;
         this.language = language;
         this.stability = stability;
@@ -259,5 +273,14 @@ public class TranscriptionResult
     public Participant getParticipant()
     {
         return participant;
+    }
+
+    /**
+     * Returns the real timestamp of this result.
+     * @return the timestamp when the audio for this transcription started.
+     */
+    public Instant getTimeStamp()
+    {
+        return timeStamp;
     }
 }

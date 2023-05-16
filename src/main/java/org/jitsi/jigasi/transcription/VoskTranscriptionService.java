@@ -28,6 +28,7 @@ import javax.media.format.*;
 import java.io.*;
 import java.net.*;
 import java.nio.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
@@ -148,6 +149,8 @@ public class VoskTranscriptionService
                         "has unexpected" +
                         "encoding");
             }
+            Instant timeRequestReceived = Instant.now();
+
             WebSocketClient ws = new WebSocketClient();
             VoskWebsocketSession socket = new VoskWebsocketSession(request);
             ws.start();
@@ -157,6 +160,7 @@ public class VoskTranscriptionService
                     new TranscriptionResult(
                             null,
                             UUID.randomUUID(),
+                            timeRequestReceived,
                             false,
                             request.getLocale().toLanguageTag(),
                             0,
@@ -279,6 +283,10 @@ public class VoskTranscriptionService
                     l.notify(new TranscriptionResult(
                             null,
                             uuid,
+                            // this time needs to be the one when the audio was sent
+                            // the results need to be matched with the time when we sent the audio, so we have
+                            // the real time when this transcription was started
+                            Instant.now(),
                             partial,
                             transcriptionTag,
                             1.0,

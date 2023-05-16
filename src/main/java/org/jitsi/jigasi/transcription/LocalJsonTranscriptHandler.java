@@ -250,7 +250,7 @@ public class LocalJsonTranscriptHandler
         TranscriptionResult result)
     {
         JSONObject eventObject = new JSONObject();
-        SpeechEvent event = new SpeechEvent(Instant.now(), result);
+        SpeechEvent event = new SpeechEvent(result);
 
         addEventDescriptions(eventObject, event);
         addAlternatives(eventObject, event);
@@ -271,8 +271,7 @@ public class LocalJsonTranscriptHandler
         TranslationResult result)
     {
         JSONObject eventObject = new JSONObject();
-        SpeechEvent event = new SpeechEvent(Instant.now(),
-            result.getTranscriptionResult());
+        SpeechEvent event = new SpeechEvent(result.getTranscriptionResult());
 
         addEventDescriptions(eventObject, event);
 

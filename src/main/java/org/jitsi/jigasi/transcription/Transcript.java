@@ -133,7 +133,7 @@ public class Transcript
     {
         if (started != null && !result.isInterim())
         {
-            SpeechEvent speechEvent = new SpeechEvent(Instant.now(), result);
+            SpeechEvent speechEvent = new SpeechEvent(result);
             speechEvents.add(speechEvent);
         }
     }
