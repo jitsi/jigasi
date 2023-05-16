@@ -2018,6 +2018,7 @@ public class JvbConference
             // if the call was stopped before we check ignore
             if (!started)
             {
+                logger.warn("Media activity checker exiting early as call is not started!");
                 return;
             }
 
