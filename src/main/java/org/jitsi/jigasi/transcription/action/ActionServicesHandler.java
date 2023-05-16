@@ -181,6 +181,7 @@ public class ActionServicesHandler
                 result = new TranscriptionResult(
                     result.getParticipant(),
                     result.getMessageID(),
+                    result.getTimeStamp(),
                     result.isInterim(),
                     result.getLanguage(),
                     result.getStability(),

@@ -23,7 +23,6 @@ import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.utils.logging.*;
 import org.jivesoftware.smack.packet.*;
-import org.objectweb.asm.Handle;
 
 import javax.media.format.*;
 import java.nio.*;

@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.device.*;
 
 /**
