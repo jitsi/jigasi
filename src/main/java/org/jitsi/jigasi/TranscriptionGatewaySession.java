@@ -279,6 +279,11 @@ public class TranscriptionGatewaySession
 
         String identifier = getParticipantIdentifier(chatMember);
 
+        // The focus user should not connect to the transcription service
+        if ("focus".equals(identifier))
+        {
+            return;
+        }
         this.transcriber.updateParticipant(identifier, chatMember);
         this.transcriber.participantJoined(identifier);
     }
