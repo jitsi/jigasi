@@ -47,9 +47,8 @@ import java.util.function.*;
  * @author Damian Minkov
  */
 public class GoogleCloudTranscriptionService
-    implements TranscriptionService
+    extends AbstractTranscriptionService
 {
-
     /**
      * BCP-47 (see https://www.rfc-editor.org/rfc/bcp/bcp47.txt)
      * language tags of the languages supported by Google cloud speech
