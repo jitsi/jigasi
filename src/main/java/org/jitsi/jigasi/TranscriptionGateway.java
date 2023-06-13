@@ -89,17 +89,17 @@ public class TranscriptionGateway
                 .getString(
                     CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                     null);
-        TranscriptionService service = null;
+        AbstractTranscriptionService service = null;
         if (customTranscriptionServiceClass != null)
         {
             try
             {
-                service = (TranscriptionService)Class.forName(
-                    customTranscriptionServiceClass).getDeclaredConstructor().newInstance();
+                service = (AbstractTranscriptionService)Class.forName(
+                        customTranscriptionServiceClass).getDeclaredConstructor().newInstance();
             }
             catch(Exception e)
             {
-                logger.error("Cannot instantiate custom transcription service");
+                logger.error("Cannot instantiate custom transcription service", e);
             }
         }
 

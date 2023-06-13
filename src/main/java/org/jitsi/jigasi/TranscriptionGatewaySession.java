@@ -68,7 +68,7 @@ public class TranscriptionGatewaySession
     /**
      * The TranscriptionService used by this session
      */
-    private TranscriptionService service;
+    private AbstractTranscriptionService service;
 
     /**
      * The TranscriptHandler which enables publishing a {@link Transcript} and
@@ -114,7 +114,7 @@ public class TranscriptionGatewaySession
      */
     public TranscriptionGatewaySession(AbstractGateway gateway,
                                        CallContext context,
-                                       TranscriptionService service,
+                                       AbstractTranscriptionService service,
                                        TranscriptHandler handler)
     {
         super(gateway, context);
