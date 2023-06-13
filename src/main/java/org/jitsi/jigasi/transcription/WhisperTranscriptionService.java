@@ -1,25 +1,12 @@
-/*
- * Jigasi, the JItsi GAteway to SIP.
- *
- * Copyright @ 2018 - present 8x8, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jitsi.jigasi.transcription;
 
+import org.apache.http.HttpHeaders;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
+import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
+import org.jitsi.impl.neomedia.device.AudioSilenceMediaDevice;
+import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
 import org.json.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.utils.logging.*;
@@ -28,7 +15,7 @@ import javax.media.format.*;
 import java.io.*;
 import java.net.*;
 import java.nio.*;
-import java.time.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
@@ -36,16 +23,15 @@ import java.util.function.*;
 
 /**
  * Implements a TranscriptionService which uses local
- * Vosk websocket transcription service.
- * <p>
- * See https://github.com/alphacep/vosk-server for
- * information about server
+ * Whisper websocket transcription service.
  *
  * @author Nik Vaessen
  * @author Damian Minkov
  * @author Nickolay V. Shmyrev
  */
-public class VoskTranscriptionService
+
+
+public class WhisperTranscriptionService
         extends AbstractTranscriptionService
 {
 
@@ -53,17 +39,43 @@ public class VoskTranscriptionService
      * The logger for this class
      */
     private final static Logger logger
-            = Logger.getLogger(VoskTranscriptionService.class);
+            = Logger.getLogger(WhisperTranscriptionService.class);
 
     /**
      * The config key of the websocket to the speech-to-text service.
      */
     public final static String WEBSOCKET_URL
-            = "org.jitsi.jigasi.transcription.vosk.websocket_url";
+            = "org.jitsi.jigasi.transcription.whisper.websocket_url";
 
-    public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:2700";
+    /**
+     * The config key of the websocket url for single requests
+     */
+    public final static String WEBSOCKET_URL_SINGLE_REQ
+            = "org.jitsi.jigasi.transcription.whisper.websocket_url_single";
+
+    /**
+     * The config key for http auth user
+     */
+    public final static String WEBSOCKET_HTTP_AUTH_USER
+            = "org.jitsi.jigasi.transcription.whisper.websocket_auth_user";
+
+    /**
+     * The config key for http auth password
+     */
+    public final static String WEBSOCKET_HTTP_AUTH_PASS
+            = "org.jitsi.jigasi.transcription.whisper.websocket_auth_password";
+
+    public final static String DEFAULT_WEBSOCKET_URL = "ws://livets-pilot.jitsi.net/ws/";
+
+    public final static String DEFAULT_WEBSOCKET_SINGLE_REQ_URL = "ws://livets-pilot.jitsi.net/ws-single/";
 
     private final static String EOF_MESSAGE = "{\"eof\" : 1}";
+
+    private Boolean hasHttpAuth = false;
+
+    private String httpAuthUser;
+
+    private String httpAuthPass;
 
     /**
      * The config value of the websocket to the speech-to-text service.
@@ -71,44 +83,60 @@ public class VoskTranscriptionService
     private String websocketUrlConfig;
 
     /**
+     * The config value of the websocket url for a single request
+     */
+    private String websocketSingleUrlConfig;
+
+    /**
      * The URL of the websocket to the speech-to-text service.
      */
     private String websocketUrl;
 
     /**
+     * The URL of the websocket for single calls
+     */
+    private String websocketUrlSingle;
+
+    /**
      * Assigns the websocketUrl to use to websocketUrl by reading websocketUrlConfig;
      */
     private void generateWebsocketUrl(Participant participant)
-        throws org.json.simple.parser.ParseException
+            throws org.json.simple.parser.ParseException
     {
-        if (!supportsLanguageRouting())
+        String lang = participant.getSourceLanguage() != null ? participant.getSourceLanguage() : "en";
+        websocketUrl = websocketUrlConfig + participant.getId() + "?lang=" + lang;
+        websocketUrlSingle = websocketSingleUrlConfig + participant.getId() + "?lang=" + lang;
+        logger.info("Whisper URL: " + websocketUrl);
+    }
+
+    @Override
+    public AudioMixerMediaDevice getMediaDevice(ReceiveStreamBufferListener listener)
+    {
+        if (this.mediaDevice == null)
         {
-            websocketUrl = websocketUrlConfig;
-            return;
+            this.mediaDevice = new TranscribingAudioMixerMediaDevice(new WhisperTsAudioSilenceMediaDevice(), listener);
         }
 
-        org.json.simple.parser.JSONParser jsonParser = new org.json.simple.parser.JSONParser();
-        Object obj = jsonParser.parse(websocketUrlConfig);
-        org.json.simple.JSONObject languageMap = (org.json.simple.JSONObject) obj;
-        String language = participant.getSourceLanguage() != null ? participant.getSourceLanguage() : "en";
-        Object urlObject = languageMap.get(language);
-        if (!(urlObject instanceof String))
-        {
-            logger.error("No websocket URL configured for language " + language);
-            websocketUrl = null;
-            return;
-        }
-        websocketUrl = (String) urlObject;
+        return this.mediaDevice;
     }
 
     /**
-     * Create a TranscriptionService which will send audio to the VOSK service
+     * Create a TranscriptionService which will send audio to the Whisper service
      * platform to get a transcription
      */
-    public VoskTranscriptionService()
+    public WhisperTranscriptionService()
     {
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
+        websocketSingleUrlConfig = JigasiBundleActivator.getConfigurationService()
+                .getString(WEBSOCKET_URL_SINGLE_REQ, DEFAULT_WEBSOCKET_SINGLE_REQ_URL);
+        httpAuthPass = JigasiBundleActivator.getConfigurationService()
+                .getString(WEBSOCKET_HTTP_AUTH_PASS, null);
+        httpAuthUser = JigasiBundleActivator.getConfigurationService()
+                .getString(WEBSOCKET_HTTP_AUTH_USER, null);
+        if (!httpAuthPass.isBlank() && !httpAuthUser.isBlank()) {
+            hasHttpAuth = true;
+        }
     }
 
     /**
@@ -127,8 +155,10 @@ public class VoskTranscriptionService
         return websocketUrlConfig.trim().startsWith("{");
     }
 
+    private String lastResult = "";
+
     /**
-     * Sends audio as an array of bytes to Vosk service
+     * Sends audio as an array of bytes to the Whisper service
      *
      * @param request        the TranscriptionRequest which holds the audio to be sent
      * @param resultConsumer a Consumer which will handle the
@@ -139,32 +169,53 @@ public class VoskTranscriptionService
                                   final Consumer<TranscriptionResult> resultConsumer)
     {
         // Try to create the client, which can throw an IOException
+        logger.info("Single request");
         try
         {
             // Set the sampling rate and encoding of the audio
             AudioFormat format = request.getFormat();
+            logger.info("Sample rate: " + format.getSampleRate());
             if (!format.getEncoding().equals("LINEAR"))
             {
                 throw new IllegalArgumentException("Given AudioFormat" +
                         "has unexpected" +
                         "encoding");
             }
-            Instant timeRequestReceived = Instant.now();
-
             WebSocketClient ws = new WebSocketClient();
-            VoskWebsocketSession socket = new VoskWebsocketSession(request);
+            ws.setIdleTimeout(java.time.Duration.ofSeconds(-1));
+            WhisperWebsocketSession socket = new WhisperWebsocketSession(request);
             ws.start();
-            ws.connect(socket, new URI(websocketUrl));
+            if (hasHttpAuth) {
+                final ClientUpgradeRequest upgReq = new ClientUpgradeRequest();
+                String encoded = Base64.getEncoder().encodeToString((httpAuthUser + ":" + httpAuthPass).getBytes());
+                upgReq.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+                ws.connect(socket, new URI(websocketUrlSingle), upgReq);
+            } else {
+                ws.connect(socket, new URI(websocketUrlSingle));
+            }
             socket.awaitClose();
-            resultConsumer.accept(
-                    new TranscriptionResult(
-                            null,
-                            UUID.randomUUID(),
-                            timeRequestReceived,
-                            false,
-                            request.getLocale().toLanguageTag(),
-                            0,
-                            new TranscriptionAlternative(socket.getResult())));
+            String msg = socket.getResult();
+
+            String result = "";
+            JSONObject obj = new JSONObject(msg);
+
+            result = obj.getString("text").strip();
+            UUID id = UUID.fromString(obj.getString("id"));
+            Instant transcriptionStart = Instant.now();
+
+            if (!result.isEmpty() && !result.equals(lastResult))
+            {
+                lastResult = result;
+                resultConsumer.accept(
+                        new TranscriptionResult(
+                                null,
+                                id,
+                                transcriptionStart,
+                                false,
+                                request.getLocale().toLanguageTag(),
+                                1.0,
+                                new TranscriptionAlternative(result)));
+            }
         }
         catch (Exception e)
         {
@@ -174,13 +225,13 @@ public class VoskTranscriptionService
 
     @Override
     public StreamingRecognitionSession initStreamingSession(Participant participant)
-        throws UnsupportedOperationException
+            throws UnsupportedOperationException
     {
         try
         {
             generateWebsocketUrl(participant);
-            VoskWebsocketStreamingSession streamingSession = new VoskWebsocketStreamingSession(
-                    participant.getDebugName());
+            WhisperWebsocketStreamingSession streamingSession = new WhisperWebsocketStreamingSession(
+                    participant.getDebugName(), participant);
             streamingSession.transcriptionTag = participant.getTranslationLanguage();
             if (streamingSession.transcriptionTag == null)
             {
@@ -211,15 +262,18 @@ public class VoskTranscriptionService
      * the lifecycle of websocket
      */
     @WebSocket
-    public class VoskWebsocketStreamingSession
-        implements StreamingRecognitionSession
+    public class WhisperWebsocketStreamingSession
+            implements StreamingRecognitionSession
     {
+
+        private Participant participant;
+
         private Session session;
         /* The name of the participant */
         private final String debugName;
         /* The sample rate of the audio stream we collect from the first request */
         private double sampleRate = -1.0;
-        /* Last returned result so we do not return the same string twice */
+        /* Last returned result, so we do not return the same string twice */
         private String lastResult = "";
         /* Transcription language requested by the user who requested the transcription */
         private String transcriptionTag = "en-US";
@@ -236,13 +290,21 @@ public class VoskTranscriptionService
          */
         private UUID uuid = UUID.randomUUID();
 
-        VoskWebsocketStreamingSession(String debugName)
-            throws Exception
+        WhisperWebsocketStreamingSession(String debugName, Participant participant)
+                throws Exception
         {
             this.debugName = debugName;
+            this.participant = participant;
             WebSocketClient ws = new WebSocketClient();
             ws.start();
-            ws.connect(this, new URI(websocketUrl));
+            if (hasHttpAuth) {
+                final ClientUpgradeRequest upgReq = new ClientUpgradeRequest();
+                String encoded = Base64.getEncoder().encodeToString((httpAuthUser + ":" + httpAuthPass).getBytes());
+                upgReq.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+                ws.connect(this, new URI(websocketUrl), upgReq);
+            } else {
+                ws.connect(this, new URI(websocketUrl));
+            }
         }
 
         @OnWebSocketClose
@@ -262,34 +324,29 @@ public class VoskTranscriptionService
         {
             boolean partial = true;
             String result = "";
-            if (logger.isDebugEnabled())
-                logger.debug(debugName + "Recieved response: " + msg);
             JSONObject obj = new JSONObject(msg);
-            if (obj.has("partial"))
-            {
-                result = obj.getString("partial");
-            }
-            else
-            {
+
+            if (obj.has("type") && obj.get("type") == "final") {
                 partial = false;
-                result = obj.getString("text");
             }
 
-            if (!result.isEmpty() && (!partial || !result.equals(lastResult)))
+            result = obj.getString("text");
+            UUID id = UUID.fromString(obj.getString("id"));
+            Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
+            float stability = obj.getFloat("variance");
+
+            if (!result.isEmpty() && !result.equals(lastResult))
             {
                 lastResult = result;
                 for (TranscriptionListener l : listeners)
                 {
                     l.notify(new TranscriptionResult(
-                            null,
-                            uuid,
-                            // this time needs to be the one when the audio was sent
-                            // the results need to be matched with the time when we sent the audio, so we have
-                            // the real time when this transcription was started
-                            Instant.now(),
+                            participant,
+                            id,
+                            transcriptionStart,
                             partial,
                             transcriptionTag,
-                            1.0,
+                            stability,
                             new TranscriptionAlternative(result)));
                 }
             }
@@ -303,6 +360,7 @@ public class VoskTranscriptionService
         @OnWebSocketError
         public void onError(Throwable cause)
         {
+            logger.error("Samplerate error: " + sampleRate);
             logger.error("Error while streaming audio data to transcription service" , cause);
         }
 
@@ -313,7 +371,6 @@ public class VoskTranscriptionService
                 if (sampleRate < 0)
                 {
                     sampleRate = request.getFormat().getSampleRate();
-                    session.getRemote().sendString("{\"config\" : {\"sample_rate\" : " + sampleRate + " }}");
                 }
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
                 session.getRemote().sendBytes(audioBuffer);
@@ -351,7 +408,7 @@ public class VoskTranscriptionService
      * Session to send websocket data and recieve results. Non-streaming version
      */
     @WebSocket
-    public class VoskWebsocketSession
+    public class WhisperWebsocketSession
     {
         /* Signal for the end of operation */
         private final CountDownLatch closeLatch;
@@ -362,7 +419,7 @@ public class VoskTranscriptionService
         /* Collect results*/
         private StringBuilder result;
 
-        VoskWebsocketSession(TranscriptionRequest request)
+        WhisperWebsocketSession(TranscriptionRequest request)
         {
             this.closeLatch = new CountDownLatch(1);
             this.request = request;
@@ -380,15 +437,12 @@ public class VoskTranscriptionService
         {
             try
             {
-                AudioFormat format = request.getFormat();
-                session.getRemote().sendString("{\"config\" : {\"sample_rate\" : " + format.getSampleRate() + "}}");
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
                 session.getRemote().sendBytes(audioBuffer);
-                session.getRemote().sendString(EOF_MESSAGE);
             }
             catch (IOException e)
             {
-                logger.error("Error to transcribe audio", e);
+                logger.error("Error while transcribing audio", e);
             }
         }
 
@@ -411,7 +465,7 @@ public class VoskTranscriptionService
         }
 
         void awaitClose()
-            throws InterruptedException
+                throws InterruptedException
         {
             closeLatch.await();
         }
