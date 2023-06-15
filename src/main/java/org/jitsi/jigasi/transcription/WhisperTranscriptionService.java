@@ -5,7 +5,6 @@ import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
 import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
-import org.jitsi.impl.neomedia.device.AudioSilenceMediaDevice;
 import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
 import org.json.*;
 import org.jitsi.jigasi.*;
@@ -15,6 +14,7 @@ import javax.media.format.*;
 import java.io.*;
 import java.net.*;
 import java.nio.*;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -69,7 +69,7 @@ public class WhisperTranscriptionService
 
     public final static String DEFAULT_WEBSOCKET_SINGLE_REQ_URL = "ws://livets-pilot.jitsi.net/ws-single/";
 
-    private final static String EOF_MESSAGE = "{\"eof\" : 1}";
+    private final static ByteBuffer EOF_MESSAGE = ByteBuffer.wrap(new byte[1]);
 
     private Boolean hasHttpAuth = false;
 
@@ -131,12 +131,13 @@ public class WhisperTranscriptionService
         websocketSingleUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL_SINGLE_REQ, DEFAULT_WEBSOCKET_SINGLE_REQ_URL);
         httpAuthPass = JigasiBundleActivator.getConfigurationService()
-                .getString(WEBSOCKET_HTTP_AUTH_PASS, null);
+                .getString(WEBSOCKET_HTTP_AUTH_PASS, "");
         httpAuthUser = JigasiBundleActivator.getConfigurationService()
-                .getString(WEBSOCKET_HTTP_AUTH_USER, null);
+                .getString(WEBSOCKET_HTTP_AUTH_USER, "");
         if (!httpAuthPass.isBlank() && !httpAuthUser.isBlank()) {
             hasHttpAuth = true;
         }
+        logger.info("Websocket streaming endpoint: " + websocketUrlConfig);
     }
 
     /**
@@ -186,6 +187,7 @@ public class WhisperTranscriptionService
             WhisperWebsocketSession socket = new WhisperWebsocketSession(request);
             ws.start();
             if (hasHttpAuth) {
+                logger.info("HTTP Auth Enabled");
                 final ClientUpgradeRequest upgReq = new ClientUpgradeRequest();
                 String encoded = Base64.getEncoder().encodeToString((httpAuthUser + ":" + httpAuthPass).getBytes());
                 upgReq.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
@@ -284,17 +286,13 @@ public class WhisperTranscriptionService
          */
         private final List<TranscriptionListener> listeners = new ArrayList<>();
 
-        /**
-         *  Latest assigned UUID to a transcription result.
-         *  A new one has to be generated whenever a definitive result is received.
-         */
-        private UUID uuid = UUID.randomUUID();
 
         WhisperWebsocketStreamingSession(String debugName, Participant participant)
                 throws Exception
         {
             this.debugName = debugName;
             this.participant = participant;
+            logger.info("Connecting to " + websocketUrl);
             WebSocketClient ws = new WebSocketClient();
             ws.start();
             if (hasHttpAuth) {
@@ -316,6 +314,7 @@ public class WhisperTranscriptionService
         @OnWebSocketConnect
         public void onConnect(Session session)
         {
+            session.setIdleTimeout(Duration.ofSeconds(300));
             this.session = session;
         }
 
@@ -325,8 +324,8 @@ public class WhisperTranscriptionService
             boolean partial = true;
             String result = "";
             JSONObject obj = new JSONObject(msg);
-
-            if (obj.has("type") && obj.get("type") == "final") {
+            String msgType = obj.getString("type");
+            if (msgType.equals("final")) {
                 partial = false;
             }
 
@@ -349,11 +348,6 @@ public class WhisperTranscriptionService
                             stability,
                             new TranscriptionAlternative(result)));
                 }
-            }
-
-            if (!partial)
-            {
-                this.uuid = UUID.randomUUID();
             }
         }
 
@@ -390,7 +384,7 @@ public class WhisperTranscriptionService
         {
             try
             {
-                session.getRemote().sendString(EOF_MESSAGE);
+                session.getRemote().sendBytes(EOF_MESSAGE);
             }
             catch (Exception e)
             {
