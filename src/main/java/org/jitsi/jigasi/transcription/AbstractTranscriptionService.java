@@ -24,38 +24,4 @@ public abstract class AbstractTranscriptionService
 
         return this.mediaDevice;
     }
-
-    //    private static final Format[] SUPPORTED_FORMATS
-//            = new Format[]
-//            {
-//                    new AudioFormat(
-//                            AudioFormat.LINEAR,
-//                            16000,
-//                            16,
-//                            1,
-//                            AudioFormat.LITTLE_ENDIAN,
-//                            AudioFormat.SIGNED,
-//                            Format.NOT_SPECIFIED,
-//                            Format.NOT_SPECIFIED,
-//                            Format.byteArray)
-//            };
-//
-//    /**
-//     * The MediaDevice which will get all audio to transcribe
-//     */
-//    private TranscribingAudioMixerMediaDevice mediaDevice = new TranscribingAudioMixerMediaDevice(
-//            new AudioSilenceMediaDevice()
-//            {
-//
-//                protected CaptureDevice createCaptureDevice()
-//                {
-//                    return new AudioSilenceCaptureDevice(true)
-//                    {
-//                        protected Format[] getSupportedFormats(int streamIndex)
-//                        {
-//                            return SUPPORTED_FORMATS.clone();
-//                        }
-//                    };
-//                }
-//            }, this);
 }
