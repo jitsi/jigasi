@@ -22,12 +22,10 @@ import java.util.function.*;
 
 
 /**
- * Implements a TranscriptionService which uses local
+ * Implements a TranscriptionService which uses
  * Whisper websocket transcription service.
  *
- * @author Nik Vaessen
- * @author Damian Minkov
- * @author Nickolay V. Shmyrev
+ * @author Razvan Purdel
  */
 
 
