@@ -34,7 +34,7 @@ public class WhisperWebsocket {
     public String transcriptionTag = "en-US";
 
     private final static Logger logger
-            = Logger.getLogger(WhisperWebsocketSingleton.class);
+            = Logger.getLogger(WhisperWebsocket.class);
 
     /**
      * The config key of the websocket to the speech-to-text service.
@@ -84,7 +84,6 @@ public class WhisperWebsocket {
     private String connectionId = UUID.randomUUID().toString();
 
     public Boolean ended = false;
-
 
 
     /**
