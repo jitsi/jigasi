@@ -492,6 +492,10 @@ public class Participant
         this.chatMember = chatMember;
     }
 
+    public ChatRoomMember getChatMember() {
+        return this.chatMember;
+    }
+
     /**
      * Get the identifier in the JID of this participant
      *
@@ -520,6 +524,7 @@ public class Participant
         {
             session = transcriber.getTranscriptionService()
                 .initStreamingSession(this);
+            logger.info("====Participant joined "+ this.getDebugName());
             session.addTranscriptionListener(this);
             sessions.put(getLanguageKey(), session);
             isCompleted = false;

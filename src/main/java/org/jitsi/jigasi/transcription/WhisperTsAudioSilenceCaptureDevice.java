@@ -34,25 +34,45 @@ class WhisperTsAudioSilenceCaptureDevice extends AbstractPushBufferCaptureDevice
     }
 
     static {
-        SUPPORTED_FORMATS = new Format[]{new AudioFormat("LINEAR", 16000.0, 16, 1, 0, 1, -1, -1.0, Format.byteArray)};
+        SUPPORTED_FORMATS = new Format[]{
+                new AudioFormat(
+                        "LINEAR",
+                        16000.0,
+                        16,
+                        1,
+                        0,
+                        1,
+                        -1,
+                        -1.0,
+                        Format.byteArray
+                )};
     }
 
-    private static class AudioSilenceStream extends AbstractPushBufferStream<WhisperTsAudioSilenceCaptureDevice> implements Runnable {
+    private static class AudioSilenceStream
+            extends AbstractPushBufferStream<WhisperTsAudioSilenceCaptureDevice> implements Runnable {
         private boolean started;
         private Thread thread;
         private final boolean clockOnly;
 
-        public AudioSilenceStream(WhisperTsAudioSilenceCaptureDevice dataSource, FormatControl formatControl, boolean clockOnly) {
+        public AudioSilenceStream(
+                WhisperTsAudioSilenceCaptureDevice dataSource,
+                FormatControl formatControl,
+                boolean clockOnly) {
             super(dataSource, formatControl);
             this.clockOnly = clockOnly;
         }
 
         public void read(Buffer buffer) throws IOException {
-            if (this.clockOnly) {
+            if (this.clockOnly)
+            {
                 buffer.setLength(0);
-            } else {
+            }
+            else
+            {
                 AudioFormat format = (AudioFormat)this.getFormat();
-                int frameSizeInBytes = format.getChannels() * ((int)format.getSampleRate() / 50) * (format.getSampleSizeInBits() / 8);
+                int frameSizeInBytes = format.getChannels() *
+                        ((int)format.getSampleRate() / 50) *
+                        (format.getSampleSizeInBits() / 8);
                 byte[] data = AbstractCodec2.validateByteArraySize(buffer, frameSizeInBytes, false);
                 Arrays.fill(data, 0, frameSizeInBytes, (byte)0);
                 buffer.setFormat(format);
@@ -62,61 +82,85 @@ class WhisperTsAudioSilenceCaptureDevice extends AbstractPushBufferCaptureDevice
 
         }
 
-        public void run() {
+        public void run()
+        {
             boolean var18 = false;
 
-            try {
+            try
+            {
                 var18 = true;
                 AbstractAudioRenderer.useAudioThreadPriority();
                 long tickTime = System.currentTimeMillis();
 
-                while(true) {
+                while (true)
+                {
                     long sleepInterval = tickTime - System.currentTimeMillis();
                     boolean tick = sleepInterval <= 0L;
-                    if (tick) {
+                    if (tick)
+                    {
                         tickTime += 20L;
-                    } else {
-                        try {
+                    }
+                    else
+                    {
+                        try
+                        {
                             Thread.sleep(sleepInterval);
-                        } catch (InterruptedException var21) {
+                        }
+                        catch (InterruptedException var21)
+                        {
+                            logger.debug(var21.toString());
                         }
                     }
 
-                    synchronized(this) {
-                        if (this.thread != Thread.currentThread() || !this.started) {
+                    synchronized(this)
+                    {
+                        if (this.thread != Thread.currentThread() || !this.started)
+                        {
                             var18 = false;
                             break;
                         }
                     }
 
-                    if (tick) {
+                    if (tick)
+                    {
                         BufferTransferHandler transferHandler = this.transferHandler;
-                        if (transferHandler != null) {
-                            try {
+                        if (transferHandler != null)
+                        {
+                            try
+                            {
                                 transferHandler.transferData(this);
-                            } catch (Throwable var22) {
-                                if (var22 instanceof ThreadDeath) {
+                            }
+                            catch (Throwable var22)
+                            {
+                                if (var22 instanceof ThreadDeath)
+                                {
                                     throw (ThreadDeath)var22;
                                 }
                             }
                         }
                     }
                 }
-            } finally {
-                if (var18) {
-                    synchronized(this) {
-                        if (this.thread == Thread.currentThread()) {
+            }
+            finally
+            {
+                if (var18)
+                {
+                    synchronized(this)
+                    {
+                        if (this.thread == Thread.currentThread())
+                        {
                             this.thread = null;
                             this.started = false;
                             this.notifyAll();
                         }
-
                     }
                 }
             }
 
-            synchronized(this) {
-                if (this.thread == Thread.currentThread()) {
+            synchronized(this)
+            {
+                if (this.thread == Thread.currentThread())
+                {
                     this.thread = null;
                     this.started = false;
                     this.notifyAll();
@@ -125,19 +169,25 @@ class WhisperTsAudioSilenceCaptureDevice extends AbstractPushBufferCaptureDevice
             }
         }
 
-        public synchronized void start() throws IOException {
-            if (this.thread == null) {
+        public synchronized void start() throws IOException
+        {
+            if (this.thread == null)
+            {
                 String className = this.getClass().getName();
                 this.thread = new Thread(this, className);
                 this.thread.setDaemon(true);
                 boolean started = false;
 
-                try {
+                try
+                {
                     this.thread.start();
                     started = true;
-                } finally {
+                }
+                finally
+                {
                     this.started = started;
-                    if (!started) {
+                    if (!started)
+                    {
                         this.thread = null;
                         this.notifyAll();
                         throw new IOException("Failed to start " + className);
@@ -153,18 +203,22 @@ class WhisperTsAudioSilenceCaptureDevice extends AbstractPushBufferCaptureDevice
             this.notifyAll();
             boolean interrupted = false;
 
-            while(this.thread != null) {
-                try {
+            while (this.thread != null)
+            {
+                try
+                {
                     this.wait();
-                } catch (InterruptedException var3) {
+                }
+                catch (InterruptedException var3)
+                {
                     interrupted = true;
                 }
             }
 
-            if (interrupted) {
+            if (interrupted)
+            {
                 Thread.currentThread().interrupt();
             }
-
         }
     }
 }
