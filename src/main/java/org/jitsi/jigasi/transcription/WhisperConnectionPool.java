@@ -79,7 +79,8 @@ public class WhisperConnectionPool
 
         WhisperWebsocket conn = this.connections.get(roomId);
         conn.disconnectParticipant(participantId);
-        if (conn.ended) {
+        if (conn.ended)
+        {
             this.connections.remove(roomId);
         }
     }

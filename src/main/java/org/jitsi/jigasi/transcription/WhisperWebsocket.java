@@ -156,7 +156,8 @@ public class WhisperWebsocket {
             wait(waitTime);
         }
 
-        if (!isConnected) {
+        if (!isConnected)
+        {
             throw new Exception("Failed connecting to " + websocketUrl + ". Nothing to do.");
         }
     }
@@ -280,7 +281,8 @@ public class WhisperWebsocket {
             logger.error("Failed sending audio for " + participantId + ". " + e);
             if (!session.isOpen())
             {
-                try {
+                try
+                {
                     connect();
                 }
                 catch (Exception ex)
@@ -289,7 +291,8 @@ public class WhisperWebsocket {
                 }
             }
         }
-        catch (IOException e) {
+        catch (IOException e)
+        {
             logger.error("Failed sending audio for " + participantId + ". " + e);
         }
     }
