@@ -229,7 +229,7 @@ public class WhisperWebsocket {
     @OnWebSocketError
     public void onError(Throwable cause)
     {
-        logger.error("Error while streaming audio data to transcription service, attempting to reconnect.", cause);
+        logger.error("Error while streaming audio data to transcription service.", cause);
 //        try
 //        {
 //            this.connectionId = UUID.randomUUID().toString();
@@ -298,13 +298,13 @@ public class WhisperWebsocket {
     }
 
     private void addParticipantIfNotExists(Participant participant) {
-        String participantId = participant.getDebugName();
-        if (!participants.containsKey(participantId))
-        {
-            participants.put(participantId, participant);
-            participantListeners.put(participantId, new HashSet<>());
-            prevTranscriptions.put(participantId, "");
-        }
+            String participantId = participant.getDebugName();
+            if (!participants.containsKey(participantId))
+            {
+                participants.put(participantId, participant);
+                participantListeners.put(participantId, new HashSet<>());
+                prevTranscriptions.put(participantId, "");
+            }
     }
 
     public void addListener(TranscriptionListener listener, Participant participant) {
