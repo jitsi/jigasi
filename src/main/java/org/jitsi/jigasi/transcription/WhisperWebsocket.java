@@ -202,21 +202,21 @@ public class WhisperWebsocket {
         Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
         float stability = obj.getFloat("variance");
 
-        logger.info("===Received final: " + result);
+        logger.info("Received final: " + result);
         if (!result.isEmpty())
         {
             int i=0;
             for (TranscriptionListener l : participantListeners.get(participantId))
             {
                 i++;
-                logger.info("===ParticipantId: " + i + ", " + participantId);
-                logger.info("===TranscriptionListener: " + l.toString());
+                logger.info("ParticipantId: " + i + ", " + participantId);
+                logger.info("TranscriptionListener: " + l.toString());
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
                         id,
                         transcriptionStart,
                         partial,
-                        transcriptionTag,
+                        getLanguage(participant),
                         stability,
                         new TranscriptionAlternative(result));
                 l.notify(tsResult);
@@ -241,11 +241,22 @@ public class WhisperWebsocket {
 //        }
     }
 
+    private String getLanguage(Participant participant) {
+        String lang = participant.getTranslationLanguage();
+        logger.info("Translation language is " + lang);
+        if (lang == null)
+        {
+            lang = participant.getSourceLanguage();
+        }
+        logger.info("Returned language is " + lang);
+        return lang;
+    }
+
     private ByteBuffer buildPayload(Participant participant, ByteBuffer audio) {
         ByteBuffer header = ByteBuffer.allocate(60);
         int lenAudio = audio.remaining();
         ByteBuffer fullPayload = ByteBuffer.allocate(lenAudio + 60);
-        String headerStr = participant.getDebugName() + "|" + participant.getSourceLanguage();
+        String headerStr = participant.getDebugName() + "|" + this.getLanguage(participant);
         header.put(headerStr.getBytes()).rewind();
         fullPayload.put(header).put(audio).rewind();
         return fullPayload;
