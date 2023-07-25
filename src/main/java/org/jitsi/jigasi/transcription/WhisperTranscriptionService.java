@@ -127,6 +127,11 @@ public class WhisperTranscriptionService
 
         public void sendRequest(TranscriptionRequest request)
         {
+            if (session == null)
+            {
+                logger.warn("Trying to send buffer without a connection.");
+                return;
+            }
             try
             {
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());

@@ -1,9 +1,8 @@
 package org.jitsi.jigasi.transcription;
 
-import org.apache.http.HttpHeaders;
+import io.jsonwebtoken.*;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.*;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.utils.logging.Logger;
@@ -12,9 +11,15 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+
 
 @WebSocket
 public class WhisperWebsocket {
@@ -43,16 +48,16 @@ public class WhisperWebsocket {
             = "org.jitsi.jigasi.transcription.whisper.websocket_url";
 
     /**
-     * The config key for http auth user
+     * The config key for the JWT key name
      */
-    public final static String WEBSOCKET_HTTP_AUTH_USER
-            = "org.jitsi.jigasi.transcription.whisper.websocket_auth_user";
+    public final static String PRIVATE_KEY_NAME
+            = "org.jitsi.jigasi.transcription.whisper.private_key_name";
 
     /**
-     * The config key for http auth password
+     * The base64 encoded private key used for signing
      */
-    public final static String WEBSOCKET_HTTP_AUTH_PASS
-            = "org.jitsi.jigasi.transcription.whisper.websocket_auth_password";
+    public final static String PRIVATE_KEY
+            = "org.jitsi.jigasi.transcription.whisper.private_key";
 
     public final static String DEFAULT_WEBSOCKET_URL = "ws://livets-pilot.jitsi.net/ws/";
 
@@ -60,12 +65,6 @@ public class WhisperWebsocket {
      * Message to send when closing the connection
      */
     private final static ByteBuffer EOF_MESSAGE = ByteBuffer.wrap(new byte[1]);
-
-    private Boolean hasHttpAuth = false;
-
-    private String httpAuthUser;
-
-    private String httpAuthPass;
 
     /**
      * The config value of the websocket to the speech-to-text
@@ -81,10 +80,31 @@ public class WhisperWebsocket {
     /**
      * The Connection ID to the Whisper Service
      */
-    private String connectionId = UUID.randomUUID().toString();
+    private final String connectionId = UUID.randomUUID().toString();
+
+    private String privateKey;
+
+    private String privateKeyName;
 
     public Boolean ended = false;
 
+
+    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
+        PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
+        JwtBuilder builder = Jwts.builder()
+                .setHeaderParam("kid", privateKeyName)
+                .setIssuedAt(now)
+                .setIssuer("jigasi")
+                .signWith(SignatureAlgorithm.RS256, finalPrivateKey);
+        long expires = nowMillis + (60 * 60 * 1000);
+        Date expiry = new Date(expires);
+        builder.setExpiration(expiry);
+        return builder.compact();
+    }
 
     /**
      * Creates a connection url by concatenating the websocket
@@ -93,21 +113,24 @@ public class WhisperWebsocket {
     private void generateWebsocketUrl()
     {
         getConfig();
-        this.websocketUrl = websocketUrlConfig + connectionId;
+        try
+        {
+            websocketUrl = websocketUrlConfig + connectionId + "?auth_token=" + getJWT();
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed generating JWT for Whisper. " + e);
+        }
         logger.debug("Whisper URL: " + websocketUrl);
     }
 
     private void getConfig() {
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
-        httpAuthPass = JigasiBundleActivator.getConfigurationService()
-                .getString(WEBSOCKET_HTTP_AUTH_PASS, "");
-        httpAuthUser = JigasiBundleActivator.getConfigurationService()
-                .getString(WEBSOCKET_HTTP_AUTH_USER, "");
-        if (!httpAuthPass.isBlank() && !httpAuthUser.isBlank())
-        {
-            hasHttpAuth = true;
-        }
+        privateKey = JigasiBundleActivator.getConfigurationService()
+                        .getString(PRIVATE_KEY, "");
+        privateKeyName = JigasiBundleActivator.getConfigurationService()
+                .getString(PRIVATE_KEY_NAME, "");
         logger.info("Websocket streaming endpoint: " + websocketUrlConfig);
     }
 
@@ -129,17 +152,7 @@ public class WhisperWebsocket {
                 logger.info("Connecting to " + websocketUrl);
                 WebSocketClient ws = new WebSocketClient();
                 ws.start();
-                if (hasHttpAuth)
-                {
-                    final ClientUpgradeRequest upgReq = new ClientUpgradeRequest();
-                    String encoded = Base64.getEncoder().encodeToString((httpAuthUser + ":" + httpAuthPass).getBytes());
-                    upgReq.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
-                    ws.connect(this, new URI(websocketUrl), upgReq);
-                }
-                else
-                {
-                    ws.connect(this, new URI(websocketUrl));
-                }
+                ws.connect(this, new URI(websocketUrl));
                 isConnected = true;
                 logger.info("Successfully connected to " + websocketUrl);
                 break;
