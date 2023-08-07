@@ -216,10 +216,12 @@ public class WhisperWebsocket {
         float stability = obj.getFloat("variance");
 
         logger.info("Received final: " + result);
-        if (!result.isEmpty())
+        Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
+        if (!result.isEmpty() && partListeners != null)
         {
             int i=0;
-            for (TranscriptionListener l : participantListeners.get(participantId))
+
+            for (TranscriptionListener l : partListeners)
             {
                 i++;
                 logger.info("ParticipantId: " + i + ", " + participantId);
