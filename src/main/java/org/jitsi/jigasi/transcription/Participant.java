@@ -525,7 +525,7 @@ public class Participant
         {
             session = transcriber.getTranscriptionService()
                 .initStreamingSession(this);
-            logger.info("====Participant joined "+ this.getDebugName());
+            logger.info("Participant joined "+ this.getDebugName());
             session.addTranscriptionListener(this);
             sessions.put(getLanguageKey(), session);
             isCompleted = false;
@@ -682,7 +682,6 @@ public class Participant
                 = new TranscriptionRequest(audio,
                                            audioFormat,
                                            sourceLanguageLocale);
-
             if (session != null && !session.ended())
             {
                 session.sendRequest(request);
