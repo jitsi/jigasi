@@ -19,12 +19,13 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 
 @WebSocket
 public class WhisperWebsocket {
 
-    private Session session;
+    private Session wsSession;
 
     private HashMap<String, Participant> participants = new HashMap<>();
 
@@ -86,8 +87,6 @@ public class WhisperWebsocket {
 
     private String privateKeyName;
 
-    public Boolean ended = false;
-
 
     private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException {
         long nowMillis = System.currentTimeMillis();
@@ -143,7 +142,7 @@ public class WhisperWebsocket {
         float multiplier = 1.5f;
         long waitTime = 1000L;
         boolean isConnected = false;
-        this.session = null;
+        wsSession = null;
         while (attempt < maxRetryAttempts && !isConnected)
         {
             try
@@ -152,7 +151,9 @@ public class WhisperWebsocket {
                 logger.info("Connecting to " + websocketUrl);
                 WebSocketClient ws = new WebSocketClient();
                 ws.start();
-                ws.connect(this, new URI(websocketUrl));
+                CompletableFuture<Session> connectFuture = ws.connect(this, new URI(websocketUrl));
+                wsSession = connectFuture.get();
+                wsSession.setIdleTimeout(Duration.ofSeconds(300));
                 isConnected = true;
                 logger.info("Successfully connected to " + websocketUrl);
                 break;
@@ -183,18 +184,12 @@ public class WhisperWebsocket {
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
-        this.session = null;
-        this.prevTranscriptions = null;
-        this.participants = null;
-        this.participantListeners = null;
+        wsSession = null;
+        prevTranscriptions = null;
+        participants = null;
+        participantListeners = null;
     }
 
-    @OnWebSocketConnect
-    public void onConnect(Session session)
-    {
-        session.setIdleTimeout(Duration.ofSeconds(300));
-        this.session = session;
-    }
 
     @OnWebSocketMessage
     public void onMessage(String msg)
@@ -215,7 +210,7 @@ public class WhisperWebsocket {
         Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
         float stability = obj.getFloat("variance");
 
-        logger.info("Received final: " + result);
+        logger.debug("Received final: " + result);
         Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
         if (!result.isEmpty() && partListeners != null)
         {
@@ -224,8 +219,8 @@ public class WhisperWebsocket {
             for (TranscriptionListener l : partListeners)
             {
                 i++;
-                logger.info("ParticipantId: " + i + ", " + participantId);
-                logger.info("TranscriptionListener: " + l.toString());
+                logger.debug("ParticipantId: " + i + ", " + participantId);
+                logger.debug("TranscriptionListener: " + l.toString());
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
                         id,
@@ -258,12 +253,12 @@ public class WhisperWebsocket {
 
     private String getLanguage(Participant participant) {
         String lang = participant.getTranslationLanguage();
-        logger.info("Translation language is " + lang);
+        logger.debug("Translation language is " + lang);
         if (lang == null)
         {
             lang = participant.getSourceLanguage();
         }
-        logger.info("Returned language is " + lang);
+        logger.debug("Returned language is " + lang);
         return lang;
     }
 
@@ -277,21 +272,23 @@ public class WhisperWebsocket {
         return fullPayload;
     }
 
-    public void disconnectParticipant(String participantId) throws IOException {
+    public boolean disconnectParticipant(String participantId) throws IOException {
         if (participants.containsKey(participantId))
         {
             participants.remove(participantId);
             participantListeners.remove(participantId);
             prevTranscriptions.remove(participantId);
-            logger.debug("Disconnected " + participantId);
+            logger.info("Disconnected " + participantId);
         }
 
         if (participants.isEmpty())
         {
-            logger.debug("All participants left, disconnecting from Whisper transcription server.");
-            session.getRemote().sendBytes(EOF_MESSAGE);
-            this.ended = true;
+            logger.info("All participants have left, disconnecting from Whisper transcription server.");
+            wsSession.getRemote().sendBytes(EOF_MESSAGE);
+            wsSession.disconnect();
+            return true;
         }
+        return false;
     }
 
     public void sendAudio(Participant participant, ByteBuffer audio) {
@@ -300,12 +297,12 @@ public class WhisperWebsocket {
         try
         {
             logger.debug("Sending audio for " + participantId);
-            session.getRemote().sendBytes(buildPayload(participant, audio));
+            wsSession.getRemote().sendBytes(buildPayload(participant, audio));
         }
         catch (NullPointerException e)
         {
             logger.error("Failed sending audio for " + participantId + ". " + e);
-            if (!session.isOpen())
+            if (!wsSession.isOpen())
             {
                 try
                 {
@@ -313,7 +310,7 @@ public class WhisperWebsocket {
                 }
                 catch (Exception ex)
                 {
-                    logger.error(ex.toString());
+                    logger.error(ex);
                 }
             }
         }
@@ -342,7 +339,7 @@ public class WhisperWebsocket {
         transcriptionTag = tsTag;
     }
 
-    public Session getSession(){
-        return session;
+    public Session getWsSession() {
+        return wsSession;
     }
 }

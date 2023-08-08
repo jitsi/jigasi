@@ -61,8 +61,7 @@ public class WhisperTranscriptionService
     {
         try
         {
-            WhisperWebsocketStreamingSession streamingSession = new WhisperWebsocketStreamingSession(
-                    participant.getDebugName(), participant);
+            WhisperWebsocketStreamingSession streamingSession = new WhisperWebsocketStreamingSession(participant);
 
             streamingSession.transcriptionTag = participant.getTranslationLanguage();
             if (streamingSession.transcriptionTag == null)
@@ -73,7 +72,7 @@ public class WhisperTranscriptionService
         }
         catch (Exception e)
         {
-            throw new UnsupportedOperationException("Failed to create streaming session", e);
+            throw new UnsupportedOperationException("Failed to create ws streaming session", e);
         }
     }
 
@@ -93,41 +92,41 @@ public class WhisperTranscriptionService
      * A Transcription session for transcribing streams, handles
      * the lifecycle of websocket
      */
-    public class WhisperWebsocketStreamingSession
+    public static class WhisperWebsocketStreamingSession
             implements StreamingRecognitionSession
     {
 
-        private Participant participant;
+        private final Participant participant;
 
-        private Session session;
+        private final Session wsSession;
         /* The name of the participant */
         private final String debugName;
 
         /* Transcription language requested by the user who requested the transcription */
         private String transcriptionTag = "en-US";
 
-        private WhisperWebsocket wsClient;
+        private final WhisperWebsocket wsClient;
 
         private String roomId = "";
 
         private WhisperConnectionPool connectionPool = null;
 
 
-        WhisperWebsocketStreamingSession(String debugName, Participant participant)
+        WhisperWebsocketStreamingSession(Participant participant)
                 throws Exception
         {
-            this.connectionPool = WhisperConnectionPool.getInstance();
-            this.roomId = participant.getChatMember().getChatRoom().toString();
-            this.debugName = debugName;
             this.participant = participant;
-            this.wsClient = connectionPool.getConnection(this.roomId, debugName);
-            this.session = wsClient.getSession();
-            this.wsClient.setTranscriptionTag(this.transcriptionTag);
+            connectionPool = WhisperConnectionPool.getInstance();
+            roomId = participant.getChatMember().getChatRoom().toString();
+            debugName = participant.getDebugName();
+            wsClient = connectionPool.getConnection(this.roomId, this.debugName);
+            wsSession = wsClient.getWsSession();
+            wsClient.setTranscriptionTag(this.transcriptionTag);
         }
 
         public void sendRequest(TranscriptionRequest request)
         {
-            if (session == null)
+            if (wsSession == null)
             {
                 logger.warn("Trying to send buffer without a connection.");
                 return;
@@ -153,8 +152,7 @@ public class WhisperTranscriptionService
             try
             {
                 logger.info("Disconnecting " + this.debugName + " from Whisper transcription service.");
-                this.connectionPool.end(this.roomId, this.debugName);
-                this.session = null;
+                connectionPool.end(this.roomId, this.debugName);
             }
             catch (Exception e)
             {
@@ -164,7 +162,7 @@ public class WhisperTranscriptionService
 
         public boolean ended()
         {
-            return session == null;
+            return wsSession == null;
         }
     }
 }

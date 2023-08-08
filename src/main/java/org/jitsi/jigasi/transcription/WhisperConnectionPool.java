@@ -25,7 +25,7 @@ public class WhisperConnectionPool
     /**
      * The participants which use the roomId connection
      */
-    private Map<String, Set<String>> participants = new HashMap<>();
+    private final Map<String, Set<String>> participants = new HashMap<>();
 
     /**
      * The connection pool
@@ -40,21 +40,21 @@ public class WhisperConnectionPool
      * @throws Exception
      */
     public WhisperWebsocket getConnection(String roomId, String participantId) throws Exception {
-        if (!this.connections.containsKey(roomId))
+        if (!connections.containsKey(roomId))
         {
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
-            this.connections.put(roomId, new WhisperWebsocket());
+            connections.put(roomId, new WhisperWebsocket());
             HashSet participantSet = new HashSet();
             participantSet.add(participantId);
-            this.participants.put(roomId, participantSet);
+            participants.put(roomId, participantSet);
         }
         else
         {
-            logger.debug("Participant " + participantId + " already exists in room " + roomId + ".");
-            this.participants.get(roomId).add(participantId);
+            logger.info("Participant " + participantId + " already exists in room " + roomId + ".");
+            participants.get(roomId).add(participantId);
         }
 
-        return this.connections.get(roomId);
+        return connections.get(roomId);
     }
 
     /**
@@ -65,7 +65,7 @@ public class WhisperConnectionPool
      */
     public void end(String roomId, String participantId) throws IOException
     {
-        Set<String> participantsSet = this.participants.get(roomId);
+        Set<String> participantsSet = participants.get(roomId);
         if (!participantsSet.contains(participantId))
         {
             return;
@@ -78,10 +78,10 @@ public class WhisperConnectionPool
         }
 
         WhisperWebsocket conn = this.connections.get(roomId);
-        conn.disconnectParticipant(participantId);
-        if (conn.ended)
+        boolean noMoreParticipantsLeft = conn.disconnectParticipant(participantId);
+        if (noMoreParticipantsLeft)
         {
-            this.connections.remove(roomId);
+            connections.remove(roomId);
         }
     }
 
