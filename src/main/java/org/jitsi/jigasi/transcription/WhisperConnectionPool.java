@@ -42,7 +42,7 @@ public class WhisperConnectionPool
     public WhisperWebsocket getConnection(String roomId, String participantId) throws Exception {
         if (!this.connections.containsKey(roomId))
         {
-            logger.debug("Room " + roomId + " doesn't exist. Creating a new connection.");
+            logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
             this.connections.put(roomId, new WhisperWebsocket());
             HashSet participantSet = new HashSet();
             participantSet.add(participantId);
