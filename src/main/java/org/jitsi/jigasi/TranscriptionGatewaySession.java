@@ -637,7 +637,8 @@ public class TranscriptionGatewaySession
      */
     private void refreshRoom()
     {
-        if (this.chatRoom == null) {
+        if (this.chatRoom == null)
+        {
             this.chatRoom = super.jvbConference.getJvbRoom();
         }
     }
