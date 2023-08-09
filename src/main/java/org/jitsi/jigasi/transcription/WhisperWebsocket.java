@@ -29,8 +29,6 @@ public class WhisperWebsocket {
 
     private HashMap<String, Participant> participants = new HashMap<>();
 
-    private HashMap<String, String> prevTranscriptions = new HashMap<>();
-
     private HashMap<String, Set<TranscriptionListener>> participantListeners = new HashMap<>();
 
     private static final int maxRetryAttempts = 10;
@@ -185,7 +183,6 @@ public class WhisperWebsocket {
     public void onClose(int statusCode, String reason)
     {
         wsSession = null;
-        prevTranscriptions = null;
         participants = null;
         participantListeners = null;
     }
@@ -262,11 +259,11 @@ public class WhisperWebsocket {
         return lang;
     }
 
-    private ByteBuffer buildPayload(Participant participant, ByteBuffer audio) {
+    private ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio) {
         ByteBuffer header = ByteBuffer.allocate(60);
         int lenAudio = audio.remaining();
         ByteBuffer fullPayload = ByteBuffer.allocate(lenAudio + 60);
-        String headerStr = participant.getDebugName() + "|" + this.getLanguage(participant);
+        String headerStr = participantId + "|" + this.getLanguage(participant);
         header.put(headerStr.getBytes()).rewind();
         fullPayload.put(header).put(audio).rewind();
         return fullPayload;
@@ -277,7 +274,6 @@ public class WhisperWebsocket {
         {
             participants.remove(participantId);
             participantListeners.remove(participantId);
-            prevTranscriptions.remove(participantId);
             logger.info("Disconnected " + participantId);
         }
 
@@ -291,13 +287,12 @@ public class WhisperWebsocket {
         return false;
     }
 
-    public void sendAudio(Participant participant, ByteBuffer audio) {
-        String participantId = participant.getDebugName();
-        addParticipantIfNotExists(participant);
+    public void sendAudio(String participantId, Participant participant, ByteBuffer audio) {
+        addParticipantIfNotExists(participantId, participant);
         try
         {
             logger.debug("Sending audio for " + participantId);
-            wsSession.getRemote().sendBytes(buildPayload(participant, audio));
+            wsSession.getRemote().sendBytes(buildPayload(participantId, participant, audio));
         }
         catch (NullPointerException e)
         {
@@ -320,19 +315,18 @@ public class WhisperWebsocket {
         }
     }
 
-    private void addParticipantIfNotExists(Participant participant) {
-            String participantId = participant.getDebugName();
+    private void addParticipantIfNotExists(String participantId, Participant participant) {
             if (!participants.containsKey(participantId))
             {
                 participants.put(participantId, participant);
                 participantListeners.put(participantId, new HashSet<>());
-                prevTranscriptions.put(participantId, "");
             }
     }
 
     public void addListener(TranscriptionListener listener, Participant participant) {
-        addParticipantIfNotExists(participant);
-        participantListeners.get(participant.getDebugName()).add(listener);
+        String participantId = participant.getDebugName().split("/")[1];
+        addParticipantIfNotExists(participantId, participant);
+        participantListeners.get(participantId).add(listener);
     }
 
     public void setTranscriptionTag(String tsTag) {

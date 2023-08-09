@@ -3,6 +3,7 @@ import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
 import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
 import org.jitsi.utils.logging.*;
+
 import java.nio.*;
 import java.util.function.*;
 
@@ -100,7 +101,7 @@ public class WhisperTranscriptionService
 
         private final Session wsSession;
         /* The name of the participant */
-        private final String debugName;
+        private final String participantId;
 
         /* Transcription language requested by the user who requested the transcription */
         private String transcriptionTag = "en-US";
@@ -116,12 +117,13 @@ public class WhisperTranscriptionService
                 throws Exception
         {
             this.participant = participant;
+            String[] debugName = this.participant.getDebugName().split("/");
+            participantId = debugName[1];
+            roomId = debugName[0];
             connectionPool = WhisperConnectionPool.getInstance();
-            roomId = participant.getChatMember().getChatRoom().toString();
-            debugName = participant.getDebugName();
-            wsClient = connectionPool.getConnection(this.roomId, this.debugName);
+            wsClient = connectionPool.getConnection(roomId, participantId);
             wsSession = wsClient.getWsSession();
-            wsClient.setTranscriptionTag(this.transcriptionTag);
+            wsClient.setTranscriptionTag(transcriptionTag);
         }
 
         public void sendRequest(TranscriptionRequest request)
@@ -134,11 +136,11 @@ public class WhisperTranscriptionService
             try
             {
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
-                wsClient.sendAudio(participant, audioBuffer);
+                wsClient.sendAudio(participantId, participant, audioBuffer);
             }
             catch (Exception e)
             {
-                logger.error("Error while sending websocket request for participant " + debugName, e);
+                logger.error("Error while sending websocket request for participant " + participantId, e);
             }
         }
 
@@ -151,12 +153,12 @@ public class WhisperTranscriptionService
         {
             try
             {
-                logger.info("Disconnecting " + this.debugName + " from Whisper transcription service.");
-                connectionPool.end(this.roomId, this.debugName);
+                logger.info("Disconnecting " + this.participantId + " from Whisper transcription service.");
+                connectionPool.end(this.roomId, this.participantId);
             }
             catch (Exception e)
             {
-                logger.error("Error while finalizing websocket connection for participant " + debugName, e);
+                logger.error("Error while finalizing websocket connection for participant " + participantId, e);
             }
         }
 
