@@ -90,7 +90,7 @@ public class WhisperConnectionPool
      * @return
      * @throws Exception
      */
-    public static WhisperConnectionPool getInstance() throws Exception
+    public static WhisperConnectionPool getInstance()
     {
         if (instance == null)
         {
