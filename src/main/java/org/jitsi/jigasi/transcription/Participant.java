@@ -493,10 +493,6 @@ public class Participant
         this.chatMember = chatMember;
     }
 
-    public ChatRoomMember getChatMember() {
-        return this.chatMember;
-    }
-
     /**
      * Get the identifier in the JID of this participant
      *
