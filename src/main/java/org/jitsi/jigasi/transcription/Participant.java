@@ -677,6 +677,7 @@ public class Participant
                 = new TranscriptionRequest(audio,
                                            audioFormat,
                                            sourceLanguageLocale);
+
             if (session != null && !session.ended())
             {
                 session.sendRequest(request);
