@@ -1,12 +1,27 @@
+/*
+ * Jigasi, the JItsi GAteway to SIP.
+ *
+ * Copyright @ 2023 8x8 Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.utils.logging.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class WhisperConnectionPool
@@ -23,14 +38,20 @@ public class WhisperConnectionPool
     private static WhisperConnectionPool instance = null;
 
     /**
-     * The participants which use the roomId connection
+     * A hashmap holding the state for each connection
      */
-    private final Map<String, Set<String>> participants = new HashMap<>();
+    private final Map<String, ConnectionState> pool = new ConcurrentHashMap<>();
 
-    /**
-     * The connection pool
-     */
-    private HashMap<String, WhisperWebsocket> connections = new HashMap<>();
+    private static class ConnectionState {
+        public WhisperWebsocket wsConn;
+        public HashSet<String> participants = new HashSet<>();
+
+        public ConnectionState(WhisperWebsocket ws)
+        {
+            wsConn = ws;
+        }
+
+    }
 
     /**
      * Gets a connection if it exists, creates one if it doesn't.
@@ -40,21 +61,14 @@ public class WhisperConnectionPool
      * @throws Exception
      */
     public WhisperWebsocket getConnection(String roomId, String participantId) throws Exception {
-        if (!connections.containsKey(roomId))
+        if (!pool.containsKey(roomId))
         {
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
-            connections.put(roomId, new WhisperWebsocket());
-            HashSet participantSet = new HashSet();
-            participantSet.add(participantId);
-            participants.put(roomId, participantSet);
-        }
-        else
-        {
-            logger.info("Participant " + participantId + " already exists in room " + roomId + ".");
-            participants.get(roomId).add(participantId);
+            pool.put(roomId, new ConnectionState(new WhisperWebsocket()));
         }
 
-        return connections.get(roomId);
+        pool.get(roomId).participants.add(participantId);
+        return pool.get(roomId).wsConn;
     }
 
     /**
@@ -65,23 +79,28 @@ public class WhisperConnectionPool
      */
     public void end(String roomId, String participantId) throws IOException
     {
-        Set<String> participantsSet = participants.get(roomId);
-        if (!participantsSet.contains(participantId))
+        ConnectionState state = pool.getOrDefault(roomId, null);
+        if (state == null)
         {
             return;
         }
 
-        participantsSet.remove(participantId);
-        if (!participantsSet.isEmpty())
+        if (!state.participants.contains(participantId))
         {
             return;
         }
 
-        WhisperWebsocket conn = this.connections.get(roomId);
-        boolean noMoreParticipantsLeft = conn.disconnectParticipant(participantId);
-        if (noMoreParticipantsLeft)
+        state.participants.remove(participantId);
+
+        if (!state.participants.isEmpty())
         {
-            connections.remove(roomId);
+            return;
+        }
+
+        boolean isEverybodyDisconnected = state.wsConn.disconnectParticipant(participantId);
+        if (isEverybodyDisconnected)
+        {
+            pool.remove(roomId);
         }
     }
 
