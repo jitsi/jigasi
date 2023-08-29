@@ -1356,9 +1356,9 @@ public class SipGatewaySession
         private final AudioMediaStreamImpl stream;
 
         /**
-         * Whether we had sent stats for dropped media.
+         * Whether we had sent the total stats for dropped media.
          */
-        private boolean statsSent = false;
+        private boolean totalStatsSent = false;
 
         public ExpireMediaStream(AudioMediaStreamImpl stream)
         {
@@ -1383,14 +1383,15 @@ public class SipGatewaySession
                     // expired state
                     if (!gatewayMediaDropped)
                     {
+                        Statistics.incrementTotalMediaDropped();
                         logger.error(
                             SipGatewaySession.this.callContext +
                             " Stopped receiving RTP for " + getSipCall());
 
-                        if (!statsSent)
+                        if (!totalStatsSent)
                         {
                             Statistics.incrementTotalCallsWithMediaDropped();
-                            statsSent = true;
+                            totalStatsSent = true;
                         }
                     }
 

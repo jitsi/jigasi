@@ -57,8 +57,13 @@ public class Statistics
     /**
      * The logger
      */
-    private final static Logger logger
-        = Logger.getLogger(Statistics.class);
+    private final static Logger logger = Logger.getLogger(Statistics.class);
+
+    /**
+     * The name of the number of times in which we do not receive media from the gateway side.
+     * {@code Integer}.
+     */
+    public static final String TOTAL_COUNT_DROPPED_MEDIA = "total_count_dropped_media";
 
     /**
      * The name of the number of conferences for which XMPP connection
@@ -129,6 +134,11 @@ public class Statistics
      * The name of the stress level metric.
      */
     private static final String STRESS_LEVEL = "stress_level";
+
+    /**
+     * Total number of times with dropped media since started.
+     */
+    private static final AtomicLong totalMediaDroppedCount = new AtomicLong();
 
     /**
      * Total number of participants since started.
@@ -244,6 +254,7 @@ public class Statistics
         stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
         stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
             totalCallsWithMediaDroppedCount.get());
+        stats.put(TOTAL_COUNT_DROPPED_MEDIA, totalMediaDroppedCount.get());
         stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED,
             totalCallsWithConnectionFailedCount.get());
         stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING,
@@ -343,6 +354,14 @@ public class Statistics
     public static void addTotalConferencesCount(int value)
     {
         totalConferencesCount += value;
+    }
+
+    /**
+     * Increment the value of total times with dropped media.
+     */
+    public static void incrementTotalMediaDropped()
+    {
+        totalMediaDroppedCount.incrementAndGet();
     }
 
     /**
