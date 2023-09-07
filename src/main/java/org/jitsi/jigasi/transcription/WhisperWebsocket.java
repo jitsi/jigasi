@@ -1,3 +1,20 @@
+/*
+ * Jigasi, the JItsi GAteway to SIP.
+ *
+ * Copyright @ 2023 8x8 Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.jigasi.transcription;
 
 import io.jsonwebtoken.*;
@@ -11,13 +28,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Duration;
-import java.time.Instant;
+import java.security.*;
+import java.security.spec.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -58,7 +71,7 @@ public class WhisperWebsocket {
     public final static String PRIVATE_KEY
             = "org.jitsi.jigasi.transcription.whisper.private_key";
 
-    public final static String DEFAULT_WEBSOCKET_URL = "ws://livets-pilot.jitsi.net/ws/";
+    public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws/";
 
     /**
      * Message to send when closing the connection
@@ -86,7 +99,8 @@ public class WhisperWebsocket {
     private String privateKeyName;
 
 
-    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException
+    {
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
         KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -121,7 +135,8 @@ public class WhisperWebsocket {
         logger.debug("Whisper URL: " + websocketUrl);
     }
 
-    private void getConfig() {
+    private void getConfig()
+    {
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
         privateKey = JigasiBundleActivator.getConfigurationService()
@@ -135,7 +150,8 @@ public class WhisperWebsocket {
      * Connect to the websocket, retry up to maxRetryAttempts
      * with exponential backoff in case of failure
      */
-    private void connect() throws Exception {
+    private void connect() throws Exception
+    {
         int attempt = 0;
         float multiplier = 1.5f;
         long waitTime = 1000L;
@@ -192,7 +208,7 @@ public class WhisperWebsocket {
     public void onMessage(String msg)
     {
         boolean partial = true;
-        String result = "";
+        String result;
         JSONObject obj = new JSONObject(msg);
         String msgType = obj.getString("type");
         String participantId = obj.getString("participant_id");
@@ -237,15 +253,6 @@ public class WhisperWebsocket {
     public void onError(Throwable cause)
     {
         logger.error("Error while streaming audio data to transcription service.", cause);
-//        try
-//        {
-//            this.connectionId = UUID.randomUUID().toString();
-//            connect();
-//        }
-//        catch (Exception e)
-//        {
-//            logger.error("Websocket connection failure");
-//        }
     }
 
     private String getLanguage(Participant participant) {
@@ -270,21 +277,24 @@ public class WhisperWebsocket {
     }
 
     public boolean disconnectParticipant(String participantId) throws IOException {
-        if (participants.containsKey(participantId))
+        synchronized (this)
         {
-            participants.remove(participantId);
-            participantListeners.remove(participantId);
-            logger.info("Disconnected " + participantId);
-        }
+            if (participants.containsKey(participantId))
+            {
+                participants.remove(participantId);
+                participantListeners.remove(participantId);
+                logger.info("Disconnected " + participantId);
+            }
 
-        if (participants.isEmpty())
-        {
-            logger.info("All participants have left, disconnecting from Whisper transcription server.");
-            wsSession.getRemote().sendBytes(EOF_MESSAGE);
-            wsSession.disconnect();
-            return true;
+            if (participants.isEmpty())
+            {
+                logger.info("All participants have left, disconnecting from Whisper transcription server.");
+                wsSession.getRemote().sendBytes(EOF_MESSAGE);
+                wsSession.disconnect();
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     public void sendAudio(String participantId, Participant participant, ByteBuffer audio) {
@@ -316,11 +326,14 @@ public class WhisperWebsocket {
     }
 
     private void addParticipantIfNotExists(String participantId, Participant participant) {
+        synchronized (this)
+        {
             if (!participants.containsKey(participantId))
             {
                 participants.put(participantId, participant);
                 participantListeners.put(participantId, new HashSet<>());
             }
+        }
     }
 
     public void addListener(TranscriptionListener listener, Participant participant) {

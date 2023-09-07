@@ -1,21 +1,36 @@
+/*
+ * Jigasi, the JItsi GAteway to SIP.
+ *
+ * Copyright @ 2023 8x8 Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.jigasi.transcription;
+
 import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
 import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
 import org.jitsi.utils.logging.*;
-
 import java.nio.*;
 import java.util.function.*;
 
 
 /**
- * Implements a TranscriptionService which uses
- * Whisper and a Python wrapper to do the transcription.
+ * Implements a TranscriptionService which uses a custom built Whisper server
+ * to perform live transcription.
  *
  * @author Razvan Purdel
  */
-
-
 public class WhisperTranscriptionService
         extends AbstractTranscriptionService
 {
@@ -31,7 +46,7 @@ public class WhisperTranscriptionService
     {
         if (this.mediaDevice == null)
         {
-            this.mediaDevice = new TranscribingAudioMixerMediaDevice(new WhisperTsAudioSilenceMediaDevice(), listener);
+            this.mediaDevice = new TranscribingAudioMixerMediaDevice(new WhisperAudioSilenceMediaDevice(), listener);
         }
 
         return this.mediaDevice;
@@ -40,11 +55,13 @@ public class WhisperTranscriptionService
     /**
      * No configuration required yet
      */
+    @Override
     public boolean isConfiguredProperly()
     {
         return true;
     }
 
+    @Override
     public boolean supportsLanguageRouting()
     {
         return false;
@@ -53,7 +70,7 @@ public class WhisperTranscriptionService
     @Override
     public void sendSingleRequest(final TranscriptionRequest request,
                                   final Consumer<TranscriptionResult> resultConsumer) {
-        logger.warn("The Whisper transcription service does not support single requests :( please reconnect.");
+        logger.warn("The Whisper transcription service does not support single requests.");
     }
 
     @Override
@@ -73,7 +90,7 @@ public class WhisperTranscriptionService
         }
         catch (Exception e)
         {
-            throw new UnsupportedOperationException("Failed to create ws streaming session", e);
+            throw new UnsupportedOperationException("Failed to create WS streaming session", e);
         }
     }
 
@@ -108,9 +125,9 @@ public class WhisperTranscriptionService
 
         private final WhisperWebsocket wsClient;
 
-        private String roomId = "";
+        private final String roomId;
 
-        private WhisperConnectionPool connectionPool = null;
+        private final WhisperConnectionPool connectionPool;
 
 
         WhisperWebsocketStreamingSession(Participant participant)
