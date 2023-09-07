@@ -18,25 +18,6 @@
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.impl.neomedia.format.MediaFormatImpl;
-import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.AbstractAudioRenderer;
-import org.jitsi.jigasi.JigasiBundleActivator;
-import org.jitsi.service.neomedia.MediaDirection;
-import org.jitsi.service.neomedia.QualityPreset;
-import org.jitsi.service.neomedia.RTPExtension;
-import org.jitsi.service.neomedia.codec.EncodingConfiguration;
-import org.jitsi.service.neomedia.format.MediaFormat;
-import org.jitsi.utils.MediaType;
-import org.jitsi.utils.logging.Logger;
-
-import javax.media.Format;
-import javax.media.format.AudioFormat;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.Key;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * AudioMixerMediaDevice which adds a {@link ReceiveStreamBufferListener} to
@@ -60,7 +41,6 @@ public class TranscribingAudioMixerMediaDevice
             ReceiveStreamBufferListener listener)
     {
         super(device);
-//        super(new WhisperTsAudioSilenceMediaDevice());
         super.setReceiveStreamBufferListener(listener);
     }
 

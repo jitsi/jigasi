@@ -23,7 +23,15 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
+/**
+ * The singleton class manages the WebSocket connections to the Whisper
+ * service. We chose to have a single connection per room instead
+ * of a single connection per Participant.
+ *
+ * The WebSocket will disconnect when all Participants left the room.
+ *
+ * @author rpurdel
+ */
 public class WhisperConnectionPool
 {
     /**
