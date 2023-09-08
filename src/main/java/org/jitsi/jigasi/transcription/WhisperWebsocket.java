@@ -71,7 +71,7 @@ public class WhisperWebsocket {
     public final static String PRIVATE_KEY
             = "org.jitsi.jigasi.transcription.whisper.private_key";
 
-    public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws/";
+    public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws";
 
     /**
      * Message to send when closing the connection
@@ -126,7 +126,7 @@ public class WhisperWebsocket {
         getConfig();
         try
         {
-            websocketUrl = websocketUrlConfig + connectionId + "?auth_token=" + getJWT();
+            websocketUrl = websocketUrlConfig + "/" + connectionId + "?auth_token=" + getJWT();
         }
         catch (Exception e)
         {
