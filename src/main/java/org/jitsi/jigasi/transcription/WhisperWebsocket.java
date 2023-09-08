@@ -32,7 +32,7 @@ import java.security.*;
 import java.security.spec.*;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 
 @WebSocket
@@ -40,9 +40,9 @@ public class WhisperWebsocket {
 
     private Session wsSession;
 
-    private HashMap<String, Participant> participants = new HashMap<>();
+    private Map<String, Participant> participants = new ConcurrentHashMap<>();
 
-    private HashMap<String, Set<TranscriptionListener>> participantListeners = new HashMap<>();
+    private Map<String, Set<TranscriptionListener>> participantListeners = new ConcurrentHashMap<>();
 
     private static final int maxRetryAttempts = 10;
 
