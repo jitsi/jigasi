@@ -132,7 +132,9 @@ public class WhisperWebsocket {
         {
             logger.error("Failed generating JWT for Whisper. " + e);
         }
-        logger.debug("Whisper URL: " + websocketUrl);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Whisper URL: " + websocketUrl);
+        }
     }
 
     private void getConfig()
@@ -222,8 +224,9 @@ public class WhisperWebsocket {
         UUID id = UUID.fromString(obj.getString("id"));
         Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
         float stability = obj.getFloat("variance");
-
-        logger.debug("Received final: " + result);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Received final: " + result);
+        }
         Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
         if (!result.isEmpty() && partListeners != null)
         {
@@ -232,8 +235,11 @@ public class WhisperWebsocket {
             for (TranscriptionListener l : partListeners)
             {
                 i++;
-                logger.debug("ParticipantId: " + i + ", " + participantId);
-                logger.debug("TranscriptionListener: " + l.toString());
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("ParticipantId: " + i + ", " + participantId);
+                    logger.debug("TranscriptionListener: " + l.toString());
+                }
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
                         id,
@@ -257,12 +263,17 @@ public class WhisperWebsocket {
 
     private String getLanguage(Participant participant) {
         String lang = participant.getTranslationLanguage();
-        logger.debug("Translation language is " + lang);
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Translation language is " + lang);
+        }
         if (lang == null)
         {
             lang = participant.getSourceLanguage();
         }
-        logger.debug("Returned language is " + lang);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Returned language is " + lang);
+        }
         return lang;
     }
 
@@ -301,7 +312,9 @@ public class WhisperWebsocket {
         addParticipantIfNotExists(participantId, participant);
         try
         {
-            logger.debug("Sending audio for " + participantId);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Sending audio for " + participantId);
+            }
             wsSession.getRemote().sendBytes(buildPayload(participantId, participant, audio));
         }
         catch (NullPointerException e)
