@@ -18,9 +18,9 @@
 package org.jitsi.jigasi.transcription;
 
 import org.eclipse.jetty.websocket.api.*;
-import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
-import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
+import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.utils.logging.*;
+
 import java.nio.*;
 import java.util.function.*;
 

@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.service.neomedia.MediaDirection;
+import org.jitsi.service.neomedia.*;
 
 import javax.media.*;
 import javax.media.protocol.*;

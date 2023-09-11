@@ -17,11 +17,11 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 /**
  * The singleton class manages the WebSocket connections to the Whisper

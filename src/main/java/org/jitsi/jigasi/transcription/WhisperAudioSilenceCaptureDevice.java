@@ -17,16 +17,16 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.impl.neomedia.codec.AbstractCodec2;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.AbstractAudioRenderer;
+import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 
 import javax.media.*;
-import javax.media.control.FormatControl;
-import javax.media.format.AudioFormat;
-import javax.media.protocol.BufferTransferHandler;
-import java.io.IOException;
-import java.util.Arrays;
+import javax.media.control.*;
+import javax.media.format.*;
+import javax.media.protocol.*;
+import java.io.*;
+import java.util.*;
 
 /**
  * Implements a <tt>CaptureDevice</tt> which provides silence in the form of

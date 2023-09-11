@@ -24,14 +24,10 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
-import org.jitsi.xmpp.extensions.jitsimeet.TranscriptionLanguageExtension;
-import org.jitsi.xmpp.extensions.jitsimeet.TranslationLanguageExtension;
-import org.jivesoftware.smack.packet.Presence;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
+import org.jivesoftware.smack.packet.*;
 
-import javax.media.Buffer;
-import javax.media.Format;
-import javax.media.format.AudioFormat;
-import javax.media.protocol.CaptureDevice;
+import javax.media.*;
 import javax.media.rtp.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -180,7 +176,7 @@ public class Transcriber
      * with all packets, which only has 20 ms before new packets come in.
      * <p>
      * Will be created in {@link Transcriber#start()} and shutdown in
-     * {@link Transcriber#stop(FailureReason)}
+     * {@link Transcriber#stop(org.jitsi.jigasi.transcription.TranscriptionListener.FailureReason)}
      */
     ExecutorService executorService;
 

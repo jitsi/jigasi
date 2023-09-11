@@ -19,7 +19,7 @@ package org.jitsi.jigasi;
 
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging.*;
 import org.json.*;
 import org.osgi.framework.*;
 
