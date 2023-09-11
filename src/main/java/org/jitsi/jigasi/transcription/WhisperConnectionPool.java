@@ -27,7 +27,6 @@ import java.util.concurrent.*;
  * The singleton class manages the WebSocket connections to the Whisper
  * service. We chose to have a single connection per room instead
  * of a single connection per Participant.
- *
  * The WebSocket will disconnect when all Participants left the room.
  *
  * @author rpurdel
@@ -64,10 +63,10 @@ public class WhisperConnectionPool
 
     /**
      * Gets a connection if it exists, creates one if it doesn't.
-     * @param roomId
-     * @param participantId
-     * @return
-     * @throws Exception
+     * @param roomId The room jid.
+     * @param participantId The participant id.
+     * @return The websocket.
+     * @throws Exception When fail to initialize the socket.
      */
     public WhisperWebsocket getConnection(String roomId, String participantId)
         throws Exception
@@ -84,11 +83,12 @@ public class WhisperConnectionPool
 
     /**
      * Ends the connection if all participants have left the room
-     * @param roomId
-     * @param participantId
-     * @throws IOException
+     * @param roomId The room jid.
+     * @param participantId The participant id.
+     * @throws IOException Error on disconnecting participant.
      */
-    public void end(String roomId, String participantId) throws IOException
+    public void end(String roomId, String participantId)
+        throws IOException
     {
         ConnectionState state = pool.getOrDefault(roomId, null);
         if (state == null)
@@ -117,21 +117,18 @@ public class WhisperConnectionPool
 
     /**
      * Static method to return the instance of the class
-     * @return
-     * @throws Exception
+     * @return The connection pool.
      */
     public static WhisperConnectionPool getInstance()
     {
-        if (instance == null)
+        synchronized (WhisperConnectionPool.class)
         {
-            synchronized (WhisperConnectionPool.class)
+            if (instance == null)
             {
-                if (instance == null)
-                {
-                    instance = new WhisperConnectionPool();
-                }
+                instance = new WhisperConnectionPool();
             }
         }
+
         return instance;
     }
 }

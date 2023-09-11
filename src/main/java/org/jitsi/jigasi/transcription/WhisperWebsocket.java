@@ -110,7 +110,7 @@ public class WhisperWebsocket
                 .setHeaderParam("kid", privateKeyName)
                 .setIssuedAt(now)
                 .setIssuer("jigasi")
-                .signWith(SignatureAlgorithm.RS256, finalPrivateKey);
+                .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
         long expires = nowMillis + (60 * 5 * 1000);
         Date expiry = new Date(expires);
         builder.setExpiration(expiry);
