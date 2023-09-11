@@ -21,7 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.apache.commons.lang3.StringUtils;
-import org.jitsi.impl.neomedia.device.AudioSilenceMediaDevice;
+import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.sounds.*;
 import org.jitsi.jigasi.transcription.*;

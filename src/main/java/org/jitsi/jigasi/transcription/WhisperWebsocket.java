@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import io.jsonwebtoken.*;
-import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.jitsi.jigasi.JigasiBundleActivator;
@@ -132,7 +132,8 @@ public class WhisperWebsocket {
         {
             logger.error("Failed generating JWT for Whisper. " + e);
         }
-        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled())
+        {
             logger.debug("Whisper URL: " + websocketUrl);
         }
     }
@@ -141,6 +142,10 @@ public class WhisperWebsocket {
     {
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
+        if (websocketUrlConfig.endsWith("/"))
+        {
+            websocketUrlConfig = websocketUrlConfig.substring(0, websocketUrlConfig.length() - 1);
+        }
         privateKey = JigasiBundleActivator.getConfigurationService()
                         .getString(PRIVATE_KEY, "");
         privateKeyName = JigasiBundleActivator.getConfigurationService()
@@ -224,7 +229,8 @@ public class WhisperWebsocket {
         UUID id = UUID.fromString(obj.getString("id"));
         Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
         float stability = obj.getFloat("variance");
-        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled())
+        {
             logger.debug("Received final: " + result);
         }
         Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
@@ -271,7 +277,8 @@ public class WhisperWebsocket {
         {
             lang = participant.getSourceLanguage();
         }
-        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled())
+        {
             logger.debug("Returned language is " + lang);
         }
         return lang;
@@ -309,22 +316,21 @@ public class WhisperWebsocket {
     }
 
     public void sendAudio(String participantId, Participant participant, ByteBuffer audio) {
-        addParticipantIfNotExists(participantId, participant);
-        try
+        if (logger.isDebugEnabled())
         {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Sending audio for " + participantId);
-            }
-            wsSession.getRemote().sendBytes(buildPayload(participantId, participant, audio));
+            logger.debug("Sending audio for " + participantId);
         }
-        catch (NullPointerException e)
+        addParticipantIfNotExists(participantId, participant);
+        RemoteEndpoint remoteEndpoint = wsSession.getRemote();
+        if (remoteEndpoint == null)
         {
-            logger.error("Failed sending audio for " + participantId + ". " + e);
+            logger.error("Failed sending audio for " + participantId + ". Attempting to reconnect.");
             if (!wsSession.isOpen())
             {
                 try
                 {
                     connect();
+                    remoteEndpoint = wsSession.getRemote();
                 }
                 catch (Exception ex)
                 {
@@ -332,9 +338,16 @@ public class WhisperWebsocket {
                 }
             }
         }
-        catch (IOException e)
+        if (remoteEndpoint != null)
         {
-            logger.error("Failed sending audio for " + participantId + ". " + e);
+            try
+            {
+                remoteEndpoint.sendBytes(buildPayload(participantId, participant, audio));
+            }
+            catch (IOException e)
+            {
+                logger.error("Failed sending audio for " + participantId + ". " + e);
+            }
         }
     }
 
