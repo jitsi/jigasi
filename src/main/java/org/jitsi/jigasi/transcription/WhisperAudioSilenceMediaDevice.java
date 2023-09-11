@@ -26,7 +26,6 @@ import javax.media.protocol.*;
 public class WhisperAudioSilenceMediaDevice
     extends AudioSilenceMediaDevice
 {
-
     protected CaptureDevice createCaptureDevice()
     {
         return new WhisperAudioSilenceCaptureDevice(false);

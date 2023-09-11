@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.jigasi.util.Util;
 import org.jitsi.utils.logging.*;
 
 import java.io.*;
@@ -36,8 +37,7 @@ public class WhisperConnectionPool
     /**
      * The logger class
      */
-    private final static Logger logger
-            = Logger.getLogger(WhisperConnectionPool.class);
+    private final static Logger logger = Logger.getLogger(WhisperConnectionPool.class);
 
     /**
      * The singleton instance to be returned
@@ -48,6 +48,12 @@ public class WhisperConnectionPool
      * A hashmap holding the state for each connection
      */
     private final Map<String, ConnectionState> pool = new ConcurrentHashMap<>();
+
+    /**
+     * The thread pool to serve all connect disconnect operations.
+     */
+    private static ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
+
 
     private static class ConnectionState
     {
@@ -74,7 +80,12 @@ public class WhisperConnectionPool
         if (!pool.containsKey(roomId))
         {
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
-            pool.put(roomId, new ConnectionState(new WhisperWebsocket()));
+            final WhisperWebsocket socket = new WhisperWebsocket();
+
+            // connect socket in new thread to not block Smack threads
+            threadPool.execute(socket::connect);
+
+            pool.put(roomId, new ConnectionState(socket));
         }
 
         pool.get(roomId).participants.add(participantId);
@@ -85,10 +96,16 @@ public class WhisperConnectionPool
      * Ends the connection if all participants have left the room
      * @param roomId The room jid.
      * @param participantId The participant id.
-     * @throws IOException Error on disconnecting participant.
      */
     public void end(String roomId, String participantId)
-        throws IOException
+    {
+        // execute thi in new thread to not block Smack
+        threadPool.execute(() -> {
+            this.endInternal(roomId, participantId);
+        });
+    }
+
+    private void endInternal(String roomId, String participantId)
     {
         ConnectionState state = pool.getOrDefault(roomId, null);
         if (state == null)
@@ -108,10 +125,18 @@ public class WhisperConnectionPool
             return;
         }
 
-        boolean isEverybodyDisconnected = state.wsConn.disconnectParticipant(participantId);
-        if (isEverybodyDisconnected)
+        boolean isEverybodyDisconnected = false;
+        try
         {
-            pool.remove(roomId);
+            isEverybodyDisconnected = state.wsConn.disconnectParticipant(participantId);
+            if (isEverybodyDisconnected)
+            {
+                pool.remove(roomId);
+            }
+        }
+        catch (IOException e)
+        {
+            logger.error("Error while finalizing websocket connection for participant " + participantId, e);
         }
     }
 

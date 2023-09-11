@@ -117,7 +117,6 @@ public class WhisperTranscriptionService
 
         private final Participant participant;
 
-        private final Session wsSession;
         /* The name of the participant */
         private final String participantId;
 
@@ -140,13 +139,12 @@ public class WhisperTranscriptionService
             roomId = debugName[0];
             connectionPool = WhisperConnectionPool.getInstance();
             wsClient = connectionPool.getConnection(roomId, participantId);
-            wsSession = wsClient.getWsSession();
             wsClient.setTranscriptionTag(transcriptionTag);
         }
 
         public void sendRequest(TranscriptionRequest request)
         {
-            if (wsSession == null)
+            if (this.wsClient.ended())
             {
                 logger.warn("Trying to send buffer without a connection.");
                 return;
@@ -169,20 +167,13 @@ public class WhisperTranscriptionService
 
         public void end()
         {
-            try
-            {
-                logger.info("Disconnecting " + this.participantId + " from Whisper transcription service.");
-                connectionPool.end(this.roomId, this.participantId);
-            }
-            catch (Exception e)
-            {
-                logger.error("Error while finalizing websocket connection for participant " + participantId, e);
-            }
+            logger.info("Disconnecting " + this.participantId + " from Whisper transcription service.");
+            connectionPool.end(this.roomId, this.participantId);
         }
 
         public boolean ended()
         {
-            return wsSession == null;
+            return wsClient.ended();
         }
     }
 }

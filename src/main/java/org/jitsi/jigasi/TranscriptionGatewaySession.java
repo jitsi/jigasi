@@ -632,25 +632,12 @@ public class TranscriptionGatewaySession
     }
 
     /**
-     * Makes sure the room is not null as it sometimes happens
-     * when starting a new transcription
-     */
-    private void refreshRoom()
-    {
-        if (this.chatRoom == null)
-        {
-            this.chatRoom = super.jvbConference.getJvbRoom();
-        }
-    }
-
-    /**
      * Send a {@link TranscriptionResult} to the {@link ChatRoom}
      *
      * @param result the {@link TranscriptionResult} to send
      */
     private void sendTranscriptionResultToRoom(TranscriptionResult result)
     {
-        refreshRoom();
         handler.publishTranscriptionResult(this.chatRoom, result);
     }
 
@@ -661,7 +648,6 @@ public class TranscriptionGatewaySession
      */
     private void sendTranslationResultToRoom(TranslationResult result)
     {
-        refreshRoom();
         handler.publishTranslationResult(this.chatRoom, result);
     }
 

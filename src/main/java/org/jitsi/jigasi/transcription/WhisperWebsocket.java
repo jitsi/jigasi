@@ -157,7 +157,7 @@ public class WhisperWebsocket
      * Connect to the websocket, retry up to maxRetryAttempts
      * with exponential backoff in case of failure
      */
-    private void connect() throws Exception
+    void connect()
     {
         int attempt = 0;
         float multiplier = 1.5f;
@@ -188,18 +188,17 @@ public class WhisperWebsocket
                 logger.error(e.toString());
             }
             attempt++;
-            wait(waitTime);
+            try
+            {
+                wait(waitTime);
+            }
+            catch (InterruptedException ignored) {}
         }
 
         if (!isConnected)
         {
-            throw new Exception("Failed connecting to " + websocketUrl + ". Nothing to do.");
+            logger.error("Failed connecting to " + websocketUrl + ". Nothing to do.");
         }
-    }
-
-
-    WhisperWebsocket() throws Exception {
-        connect();
     }
 
     @OnWebSocketClose
@@ -380,8 +379,8 @@ public class WhisperWebsocket
         transcriptionTag = tsTag;
     }
 
-    public Session getWsSession()
+    public boolean ended()
     {
-        return wsSession;
+        return wsSession == null;
     }
 }
