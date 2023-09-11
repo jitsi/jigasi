@@ -23,14 +23,17 @@ import org.jitsi.service.neomedia.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
-public class WhisperAudioSilenceMediaDevice extends AudioSilenceMediaDevice {
+public class WhisperAudioSilenceMediaDevice
+    extends AudioSilenceMediaDevice
+{
 
     protected CaptureDevice createCaptureDevice()
     {
         return new WhisperAudioSilenceCaptureDevice(false);
     }
 
-    protected Processor createPlayer(DataSource dataSource) {
+    protected Processor createPlayer(DataSource dataSource)
+    {
         return null;
     }
 
@@ -38,13 +41,15 @@ public class WhisperAudioSilenceMediaDevice extends AudioSilenceMediaDevice {
     {
         return new AudioMediaDeviceSession(this)
         {
-            protected Player createPlayer(DataSource dataSource) {
+            protected Player createPlayer(DataSource dataSource)
+            {
                 return null;
             }
         };
     }
 
-    public MediaDirection getDirection() {
+    public MediaDirection getDirection()
+    {
         return MediaDirection.SENDRECV;
     }
 }

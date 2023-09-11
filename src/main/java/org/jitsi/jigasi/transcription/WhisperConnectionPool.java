@@ -50,7 +50,8 @@ public class WhisperConnectionPool
      */
     private final Map<String, ConnectionState> pool = new ConcurrentHashMap<>();
 
-    private static class ConnectionState {
+    private static class ConnectionState
+    {
         public WhisperWebsocket wsConn;
         public HashSet<String> participants = new HashSet<>();
 
@@ -68,7 +69,9 @@ public class WhisperConnectionPool
      * @return
      * @throws Exception
      */
-    public WhisperWebsocket getConnection(String roomId, String participantId) throws Exception {
+    public WhisperWebsocket getConnection(String roomId, String participantId)
+        throws Exception
+    {
         if (!pool.containsKey(roomId))
         {
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");

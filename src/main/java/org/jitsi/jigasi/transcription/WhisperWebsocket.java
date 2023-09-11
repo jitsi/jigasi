@@ -36,8 +36,8 @@ import java.util.concurrent.*;
 
 
 @WebSocket
-public class WhisperWebsocket {
-
+public class WhisperWebsocket
+{
     private Session wsSession;
 
     private Map<String, Participant> participants = new ConcurrentHashMap<>();
@@ -267,7 +267,8 @@ public class WhisperWebsocket {
         logger.error("Error while streaming audio data to transcription service.", cause);
     }
 
-    private String getLanguage(Participant participant) {
+    private String getLanguage(Participant participant)
+    {
         String lang = participant.getTranslationLanguage();
         if (logger.isDebugEnabled())
         {
@@ -284,7 +285,8 @@ public class WhisperWebsocket {
         return lang;
     }
 
-    private ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio) {
+    private ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio)
+    {
         ByteBuffer header = ByteBuffer.allocate(60);
         int lenAudio = audio.remaining();
         ByteBuffer fullPayload = ByteBuffer.allocate(lenAudio + 60);
@@ -294,7 +296,9 @@ public class WhisperWebsocket {
         return fullPayload;
     }
 
-    public boolean disconnectParticipant(String participantId) throws IOException {
+    public boolean disconnectParticipant(String participantId)
+        throws IOException
+    {
         synchronized (this)
         {
             if (participants.containsKey(participantId))
@@ -315,7 +319,8 @@ public class WhisperWebsocket {
         }
     }
 
-    public void sendAudio(String participantId, Participant participant, ByteBuffer audio) {
+    public void sendAudio(String participantId, Participant participant, ByteBuffer audio)
+    {
         if (logger.isDebugEnabled())
         {
             logger.debug("Sending audio for " + participantId);
@@ -351,7 +356,8 @@ public class WhisperWebsocket {
         }
     }
 
-    private void addParticipantIfNotExists(String participantId, Participant participant) {
+    private void addParticipantIfNotExists(String participantId, Participant participant)
+    {
         synchronized (this)
         {
             if (!participants.containsKey(participantId))
@@ -362,17 +368,20 @@ public class WhisperWebsocket {
         }
     }
 
-    public void addListener(TranscriptionListener listener, Participant participant) {
+    public void addListener(TranscriptionListener listener, Participant participant)
+    {
         String participantId = participant.getDebugName().split("/")[1];
         addParticipantIfNotExists(participantId, participant);
         participantListeners.get(participantId).add(listener);
     }
 
-    public void setTranscriptionTag(String tsTag) {
+    public void setTranscriptionTag(String tsTag)
+    {
         transcriptionTag = tsTag;
     }
 
-    public Session getWsSession() {
+    public Session getWsSession()
+    {
         return wsSession;
     }
 }

@@ -69,13 +69,14 @@ public class WhisperTranscriptionService
 
     @Override
     public void sendSingleRequest(final TranscriptionRequest request,
-                                  final Consumer<TranscriptionResult> resultConsumer) {
+                                  final Consumer<TranscriptionResult> resultConsumer)
+    {
         logger.warn("The Whisper transcription service does not support single requests.");
     }
 
     @Override
     public StreamingRecognitionSession initStreamingSession(Participant participant)
-            throws UnsupportedOperationException
+        throws UnsupportedOperationException
     {
         try
         {
