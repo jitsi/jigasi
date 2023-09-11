@@ -1414,10 +1414,10 @@ public class JvbConference
         }
 
         @Override
-        public void outgoingCallCreated(CallEvent event) { }
+        public void outgoingCallCreated(CallEvent event) {}
 
         @Override
-        public void callEnded(CallEvent event) { }
+        public void callEnded(CallEvent event) {}
     }
 
     private class JvbCallChangeListener
