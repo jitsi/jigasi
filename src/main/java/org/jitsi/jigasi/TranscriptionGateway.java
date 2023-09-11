@@ -20,6 +20,7 @@ package org.jitsi.jigasi;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.Logger;
+import org.json.*;
 import org.osgi.framework.*;
 
 /**
@@ -81,14 +82,45 @@ public class TranscriptionGateway
         }
     }
 
+    /**
+     * Tries to retrieve a transcriber assigned to a tenant
+     * if the property value is a json. Returns the value as
+     * is if no JSON is found.
+     *
+     * @param tenant the tenant which is retrieved from the context
+     */
+    private String getCustomTranscriptionServiceClass(String tenant)
+    {
+        String customTranscriptionServiceProp
+                = JigasiBundleActivator.getConfigurationService()
+                .getString(
+                        CUSTOM_TRANSCRIPTION_SERVICE_PROP,
+                        null);
+        if (customTranscriptionServiceProp.strip().startsWith("{"))
+        {
+            if (tenant == null)
+            {
+                return null;
+            }
+            try
+            {
+                JSONObject obj = new JSONObject(customTranscriptionServiceProp);
+                return obj.getString(tenant);
+            }
+            catch (JSONException ex)
+            {
+                logger.warn("Could not find '" + tenant + "' tenant in custom transcription service JSON property.");
+                return null;
+            }
+        }
+        return customTranscriptionServiceProp;
+    }
+
     @Override
     public TranscriptionGatewaySession createOutgoingCall(CallContext ctx)
     {
         String customTranscriptionServiceClass
-            = JigasiBundleActivator.getConfigurationService()
-                .getString(
-                    CUSTOM_TRANSCRIPTION_SERVICE_PROP,
-                    null);
+            = getCustomTranscriptionServiceClass(ctx.getTenant());
         AbstractTranscriptionService service = null;
         if (customTranscriptionServiceClass != null)
         {
