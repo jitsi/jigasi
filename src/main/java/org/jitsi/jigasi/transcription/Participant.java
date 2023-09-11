@@ -187,7 +187,8 @@ public class Participant
      * @return a {@code String} or {@code null} if this instance has not been
      * initialized enough to get a proper debug name(not joined any room yet).
      */
-    String getDebugName() {
+    String getDebugName()
+    {
         ChatRoomMember _chatMember = this.chatMember;
 
         if (_chatMember == null)

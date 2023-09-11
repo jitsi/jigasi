@@ -1430,10 +1430,10 @@ public class SipGatewaySession
     {
 
         @Override
-        public void callPeerAdded(CallPeerEvent evt) { }
+        public void callPeerAdded(CallPeerEvent evt) {}
 
         @Override
-        public void callPeerRemoved(CallPeerEvent evt) { }
+        public void callPeerRemoved(CallPeerEvent evt) {}
 
         @Override
         public void callStateChanged(CallChangeEvent evt)

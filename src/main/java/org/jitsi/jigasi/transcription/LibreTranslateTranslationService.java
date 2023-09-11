@@ -40,8 +40,8 @@ import java.io.IOException;
  * @author Pinglei He
  */
 public class LibreTranslateTranslationService
-        implements TranslationService {
-
+        implements TranslationService
+{
     /*
      * Class representing the json response body from LibreTranslate where response has status code 200.
      * Used for json-to-POJO conversion with Gson.

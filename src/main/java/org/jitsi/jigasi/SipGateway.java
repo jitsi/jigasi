@@ -225,7 +225,7 @@ public class SipGateway
         }
 
         @Override
-        public void outgoingCallCreated(CallEvent event) { }
+        public void outgoingCallCreated(CallEvent event) {}
 
         @Override
         public void callEnded(CallEvent event)

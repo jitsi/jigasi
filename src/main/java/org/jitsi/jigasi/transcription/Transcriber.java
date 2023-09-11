@@ -285,7 +285,8 @@ public class Transcriber
      *
      * @return a {@code String}
      */
-    private String getDebugName() {
+    private String getDebugName()
+    {
         return roomName;
     }
 
