@@ -1,7 +1,7 @@
 /*
  * Jigasi, the JItsi GAteway to SIP.
  *
- * Copyright @ 2023 - present 8x8, Inc.
+ * Copyright @ 2018 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,15 @@ import com.google.gson.Gson;
 
 
 /**
- * Implements a TranscriptionService which uses Gladia transcription services
+ * Implements a TranscriptionService which uses local
+ * Gladia websocket transcription service.
  * <p>
+ * See https://github.com/alphacep/Gladia-server for
+ * information about server
+ *
+ * @author Nik Vaessen
+ * @author Damian Minkov
+ * @author Nickolay V. Shmyrev
  */
 public class GladiaTranscriptionService
     implements TranscriptionService
@@ -51,6 +58,13 @@ public class GladiaTranscriptionService
 
     private static Gson gson = new Gson();
 
+    public final static String EMPTY_STRING = "";
+
+    public final static String TRANSCRIPTION_KEY = "transcription";
+
+    public final static String TYPE_KEY = "type";
+
+    public final static String FINAL_KEY = "final";
 
     /**
      * The config key of the websocket to the speech-to-text service.
@@ -208,7 +222,7 @@ public class GladiaTranscriptionService
         /* The sample rate of the audio stream we collect from the first request */
         private Integer sampleRate = -1;
         /* Last returned result so we do not return the same string twice */
-        private String lastResult = "";
+        private String lastTranscription = "";
         /* Transcription language requested by the user who requested the transcription */
         private String transcriptionTag = "en-US";
 
@@ -248,25 +262,34 @@ public class GladiaTranscriptionService
         @OnWebSocketMessage
         public void onMessage(String msg)
         {
-            boolean partial = true;
-            String result = "";
-            if (logger.isDebugEnabled())
-                logger.debug(debugName + "Recieved response: " + msg);
+            // log json message 
+            logger.info(debugName + "on message: " + msg);
+
+            // create the json object
             JSONObject obj = new JSONObject(msg);
-            boolean hasType = obj.has("type");
-            if (hasType)
+
+            // retrieve the transcription of the utterance
+            boolean hasTranscription = obj.has(TRANSCRIPTION_KEY);
+            String transcription = null;
+            if (hasTranscription)
             {
-                String type = obj.getString("type");
-                if (type.equals("final"))
-                {
-                    partial = false;
-                }
-                result = obj.getString("transcription");
-            }
+                transcription = obj.getString(TRANSCRIPTION_KEY);
+            } 
+
+
+            // retrieve the type of utterance
+            Boolean partial = true;
+            boolean hasType = obj.has(TYPE_KEY);
+            if (hasType && obj.getString(TYPE_KEY) == FINAL_KEY)
+            {
+                partial = false;
+            } 
             
-            if (!result.isEmpty() && (!partial || !result.equals(lastResult)))
+            // notify the listeners
+            if (transcription != null && (!partial || !transcription.equals(lastTranscription)))
             {
-                lastResult = result;
+                logger.info("transcription: " + transcription);
+                lastTranscription = transcription;
                 for (TranscriptionListener l : listeners)
                 {
                     l.notify(new TranscriptionResult(
@@ -279,10 +302,11 @@ public class GladiaTranscriptionService
                             partial,
                             transcriptionTag,
                             1.0,
-                            new TranscriptionAlternative(result)));
+                            new TranscriptionAlternative(transcription)));
                 }
             }
 
+            // if final, renew the id
             if (!partial)
             {
                 this.uuid = UUID.randomUUID();
@@ -299,6 +323,7 @@ public class GladiaTranscriptionService
         {
             try
             {
+                // actual code that sends the audio data
                 if (sampleRate < 0)
                 {
                     sampleRate = (int) request.getFormat().getSampleRate();
@@ -309,8 +334,7 @@ public class GladiaTranscriptionService
                 message.put("x_gladia_key", apiKey);
                 message.put("sample_rate", sampleRate);
                 message.put("frames", encodedAudioData);
-                // message.put("reinject_context", "true");
-                // message.put("language", "english");
+                message.put("reinject_context", "true");
                 session.getRemote().sendString(gson.toJson(message));
             }
             catch (Exception e)
