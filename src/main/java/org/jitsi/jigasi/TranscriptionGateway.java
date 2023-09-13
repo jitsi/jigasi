@@ -127,21 +127,21 @@ public class TranscriptionGateway
                         responseBody.append(inputLine);
                     }
                     inputStream.close();
-                    logger.info("+++++++++ Received json " + responseBody);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Received body " + responseBody);
+                    }
                     JSONObject obj = new JSONObject(responseBody.toString());
                     transcriberClass = obj.getString("transcriber");
-                    logger.info("+++++++++ Using " + transcriberClass + " as the transcriber class.");
-                }
-                else
-                {
-                    logger.warn("+++++++++ Got HTTP status code " + responseCode);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Using " + transcriberClass + " as the transcriber class.");
+                    }
                 }
                 conn.disconnect();
                 return transcriberClass;
             }
             catch (Exception ex)
             {
-                logger.error("+++++++++++++ Could not retrieve transcriber from remote URL." + ex);
+                logger.error("Could not retrieve transcriber from remote URL." + ex);
             }
         }
 
