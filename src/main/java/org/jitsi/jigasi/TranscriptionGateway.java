@@ -18,10 +18,13 @@
 package org.jitsi.jigasi;
 
 import org.jitsi.jigasi.transcription.*;
-import org.jitsi.jigasi.transcription.action.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.jigasi.transcription.action.ActionServicesHandler;
+import org.jitsi.utils.logging.Logger;
 import org.json.*;
-import org.osgi.framework.*;
+import org.osgi.framework.BundleContext;
+
+import java.io.*;
+import java.net.*;
 
 /**
  * A Gateway which creates a TranscriptionGatewaySession when it has an outgoing
@@ -44,6 +47,12 @@ public class TranscriptionGateway
      */
     private static final String CUSTOM_TRANSCRIPTION_SERVICE_PROP
         = "org.jitsi.jigasi.transcription.customService";
+
+    /**
+     * Property for the class name of a custom transcription service.
+     */
+    private static final String REMOTE_TRANSCRIPTION_CONFIG_URL
+            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl";
 
     /**
      * Class which manages the desired {@link TranscriptPublisher} and
@@ -91,29 +100,55 @@ public class TranscriptionGateway
      */
     private String getCustomTranscriptionServiceClass(String tenant)
     {
-        String customTranscriptionServiceProp
+        String remoteTranscriptionConfigUrl
                 = JigasiBundleActivator.getConfigurationService()
+                .getString(
+                        REMOTE_TRANSCRIPTION_CONFIG_URL,
+                        null);
+
+        if (remoteTranscriptionConfigUrl != null)
+        {
+            String transcriberClass = null;
+            try
+            {
+                URL url = new URL(remoteTranscriptionConfigUrl + "/" + tenant);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Content-Type", "application/json");
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200)
+                {
+                    BufferedReader inputStream = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream()));
+                    String inputLine;
+                    StringBuilder responseBody = new StringBuilder();
+                    while ((inputLine = inputStream.readLine()) != null)
+                    {
+                        responseBody.append(inputLine);
+                    }
+                    inputStream.close();
+                    logger.info("+++++++++ Received json " + responseBody);
+                    JSONObject obj = new JSONObject(responseBody.toString());
+                    transcriberClass = obj.getString("transcriber");
+                    logger.info("+++++++++ Using " + transcriberClass + " as the transcriber class.");
+                }
+                else
+                {
+                    logger.warn("+++++++++ Got HTTP status code " + responseCode);
+                }
+                conn.disconnect();
+                return transcriberClass;
+            }
+            catch (Exception ex)
+            {
+                logger.error("+++++++++++++ Could not retrieve transcriber from remote URL." + ex);
+            }
+        }
+
+        return JigasiBundleActivator.getConfigurationService()
                 .getString(
                         CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                         null);
-        if (customTranscriptionServiceProp.strip().startsWith("{"))
-        {
-            if (tenant == null)
-            {
-                return null;
-            }
-            try
-            {
-                JSONObject obj = new JSONObject(customTranscriptionServiceProp);
-                return obj.getString(tenant);
-            }
-            catch (JSONException ex)
-            {
-                logger.warn("Could not find '" + tenant + "' tenant in custom transcription service JSON property.");
-                return null;
-            }
-        }
-        return customTranscriptionServiceProp;
     }
 
     @Override
