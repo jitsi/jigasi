@@ -24,11 +24,10 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
-import org.jitsi.xmpp.extensions.jitsimeet.TranscriptionLanguageExtension;
-import org.jitsi.xmpp.extensions.jitsimeet.TranslationLanguageExtension;
-import org.jivesoftware.smack.packet.Presence;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
+import org.jivesoftware.smack.packet.*;
 
-import javax.media.Buffer;
+import javax.media.*;
 import javax.media.rtp.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -142,11 +141,6 @@ public class Transcriber
      */
     private Transcript transcript = new Transcript();
 
-    /**
-     * The MediaDevice which will get all audio to transcribe
-     */
-    private TranscribingAudioMixerMediaDevice mediaDevice
-        = new TranscribingAudioMixerMediaDevice(this);
 
     private static final String CUSTOM_TRANSLATION_SERVICE_PROP
             = "org.jitsi.jigasi.transcription.translationService";
@@ -174,7 +168,7 @@ public class Transcriber
      * The service which is used to send audio and receive the
      * transcription of said audio
      */
-    private TranscriptionService transcriptionService;
+    private AbstractTranscriptionService transcriptionService;
 
     /**
      * A single thread which is used to manage the buffering and sending
@@ -182,7 +176,7 @@ public class Transcriber
      * with all packets, which only has 20 ms before new packets come in.
      * <p>
      * Will be created in {@link Transcriber#start()} and shutdown in
-     * {@link Transcriber#stop(FailureReason)}
+     * {@link Transcriber#stop(org.jitsi.jigasi.transcription.TranscriptionListener.FailureReason)}
      */
     ExecutorService executorService;
 
@@ -214,7 +208,7 @@ public class Transcriber
      */
     public Transcriber(String roomName,
                        String roomUrl,
-                       TranscriptionService service)
+                       AbstractTranscriptionService service)
     {
         if (!service.supportsStreamRecognition())
         {
@@ -242,7 +236,7 @@ public class Transcriber
      * @param service the transcription service which will be used to transcribe
      * the audio streams
      */
-    public Transcriber(TranscriptionService service)
+    public Transcriber(AbstractTranscriptionService service)
     {
         this(null, null, service);
     }
@@ -833,7 +827,7 @@ public class Transcriber
      */
     public AudioMixerMediaDevice getMediaDevice()
     {
-        return this.mediaDevice;
+        return this.transcriptionService.getMediaDevice(this);
     }
 
     /**

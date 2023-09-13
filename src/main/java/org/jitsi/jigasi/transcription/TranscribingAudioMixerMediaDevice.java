@@ -37,10 +37,13 @@ public class TranscribingAudioMixerMediaDevice
      * and has a listener for all other audio
      */
     public TranscribingAudioMixerMediaDevice(
-        ReceiveStreamBufferListener listener)
+            AudioSilenceMediaDevice device,
+            ReceiveStreamBufferListener listener)
     {
-        super(new AudioSilenceMediaDevice());
+        super(device);
         super.setReceiveStreamBufferListener(listener);
     }
+
+
 
 }

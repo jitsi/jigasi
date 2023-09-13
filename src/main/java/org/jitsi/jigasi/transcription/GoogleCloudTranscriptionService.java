@@ -47,7 +47,7 @@ import java.util.function.*;
  * @author Damian Minkov
  */
 public class GoogleCloudTranscriptionService
-    implements TranscriptionService
+    extends AbstractTranscriptionService
 {
 
     /**

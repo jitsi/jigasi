@@ -46,7 +46,7 @@ import java.util.function.*;
  * @author Nickolay V. Shmyrev
  */
 public class VoskTranscriptionService
-    implements TranscriptionService
+        extends AbstractTranscriptionService
 {
 
     /**
