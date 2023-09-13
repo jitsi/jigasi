@@ -18,10 +18,10 @@
 package org.jitsi.jigasi;
 
 import org.jitsi.jigasi.transcription.*;
-import org.jitsi.jigasi.transcription.action.ActionServicesHandler;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.jigasi.transcription.action.*;
+import org.jitsi.utils.logging.*;
 import org.json.*;
-import org.osgi.framework.BundleContext;
+import org.osgi.framework.*;
 
 import java.io.*;
 import java.net.*;
