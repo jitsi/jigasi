@@ -127,12 +127,14 @@ public class TranscriptionGateway
                         responseBody.append(inputLine);
                     }
                     inputStream.close();
-                    if (logger.isDebugEnabled()) {
+                    if (logger.isDebugEnabled())
+                    {
                         logger.debug("Received body " + responseBody);
                     }
                     JSONObject obj = new JSONObject(responseBody.toString());
                     transcriberClass = obj.getString("transcriber");
-                    if (logger.isDebugEnabled()) {
+                    if (logger.isDebugEnabled())
+                    {
                         logger.debug("Using " + transcriberClass + " as the transcriber class.");
                     }
                 }
