@@ -64,7 +64,11 @@ public class GladiaTranscriptionService
 
     public final static String TYPE_KEY = "type";
 
+    public final static String TYPE_DURATION = "duration";
+
     public final static String FINAL_KEY = "final";
+
+    public final static float MINIMUM_AUDIO_DURATION = 3;
 
     /**
      * The config key of the websocket to the speech-to-text service.
@@ -276,7 +280,6 @@ public class GladiaTranscriptionService
                 transcription = obj.getString(TRANSCRIPTION_KEY);
             } 
 
-
             // retrieve the type of utterance
             Boolean partial = true;
             boolean hasType = obj.has(TYPE_KEY);
@@ -284,26 +287,49 @@ public class GladiaTranscriptionService
             {
                 partial = false;
             } 
-            
-            // notify the listeners
-            if (transcription != null && (!partial || !transcription.equals(lastTranscription)))
+
+            // retrieve the duration of utterance
+            float duration = 0;
+            boolean hasDuration = obj.has(TYPE_DURATION);
+            if (hasDuration)
             {
-                logger.info("transcription: " + transcription);
-                lastTranscription = transcription;
-                for (TranscriptionListener l : listeners)
-                {
-                    l.notify(new TranscriptionResult(
-                            null,
-                            uuid,
-                            // this time needs to be the one when the audio was sent
-                            // the results need to be matched with the time when we sent the audio, so we have
-                            // the real time when this transcription was started
-                            Instant.now(),
-                            partial,
-                            transcriptionTag,
-                            1.0,
-                            new TranscriptionAlternative(transcription)));
-                }
+                duration = obj.getFloat(TYPE_DURATION);
+            } 
+            
+            // no transcription, no work
+            if (!hasTranscription)
+            {
+                return;
+            }
+
+            // same transcription, no work
+            if (partial && transcription.equals(lastTranscription))
+            {
+                return;
+            }
+
+            // partial less than 3s, no work
+            if (partial && duration > MINIMUM_AUDIO_DURATION)
+            {
+                return;
+            }
+
+            // notify the listeners
+            logger.info("transcription: " + transcription);
+            lastTranscription = transcription;
+            for (TranscriptionListener l : listeners)
+            {
+                l.notify(new TranscriptionResult(
+                        null,
+                        uuid,
+                        // this time needs to be the one when the audio was sent
+                        // the results need to be matched with the time when we sent the audio, so we have
+                        // the real time when this transcription was started
+                        Instant.now(),
+                        partial,
+                        transcriptionTag,
+                        1.0,
+                        new TranscriptionAlternative(transcription)));
             }
 
             // if final, renew the id
