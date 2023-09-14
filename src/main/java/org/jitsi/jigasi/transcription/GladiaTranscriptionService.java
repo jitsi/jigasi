@@ -309,7 +309,7 @@ public class GladiaTranscriptionService
             }
 
             // partial less than 3s, no work
-            if (partial && duration > MINIMUM_AUDIO_DURATION)
+            if (partial && duration < MINIMUM_AUDIO_DURATION)
             {
                 return;
             }
