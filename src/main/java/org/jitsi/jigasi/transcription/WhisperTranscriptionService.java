@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.utils.logging.*;
 
@@ -50,6 +49,12 @@ public class WhisperTranscriptionService
         }
 
         return this.mediaDevice;
+    }
+
+    @Override
+    public boolean disableSilenceFilter()
+    {
+        return true;
     }
 
     /**
