@@ -39,4 +39,13 @@ public abstract class AbstractTranscriptionService
 
         return this.mediaDevice;
     }
+
+    /**
+     * Returns true if the SilenceFilter should be disabled for this
+     * TranscriptionService.
+     */
+    public boolean disableSilenceFilter()
+    {
+        return false;
+    }
 }

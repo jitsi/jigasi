@@ -194,7 +194,7 @@ public class Transcriber
      * Whether silenced audio should be filtered out before sending audio to
      * a {@link TranscriptionService}.
      */
-    private boolean filterSilence = shouldFilterSilence();
+    private boolean filterSilence;
 
     /**
      * Create a transcription object which can be used to add and remove
@@ -218,6 +218,7 @@ public class Transcriber
         }
         this.transcriptionService = service;
         addTranscriptionListener(this.transcript);
+        this.filterSilence = shouldFilterSilence();
 
         configureTranslationManager();
         if (isTranslationEnabled())
@@ -958,6 +959,7 @@ public class Transcriber
     private boolean shouldFilterSilence()
     {
         return JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_FILTER_SILENCE, FILTER_SILENCE_DEFAULT_VALUE);
+            .getBoolean(P_NAME_FILTER_SILENCE, FILTER_SILENCE_DEFAULT_VALUE)
+            && !this.transcriptionService.disableSilenceFilter();
     }
 }

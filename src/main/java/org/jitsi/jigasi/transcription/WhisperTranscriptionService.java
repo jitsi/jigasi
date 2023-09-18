@@ -17,12 +17,11 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging.Logger;
 
-import java.nio.*;
-import java.util.function.*;
+import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 
 
 /**
@@ -50,6 +49,12 @@ public class WhisperTranscriptionService
         }
 
         return this.mediaDevice;
+    }
+
+    @Override
+    public boolean disableSilenceFilter()
+    {
+        return true;
     }
 
     /**
