@@ -48,6 +48,7 @@ import org.jivesoftware.smackx.muc.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
 import org.jivesoftware.smackx.xdata.*;
+import org.json.simple.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -57,6 +58,7 @@ import org.osgi.framework.*;
 import java.beans.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
@@ -77,7 +79,8 @@ public class JvbConference
                ChatRoomMemberPresenceListener,
                LocalUserChatRoomPresenceListener,
                CallPeerConferenceListener,
-               PropertyChangeListener
+               PropertyChangeListener,
+               OperationSetJitsiMeetTools.JitsiMeetRequestListener
 {
     /**
      * The logger.
@@ -149,6 +152,12 @@ public class JvbConference
      * The (unique) meeting id of this conference.
      */
     private String meetingId;
+
+    /**
+     * A thread pool used to offload xmpp execution in a new thread to avoid blocking
+     * xmpp threads.
+     */
+    public static final ExecutorService xmppExecutorPool = Util.createNewThreadPool("xmpp-executor-pool");
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -603,7 +612,7 @@ public class JvbConference
 
         if (xmppProvider.isRegistered())
         {
-            joinConferenceRoom();
+            xmppExecutorPool.execute(this::joinConferenceRoom);
         }
         else
         {
@@ -617,8 +626,12 @@ public class JvbConference
     }
 
     @Override
-    public synchronized void registrationStateChanged(
-            RegistrationStateChangeEvent evt)
+    public void registrationStateChanged(RegistrationStateChangeEvent evt)
+    {
+        xmppExecutorPool.execute(() -> registrationStateChangedInternal(evt));
+    }
+
+    private synchronized void registrationStateChangedInternal(RegistrationStateChangeEvent evt)
     {
         if (started
             && mucRoom == null
@@ -707,6 +720,9 @@ public class JvbConference
         return started;
     }
 
+    /**
+     * When calling this method, make sure it is not executed in any of the Smack threads.
+     */
     public void joinConferenceRoom()
     {
         OperationSetMultiUserChat muc = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
@@ -714,13 +730,16 @@ public class JvbConference
 
         OperationSetIncomingDTMF opSet = this.xmppProvider.getOperationSet(OperationSetIncomingDTMF.class);
         if (opSet != null)
+        {
+            // this executes only sip provider logic
             opSet.addDTMFListener(gatewaySession);
+        }
 
         this.jitsiMeetTools = xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class);
 
         if (this.jitsiMeetTools != null)
         {
-            this.jitsiMeetTools.addRequestListener(this.gatewaySession);
+            this.jitsiMeetTools.addRequestListener(this);
         }
 
         Localpart lobbyLocalpart = null;
@@ -784,7 +803,7 @@ public class JvbConference
 
                         initiator.addChildExtension(he);
                     });
-                if (initiator.getChildExtensions().size() > 0)
+                if (!initiator.getChildExtensions().isEmpty())
                 {
                     ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initiator);
                 }
@@ -886,7 +905,7 @@ public class JvbConference
 
                             if (this.jitsiMeetTools != null)
                             {
-                                this.jitsiMeetTools.removeRequestListener(this.gatewaySession);
+                                this.jitsiMeetTools.removeRequestListener(this);
                             }
 
                             DataObject dataObject = opex.getDataObject();
@@ -1082,6 +1101,11 @@ public class JvbConference
     @Override
     public void memberPresenceChanged(ChatRoomMemberPresenceChangeEvent evt)
     {
+        xmppExecutorPool.execute(() -> memberPresenceChangedInternal(evt));
+    }
+
+    private void memberPresenceChangedInternal(ChatRoomMemberPresenceChangeEvent evt)
+    {
         if (logger.isTraceEnabled())
         {
             logger.trace(this.callContext + " Member presence change: " + evt);
@@ -1235,6 +1259,11 @@ public class JvbConference
     @Override
     public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
     {
+        xmppExecutorPool.execute(() -> localUserPresenceChangedLocal(evt));
+    }
+
+    private void localUserPresenceChangedLocal(LocalUserChatRoomPresenceChangeEvent evt)
+    {
         try
         {
             if (evt.getChatRoom().equals(JvbConference.this.mucRoom))
@@ -1308,14 +1337,35 @@ public class JvbConference
     @Override
     public void propertyChange(PropertyChangeEvent evt)
     {
-        if (evt.getPropertyName().equals(CallPeerJabberImpl.TRANSPORT_REPLACE_PROPERTY_NAME))
+        xmppExecutorPool.execute(() ->
         {
-            Statistics.incrementTotalCallsWithJvbMigrate();
+            if (evt.getPropertyName().equals(CallPeerJabberImpl.TRANSPORT_REPLACE_PROPERTY_NAME))
+            {
+                Statistics.incrementTotalCallsWithJvbMigrate();
 
-            leaveConferenceRoom();
+                leaveConferenceRoom();
 
-            joinConferenceRoom();
-        }
+                joinConferenceRoom();
+            }
+        });
+    }
+
+    @Override
+    public void onJoinJitsiMeetRequest(Call call, String room, Map<String, String> data)
+    {
+        xmppExecutorPool.execute(() -> this.gatewaySession.onJoinJitsiMeetRequest(call, room, data));
+    }
+
+    @Override
+    public void onSessionStartMuted(boolean[] startMutedFlags)
+    {
+        xmppExecutorPool.execute(() -> this.gatewaySession.onSessionStartMuted(startMutedFlags));
+    }
+
+    @Override
+    public void onJSONReceived(CallPeer callPeer, JSONObject jsonObject, Map<String, Object> parameters)
+    {
+        xmppExecutorPool.execute(() -> this.gatewaySession.onJSONReceived(callPeer, jsonObject, parameters));
     }
 
     private class JvbCallListener
@@ -1323,6 +1373,11 @@ public class JvbConference
     {
         @Override
         public void incomingCallReceived(CallEvent event)
+        {
+            xmppExecutorPool.execute(() -> incomingCallReceivedInternal(event));
+        }
+
+        private void incomingCallReceivedInternal(CallEvent event)
         {
             CallPeer peer = event.getSourceCall().getCallPeers().next();
             String peerAddress;
@@ -1424,7 +1479,12 @@ public class JvbConference
         extends CallChangeAdapter
     {
         @Override
-        public synchronized void callStateChanged(CallChangeEvent evt)
+        public void callStateChanged(CallChangeEvent evt)
+        {
+            xmppExecutorPool.execute(() -> callStateChangedInternal(evt));
+        }
+
+        private synchronized void callStateChangedInternal(CallChangeEvent evt)
         {
             if (jvbCall != evt.getSourceCall())
             {
@@ -1749,6 +1809,7 @@ public class JvbConference
      * Called whenever password is known. In case of lobby, while waiting in the lobby, the user can enter the password
      * and that can be signalled through SIP Info messages, and we can leve the lobby and enter the room with the
      * password received, if the password is wrong we will fail joining and the call will be dropped.
+     * This is executed in sip thread.
      *
      * @param pwd <tt>String</tt> room password.
      */
@@ -1992,17 +2053,20 @@ public class JvbConference
         @Override
         public void processStanza(Stanza stanza)
         {
-            MUCUser mucUser = stanza.getExtension(MUCUser.class);
-
-            if (mucUser == null)
+            xmppExecutorPool.execute(() ->
             {
-                return;
-            }
+                MUCUser mucUser = stanza.getExtension(MUCUser.class);
 
-            if (mucUser.getStatus().contains(MUCUser.Status.create(104)))
-            {
-                updateFromRoomConfiguration();
-            }
+                if (mucUser == null)
+                {
+                    return;
+                }
+
+                if (mucUser.getStatus().contains(MUCUser.Status.create(104)))
+                {
+                    updateFromRoomConfiguration();
+                }
+            });
         }
     }
 

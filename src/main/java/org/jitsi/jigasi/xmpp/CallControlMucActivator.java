@@ -250,6 +250,11 @@ public class CallControlMucActivator
     @Override
     public void registrationStateChanged(RegistrationStateChangeEvent evt)
     {
+        threadPool.execute(() -> registrationStateChangedInternal(evt));
+    }
+
+    private void registrationStateChangedInternal(RegistrationStateChangeEvent evt)
+    {
         ProtocolProviderService provider = evt.getProvider();
 
         if (logger.isDebugEnabled()
