@@ -624,7 +624,7 @@ public class SoundNotificationManager
     public void notifyChatRoomMemberLeft(ChatRoomMember member)
     {
         // if this is the sip hanging up (stopping) skip playing
-        if (gatewaySession.getJvbConference().isStarted()
+        if (gatewaySession.getJvbConference() != null && gatewaySession.getJvbConference().isStarted()
             && gatewaySession.getSipCall() != null)
         {
             playParticipantLeftNotification();
