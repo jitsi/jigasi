@@ -32,6 +32,7 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.queue.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
@@ -154,10 +155,30 @@ public class JvbConference
     private String meetingId;
 
     /**
-     * A thread pool used to offload xmpp execution in a new thread to avoid blocking
-     * xmpp threads.
+     * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
+     * by executing the tasks in new thread
      */
-    public static final ExecutorService xmppExecutorPool = Util.createNewThreadPool("xmpp-executor-pool");
+    public static final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
+        Integer.MAX_VALUE,
+        false,
+        "xmpp-invoke-queue",
+        r -> {
+            // do process and try
+            try
+            {
+                r.run();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                logger.error("Error processing xmpp queue item", e);
+
+                return false;
+            }
+        },
+        Util.createNewThreadPool("xmpp-executor-pool")
+    );
 
     /**
      * Adds the features supported by jigasi to a specific
@@ -612,7 +633,7 @@ public class JvbConference
 
         if (xmppProvider.isRegistered())
         {
-            xmppExecutorPool.execute(this::joinConferenceRoom);
+            xmppInvokeQueue.add(this::joinConferenceRoom);
         }
         else
         {
@@ -628,7 +649,7 @@ public class JvbConference
     @Override
     public void registrationStateChanged(RegistrationStateChangeEvent evt)
     {
-        xmppExecutorPool.execute(() -> registrationStateChangedInternal(evt));
+        xmppInvokeQueue.add(() -> registrationStateChangedInternal(evt));
     }
 
     private synchronized void registrationStateChangedInternal(RegistrationStateChangeEvent evt)
@@ -1101,7 +1122,7 @@ public class JvbConference
     @Override
     public void memberPresenceChanged(ChatRoomMemberPresenceChangeEvent evt)
     {
-        xmppExecutorPool.execute(() -> memberPresenceChangedInternal(evt));
+        xmppInvokeQueue.add(() -> memberPresenceChangedInternal(evt));
     }
 
     private void memberPresenceChangedInternal(ChatRoomMemberPresenceChangeEvent evt)
@@ -1259,7 +1280,7 @@ public class JvbConference
     @Override
     public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
     {
-        xmppExecutorPool.execute(() -> localUserPresenceChangedLocal(evt));
+        xmppInvokeQueue.add(() -> localUserPresenceChangedLocal(evt));
     }
 
     private void localUserPresenceChangedLocal(LocalUserChatRoomPresenceChangeEvent evt)
@@ -1337,7 +1358,7 @@ public class JvbConference
     @Override
     public void propertyChange(PropertyChangeEvent evt)
     {
-        xmppExecutorPool.execute(() ->
+        xmppInvokeQueue.add(() ->
         {
             if (evt.getPropertyName().equals(CallPeerJabberImpl.TRANSPORT_REPLACE_PROPERTY_NAME))
             {
@@ -1353,19 +1374,19 @@ public class JvbConference
     @Override
     public void onJoinJitsiMeetRequest(Call call, String room, Map<String, String> data)
     {
-        xmppExecutorPool.execute(() -> this.gatewaySession.onJoinJitsiMeetRequest(call, room, data));
+        xmppInvokeQueue.add(() -> this.gatewaySession.onJoinJitsiMeetRequest(call, room, data));
     }
 
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
-        xmppExecutorPool.execute(() -> this.gatewaySession.onSessionStartMuted(startMutedFlags));
+        xmppInvokeQueue.add(() -> this.gatewaySession.onSessionStartMuted(startMutedFlags));
     }
 
     @Override
     public void onJSONReceived(CallPeer callPeer, JSONObject jsonObject, Map<String, Object> parameters)
     {
-        xmppExecutorPool.execute(() -> this.gatewaySession.onJSONReceived(callPeer, jsonObject, parameters));
+        xmppInvokeQueue.add(() -> this.gatewaySession.onJSONReceived(callPeer, jsonObject, parameters));
     }
 
     private class JvbCallListener
@@ -1374,7 +1395,7 @@ public class JvbConference
         @Override
         public void incomingCallReceived(CallEvent event)
         {
-            xmppExecutorPool.execute(() -> incomingCallReceivedInternal(event));
+            xmppInvokeQueue.add(() -> incomingCallReceivedInternal(event));
         }
 
         private void incomingCallReceivedInternal(CallEvent event)
@@ -1481,7 +1502,7 @@ public class JvbConference
         @Override
         public void callStateChanged(CallChangeEvent evt)
         {
-            xmppExecutorPool.execute(() -> callStateChangedInternal(evt));
+            xmppInvokeQueue.add(() -> callStateChangedInternal(evt));
         }
 
         private synchronized void callStateChangedInternal(CallChangeEvent evt)
@@ -2053,7 +2074,7 @@ public class JvbConference
         @Override
         public void processStanza(Stanza stanza)
         {
-            xmppExecutorPool.execute(() ->
+            xmppInvokeQueue.add(() ->
             {
                 MUCUser mucUser = stanza.getExtension(MUCUser.class);
 

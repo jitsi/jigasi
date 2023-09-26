@@ -202,7 +202,7 @@ public class Lobby
     @Override
     public void invitationReceived(ChatRoomInvitationReceivedEvent evt)
     {
-        JvbConference.xmppExecutorPool.execute(() -> invitationReceivedInternal(evt));
+        JvbConference.xmppInvokeQueue.add(() -> invitationReceivedInternal(evt));
     }
 
     private void invitationReceivedInternal(ChatRoomInvitationReceivedEvent chatRoomInvitationReceivedEvent)
@@ -255,7 +255,7 @@ public class Lobby
     @Override
     public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
     {
-        JvbConference.xmppExecutorPool.execute(() -> localUserPresenceChangedInternal(evt));
+        JvbConference.xmppInvokeQueue.add(() -> localUserPresenceChangedInternal(evt));
     }
 
     private void localUserPresenceChangedInternal(LocalUserChatRoomPresenceChangeEvent evt)
