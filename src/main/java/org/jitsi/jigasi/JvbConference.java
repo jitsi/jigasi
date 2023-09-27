@@ -1662,8 +1662,7 @@ public class JvbConference
                     Jid jid = JidCreate.from(value);
                     long random = RANDOM.nextInt();
                     Jid newJid = JidCreate.entityBareFrom(
-                            Localpart.from(
-                                    jid.getLocalpartOrNull() + "-" + String.format("%8h", random).replace(' ', '0')),
+                            Localpart.from(jid.getLocalpartOrNull() + "-" + String.format("%x", random)),
                             jid.getDomain());
 
                     properties.put(ProtocolProviderFactory.USER_ID, newJid.toString());
