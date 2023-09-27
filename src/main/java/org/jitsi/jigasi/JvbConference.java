@@ -181,6 +181,11 @@ public class JvbConference
     );
 
     /**
+     * Used for randomizing usernames if needed.
+     */
+    private static final Random RANDOM = new Random();
+
+    /**
      * Adds the features supported by jigasi to a specific
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the 'features' extension element that can be added to presence.
@@ -1647,6 +1652,26 @@ public class JvbConference
                 if (StringUtils.isEmpty(ctx.getBoshURL()))
                 {
                     ctx.setBoshURL(value);
+                }
+            }
+            else if ("org.jitsi.jigasi.xmpp.acc.USER_ID".equals(overridenProp)
+                && JigasiBundleActivator.getConfigurationService().getBoolean(overridePrefix + ".UNIQUE_USER_ID", false))
+            {
+                try
+                {
+                    Jid jid = JidCreate.from(value);
+                    long random = RANDOM.nextInt();
+                    Jid newJid = JidCreate.entityBareFrom(
+                            Localpart.from(jid.getLocalpartOrNull() + "-" + String.format("%x", random)),
+                            jid.getDomain());
+
+                    properties.put(ProtocolProviderFactory.USER_ID, newJid.toString());
+                }
+                catch (XmppStringprepException e)
+                {
+                    logger.error("Error jid in org.jitsi.jigasi.xmpp.acc.USER_ID config", e);
+
+                    properties.put(ProtocolProviderFactory.USER_ID, value);
                 }
             }
             else
