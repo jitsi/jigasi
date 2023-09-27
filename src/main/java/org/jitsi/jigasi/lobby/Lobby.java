@@ -197,10 +197,15 @@ public class Lobby
      * Used to get <tt>ChatRoomInvitationListener</tt> events. After participant is allowed to join this method will
      * be called.
      *
-     * @param chatRoomInvitationReceivedEvent <tt>ChatRoomInvitationReceivedEvent</tt> contains invitation info.
+     * @param evt <tt>ChatRoomInvitationReceivedEvent</tt> contains invitation info.
      */
     @Override
-    public void invitationReceived(ChatRoomInvitationReceivedEvent chatRoomInvitationReceivedEvent)
+    public void invitationReceived(ChatRoomInvitationReceivedEvent evt)
+    {
+        JvbConference.xmppInvokeQueue.add(() -> invitationReceivedInternal(evt));
+    }
+
+    private void invitationReceivedInternal(ChatRoomInvitationReceivedEvent chatRoomInvitationReceivedEvent)
     {
         try
         {
@@ -249,6 +254,11 @@ public class Lobby
      */
     @Override
     public void localUserPresenceChanged(LocalUserChatRoomPresenceChangeEvent evt)
+    {
+        JvbConference.xmppInvokeQueue.add(() -> localUserPresenceChangedInternal(evt));
+    }
+
+    private void localUserPresenceChangedInternal(LocalUserChatRoomPresenceChangeEvent evt)
     {
         try
         {
