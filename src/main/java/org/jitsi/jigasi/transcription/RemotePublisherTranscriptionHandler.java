@@ -99,7 +99,7 @@ public class RemotePublisherTranscriptionHandler
             object.put(JSON_KEY_EVENT_EVENT_TYPE,
                 event.getEvent().toString());
             object.put(JSON_KEY_EVENT_TIMESTAMP,
-                String.valueOf(event.getTimeStamp().toEpochMilli()));
+                event.getTimeStamp().toEpochMilli());
         }
 
         for (String url : urls)

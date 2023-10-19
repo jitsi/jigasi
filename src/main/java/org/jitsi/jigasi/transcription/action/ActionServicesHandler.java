@@ -250,7 +250,7 @@ public class ActionServicesHandler
         object.put(LocalJsonTranscriptHandler.JSON_KEY_EVENT_EVENT_TYPE,
             event.getEvent().toString());
         object.put(LocalJsonTranscriptHandler.JSON_KEY_EVENT_TIMESTAMP,
-            String.valueOf(event.getTimeStamp().toEpochMilli()));
+            event.getTimeStamp().toEpochMilli());
 
         for (ActionHandler handler : actionSources.remove(roomName))
         {
