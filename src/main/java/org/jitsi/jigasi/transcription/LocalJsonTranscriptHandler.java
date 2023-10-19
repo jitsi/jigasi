@@ -335,7 +335,7 @@ public class LocalJsonTranscriptHandler
         JSONObject jsonObject, TranscriptEvent e)
     {
         jsonObject.put(JSON_KEY_EVENT_EVENT_TYPE, e.getEvent().toString());
-        jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, String.valueOf(e.getTimeStamp().toEpochMilli()));
+        jsonObject.put(JSON_KEY_EVENT_TIMESTAMP, e.getTimeStamp().toEpochMilli());
 
         JSONObject participantJson = new JSONObject();
 
