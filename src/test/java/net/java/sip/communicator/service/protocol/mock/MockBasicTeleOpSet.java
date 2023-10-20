@@ -65,7 +65,7 @@ public class MockBasicTeleOpSet
 
         ((MockCallPeer) peer).setState(CallPeerState.CONNECTED);
 
-        ((MockCall) peer.getCall()).setCallState(CallState.CALL_IN_PROGRESS);
+        ((MockCall) peer.getCall()).setInProgress();
     }
 
     @Override
@@ -108,11 +108,11 @@ public class MockBasicTeleOpSet
         return protocolProvider;
     }
 
-    public synchronized MockCall createIncomingCall(String calee)
+    public synchronized MockCall createIncomingCall(String callee)
     {
         MockCall incomingCall = new MockCall(this);
 
-        MockCallPeer peer = new MockCallPeer(calee, incomingCall);
+        MockCallPeer peer = new MockCallPeer(callee, incomingCall);
 
         incomingCall.addCallPeer(peer);
 

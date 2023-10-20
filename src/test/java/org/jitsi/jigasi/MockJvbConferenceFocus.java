@@ -87,11 +87,8 @@ public class MockJvbConferenceFocus
 
                         setXmppProvider(protocol);
                     }
-                    catch (OperationFailedException e)
-                    {
-                        logger.error(e, e);
-                    }
-                    catch (OperationNotSupportedException e)
+                    catch (OperationFailedException |
+                           OperationNotSupportedException e)
                     {
                         logger.error(e, e);
                     }
@@ -143,15 +140,7 @@ public class MockJvbConferenceFocus
         if (leaveRoomAfterInvite)
         {
             logger.info(myName + " invited peer will leave the room");
-            new Thread(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    logger.info(myName + " leaving the room");
-                    tearDown();
-                }
-            }).start();
+            tearDown();
         }
     }
 
