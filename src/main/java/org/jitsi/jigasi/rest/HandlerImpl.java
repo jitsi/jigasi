@@ -328,6 +328,7 @@ public class HandlerImpl
         PrintWriter out = response.getWriter();
         out.print(debugState.toJSONString());
     }
+
     /**
      * Gets a JSON representation of the <tt>Statistics</tt> of (the
      * associated) <tt>Jigasi</tt>.

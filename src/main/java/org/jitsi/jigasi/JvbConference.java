@@ -1342,6 +1342,12 @@ public class JvbConference
         {
             debugState.put("meetingId", meetingIdCopy);
         }
+
+        if (this.mucRoom != null)
+        {
+            debugState.put("nick", this.mucRoom.getUserNickname());
+        }
+
         return debugState;
     }
 
