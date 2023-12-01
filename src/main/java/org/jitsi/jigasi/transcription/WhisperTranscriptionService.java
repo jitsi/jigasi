@@ -141,7 +141,7 @@ public class WhisperTranscriptionService
             this.participant = participant;
             String[] debugName = this.participant.getDebugName().split("/");
             participantId = debugName[1];
-            roomId = debugName[0];
+            roomId = participant.getTranscriber().getRoomName();
             connectionPool = WhisperConnectionPool.getInstance();
             wsClient = connectionPool.getConnection(roomId, participantId);
             wsClient.setTranscriptionTag(transcriptionTag);

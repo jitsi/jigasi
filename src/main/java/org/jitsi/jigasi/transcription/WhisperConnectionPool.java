@@ -47,25 +47,12 @@ public class WhisperConnectionPool
     /**
      * A hashmap holding the state for each connection
      */
-    private final Map<String, ConnectionState> pool = new ConcurrentHashMap<>();
+    private final Map<String, WhisperWebsocket> pool = new ConcurrentHashMap<>();
 
     /**
      * The thread pool to serve all connect disconnect operations.
      */
-    private static ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
-
-
-    private static class ConnectionState
-    {
-        public WhisperWebsocket wsConn;
-        public HashSet<String> participants = new HashSet<>();
-
-        public ConnectionState(WhisperWebsocket ws)
-        {
-            wsConn = ws;
-        }
-
-    }
+    private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
 
     /**
      * Gets a connection if it exists, creates one if it doesn't.
@@ -85,11 +72,10 @@ public class WhisperConnectionPool
             // connect socket in new thread to not block Smack threads
             threadPool.execute(socket::connect);
 
-            pool.put(roomId, new ConnectionState(socket));
+            pool.put(roomId, socket);
         }
 
-        pool.get(roomId).participants.add(participantId);
-        return pool.get(roomId).wsConn;
+        return pool.get(roomId);
     }
 
     /**
@@ -99,7 +85,7 @@ public class WhisperConnectionPool
      */
     public void end(String roomId, String participantId)
     {
-        // execute thi in new thread to not block Smack
+        // execute this in new thread to not block Smack
         threadPool.execute(() -> {
             this.endInternal(roomId, participantId);
         });
@@ -107,20 +93,8 @@ public class WhisperConnectionPool
 
     private void endInternal(String roomId, String participantId)
     {
-        ConnectionState state = pool.getOrDefault(roomId, null);
-        if (state == null)
-        {
-            return;
-        }
-
-        if (!state.participants.contains(participantId))
-        {
-            return;
-        }
-
-        state.participants.remove(participantId);
-
-        if (!state.participants.isEmpty())
+        WhisperWebsocket wsConn = pool.getOrDefault(roomId, null);
+        if (wsConn == null)
         {
             return;
         }
@@ -128,7 +102,7 @@ public class WhisperConnectionPool
         boolean isEverybodyDisconnected = false;
         try
         {
-            isEverybodyDisconnected = state.wsConn.disconnectParticipant(participantId);
+            isEverybodyDisconnected = wsConn.disconnectParticipant(participantId);
             if (isEverybodyDisconnected)
             {
                 pool.remove(roomId);
