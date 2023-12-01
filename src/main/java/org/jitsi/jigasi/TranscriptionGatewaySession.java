@@ -319,7 +319,7 @@ public class TranscriptionGatewaySession
                 }
                 catch (InterruptedException e)
                 {
-                    e.printStackTrace();
+                    logger.error(e);
                 }
 
                 if (!transcriber.isAnyParticipantRequestingTranscription())
@@ -564,7 +564,7 @@ public class TranscriptionGatewaySession
         }
         catch (XmppStringprepException e)
         {
-            e.printStackTrace();
+            logger.error(e);
         }
 
         return null;

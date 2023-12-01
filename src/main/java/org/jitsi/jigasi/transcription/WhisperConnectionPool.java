@@ -57,12 +57,9 @@ public class WhisperConnectionPool
     /**
      * Gets a connection if it exists, creates one if it doesn't.
      * @param roomId The room jid.
-     * @param participantId The participant id.
      * @return The websocket.
-     * @throws Exception When fail to initialize the socket.
      */
-    public WhisperWebsocket getConnection(String roomId, String participantId)
-        throws Exception
+    public WhisperWebsocket getConnection(String roomId)
     {
         if (!pool.containsKey(roomId))
         {
@@ -86,9 +83,7 @@ public class WhisperConnectionPool
     public void end(String roomId, String participantId)
     {
         // execute this in new thread to not block Smack
-        threadPool.execute(() -> {
-            this.endInternal(roomId, participantId);
-        });
+        threadPool.execute(() -> this.endInternal(roomId, participantId));
     }
 
     private void endInternal(String roomId, String participantId)
@@ -99,12 +94,11 @@ public class WhisperConnectionPool
             return;
         }
 
-        boolean isEverybodyDisconnected = false;
         try
         {
-            isEverybodyDisconnected = wsConn.disconnectParticipant(participantId);
-            if (isEverybodyDisconnected)
+            if (wsConn.disconnectParticipant(participantId))
             {
+                // remove from the pull if everyone is disconnected
                 pool.remove(roomId);
             }
         }
