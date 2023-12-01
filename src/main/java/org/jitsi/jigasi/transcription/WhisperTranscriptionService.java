@@ -136,14 +136,13 @@ public class WhisperTranscriptionService
 
 
         WhisperWebsocketStreamingSession(Participant participant)
-                throws Exception
         {
             this.participant = participant;
             String[] debugName = this.participant.getDebugName().split("/");
             participantId = debugName[1];
-            roomId = debugName[0];
+            roomId = participant.getTranscriber().getRoomName();
             connectionPool = WhisperConnectionPool.getInstance();
-            wsClient = connectionPool.getConnection(roomId, participantId);
+            wsClient = connectionPool.getConnection(roomId);
             wsClient.setTranscriptionTag(transcriptionTag);
         }
 

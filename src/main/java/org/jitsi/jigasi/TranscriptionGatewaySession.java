@@ -128,6 +128,8 @@ public class TranscriptionGatewaySession
             this.transcriber.addTranscriptionEventListener(
                 (TranscriptionEventListener)this.service);
         }
+
+        transcriber.setRoomName(this.getCallContext().getRoomJid().toString());
     }
 
     @Override
@@ -137,7 +139,6 @@ public class TranscriptionGatewaySession
         // the room name, url and start listening
         transcriber.addTranscriptionListener(this);
         transcriber.addTranslationListener(this);
-        transcriber.setRoomName(this.getCallContext().getRoomJid().toString());
         transcriber.setRoomUrl(getMeetingUrl());
 
         // We create a MediaWareCallConference whose MediaDevice
@@ -318,7 +319,7 @@ public class TranscriptionGatewaySession
                 }
                 catch (InterruptedException e)
                 {
-                    e.printStackTrace();
+                    logger.error(e);
                 }
 
                 if (!transcriber.isAnyParticipantRequestingTranscription())
@@ -563,7 +564,7 @@ public class TranscriptionGatewaySession
         }
         catch (XmppStringprepException e)
         {
-            e.printStackTrace();
+            logger.error(e);
         }
 
         return null;
