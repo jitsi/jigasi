@@ -263,7 +263,9 @@ public class WhisperWebsocket
     @OnWebSocketError
     public void onError(Throwable cause)
     {
-        logger.error("Error while streaming audio data to transcription service.", cause);
+        if (wsSession != null) {
+            logger.error("Error while streaming audio data to transcription service.", cause);
+        }
     }
 
     private String getLanguage(Participant participant)
