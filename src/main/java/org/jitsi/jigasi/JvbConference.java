@@ -25,6 +25,7 @@ import net.java.sip.communicator.service.protocol.media.*;
 import net.java.sip.communicator.util.DataObject;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.lobby.Lobby;
 import org.jitsi.jigasi.stats.*;
@@ -58,8 +59,8 @@ import org.osgi.framework.*;
 
 import java.beans.*;
 import java.io.*;
+import java.net.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
@@ -170,7 +171,7 @@ public class JvbConference
 
                 return true;
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 logger.error("Error processing xmpp queue item", e);
 
@@ -1690,8 +1691,19 @@ public class JvbConference
         String boshUrl = ctx.getBoshURL();
         if (StringUtils.isNotEmpty(boshUrl))
         {
-            boshUrl = boshUrl.replace(
-                "{roomName}", callContext.getConferenceName());
+            boshUrl = boshUrl.replace("{roomName}", callContext.getConferenceName());
+
+            try
+            {
+                // Make sure we encode the roomName parameter
+                URIBuilder encodedUrlBuilder = new URIBuilder(boshUrl);
+                encodedUrlBuilder.setParameter("room", callContext.getConferenceName());
+                boshUrl = encodedUrlBuilder.build().toURL().toString();
+            }
+            catch (URISyntaxException | MalformedURLException e)
+            {
+                logger.error(ctx + " Cannot encode bosh url param room", e);
+            }
 
             logger.info(ctx + " Using bosh url:" + boshUrl);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
