@@ -9,3 +9,8 @@ jigasi-home/
 jigasi.iml
 
 target
+out
+
+src/main/resources/META-INF/
+
+.DS_Store
