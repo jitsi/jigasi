@@ -54,6 +54,12 @@ public class WhisperWebsocket
             = Logger.getLogger(WhisperWebsocket.class);
 
     /**
+     * JWT audience for the Whisper service.
+     */
+    public final static String JWT_AUDIENCE
+            = "org.jitsi.jigasi.transcription.whisper.jwt_audience";
+
+    /**
      * The config key of the websocket to the speech-to-text service.
      */
     public final static String WEBSOCKET_URL
@@ -98,6 +104,8 @@ public class WhisperWebsocket
 
     private String privateKeyName;
 
+    private String jwtAudience;
+
 
     private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException
     {
@@ -109,6 +117,7 @@ public class WhisperWebsocket
         JwtBuilder builder = Jwts.builder()
                 .setHeaderParam("kid", privateKeyName)
                 .setIssuedAt(now)
+                .setAudience(jwtAudience)
                 .setIssuer("jigasi")
                 .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
         long expires = nowMillis + (60 * 5 * 1000);
@@ -140,6 +149,8 @@ public class WhisperWebsocket
 
     private void getConfig()
     {
+        jwtAudience = JigasiBundleActivator.getConfigurationService()
+                .getString(JWT_AUDIENCE, "jitsi");
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
         if (websocketUrlConfig.endsWith("/"))
