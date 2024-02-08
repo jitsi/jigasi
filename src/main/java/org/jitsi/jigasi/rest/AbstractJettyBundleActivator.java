@@ -377,9 +377,16 @@ public abstract class AbstractJettyBundleActivator
         server.addConnector(connector);
 
         Handler handler = initializeHandler(bundleContext, server);
+        Handler metricsHandler = new MetricsHandler();
 
+        HandlerCollection handlers = new HandlerCollection();
         if (handler != null)
-            server.setHandler(handler);
+        {
+            handlers.addHandler(handler);
+        }
+        handlers.addHandler(metricsHandler);
+
+        server.setHandler(handlers);
 
         return server;
     }
