@@ -31,7 +31,9 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.apache.commons.lang3.*;
 import org.eclipse.jetty.server.*;
+import org.jitsi.jigasi.metrics.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.metrics.*;
 import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 import org.json.simple.*;
@@ -138,64 +140,82 @@ public class Statistics
     /**
      * Total number of times with dropped media since started.
      */
-    private static final AtomicLong totalMediaDroppedCount = new AtomicLong();
+    private static final CounterMetric totalMediaDroppedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_COUNT_DROPPED_MEDIA,
+            "Total number of times with dropped media since started.");
 
     /**
      * Total number of participants since started.
      */
-    private static int totalParticipantsCount = 0;
+    private static final CounterMetric totalParticipantsCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_PARTICIPANTS,
+            "Total number of participants since started.");
 
     /**
      * Total number of conferences since started.
      */
-    private static int totalConferencesCount = 0;
+    private static CounterMetric totalConferencesCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CONFERENCES_COMPLETED,
+            "Total number of conferences since started.");
 
     /**
      * Total number of calls with dropped media since started.
      */
-    private static AtomicLong totalCallsWithMediaDroppedCount
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithMediaDroppedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_DROPPED_MEDIA,
+            "Total number of calls with dropped media since started.");
 
     /**
      * Total number of calls with xmpp connection failed since started.
      */
-    private static AtomicLong totalCallsWithConnectionFailedCount
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithConnectionFailedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_CONNECTION_FAILED,
+            "Total number of calls with xmpp connection failed since started."
+    );
 
     /**
-     * Total number of calls with xmpp call terminated and sip call waiting
-     * for new xmpp call.
+     * Total number of calls with xmpp call terminated and sip call waiting for new xmpp call.
      */
-    private static AtomicLong totalCallsWithSipCallWaiting
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithSipCallWaiting = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_SIP_CALL_WAITING,
+            "Total number of calls with xmpp call terminated and sip call waiting for new xmpp call.");
 
     /**
      * Total number of calls with xmpp call terminated and sip call waiting
      * for new xmpp call and new xmpp call and both calls were connected
      * and operational.
      */
-    private static AtomicLong totalCallsWithSipCalReconnected
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithSipCallReconnected = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
+            "Total number of calls with xmpp call terminated and sip call waiting.");
 
     /**
      * Total number of calls with xmpp call receiving transport replace for moving to a new bridge.
      */
-    private static AtomicLong totalCallsWithJvbMigrate = new AtomicLong();
+    private static CounterMetric totalCallsWithJvbMigrate = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_JVB_MIGRATE,
+            "Total number of calls with xmpp call receiving transport replace for moving to a new bridge.");
 
     /**
      * Total number of calls with xmpp call not receiving media from the bridge.
      */
-    private static AtomicLong totalCallsJvbNoMedia = new AtomicLong();
+    private static CounterMetric totalCallsJvbNoMedia = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_JVB_NO_MEDIA,
+            "Total number of calls with xmpp call not receiving media from the bridge.");
 
     /**
      * Total number of calls dropped due to no response to sip heartbeat.
      */
-    private static AtomicLong totalCallsWithNoHeartBeatResponse = new AtomicLong();
+    private static CounterMetric totalCallsWithNoHeartBeatResponse = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_NO_HEARTBEAT,
+            "Total number of calls dropped due to no response to sip heartbeat.");
 
     /**
      * Cumulative number of seconds of all conferences.
      */
-    private static long cumulativeConferenceSeconds = 0;
+    private static CounterMetric cumulativeConferenceSeconds = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CONFERENCE_SECONDS,
+            "Cumulative number of seconds of all conferences");
 
     /**
      * The <tt>DateFormat</tt> to be utilized by <tt>Statistics</tt>
@@ -249,24 +269,19 @@ public class Statistics
         stats.put(TIMESTAMP, currentTimeMillis());
 
         // TOTAL stats
-        stats.put(TOTAL_CONFERENCES_COMPLETED, totalConferencesCount);
-        stats.put(TOTAL_PARTICIPANTS, totalParticipantsCount);
-        stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
-        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
-            totalCallsWithMediaDroppedCount.get());
+        stats.put(TOTAL_CONFERENCES_COMPLETED, totalConferencesCount.get());
+        stats.put(TOTAL_PARTICIPANTS, totalParticipantsCount.get());
+        stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds.get());
+        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA, totalCallsWithMediaDroppedCount.get());
         stats.put(TOTAL_COUNT_DROPPED_MEDIA, totalMediaDroppedCount.get());
-        stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED,
-            totalCallsWithConnectionFailedCount.get());
-        stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING,
-            totalCallsWithSipCallWaiting.get());
-        stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
-            totalCallsWithSipCalReconnected.get());
+        stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED, totalCallsWithConnectionFailedCount.get());
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING, totalCallsWithSipCallWaiting.get());
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED, totalCallsWithSipCallReconnected.get());
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
 
-        stats.put(SHUTDOWN_IN_PROGRESS,
-            JigasiBundleActivator.isShutdownInProgress());
+        stats.put(SHUTDOWN_IN_PROGRESS, JigasiBundleActivator.isShutdownInProgress());
 
         response.setStatus(HttpServletResponse.SC_OK);
         new JSONObject(stats).writeJSONString(response.getWriter());
@@ -343,7 +358,7 @@ public class Statistics
      */
     public static void addTotalParticipantsCount(int value)
     {
-        totalParticipantsCount += value;
+        totalParticipantsCount.add(value);
     }
 
     /**
@@ -353,7 +368,7 @@ public class Statistics
      */
     public static void addTotalConferencesCount(int value)
     {
-        totalConferencesCount += value;
+        totalConferencesCount.add(value);
     }
 
     /**
@@ -361,7 +376,7 @@ public class Statistics
      */
     public static void incrementTotalMediaDropped()
     {
-        totalMediaDroppedCount.incrementAndGet();
+        totalMediaDroppedCount.inc();
     }
 
     /**
@@ -369,7 +384,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithMediaDropped()
     {
-        totalCallsWithMediaDroppedCount.incrementAndGet();
+        totalCallsWithMediaDroppedCount.inc();
     }
 
     /**
@@ -377,7 +392,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithConnectionFailed()
     {
-        totalCallsWithConnectionFailedCount.incrementAndGet();
+        totalCallsWithConnectionFailedCount.inc();
     }
 
     /**
@@ -386,7 +401,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithSipCallWaiting()
     {
-        totalCallsWithSipCallWaiting.incrementAndGet();
+        totalCallsWithSipCallWaiting.inc();
     }
 
     /**
@@ -395,7 +410,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithSipCallReconnected()
     {
-        totalCallsWithSipCalReconnected.incrementAndGet();
+        totalCallsWithSipCallReconnected.inc();
     }
 
     /**
@@ -404,7 +419,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithJvbMigrate()
     {
-        totalCallsWithJvbMigrate.incrementAndGet();
+        totalCallsWithJvbMigrate.inc();
     }
 
     /**
@@ -412,7 +427,7 @@ public class Statistics
      */
     public static void incrementTotalCallsJvbNoMedia()
     {
-        totalCallsJvbNoMedia.incrementAndGet();
+        totalCallsJvbNoMedia.inc();
     }
 
     /**
@@ -420,7 +435,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithNoSipHeartbeat()
     {
-        totalCallsWithNoHeartBeatResponse.incrementAndGet();
+        totalCallsWithNoHeartBeatResponse.inc();
     }
 
     /**
@@ -429,7 +444,7 @@ public class Statistics
      */
     public static void addCumulativeConferenceSeconds(long value)
     {
-        cumulativeConferenceSeconds += value;
+        cumulativeConferenceSeconds.add(value);
     }
 
     /**
