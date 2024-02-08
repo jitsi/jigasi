@@ -23,7 +23,7 @@
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
     <jicoco.version>1.1-133-g768ef2e</jicoco.version>
-    <jetty.version>11.0.10</jetty.version>
+    <jetty.version>11.0.14</jetty.version>
   </properties>
 
   <dependencies>
