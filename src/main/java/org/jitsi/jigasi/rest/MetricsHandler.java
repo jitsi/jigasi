@@ -21,6 +21,7 @@ import jakarta.servlet.http.*;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
 import org.jitsi.jigasi.metrics.*;
+import org.jitsi.jigasi.stats.*;
 
 import java.io.*;
 
@@ -30,8 +31,11 @@ public class MetricsHandler extends AbstractHandler
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException
     {
-        if ("/metrics".equals(target)) {
+        if ("/metrics".equals(target))
+        {
             String accept = request.getHeader("Accept");
+
+            Statistics.updateMetrics();
 
             String responseBody;
             if (accept != null && accept.startsWith("application/openmetrics-text"))
