@@ -660,14 +660,9 @@ public class JvbConference
 
     private synchronized void registrationStateChangedInternal(RegistrationStateChangeEvent evt)
     {
-        if (started
-            && mucRoom == null
-            && evt.getNewState() == RegistrationState.REGISTERED)
+        if (started && mucRoom == null && evt.getNewState() == RegistrationState.REGISTERED)
         {
-            if (this.getAudioModeration() != null)
-            {
-                this.getAudioModeration().xmppProviderRegistered();
-            }
+            discoverComponentAddresses();
 
             // Join the MUC
             joinConferenceRoom();
@@ -726,6 +721,50 @@ public class JvbConference
         else
         {
             logger.info(this.callContext + evt.toString());
+        }
+    }
+
+    /**
+     * Disco info the addresses, the query is cached and will be returned from cache
+     * once we retrieve it.
+     */
+    private void discoverComponentAddresses()
+    {
+        // we are here in the RegisterThread, and it is safe to query and wait
+        // Uses disco info to discover the AV moderation address.
+        // we need to query the domain part extracted from room jid
+        if (this.callContext.getRoomJidDomain() != null)
+        {
+            try
+            {
+                long startQuery = System.currentTimeMillis();
+
+                // in case when running unittests
+                if (this.getConnection() == null)
+                {
+                    return;
+                }
+
+                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.getConnection())
+                        .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
+
+                DiscoverInfo.Identity avIdentity = info.getIdentities().stream().
+                    filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
+                        .findFirst().orElse(null);
+
+                if (avIdentity != null && this.getAudioModeration() != null)
+                {
+                    String avModerationAddress = avIdentity.getName();
+                    this.getAudioModeration().setAvModerationAddress(avModerationAddress);
+
+                    logger.info(String.format("%s Discovered %s for %oms.",
+                        this.callContext, avModerationAddress, System.currentTimeMillis() - startQuery));
+                }
+            }
+            catch(Exception e)
+            {
+                logger.error("Error querying for av moderation address", e);
+            }
         }
     }
 
