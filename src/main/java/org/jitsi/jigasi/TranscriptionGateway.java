@@ -100,6 +100,7 @@ public class TranscriptionGateway
      */
     private String getCustomTranscriptionServiceClass(String tenant)
     {
+        String transcriberClass = null;
         String remoteTranscriptionConfigUrl
                 = JigasiBundleActivator.getConfigurationService()
                 .getString(
@@ -108,68 +109,59 @@ public class TranscriptionGateway
 
         if (remoteTranscriptionConfigUrl != null && tenant != null)
         {
-            String transcriberClass = null;
             String tsConfigUrl = remoteTranscriptionConfigUrl + "/" + tenant;
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Retrieving transcriber from remote URL " + tsConfigUrl);
-            }
+            transcriberClass = getTranscriberFromRemote(tsConfigUrl);
+        }
 
-            try
-            {
-                URL url = new URL(tsConfigUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setConnectTimeout(3000);
-                int responseCode = conn.getResponseCode();
-                if (responseCode == 200)
-                {
-                    BufferedReader inputStream = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream()));
-                    String inputLine;
-                    StringBuilder responseBody = new StringBuilder();
-                    while ((inputLine = inputStream.readLine()) != null)
-                    {
-                        responseBody.append(inputLine);
-                    }
-                    inputStream.close();
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Received body " + responseBody);
-                    }
-                    JSONObject obj = new JSONObject(responseBody.toString());
-                    transcriberClass = obj.getString("transcriber");
-                    logger.info("Using " + transcriberClass + " as the transcriber class.");
-                    conn.disconnect();
-                    return transcriberClass;
-                }
-                else
-                {
-                    logger.warn("Could not retrieve transcriber from remote URL. Response code: " + responseCode);
-                }
-                conn.disconnect();
-            }
-            catch (Exception ex)
-            {
-                logger.error("Could not retrieve transcriber from remote URL." + ex);
-            }
+        if (transcriberClass == null) {
+            transcriberClass
+                    = JigasiBundleActivator.getConfigurationService()
+                    .getString(
+                            CUSTOM_TRANSCRIPTION_SERVICE_PROP,
+                            null);
         }
-        logger.info("Attempting to retrieve transcriber from local configuration.");
-        String customTranscriptionServiceClass
-                = JigasiBundleActivator.getConfigurationService()
-                .getString(
-                        CUSTOM_TRANSCRIPTION_SERVICE_PROP,
-                        null);
-        if (customTranscriptionServiceClass != null)
+        if (transcriberClass != null) {
+            logger.info("Using " + transcriberClass + " as the transcriber class.");
+        }
+        return transcriberClass;
+    }
+
+    private String getTranscriberFromRemote(String remoteTsConfigUrl)
+    {
+        String transcriberClass = null;
+        if (logger.isDebugEnabled())
         {
-            logger.info("Using " + customTranscriptionServiceClass + " as the transcriber class.");
+            logger.debug("Calling  " + remoteTsConfigUrl + " to retrieve transcriber.");
         }
-        else
+        try
         {
-            logger.info("No custom transcriber class found, falling back to default.");
+            URL url = new URL(remoteTsConfigUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(3000);
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200)
+            {
+                BufferedReader inputStream = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
+                String inputLine;
+                StringBuilder responseBody = new StringBuilder();
+                while ((inputLine = inputStream.readLine()) != null)
+                {
+                    responseBody.append(inputLine);
+                }
+                inputStream.close();
+                JSONObject obj = new JSONObject(responseBody.toString());
+                transcriberClass = obj.getString("transcriber");
+            }
+            conn.disconnect();
         }
-        return customTranscriptionServiceClass;
+        catch (Exception ex)
+        {
+            logger.error("Could not retrieve transcriber from remote URL." + ex);
+        }
+        return transcriberClass;
     }
 
     @Override
