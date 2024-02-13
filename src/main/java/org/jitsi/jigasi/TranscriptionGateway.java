@@ -108,11 +108,16 @@ public class TranscriptionGateway
 
         if (remoteTranscriptionConfigUrl != null && tenant != null)
         {
-            logger.info("Retrieving transcriber from remote URL " + remoteTranscriptionConfigUrl + "/" + tenant);
             String transcriberClass = null;
+            String tsConfigUrl = remoteTranscriptionConfigUrl + "/" + tenant;
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Retrieving transcriber from remote URL " + tsConfigUrl);
+            }
+
             try
             {
-                URL url = new URL(remoteTranscriptionConfigUrl + "/" + tenant);
+                URL url = new URL(tsConfigUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Content-Type", "application/json");
