@@ -51,6 +51,7 @@ import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
 import org.jivesoftware.smackx.xdata.*;
 import org.json.simple.*;
+import org.json.simple.parser.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.jid.parts.*;
@@ -365,6 +366,11 @@ public class JvbConference
      * Listens for room configuration changes and request room config to reflect it locally.
      */
     private RoomConfigurationChangeListener roomConfigurationListener = null;
+
+    /**
+     * Listens for messages from room metadata component for changes in room metadata.
+     */
+    private RoomMetadataListener roomMetadataListener = null;
 
     /**
      * Up-to-date list of participants in the room that are jigasi.
@@ -760,6 +766,24 @@ public class JvbConference
                     logger.info(String.format("%s Discovered %s for %oms.",
                         this.callContext, avModerationAddress, System.currentTimeMillis() - startQuery));
                 }
+
+                DiscoverInfo.Identity roomMetadataIdentity = info.getIdentities().stream().
+                        filter(di -> di.getCategory().equals("component") && di.getType().equals("room_metadata"))
+                        .findFirst().orElse(null);
+
+                // we process room metadata messages only when we are transcribing
+                if (roomMetadataIdentity != null && this.gatewaySession instanceof TranscriptionGatewaySession)
+                {
+                    if (roomMetadataListener != null)
+                    {
+                        logger.error(this.callContext + " RoomMetadata listener is not supposed to be initialized");
+                    }
+                    roomMetadataListener = new RoomMetadataListener();
+                    getConnection().addAsyncStanzaListener(roomMetadataListener,
+                        new AndFilter(
+                            MessageTypeFilter.NORMAL,
+                            FromMatchesFilter.create(JidCreate.domainBareFrom(roomMetadataIdentity.getName()))));
+                }
             }
             catch(Exception e)
             {
@@ -924,12 +948,6 @@ public class JvbConference
 
             gatewaySession.notifyJvbRoomJoined();
 
-            if (lobbyEnabled)
-            {
-                // let's check room config
-                updateFromRoomConfiguration();
-            }
-
             // let's listen for any future changes in room configuration, whether lobby will be enabled/disabled
             if (roomConfigurationListener == null && mucRoom instanceof ChatRoomJabberImpl)
             {
@@ -939,6 +957,11 @@ public class JvbConference
                         FromMatchesFilter.create(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid()),
                         MessageTypeFilter.GROUPCHAT));
             }
+
+            // let's check room config
+            updateFromRoomConfiguration();
+
+            logger.info(this.callContext + " Joined room: " + roomName + " meetingId:" + this.getMeetingId());
         }
         catch (Exception e)
         {
@@ -1122,6 +1145,17 @@ public class JvbConference
             }
 
             this.roomConfigurationListener = null;
+        }
+
+        if (this.roomMetadataListener != null)
+        {
+            XMPPConnection connection = getConnection();
+            if (connection != null)
+            {
+                connection.removeAsyncStanzaListener(roomMetadataListener);
+            }
+
+            this.roomMetadataListener = null;
         }
 
         // remove listener needs to be after leave,
@@ -1991,10 +2025,48 @@ public class JvbConference
             boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
+
+            List<String> roomMetadataValues
+                    = df.getField(TranscriptionGatewaySession.DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
+            if (roomMetadataValues != null && !roomMetadataValues.isEmpty())
+            {
+                // it is supposed to have a single value
+                processRoomMetadataJson(roomMetadataValues.get(0));
+            }
         }
         catch(Exception e)
         {
             logger.error(this.callContext + " Error checking room configuration", e);
+        }
+    }
+
+    private void processRoomMetadataJson(String json)
+    {
+        if (!(this.gatewaySession instanceof TranscriptionGatewaySession))
+        {
+            return;
+        }
+
+        try
+        {
+            Object o = new JSONParser().parse(json);
+
+            if (o instanceof JSONObject)
+            {
+                JSONObject data = (JSONObject) o;
+
+                if (data.get("type").equals("room_metadata"))
+                {
+                    JSONObject metadataObj = (JSONObject)data.getOrDefault("metadata", new JSONObject());
+                    JSONObject recordingObj = (JSONObject)metadataObj.getOrDefault("recording", new JSONObject());
+                    ((TranscriptionGatewaySession)this.gatewaySession).setBackendTranscribingEnabled(
+                        (boolean)recordingObj.getOrDefault("isTranscribingEnabled", false));
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            logger.error(callContext + " Error parsing", e);
         }
     }
 
@@ -2171,6 +2243,26 @@ public class JvbConference
                     updateFromRoomConfiguration();
                 }
             });
+        }
+    }
+
+    /**
+     * When a room metadata change is received.
+     */
+    private class RoomMetadataListener
+        implements StanzaListener
+    {
+        @Override
+        public void processStanza(Stanza stanza)
+        {
+            JsonMessageExtension jsonMsg = stanza.getExtension(JsonMessageExtension.class);
+
+            if (jsonMsg == null)
+            {
+                return;
+            }
+
+            processRoomMetadataJson(jsonMsg.getJson());
         }
     }
 
