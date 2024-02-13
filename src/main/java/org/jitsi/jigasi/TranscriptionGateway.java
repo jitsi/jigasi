@@ -116,6 +116,7 @@ public class TranscriptionGateway
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Content-Type", "application/json");
+                conn.setConnectTimeout(3000);
                 int responseCode = conn.getResponseCode();
                 if (responseCode == 200)
                 {
