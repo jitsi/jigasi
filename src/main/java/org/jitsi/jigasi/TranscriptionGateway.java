@@ -113,15 +113,13 @@ public class TranscriptionGateway
             transcriberClass = getTranscriberFromRemote(tsConfigUrl);
         }
 
-        if (transcriberClass == null) {
+        if (transcriberClass == null)
+        {
             transcriberClass
                     = JigasiBundleActivator.getConfigurationService()
                     .getString(
                             CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                             null);
-        }
-        if (transcriberClass != null) {
-            logger.info("Using " + transcriberClass + " as the transcriber class.");
         }
         return transcriberClass;
     }
