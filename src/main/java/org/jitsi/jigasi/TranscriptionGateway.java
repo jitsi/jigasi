@@ -106,8 +106,9 @@ public class TranscriptionGateway
                         REMOTE_TRANSCRIPTION_CONFIG_URL,
                         null);
 
-        if (remoteTranscriptionConfigUrl != null)
+        if (remoteTranscriptionConfigUrl != null && tenant != null)
         {
+            logger.info("Retrieving transcriber from remote URL " + remoteTranscriptionConfigUrl + "/" + tenant);
             String transcriberClass = null;
             try
             {
@@ -133,24 +134,36 @@ public class TranscriptionGateway
                     }
                     JSONObject obj = new JSONObject(responseBody.toString());
                     transcriberClass = obj.getString("transcriber");
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Using " + transcriberClass + " as the transcriber class.");
-                    }
+                    logger.info("Using " + transcriberClass + " as the transcriber class.");
+                    conn.disconnect();
+                    return transcriberClass;
+                }
+                else
+                {
+                    logger.warn("Could not retrieve transcriber from remote URL. Response code: " + responseCode);
                 }
                 conn.disconnect();
-                return transcriberClass;
             }
             catch (Exception ex)
             {
                 logger.error("Could not retrieve transcriber from remote URL." + ex);
             }
         }
-
-        return JigasiBundleActivator.getConfigurationService()
+        logger.info("Attempting to retrieve transcriber from local configuration.");
+        String customTranscriptionServiceClass
+                = JigasiBundleActivator.getConfigurationService()
                 .getString(
                         CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                         null);
+        if (customTranscriptionServiceClass != null)
+        {
+            logger.info("Using " + customTranscriptionServiceClass + " as the transcriber class.");
+        }
+        else
+        {
+            logger.info("No custom transcriber class found, falling back to default.");
+        }
+        return customTranscriptionServiceClass;
     }
 
     @Override
