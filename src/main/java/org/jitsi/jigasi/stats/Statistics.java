@@ -22,7 +22,6 @@ import java.lang.management.*;
 import java.text.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 import java.util.stream.*;
 
 import jakarta.servlet.http.*;
@@ -31,7 +30,9 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.apache.commons.lang3.*;
 import org.eclipse.jetty.server.*;
+import org.jitsi.jigasi.metrics.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.metrics.*;
 import org.jitsi.utils.logging.Logger;
 import org.osgi.framework.*;
 import org.json.simple.*;
@@ -138,64 +139,98 @@ public class Statistics
     /**
      * Total number of times with dropped media since started.
      */
-    private static final AtomicLong totalMediaDroppedCount = new AtomicLong();
+    private static final CounterMetric totalMediaDroppedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_COUNT_DROPPED_MEDIA,
+            "Total number of times with dropped media since started.");
 
     /**
      * Total number of participants since started.
      */
-    private static int totalParticipantsCount = 0;
+    private static final CounterMetric totalParticipantsCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_PARTICIPANTS,
+            "Total number of participants since started.");
 
     /**
      * Total number of conferences since started.
      */
-    private static int totalConferencesCount = 0;
+    private static CounterMetric totalConferencesCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CONFERENCES_COMPLETED,
+            "Total number of conferences since started.");
 
     /**
      * Total number of calls with dropped media since started.
      */
-    private static AtomicLong totalCallsWithMediaDroppedCount
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithMediaDroppedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_DROPPED_MEDIA,
+            "Total number of calls with dropped media since started.");
 
     /**
      * Total number of calls with xmpp connection failed since started.
      */
-    private static AtomicLong totalCallsWithConnectionFailedCount
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithConnectionFailedCount = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_CONNECTION_FAILED,
+            "Total number of calls with xmpp connection failed since started."
+    );
 
     /**
-     * Total number of calls with xmpp call terminated and sip call waiting
-     * for new xmpp call.
+     * Total number of calls with xmpp call terminated and sip call waiting for new xmpp call.
      */
-    private static AtomicLong totalCallsWithSipCallWaiting
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithSipCallWaiting = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_SIP_CALL_WAITING,
+            "Total number of calls with xmpp call terminated and sip call waiting for new xmpp call.");
 
     /**
      * Total number of calls with xmpp call terminated and sip call waiting
      * for new xmpp call and new xmpp call and both calls were connected
      * and operational.
      */
-    private static AtomicLong totalCallsWithSipCalReconnected
-        = new AtomicLong();
+    private static CounterMetric totalCallsWithSipCallReconnected = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
+            "Total number of calls with xmpp call terminated and sip call waiting.");
 
     /**
      * Total number of calls with xmpp call receiving transport replace for moving to a new bridge.
      */
-    private static AtomicLong totalCallsWithJvbMigrate = new AtomicLong();
+    private static CounterMetric totalCallsWithJvbMigrate = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_WITH_JVB_MIGRATE,
+            "Total number of calls with xmpp call receiving transport replace for moving to a new bridge.");
 
     /**
      * Total number of calls with xmpp call not receiving media from the bridge.
      */
-    private static AtomicLong totalCallsJvbNoMedia = new AtomicLong();
+    private static CounterMetric totalCallsJvbNoMedia = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_JVB_NO_MEDIA,
+            "Total number of calls with xmpp call not receiving media from the bridge.");
 
     /**
      * Total number of calls dropped due to no response to sip heartbeat.
      */
-    private static AtomicLong totalCallsWithNoHeartBeatResponse = new AtomicLong();
+    private static CounterMetric totalCallsWithNoHeartBeatResponse = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CALLS_NO_HEARTBEAT,
+            "Total number of calls dropped due to no response to sip heartbeat.");
 
     /**
      * Cumulative number of seconds of all conferences.
      */
-    private static long cumulativeConferenceSeconds = 0;
+    private static CounterMetric cumulativeConferenceSeconds = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_CONFERENCE_SECONDS,
+            "Cumulative number of seconds of all conferences");
+
+    private static final LongGaugeMetric threadsMetric = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            "threads",
+            "Number of JVM threads.");
+    private static final BooleanMetric shutdownMetric = JigasiMetricsContainer.INSTANCE.registerBooleanMetric(
+            SHUTDOWN_IN_PROGRESS,
+            "Whether jigasi is in graceful shutdown mode.");
+    private static final LongGaugeMetric conferencesMetric = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            CONFERENCES,
+            "Number of conferences.");
+    private static final LongGaugeMetric participantsMetric = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            PARTICIPANTS,
+            "Number of participants.");
+    private static final DoubleGaugeMetric stressMetric = JigasiMetricsContainer.INSTANCE.registerDoubleGauge(
+            STRESS_LEVEL,
+            "Stress level.");
 
     /**
      * The <tt>DateFormat</tt> to be utilized by <tt>Statistics</tt>
@@ -238,55 +273,44 @@ public class Statistics
             HttpServletResponse response)
         throws IOException
     {
+        updateMetrics();
+
         Map<String, Object> stats = new HashMap<>();
 
         stats.putAll(getSessionStats());
 
-        stats.put(THREADS,
-            ManagementFactory.getThreadMXBean().getThreadCount());
+        stats.put(THREADS, threadsMetric.get());
 
         // TIMESTAMP
         stats.put(TIMESTAMP, currentTimeMillis());
 
         // TOTAL stats
-        stats.put(TOTAL_CONFERENCES_COMPLETED, totalConferencesCount);
-        stats.put(TOTAL_PARTICIPANTS, totalParticipantsCount);
-        stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds);
-        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA,
-            totalCallsWithMediaDroppedCount.get());
+        stats.put(TOTAL_CONFERENCES_COMPLETED, totalConferencesCount.get());
+        stats.put(TOTAL_PARTICIPANTS, totalParticipantsCount.get());
+        stats.put(TOTAL_CONFERENCE_SECONDS, cumulativeConferenceSeconds.get());
+        stats.put(TOTAL_CALLS_WITH_DROPPED_MEDIA, totalCallsWithMediaDroppedCount.get());
         stats.put(TOTAL_COUNT_DROPPED_MEDIA, totalMediaDroppedCount.get());
-        stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED,
-            totalCallsWithConnectionFailedCount.get());
-        stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING,
-            totalCallsWithSipCallWaiting.get());
-        stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED,
-            totalCallsWithSipCalReconnected.get());
+        stats.put(TOTAL_CALLS_WITH_CONNECTION_FAILED, totalCallsWithConnectionFailedCount.get());
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_WAITING, totalCallsWithSipCallWaiting.get());
+        stats.put(TOTAL_CALLS_WITH_SIP_CALL_RECONNECTED, totalCallsWithSipCallReconnected.get());
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
 
-        stats.put(SHUTDOWN_IN_PROGRESS,
-            JigasiBundleActivator.isShutdownInProgress());
+        stats.put(SHUTDOWN_IN_PROGRESS, shutdownMetric.get());
 
         response.setStatus(HttpServletResponse.SC_OK);
         new JSONObject(stats).writeJSONString(response.getWriter());
     }
 
-    /**
-     * Counts conferences count, participants count and conference size
-     * distributions.
-     *
-     * @return a map with the stats.
-     */
-    private static Map<String, Object> getSessionStats()
+    public static void updateMetrics()
     {
+        threadsMetric.set(ManagementFactory.getThreadMXBean().getThreadCount());
+        shutdownMetric.set(JigasiBundleActivator.isShutdownInProgress());
+
         // get sessions from all gateways
         List<AbstractGatewaySession> sessions = new ArrayList<>();
-        JigasiBundleActivator.getAvailableGateways().forEach(
-            gw -> sessions.addAll(gw.getActiveSessions()));
-
-        int[] conferenceSizes = new int[CONFERENCE_SIZE_BUCKETS];
-        Map<String, Object> stats = new HashMap<>();
+        JigasiBundleActivator.getAvailableGateways().forEach(gw -> sessions.addAll(gw.getActiveSessions()));
 
         int participants = 0;
         int conferences = 0;
@@ -299,9 +323,51 @@ public class Statistics
             }
 
             // do not count focus
+            int conferenceEndpoints = ses.getJvbChatRoom().getMembersCount() - 1;
+            participants += conferenceEndpoints;
+            conferences++;
+        }
+
+        double stressLevel = conferences / CONFERENCES_THRESHOLD;
+
+        conferencesMetric.set(conferences);
+        participantsMetric.set(participants);
+        stressMetric.set(stressLevel);
+
+    }
+
+    /**
+     * Counts conferences count, participants count and conference size
+     * distributions.
+     *
+     * @return a map with the stats.
+     */
+    private static Map<String, Object> getSessionStats()
+    {
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put(CONFERENCES, conferencesMetric.get());
+        stats.put(PARTICIPANTS, participantsMetric.get());
+        stats.put(STRESS_LEVEL, stressMetric.get());
+
+        // Calculate the conference sizes separately because we don't have a metric for them. TODO: port to a metric.
+        // get sessions from all gateways
+        List<AbstractGatewaySession> sessions = new ArrayList<>();
+        JigasiBundleActivator.getAvailableGateways().forEach(
+            gw -> sessions.addAll(gw.getActiveSessions()));
+
+        int[] conferenceSizes = new int[CONFERENCE_SIZE_BUCKETS];
+
+        for (AbstractGatewaySession ses : sessions)
+        {
+            if (ses.getJvbChatRoom() == null)
+            {
+                continue;
+            }
+
+            // do not count focus
             int conferenceEndpoints
                 = ses.getJvbChatRoom().getMembersCount() - 1;
-            participants += conferenceEndpoints;
             int idx
                 = conferenceEndpoints < conferenceSizes.length
                 ? conferenceEndpoints
@@ -310,20 +376,15 @@ public class Statistics
             {
                 conferenceSizes[idx]++;
             }
-            conferences++;
         }
 
-        stats.put(CONFERENCES, conferences);
 
         JSONArray conferenceSizesJson = new JSONArray();
         for (int size : conferenceSizes)
+        {
             conferenceSizesJson.add(size);
+        }
         stats.put(CONFERENCE_SIZES, conferenceSizesJson);
-
-        stats.put(PARTICIPANTS, participants);
-
-        double stressLevel = conferences / CONFERENCES_THRESHOLD;
-        stats.put(STRESS_LEVEL, stressLevel);
 
         return stats;
     }
@@ -343,7 +404,7 @@ public class Statistics
      */
     public static void addTotalParticipantsCount(int value)
     {
-        totalParticipantsCount += value;
+        totalParticipantsCount.add(value);
     }
 
     /**
@@ -353,7 +414,7 @@ public class Statistics
      */
     public static void addTotalConferencesCount(int value)
     {
-        totalConferencesCount += value;
+        totalConferencesCount.add(value);
     }
 
     /**
@@ -361,7 +422,7 @@ public class Statistics
      */
     public static void incrementTotalMediaDropped()
     {
-        totalMediaDroppedCount.incrementAndGet();
+        totalMediaDroppedCount.inc();
     }
 
     /**
@@ -369,7 +430,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithMediaDropped()
     {
-        totalCallsWithMediaDroppedCount.incrementAndGet();
+        totalCallsWithMediaDroppedCount.inc();
     }
 
     /**
@@ -377,7 +438,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithConnectionFailed()
     {
-        totalCallsWithConnectionFailedCount.incrementAndGet();
+        totalCallsWithConnectionFailedCount.inc();
     }
 
     /**
@@ -386,7 +447,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithSipCallWaiting()
     {
-        totalCallsWithSipCallWaiting.incrementAndGet();
+        totalCallsWithSipCallWaiting.inc();
     }
 
     /**
@@ -395,7 +456,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithSipCallReconnected()
     {
-        totalCallsWithSipCalReconnected.incrementAndGet();
+        totalCallsWithSipCallReconnected.inc();
     }
 
     /**
@@ -404,7 +465,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithJvbMigrate()
     {
-        totalCallsWithJvbMigrate.incrementAndGet();
+        totalCallsWithJvbMigrate.inc();
     }
 
     /**
@@ -412,7 +473,7 @@ public class Statistics
      */
     public static void incrementTotalCallsJvbNoMedia()
     {
-        totalCallsJvbNoMedia.incrementAndGet();
+        totalCallsJvbNoMedia.inc();
     }
 
     /**
@@ -420,7 +481,7 @@ public class Statistics
      */
     public static void incrementTotalCallsWithNoSipHeartbeat()
     {
-        totalCallsWithNoHeartBeatResponse.incrementAndGet();
+        totalCallsWithNoHeartBeatResponse.inc();
     }
 
     /**
@@ -429,7 +490,7 @@ public class Statistics
      */
     public static void addCumulativeConferenceSeconds(long value)
     {
-        cumulativeConferenceSeconds += value;
+        cumulativeConferenceSeconds.add(value);
     }
 
     /**
@@ -459,18 +520,11 @@ public class Statistics
      *
      * @param ppss the list of protocol providers to update.
      */
-    public static void updatePresenceStatusForXmppProviders(
-        List<ProtocolProviderService> ppss)
+    public static void updatePresenceStatusForXmppProviders(List<ProtocolProviderService> ppss)
     {
-        final Map<String, Object> stats = getSessionStats();
+        updateMetrics();
 
-        ppss.forEach(pps ->
-            updatePresenceStatusForXmppProvider(
-                pps,
-                (int)stats.get(PARTICIPANTS),
-                (int)stats.get(CONFERENCES),
-                (double)stats.get(STRESS_LEVEL),
-                JigasiBundleActivator.isShutdownInProgress()));
+        ppss.forEach(Statistics::updatePresenceStatusForXmppProvider);
     }
 
     /**
@@ -480,16 +534,8 @@ public class Statistics
      * Adds a {@link ColibriStatsExtension} to our presence in the brewery room.
      *
      * @param pps the protocol provider service
-     * @param participants the participant count.
-     * @param conferences the active session/conference count.
-     * @param stressLevel the current stress level
      */
-    private static void updatePresenceStatusForXmppProvider(
-        ProtocolProviderService pps,
-        int participants,
-        int conferences,
-        double stressLevel,
-        boolean shutdownInProgress)
+    private static void updatePresenceStatusForXmppProvider(ProtocolProviderService pps)
     {
         if (ProtocolNames.JABBER.equals(pps.getProtocolName())
             && pps.getAccountID() instanceof JabberAccountID
@@ -520,16 +566,16 @@ public class Statistics
                 ColibriStatsExtension stats = new ColibriStatsExtension();
                 stats.addStat(new ColibriStatsExtension.Stat(
                     CONFERENCES,
-                    conferences));
+                    conferencesMetric.get()));
                 stats.addStat(new ColibriStatsExtension.Stat(
                     PARTICIPANTS,
-                    participants));
+                    participantsMetric.get()));
                 stats.addStat(new ColibriStatsExtension.Stat(
                     SHUTDOWN_IN_PROGRESS,
-                    shutdownInProgress));
+                    shutdownMetric.get()));
                 stats.addStat((new ColibriStatsExtension.Stat(
                     STRESS_LEVEL,
-                    stressLevel
+                    stressMetric.get()
                 )));
 
                 String region = JigasiBundleActivator.getConfigurationService()
