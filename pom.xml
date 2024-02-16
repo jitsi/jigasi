@@ -526,6 +526,7 @@
           <includes>
             <include>**/*Test.*</include>
           </includes>
+            <runOrder>alphabetical</runOrder>
           <systemPropertyVariables>
             <java.util.logging.config.file>lib/logging.properties</java.util.logging.config.file>
           </systemPropertyVariables>
