@@ -1,15 +1,12 @@
 package org.jitsi.jigasi.transcription;
 
-import org.jitsi.jigasi.JigasiBundleActivator;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.jitsi.jigasi.transcription.Transcriber.FILTER_SILENCE_DEFAULT_VALUE;
-import static org.jitsi.jigasi.transcription.Transcriber.P_NAME_FILTER_SILENCE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class WhisperWebsocketTest
 {

@@ -291,7 +291,10 @@ public class WhisperWebsocket
         return lang;
     }
 
-    ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio, Supplier<Long> timestampSupplier)
+    ByteBuffer buildPayload(String participantId,
+                            Participant participant,
+                            ByteBuffer audio,
+                            Supplier<Long> timestampSupplier)
     {
         ByteBuffer header = ByteBuffer.allocate(60);
         int lenAudio = audio.remaining();
@@ -361,7 +364,8 @@ public class WhisperWebsocket
         {
             try
             {
-                remoteEndpoint.sendBytes(buildPayload(participantId, participant, audio, () -> Instant.now().toEpochMilli()));
+                remoteEndpoint.sendBytes(
+                        buildPayload(participantId, participant, audio, () -> Instant.now().toEpochMilli()));
             }
             catch (IOException e)
             {
