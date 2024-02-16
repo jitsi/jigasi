@@ -365,12 +365,12 @@ public class JvbConference
     /**
      * Listens for room configuration changes and request room config to reflect it locally.
      */
-    private RoomConfigurationChangeListener roomConfigurationListener = null;
+    private final RoomConfigurationChangeListener roomConfigurationListener = new RoomConfigurationChangeListener();
 
     /**
      * Listens for messages from room metadata component for changes in room metadata.
      */
-    private RoomMetadataListener roomMetadataListener = null;
+    private final RoomMetadataListener roomMetadataListener = new RoomMetadataListener();
 
     /**
      * Up-to-date list of participants in the room that are jigasi.
@@ -773,11 +773,6 @@ public class JvbConference
                 // we process room metadata messages only when we are transcribing
                 if (roomMetadataIdentity != null && this.gatewaySession instanceof TranscriptionGatewaySession)
                 {
-                    if (roomMetadataListener != null)
-                    {
-                        logger.error(this.callContext + " RoomMetadata listener is not supposed to be initialized");
-                    }
-                    roomMetadataListener = new RoomMetadataListener();
                     getConnection().addAsyncStanzaListener(roomMetadataListener,
                         new AndFilter(
                             MessageTypeFilter.NORMAL,
@@ -948,9 +943,8 @@ public class JvbConference
             gatewaySession.notifyJvbRoomJoined();
 
             // let's listen for any future changes in room configuration, whether lobby will be enabled/disabled
-            if (roomConfigurationListener == null && mucRoom instanceof ChatRoomJabberImpl)
+            if (mucRoom instanceof ChatRoomJabberImpl)
             {
-                roomConfigurationListener = new RoomConfigurationChangeListener();
                 getConnection().addAsyncStanzaListener(roomConfigurationListener,
                     new AndFilter(
                         FromMatchesFilter.create(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid()),
@@ -1135,26 +1129,11 @@ public class JvbConference
             = xmppProvider.getOperationSet(OperationSetMultiUserChat.class);
         muc.removePresenceListener(this);
 
-        if (this.roomConfigurationListener != null)
+        XMPPConnection connection = getConnection();
+        if (connection != null)
         {
-            XMPPConnection connection = getConnection();
-            if (connection != null)
-            {
-                connection.removeAsyncStanzaListener(roomConfigurationListener);
-            }
-
-            this.roomConfigurationListener = null;
-        }
-
-        if (this.roomMetadataListener != null)
-        {
-            XMPPConnection connection = getConnection();
-            if (connection != null)
-            {
-                connection.removeAsyncStanzaListener(roomMetadataListener);
-            }
-
-            this.roomMetadataListener = null;
+            connection.removeAsyncStanzaListener(roomConfigurationListener);
+            connection.removeAsyncStanzaListener(roomMetadataListener);
         }
 
         // remove listener needs to be after leave,
