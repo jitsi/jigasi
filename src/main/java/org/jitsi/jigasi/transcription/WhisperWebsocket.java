@@ -230,7 +230,8 @@ public class WhisperWebsocket
 
 
     @OnWebSocketMessage
-    public void onMessage(String msg) {
+    public void onMessage(String msg)
+    {
         final JSONObject obj = new JSONObject(msg);
         final String msgType = obj.getString("type");
         final String participantId = obj.getString("participant_id");
@@ -243,19 +244,23 @@ public class WhisperWebsocket
 
         final float stability = obj.getFloat("variance");
 
-        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled())
+        {
             logger.debug("Received final: " + result);
         }
 
         final Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
-        if (result.isEmpty() || partListeners == null) {
+        if (result.isEmpty() || partListeners == null)
+        {
             return;
         }
 
         int i = 0;
-        for (final TranscriptionListener transcriptionListener : partListeners) {
+        for (final TranscriptionListener transcriptionListener : partListeners)
+        {
             i++;
-            if (logger.isDebugEnabled()) {
+            if (logger.isDebugEnabled())
+            {
                 logger.debug("ParticipantId: " + i + ", " + participantId);
                 logger.debug("TranscriptionListener: " + transcriptionListener.toString());
             }
@@ -309,7 +314,8 @@ public class WhisperWebsocket
                 Instant.now().toEpochMilli() + VALUES_DELIMITER +
                 this.getLanguage(participant);
 
-        if (logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled())
+        {
             logger.debug("Sending Header: " + headerStr);
         }
 
