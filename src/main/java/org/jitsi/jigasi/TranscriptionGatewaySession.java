@@ -323,11 +323,14 @@ public class TranscriptionGatewaySession
         this.maybeStopTranscription();
     }
 
+    private boolean isTranscriptionRequested()
+    {
+        return transcriber.isAnyParticipantRequestingTranscription() || isBackendTranscribingEnabled;
+    }
+
     private void maybeStopTranscription()
     {
-        if (transcriber.isTranscribing()
-                && !(transcriber.isAnyParticipantRequestingTranscription()
-                        || isBackendTranscribingEnabled))
+        if (transcriber.isTranscribing() && !isTranscriptionRequested())
         {
             new Thread(() ->
             {
@@ -340,8 +343,7 @@ public class TranscriptionGatewaySession
                     logger.error(e);
                 }
 
-                if (!(transcriber.isAnyParticipantRequestingTranscription()
-                        || isBackendTranscribingEnabled))
+                if (!isTranscriptionRequested())
                 {
                     jvbConference.stop();
                 }
