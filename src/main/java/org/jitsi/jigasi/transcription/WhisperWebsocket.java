@@ -17,33 +17,23 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.eclipse.jetty.websocket.api.RemoteEndpoint;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.jitsi.jigasi.JigasiBundleActivator;
-import org.jitsi.utils.logging.Logger;
-import org.json.JSONObject;
+import io.jsonwebtoken.*;
+import org.eclipse.jetty.websocket.api.*;
+import org.eclipse.jetty.websocket.api.annotations.*;
+import org.eclipse.jetty.websocket.client.*;
+import org.jitsi.jigasi.*;
+import org.jitsi.utils.logging.*;
+import org.json.*;
 
-import java.io.IOException;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Duration;
-import java.time.Instant;
+import java.io.*;
+import java.net.*;
+import java.nio.*;
+import java.security.*;
+import java.security.spec.*;
+import java.time.*;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 
 @WebSocket
@@ -60,7 +50,7 @@ public class WhisperWebsocket
 
 
     /* Transcription language requested by the user who requested the transcription */
-    private String transcriptionTag = "en-US";
+    public String transcriptionTag = "en-US";
 
     private static final Logger logger = Logger.getLogger(WhisperWebsocket.class);
 
@@ -232,48 +222,44 @@ public class WhisperWebsocket
     @OnWebSocketMessage
     public void onMessage(String msg)
     {
-        final JSONObject obj = new JSONObject(msg);
-        final String msgType = obj.getString("type");
-        final String participantId = obj.getString("participant_id");
-        final Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
-        final Participant participant = participants.get(participantId);
+        String result;
+        JSONObject obj = new JSONObject(msg);
+        String msgType = obj.getString("type");
+        String participantId = obj.getString("participant_id");
+        Participant participant = participants.get(participantId);
         final boolean isInterim = !"final".equals(msgType);
-        final UUID messageID = UUID.fromString(obj.getString("id"));
-        final String result = obj.getString("text");
 
-
-        final float stability = obj.getFloat("variance");
-
+        result = obj.getString("text");
+        UUID messageId = UUID.fromString(obj.getString("id"));
+        Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
+        float stability = obj.getFloat("variance");
         if (logger.isDebugEnabled())
         {
             logger.debug("Received final: " + result);
         }
-
-        final Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
-        if (result.isEmpty() || partListeners == null)
+        Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
+        if (!result.isEmpty() && partListeners != null)
         {
-            return;
-        }
+            int i=0;
 
-        int i = 0;
-        for (final TranscriptionListener transcriptionListener : partListeners)
-        {
-            i++;
-            if (logger.isDebugEnabled())
+            for (TranscriptionListener l : partListeners)
             {
-                logger.debug("ParticipantId: " + i + ", " + participantId);
-                logger.debug("TranscriptionListener: " + transcriptionListener.toString());
+                i++;
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("ParticipantId: " + i + ", " + participantId);
+                    logger.debug("TranscriptionListener: " + l.toString());
+                }
+                TranscriptionResult tsResult = new TranscriptionResult(
+                        participant,
+                        messageId,
+                        transcriptionStart,
+                        isInterim,
+                        getLanguage(participant),
+                        stability,
+                        new TranscriptionAlternative(result));
+                l.notify(tsResult);
             }
-
-            final TranscriptionResult transcriptionResult = new TranscriptionResult(
-                    participant,
-                    messageID,
-                    transcriptionStart,
-                    isInterim,
-                    getLanguage(participant),
-                    stability,
-                    new TranscriptionAlternative(result));
-            transcriptionListener.notify(transcriptionResult);
         }
     }
 
@@ -305,13 +291,13 @@ public class WhisperWebsocket
         return lang;
     }
 
-    private ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio)
+    ByteBuffer buildPayload(String participantId, Participant participant, ByteBuffer audio, Supplier<Long> timestampSupplier)
     {
-        final ByteBuffer header = ByteBuffer.allocate(60);
-        final int lenAudio = audio.remaining();
-        final ByteBuffer fullPayload = ByteBuffer.allocate(lenAudio + 60);
+        ByteBuffer header = ByteBuffer.allocate(60);
+        int lenAudio = audio.remaining();
+        ByteBuffer fullPayload = ByteBuffer.allocate(lenAudio + 60);
         final String headerStr = participantId + VALUES_DELIMITER +
-                Instant.now().toEpochMilli() + VALUES_DELIMITER +
+                timestampSupplier.get() + VALUES_DELIMITER +
                 this.getLanguage(participant);
 
         if (logger.isDebugEnabled())
@@ -375,7 +361,7 @@ public class WhisperWebsocket
         {
             try
             {
-                remoteEndpoint.sendBytes(buildPayload(participantId, participant, audio));
+                remoteEndpoint.sendBytes(buildPayload(participantId, participant, audio, () -> Instant.now().toEpochMilli()));
             }
             catch (IOException e)
             {

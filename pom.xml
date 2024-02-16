@@ -24,6 +24,8 @@
     <!-- Match jicoco's jetty version. -->
     <jicoco.version>1.1-133-g768ef2e</jicoco.version>
     <jetty.version>11.0.14</jetty.version>
+    <mockito-core.version>5.10.0</mockito-core.version>
+    <assertj-core.version>3.25.3</assertj-core.version>
   </properties>
 
   <dependencies>
@@ -433,6 +435,18 @@
       <groupId>xmlunit</groupId>
       <artifactId>xmlunit</artifactId>
       <version>1.6</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj-core.version}</version>
       <scope>test</scope>
     </dependency>
       <dependency>
