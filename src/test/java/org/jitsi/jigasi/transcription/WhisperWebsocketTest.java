@@ -1,12 +1,11 @@
 package org.jitsi.jigasi.transcription;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
-import java.nio.ByteBuffer;
+import java.nio.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class WhisperWebsocketTest
 {

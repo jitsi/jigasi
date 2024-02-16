@@ -33,7 +33,7 @@ import java.security.spec.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 
 @WebSocket
