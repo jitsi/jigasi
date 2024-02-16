@@ -11,34 +11,41 @@ import static org.jitsi.jigasi.transcription.Transcriber.P_NAME_FILTER_SILENCE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class WhisperWebsocketTest {
+class WhisperWebsocketTest
+{
 
-    private static class TranscriptionListenerForTest implements TranscriptionListener {
+    private static class TranscriptionListenerForTest implements TranscriptionListener
+    {
 
         private TranscriptionResult result;
 
-        public TranscriptionResult getResult() {
+        public TranscriptionResult getResult()
+        {
             return result;
         }
 
         @Override
-        public void notify(TranscriptionResult result) {
+        public void notify(TranscriptionResult result)
+        {
             this.result = result;
         }
 
         @Override
-        public void completed() {
+        public void completed()
+        {
 
         }
 
         @Override
-        public void failed(FailureReason reason) {
+        public void failed(FailureReason reason)
+        {
 
         }
     }
 
     @Test
-    void onMessage() {
+    void onMessage()
+    {
         final WhisperWebsocket whisperWebsocket = new WhisperWebsocket();
         final TranscriptionListenerForTest listener = new TranscriptionListenerForTest();
         final Participant participant = mock(Participant.class);
@@ -51,7 +58,8 @@ class WhisperWebsocketTest {
     }
 
     @Test
-    void buildPayload() {
+    void buildPayload()
+    {
         final WhisperWebsocket whisperWebsocket = new WhisperWebsocket();
         final Participant participant = mock(Participant.class);
         when(participant.getTranslationLanguage()).thenReturn("eng ");
