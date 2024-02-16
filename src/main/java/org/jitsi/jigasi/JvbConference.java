@@ -754,6 +754,8 @@ public class JvbConference
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.getConnection())
                         .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
 
+                logger.info(String.format("%s Disco-info took %oms.", this.callContext, System.currentTimeMillis() - startQuery));
+
                 DiscoverInfo.Identity avIdentity = info.getIdentities().stream().
                     filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
                         .findFirst().orElse(null);
@@ -762,9 +764,6 @@ public class JvbConference
                 {
                     String avModerationAddress = avIdentity.getName();
                     this.getAudioModeration().setAvModerationAddress(avModerationAddress);
-
-                    logger.info(String.format("%s Discovered %s for %oms.",
-                        this.callContext, avModerationAddress, System.currentTimeMillis() - startQuery));
                 }
 
                 DiscoverInfo.Identity roomMetadataIdentity = info.getIdentities().stream().
