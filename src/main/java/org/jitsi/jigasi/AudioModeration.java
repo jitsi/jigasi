@@ -468,43 +468,9 @@ public class AudioModeration
     /**
      * The xmpp provider for JvbConference has registered after connecting.
      */
-    public void xmppProviderRegistered()
+    void setAvModerationAddress(String address)
     {
-        // we are here in the RegisterThread, and it is safe to query and wait
-        // Uses disco info to discover the AV moderation address.
-        // we need to query the domain part extracted from room jid
-        if (this.callContext.getRoomJidDomain() != null)
-        {
-            try
-            {
-                long startQuery = System.currentTimeMillis();
-
-                // in case when running unittests
-                if (this.jvbConference.getConnection() == null)
-                {
-                    return;
-                }
-
-                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.jvbConference.getConnection())
-                    .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
-
-                DiscoverInfo.Identity avIdentity =
-                    info.getIdentities().stream().
-                        filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
-                        .findFirst().orElse(null);
-
-                if (avIdentity != null)
-                {
-                    this.avModerationAddress = avIdentity.getName();
-                    logger.info(String.format("%s Discovered %s for %oms.",
-                        this.callContext, this.avModerationAddress, System.currentTimeMillis() - startQuery));
-                }
-            }
-            catch(Exception e)
-            {
-                logger.error("Error querying for av moderation address", e);
-            }
-        }
+        this.avModerationAddress = address;
 
         if (this.avModerationAddress != null)
         {

@@ -798,10 +798,7 @@ public class Transcriber
      */
     public boolean isAnyParticipantRequestingTranscription()
     {
-
-        return getParticipants()
-            .stream()
-            .anyMatch(Participant::isRequestingTranscription);
+        return getParticipants().stream().anyMatch(Participant::isRequestingTranscription);
     }
 
     /**

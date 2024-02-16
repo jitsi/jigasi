@@ -54,6 +54,11 @@ public class TranscriptionGatewaySession
             = Logger.getLogger(TranscriptionGatewaySession.class);
 
     /**
+     * The data form field added when transcription is enabled.
+     */
+    public static final String DATA_FORM_ROOM_METADATA_FIELD = "muc#roominfo_jitsimetadata";
+
+    /**
      * The display name which should be displayed when Jigasi joins the
      * room
      */
@@ -100,6 +105,13 @@ public class TranscriptionGatewaySession
      */
     private List<TranscriptPublisher.Promise> finalTranscriptPromises
         = new LinkedList<>();
+
+    /**
+     * When a backend transcribing is enabled, overrides participants request for transcriptions and keep the
+     * transcriber in the room and working even though no participant is requesting it.
+     * This is used to make transcriptions available for post-processing.
+     */
+    private boolean isBackendTranscribingEnabled = false;
 
     /**
      * Create a TranscriptionGatewaySession which can handle the transcription
@@ -308,8 +320,17 @@ public class TranscriptionGatewaySession
         String identifier = getParticipantIdentifier(chatMember);
         this.transcriber.updateParticipant(identifier, chatMember);
 
-        if (transcriber.isTranscribing() &&
-            !transcriber.isAnyParticipantRequestingTranscription())
+        this.maybeStopTranscription();
+    }
+
+    private boolean isTranscriptionRequested()
+    {
+        return transcriber.isAnyParticipantRequestingTranscription() || isBackendTranscribingEnabled;
+    }
+
+    private void maybeStopTranscription()
+    {
+        if (transcriber.isTranscribing() && !isTranscriptionRequested())
         {
             new Thread(() ->
             {
@@ -322,7 +343,7 @@ public class TranscriptionGatewaySession
                     logger.error(e);
                 }
 
-                if (!transcriber.isAnyParticipantRequestingTranscription())
+                if (!isTranscriptionRequested())
                 {
                     jvbConference.stop();
                 }
@@ -666,13 +687,10 @@ public class TranscriptionGatewaySession
         {
             // in will_end we will be still transcribing but we need
             // to explicitly send off
-            TranscriptionStatusExtension.Status status
-                = event.getEvent() ==
-                    Transcript.TranscriptEventType.WILL_END ?
-                        TranscriptionStatusExtension.Status.OFF
-                        : transcriber.isTranscribing() ?
-                            TranscriptionStatusExtension.Status.ON
-                            : TranscriptionStatusExtension.Status.OFF;
+            TranscriptionStatusExtension.Status status = event.getEvent() == Transcript.TranscriptEventType.WILL_END
+                    ? TranscriptionStatusExtension.Status.OFF
+                    : transcriber.isTranscribing()
+                        ? TranscriptionStatusExtension.Status.ON : TranscriptionStatusExtension.Status.OFF;
 
             TranscriptionStatusExtension extension
                 = new TranscriptionStatusExtension();
@@ -688,5 +706,15 @@ public class TranscriptionGatewaySession
     public boolean hasCallResumeSupport()
     {
         return false;
+    }
+
+    /**
+     * Sets whether backend transcriptions are enabled or not.
+     */
+    public void setBackendTranscribingEnabled(boolean backendTranscribingEnabled)
+    {
+        this.isBackendTranscribingEnabled = backendTranscribingEnabled;
+
+        this.maybeStopTranscription();
     }
 }
