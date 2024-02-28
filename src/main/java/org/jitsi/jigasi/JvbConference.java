@@ -754,7 +754,8 @@ public class JvbConference
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.getConnection())
                         .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
 
-                logger.info(String.format("%s Disco-info took %oms.", this.callContext, System.currentTimeMillis() - startQuery));
+                logger.info(String.format(
+                        "%s Disco-info took %oms.", this.callContext, System.currentTimeMillis() - startQuery));
 
                 DiscoverInfo.Identity avIdentity = info.getIdentities().stream().
                     filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
