@@ -109,21 +109,29 @@ public class WhisperWebsocket
 
     private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException
     {
-        long nowMillis = System.currentTimeMillis();
-        Date now = new Date(nowMillis);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
-        PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
-        JwtBuilder builder = Jwts.builder()
-                .setHeaderParam("kid", privateKeyName)
-                .setIssuedAt(now)
-                .setAudience(jwtAudience)
-                .setIssuer("jigasi")
-                .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
-        long expires = nowMillis + (60 * 5 * 1000);
-        Date expiry = new Date(expires);
-        builder.setExpiration(expiry);
-        return builder.compact();
+        try
+        {
+            long nowMillis = System.currentTimeMillis();
+            Date now = new Date(nowMillis);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
+            PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
+            JwtBuilder builder = Jwts.builder()
+                    .setHeaderParam("kid", privateKeyName)
+                    .setIssuedAt(now)
+                    .setAudience(jwtAudience)
+                    .setIssuer("jigasi")
+                    .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
+            long expires = nowMillis + (60 * 5 * 1000);
+            Date expiry = new Date(expires);
+            builder.setExpiration(expiry);
+            return builder.compact();
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed generating JWT for Whisper. " + e);
+        }
+        return null;
     }
 
     /**
