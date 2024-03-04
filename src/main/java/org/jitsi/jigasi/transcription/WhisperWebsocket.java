@@ -88,7 +88,7 @@ public class WhisperWebsocket
      * The config value of the websocket to the speech-to-text
      * service.
      */
-    private String websocketUrlConfig;
+    private final static String websocketUrlConfig;
 
     /**
      * The URL of the websocket to the speech-to-text service.
@@ -100,38 +100,61 @@ public class WhisperWebsocket
      */
     private final String connectionId = UUID.randomUUID().toString();
 
-    private String privateKey;
+    private final static String privateKey;
 
-    private String privateKeyName;
+    private final static String privateKeyName;
 
-    private String jwtAudience;
+    private final static String jwtAudience;
 
+    static
+    {
+        jwtAudience = JigasiBundleActivator.getConfigurationService()
+                .getString(JWT_AUDIENCE, "jitsi");
+        privateKey = JigasiBundleActivator.getConfigurationService()
+                .getString(PRIVATE_KEY, "");
+        privateKeyName = JigasiBundleActivator.getConfigurationService()
+                .getString(PRIVATE_KEY_NAME, "");
+        if (privateKey.isEmpty() || privateKeyName.isEmpty())
+        {
+            logger.warn("org.jitsi.jigasi.transcription.whisper.private_key_name or " +
+                    "org.jitsi.jigasi.transcription.whisper.private_key are empty." +
+                    "Will not generate a JWT for skynet/streaming-whisper.");
+        }
+
+        String wsUrlConfig = JigasiBundleActivator.getConfigurationService()
+                .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
+        if (wsUrlConfig.endsWith("/"))
+        {
+            websocketUrlConfig = wsUrlConfig.substring(0, wsUrlConfig.length() - 1);
+        }
+        else
+        {
+            websocketUrlConfig = wsUrlConfig;
+        }
+        logger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
+    }
 
     private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException
     {
-        try
+        if (privateKey.isEmpty() || privateKeyName.isEmpty())
         {
-            long nowMillis = System.currentTimeMillis();
-            Date now = new Date(nowMillis);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
-            PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
-            JwtBuilder builder = Jwts.builder()
-                    .setHeaderParam("kid", privateKeyName)
-                    .setIssuedAt(now)
-                    .setAudience(jwtAudience)
-                    .setIssuer("jigasi")
-                    .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
-            long expires = nowMillis + (60 * 5 * 1000);
-            Date expiry = new Date(expires);
-            builder.setExpiration(expiry);
-            return builder.compact();
+            return null;
         }
-        catch (Exception e)
-        {
-            logger.error("Failed generating JWT for Whisper. " + e);
-        }
-        return null;
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
+        PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
+        JwtBuilder builder = Jwts.builder()
+                .setHeaderParam("kid", privateKeyName)
+                .setIssuedAt(now)
+                .setAudience(jwtAudience)
+                .setIssuer("jigasi")
+                .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
+        long expires = nowMillis + (60 * 5 * 1000);
+        Date expiry = new Date(expires);
+        builder.setExpiration(expiry);
+        return builder.compact();
     }
 
     /**
@@ -140,7 +163,6 @@ public class WhisperWebsocket
      */
     private void generateWebsocketUrl()
     {
-        getConfig();
         try
         {
             websocketUrl = websocketUrlConfig + "/" + connectionId + "?auth_token=" + getJWT();
@@ -155,22 +177,6 @@ public class WhisperWebsocket
         }
     }
 
-    private void getConfig()
-    {
-        jwtAudience = JigasiBundleActivator.getConfigurationService()
-                .getString(JWT_AUDIENCE, "jitsi");
-        websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
-                .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
-        if (websocketUrlConfig.endsWith("/"))
-        {
-            websocketUrlConfig = websocketUrlConfig.substring(0, websocketUrlConfig.length() - 1);
-        }
-        privateKey = JigasiBundleActivator.getConfigurationService()
-                        .getString(PRIVATE_KEY, "");
-        privateKeyName = JigasiBundleActivator.getConfigurationService()
-                .getString(PRIVATE_KEY_NAME, "");
-        logger.info("Websocket streaming endpoint: " + websocketUrlConfig);
-    }
 
     /**
      * Connect to the websocket, retry up to maxRetryAttempts
