@@ -180,16 +180,15 @@ public class GoogleCloudTranscriptionService
     private final static int STREAMING_SESSION_TIMEOUT_MS = 2000;
 
     /**
-     * Property name to determine whether to use the Google Speech API's
-     * video model
+     * Property name to determine which Google Speech API model to use
      */
-    private final static String P_NAME_USE_VIDEO_MODEL
-        = "org.jitsi.jigasi.transcription.USE_VIDEO_MODEL";
+    private final static String GOOGLE_MODEL
+        = "org.jitsi.jigasi.transcription.google_model";
 
     /**
-     * The default value for the property USE_VIDEO_MODEL
+     * The default value for the property GOOGLE_MODEL
      */
-    private final static boolean DEFAULT_VALUE_USE_VIDEO_MODEL = false;
+    private final static String DEFAULT_VALUE_GOOGLE_MODEL = "latest_long";
 
     /**
      * Check whether the given string contains a supported language tag
@@ -229,10 +228,9 @@ public class GoogleCloudTranscriptionService
     private List<SpeechContext> speechContexts = null;
 
     /**
-     * Whether to use the more expensive video model when making
-     * requests.
+     * The model used for STT
      */
-    private boolean useVideoModel;
+    private final String useModel;
 
     /**
      * Creates the RecognitionConfig the Google service uses based
@@ -262,19 +260,10 @@ public class GoogleCloudTranscriptionService
                     "encoding");
         }
 
-        // set the default model to "latest_long" instead of "default"
-        // https://cloud.google.com/speech-to-text/docs/transcription-model#transcription_models
-        // and https://cloud.google.com/speech-to-text/docs/latest-models#pricing for pricing
-        builder.setModel("latest_long");
-
-        // set the model to video
-        if (useVideoModel)
+        builder.setModel(useModel);
+        if (logger.isDebugEnabled())
         {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Using the more expensive video model");
-            }
-            builder.setModel("video");
+            logger.debug("Using model " + useModel);
         }
 
         // set the Language tag
@@ -296,8 +285,8 @@ public class GoogleCloudTranscriptionService
      */
     public GoogleCloudTranscriptionService()
     {
-        useVideoModel = JigasiBundleActivator.getConfigurationService()
-            .getBoolean(P_NAME_USE_VIDEO_MODEL, DEFAULT_VALUE_USE_VIDEO_MODEL);
+        useModel = JigasiBundleActivator.getConfigurationService()
+            .getString(GOOGLE_MODEL, DEFAULT_VALUE_GOOGLE_MODEL);
     }
 
     /**
@@ -704,8 +693,7 @@ public class GoogleCloudTranscriptionService
                 StreamingRecognitionConfig.newBuilder()
                     .setConfig(config)
                     .setInterimResults(RETRIEVE_INTERIM_RESULTS)
-                    .setSingleUtterance(!useVideoModel &&
-                                            SINGLE_UTTERANCE_ONLY)
+                    .setSingleUtterance(SINGLE_UTTERANCE_ONLY)
                     .build();
 
             // StreamingCallable manages sending the audio and receiving
