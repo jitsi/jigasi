@@ -262,8 +262,12 @@ public class GoogleCloudTranscriptionService
                     "encoding");
         }
 
-        // set the model to use. It will default to a cheaper model with
-        // lower performance when not set.
+        // set the default model to "latest_long" instead of "default"
+        // https://cloud.google.com/speech-to-text/docs/transcription-model#transcription_models
+        // and https://cloud.google.com/speech-to-text/docs/latest-models#pricing for pricing
+        builder.setModel("latest_long");
+
+        // set the model to video
         if (useVideoModel)
         {
             if (logger.isDebugEnabled())
