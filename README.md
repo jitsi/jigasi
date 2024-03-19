@@ -126,6 +126,15 @@ sudo apt-get update && sudo apt-get install google-cloud-sdk google-cloud-sdk-ap
 gcloud init
 gcloud auth application-default login
 ```
+It is possible to enable or disable the functionality of Google Cloud Speech to Text.
+By default, the properties
+`org.jitsi.jigasi.transcription.ENABLE_GOOGLE_AUTOMATIC_PUNCTUATION=false`
+and
+`org.jitsi.jigasi.transcription.ENABLE_GOOGLE_PROFANITY_FILTER=false`
+in
+`jigasi-home/sip-communicator.properties`
+disable automatic punctuation, profanity filter results for the transcription.
+To change this, simply set the desired property to `true` or `false`.
 
 Vosk configuration for transcription
 ==================
@@ -239,6 +248,11 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
         <td>Whether or not to send results, when they come in, to the chatroom 
             in plain text. Note that this will result in the chat being somewhat
             spammed.</td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.ENABLE_INTERIM_RESULTS</td>
+        <td>false</td>
+        <td>Whether or not to send interim non-final results. Note that interim results should be handled so that no repeated transcriptions are displayed to the user.</td>
     </tr>
 </table>
 
