@@ -333,11 +333,11 @@ public class TranscriptionGatewaySession
         // give some time for the transcriptions for this participant to be ready
         leaveThreadPool.schedule(() ->
             {
-                this.transcriber.participantLeft(identifier);
                 synchronized (this)
                 {
                     numberOfScheduledParticipantsLeaving--;
                 }
+                this.transcriber.participantLeft(identifier);
             },
             PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION,
             TimeUnit.MILLISECONDS
