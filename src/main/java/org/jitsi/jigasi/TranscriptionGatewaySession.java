@@ -21,6 +21,7 @@ import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
+import org.jitsi.utils.concurrent.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.neomedia.*;
@@ -34,6 +35,7 @@ import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * A TranscriptionGatewaySession is able to join a JVB conference and
@@ -68,7 +70,7 @@ public class TranscriptionGatewaySession
      * How long the transcriber should wait until really leaving the conference
      * when no participant is requesting transcription anymore.
      */
-    public final static int PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION = 2500;
+    public final static int PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION = 3000;
 
     /**
      * The TranscriptionService used by this session
@@ -112,6 +114,17 @@ public class TranscriptionGatewaySession
      * This is used to make transcriptions available for post-processing.
      */
     private boolean isBackendTranscribingEnabled = false;
+
+    /**
+     * The thread pool to serve all leave operations.
+     */
+    private static final ScheduledExecutorService leaveThreadPool = Executors.newScheduledThreadPool(
+            2, new CustomizableThreadFactory("participants-leaving", true));
+
+    /**
+     * Keeps the number of currently leaving participants.
+     */
+    private int numberOfScheduledParticipantsLeaving = 0;
 
     /**
      * Create a TranscriptionGatewaySession which can handle the transcription
@@ -307,7 +320,28 @@ public class TranscriptionGatewaySession
         super.notifyChatRoomMemberLeft(chatMember);
 
         String identifier = getParticipantIdentifier(chatMember);
-        this.transcriber.participantLeft(identifier);
+        if ("focus".equals(identifier) || this.jvbConference.getResourceIdentifier().toString().equals(identifier))
+        {
+            return;
+        }
+
+        synchronized (this)
+        {
+            numberOfScheduledParticipantsLeaving++;
+        }
+
+        // give some time for the transcriptions for this participant to be ready
+        leaveThreadPool.schedule(() ->
+            {
+                synchronized (this)
+                {
+                    numberOfScheduledParticipantsLeaving--;
+                }
+                this.transcriber.participantLeft(identifier);
+            },
+            PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     @Override
@@ -332,22 +366,24 @@ public class TranscriptionGatewaySession
     {
         if (transcriber.isTranscribing() && !isTranscriptionRequested())
         {
-            new Thread(() ->
-            {
-                try
-                {
-                    Thread.sleep(PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION);
-                }
-                catch (InterruptedException e)
-                {
-                    logger.error(e);
-                }
-
-                if (!isTranscriptionRequested())
-                {
-                    jvbConference.stop();
-                }
-            }).start();
+            // let's give some time for the transcriptions to finish
+            leaveThreadPool.schedule(() -> {
+                    if (transcriber.isTranscribing() && !isTranscriptionRequested())
+                    {
+                        if (this.numberOfScheduledParticipantsLeaving == 0)
+                        {
+                            jvbConference.stop();
+                        }
+                        else
+                        {
+                            // there seems to be still participants leaving, give them time before transcriber leaves
+                            maybeStopTranscription();
+                        }
+                    }
+                },
+                PRESENCE_UPDATE_WAIT_UNTIL_LEAVE_DURATION,
+                TimeUnit.MILLISECONDS
+            );
         }
     }
 
