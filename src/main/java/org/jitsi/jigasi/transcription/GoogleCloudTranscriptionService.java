@@ -166,12 +166,6 @@ public class GoogleCloudTranscriptionService
     private final static boolean RETRIEVE_INTERIM_RESULTS = true;
 
     /**
-     * Whether the Google Cloud API only listens for a single utterance
-     * or continuous to listen once an utterance is over
-     */
-    private final static boolean SINGLE_UTTERANCE_ONLY = true;
-
-    /**
      * The amount of ms after which a StreamingRecognize session will be closed
      * when no new audio is given. This is to make sure the session retrieves
      * audio in "real-time". This also ensures that participants using push-
@@ -194,7 +188,7 @@ public class GoogleCloudTranscriptionService
      * Check whether the given string contains a supported language tag
      *
      * @param tag the language tag
-     * @throws UnsupportedOperationException when the google cloud API does not
+     * @throws UnsupportedOperationException when the Google cloud API does not
      * support the given language
      */
     private static void validateLanguageTag(String tag)
@@ -280,7 +274,7 @@ public class GoogleCloudTranscriptionService
     }
 
     /**
-     * Create a TranscriptionService which will send audio to the google cloud
+     * Create a TranscriptionService which will send audio to the Google cloud
      * platform to get a transcription
      */
     public GoogleCloudTranscriptionService()
@@ -428,7 +422,7 @@ public class GoogleCloudTranscriptionService
         private RequestApiStreamObserverManager requestManager;
 
         /**
-         * A single thread which is used to sent all requests to the API.
+         * A single thread which is used to send all requests to the API.
          * This is needed to reliably sent the first request to the service
          */
         private ExecutorService service = Executors.newSingleThreadExecutor();
@@ -506,7 +500,7 @@ public class GoogleCloudTranscriptionService
     private static class GoogleCloudCostLogger
     {
         /**
-         * The length of a cost interval of the google cloud speech-to-text API
+         * The length of a cost interval of the Google cloud speech-to-text API
          */
         private final static int INTERVAL_LENGTH_MS = 15000;
 
@@ -556,7 +550,7 @@ public class GoogleCloudTranscriptionService
 
         /**
          * Tell the {@link GoogleCloudCostLogger} that a certain length of audio
-         * was send.
+         * was sent.
          *
          * @param ms the length of the audio chunk sent to the API
          */
@@ -650,13 +644,13 @@ public class GoogleCloudTranscriptionService
         private boolean stopped = false;
 
         /**
-         * Used to log the cost of every request which is send
+         * Used to log the cost of every request which is sent
          */
         private final GoogleCloudCostLogger costLogger;
 
         /**
          * Create a new RequestApiStreamObserverManager, which will try
-         * to mimic a streaming session of indefinite lenth
+         * to mimic a streaming session of indefinite length
          *
          * @param client the SpeechClient with which to open new sessions
          * @param debugName extra text which will be added to logs
@@ -679,7 +673,7 @@ public class GoogleCloudTranscriptionService
             RecognitionConfig config)
         {
             // Each observer gets its own responseObserver to be able to
-            // to get an unique ID
+            // get a unique ID
             ResponseApiStreamingObserver<StreamingRecognizeResponse>
                 responseObserver =
                 new ResponseApiStreamingObserver<StreamingRecognizeResponse>(
@@ -693,7 +687,6 @@ public class GoogleCloudTranscriptionService
                 StreamingRecognitionConfig.newBuilder()
                     .setConfig(config)
                     .setInterimResults(RETRIEVE_INTERIM_RESULTS)
-                    .setSingleUtterance(SINGLE_UTTERANCE_ONLY)
                     .build();
 
             // StreamingCallable manages sending the audio and receiving
@@ -914,16 +907,12 @@ public class GoogleCloudTranscriptionService
                 if (logger.isDebugEnabled())
                     logger.debug(
                         debugName + ": received error from StreamingRecognizeResponse: "
-                        + message.getError().getMessage());
+                             + message.getError().getMessage());
                 requestManager.terminateCurrentSession();
                 return;
             }
 
-            // This will happen when SINGLE_UTTERANCE is set to true
-            // and the server has detected the end of the user's speech
-            // utterance.
-            if (isEndOfSingleUtteranceMessage(message) ||
-                message.getResultsCount() == 0)
+            if (message.getResultsCount() == 0)
             {
                 if (logger.isDebugEnabled())
                     logger.debug(
@@ -936,14 +925,14 @@ public class GoogleCloudTranscriptionService
             List<StreamingRecognitionResult> results = message.getResultsList();
             StreamingRecognitionResult result = results.get(0);
 
-            // If empty, the session has reached it's time limit and
+            // If empty, the session has reached its time limit and
             // nothing new was said, but there should be an error in the message
             // so this is never supposed to happen
             if (result.getAlternativesList().isEmpty())
             {
                 logger.warn(
                     debugName + ": received a list of alternatives which"
-                              + " was empty");
+                            + " was empty");
                 requestManager.terminateCurrentSession();
                 return;
             }
@@ -974,27 +963,8 @@ public class GoogleCloudTranscriptionService
         }
 
         /**
-         * Get whether a {@link StreamingRecognizeResponse} has an
-         * {@link StreamingRecognizeResponse#speechEventType_} of
-         * {@link StreamingRecognizeResponse.SpeechEventType#
-         * END_OF_SINGLE_UTTERANCE}
-         *
-         * @param message the message to check
-         * @return true if the message has the eventType
-         * {@link StreamingRecognizeResponse.SpeechEventType
-         * #END_OF_SINGLE_UTTERANCE}, false otherwise
-         */
-        private boolean isEndOfSingleUtteranceMessage(
-            StreamingRecognizeResponse message)
-        {
-            return message.getSpeechEventType().
-                equals(StreamingRecognizeResponse.SpeechEventType.
-                    END_OF_SINGLE_UTTERANCE);
-        }
-
-        /**
          * Handle a single {@link StreamingRecognitionResult} by creating
-         * a {@link TranscriptionResult} based on the result and notifying all
+         * a {@link TranscriptionResult} based on the result and notifying
          * all registered {@link TranscriptionListener}s
          *
          * @param result the result to handle
