@@ -3,13 +3,13 @@ Section: net
 Priority: extra
 Maintainer: Jitsi Team <dev@jitsi.org>
 Uploaders: Emil Ivov <emcho@jitsi.org>, Damian Minkov <damencho@jitsi.org>
-Build-Depends: debhelper, dh-systemd, openjdk-11-jdk, maven
+Build-Depends: debhelper, dh-systemd, openjdk-11-jdk | openjdk-17-jdk, maven
 Standards-Version: 3.9.3
 Homepage: https://jitsi.org
 
 Package: jigasi
 Architecture: all
-Depends: ${misc:Depends}, default-jre-headless (>= 2:1.11), openssl, ruby-hocon
+Depends: ${misc:Depends}, openjdk-11-jre-headless | openjdk-11-jre | openjdk-17-jre-headless | openjdk-17-jre, openssl, ruby-hocon
 Description: Jitsi Gateway for SIP
  Jitsi Meet is a WebRTC JavaScript application that uses Jitsi
  Videobridge to provide high quality, scalable video conferences.
