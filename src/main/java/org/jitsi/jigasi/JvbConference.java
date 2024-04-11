@@ -1965,6 +1965,12 @@ public class JvbConference
      */
     private String getMeetingId()
     {
+        // in case when running unittests
+        if (this.getConnection() == null)
+        {
+            return null;
+        }
+
         if (this.meetingId == null)
         {
             try
@@ -1994,6 +2000,12 @@ public class JvbConference
      */
     private void updateFromRoomConfiguration()
     {
+        // in case when running unittests
+        if (this.getConnection() == null)
+        {
+            return;
+        }
+
         try
         {
             DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection()).
