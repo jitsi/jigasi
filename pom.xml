@@ -22,8 +22,8 @@
     <smack.version>4.4.6</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
-    <jicoco.version>1.1-133-g768ef2e</jicoco.version>
-    <jetty.version>11.0.14</jetty.version>
+    <jicoco.version>1.1-140-g8f45a9f</jicoco.version>
+    <jetty.version>11.0.20</jetty.version>
   </properties>
 
   <dependencies>
@@ -269,16 +269,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.12.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>4.4.15</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.13</version>
     </dependency>
     <!-- org.jitsi runtime-->
     <dependency>
