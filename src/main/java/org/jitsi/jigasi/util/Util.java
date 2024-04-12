@@ -19,6 +19,7 @@ package org.jitsi.jigasi.util;
 
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
@@ -225,5 +226,18 @@ public class Util
         feature.setAttribute("var", var);
 
         return feature;
+    }
+
+    /**
+     * Checks for the transcriber feature in presence.
+     * @param presence the presence to check
+     * @return <tt>true</tt> when the presence is from a transcriber.
+     */
+    public static boolean isTranscriberJigasi(Presence presence)
+    {
+        FeaturesExtension features = presence.getExtension(FeaturesExtension.class);
+
+        return features.getFeatureExtensions().stream()
+            .anyMatch(f -> f.getVar().equals(JvbConference.TRANSCRIBER_FEATURE_NAME));
     }
 }

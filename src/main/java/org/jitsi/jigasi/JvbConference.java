@@ -101,6 +101,11 @@ public class JvbConference
     public static final String JIGASI_FEATURE_NAME = "http://jitsi.org/protocol/jigasi";
 
     /**
+     * The name of XMPP feature which states this Jigasi is participating as transcriber.
+     */
+    public static final String TRANSCRIBER_FEATURE_NAME = "http://jitsi.org/protocol/transcriber";
+
+    /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
      */
     public static final String DTMF_FEATURE_NAME
@@ -195,15 +200,25 @@ public class JvbConference
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the 'features' extension element that can be added to presence.
      */
-    private static ExtensionElement addSupportedFeatures(
+    private ExtensionElement addSupportedFeatures(
             OperationSetJitsiMeetToolsJabber meetTools)
     {
         FeaturesExtension features = new FeaturesExtension();
 
         meetTools.addSupportedFeature(JIGASI_FEATURE_NAME);
         features.addChildExtension(Util.createFeature(JIGASI_FEATURE_NAME));
-        meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
-        features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
+
+        if (this.isTranscriber)
+        {
+            meetTools.addSupportedFeature(TRANSCRIBER_FEATURE_NAME);
+            features.addChildExtension(Util.createFeature(TRANSCRIBER_FEATURE_NAME));
+        }
+        else
+        {
+            // dtmf is used only when sip calling
+            meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
+            features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
+        }
 
         ConfigurationService cfg = JigasiBundleActivator.getConfigurationService();
 
@@ -379,9 +394,10 @@ public class JvbConference
     private final RoomMetadataListener roomMetadataListener = new RoomMetadataListener();
 
     /**
-     * Up-to-date list of participants in the room that are jigasi.
+     * Up-to-date list of participants in the room that are jigasi and the value is a flag is it sip jigasi(true)
+     * or transcriber(false).
      */
-    private final List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
+    private final Map<String,Boolean> jigasiChatRoomMembers = Collections.synchronizedMap(new Hashtable<>());
 
     /**
      * The features for the current xmpp provider we will use later adding to the room presence we send.
@@ -1218,10 +1234,10 @@ public class JvbConference
                     // let's check and whether it is a jigasi participant
                     // we use initiator as its easier for checking/parsing
                     if (presence != null
-                        && !jigasiChatRoomMembers.contains(member.getName())
+                        && !jigasiChatRoomMembers.containsKey(member.getName())
                         && presence.hasExtension("initiator", JIGASI_FEATURE_NAME))
                     {
-                        jigasiChatRoomMembers.add(member.getName());
+                        jigasiChatRoomMembers.put(member.getName(), !Util.isTranscriberJigasi(presence));
                     }
                 }
             }
@@ -1306,7 +1322,7 @@ public class JvbConference
             boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
                 m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
                 || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
-                || jigasiChatRoomMembers.contains(m.getName()));
+                || jigasiChatRoomMembers.get(m.getName()));
 
             if (onlyJigasisInRoom)
             {

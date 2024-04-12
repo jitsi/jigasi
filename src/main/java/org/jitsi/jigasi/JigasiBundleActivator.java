@@ -196,6 +196,17 @@ public class JigasiBundleActivator
 
         StartMutedProvider.registerStartMutedProvider();
 
+        ProviderManager.addExtensionProvider(
+                FeaturesExtension.ELEMENT,
+                FeaturesExtension.NAMESPACE,
+                new DefaultPacketExtensionProvider<>(FeaturesExtension.class)
+        );
+        ProviderManager.addExtensionProvider(
+                FeatureExtension.ELEMENT,
+                FeatureExtension.NAMESPACE,
+                new DefaultPacketExtensionProvider<>(FeatureExtension.class)
+        );
+
         if (isSipEnabled())
         {
             if (isSipStartMutedEnabled())
