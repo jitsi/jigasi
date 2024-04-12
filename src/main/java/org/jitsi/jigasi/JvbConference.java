@@ -22,12 +22,12 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.DataObject;
-import net.java.sip.communicator.util.osgi.ServiceUtils;
+import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.jigasi.lobby.Lobby;
+import org.jitsi.jigasi.lobby.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
@@ -65,6 +65,10 @@ import java.util.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
+
+import static org.jitsi.jigasi.lobby.Lobby.*;
+import static org.jitsi.jigasi.TranscriptionGatewaySession.*;
+
 
 /**
  * Class takes care of handling Jitsi Videobridge conference. Currently, it waits
@@ -225,6 +229,11 @@ public class JvbConference
      * instance.
      */
     private final AbstractGatewaySession gatewaySession;
+
+    /**
+     * Whether Jigasi will join as transcriber.
+     */
+    private final boolean isTranscriber;
 
     /**
      * Whether to auto stop when only jigasi are left in the room.
@@ -388,17 +397,18 @@ public class JvbConference
     public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
     {
         this.gatewaySession = gatewaySession;
+        this.isTranscriber = this.gatewaySession instanceof TranscriptionGatewaySession;
         this.callContext = ctx;
         this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
 
-        if (this.gatewaySession instanceof SipGatewaySession)
+        if (this.isTranscriber)
         {
-            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
+            this.audioModeration = null;
         }
         else
         {
-            this.audioModeration = null;
+            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
         }
     }
 
@@ -769,7 +779,7 @@ public class JvbConference
                         .findFirst().orElse(null);
 
                 // we process room metadata messages only when we are transcribing
-                if (roomMetadataIdentity != null && this.gatewaySession instanceof TranscriptionGatewaySession)
+                if (roomMetadataIdentity != null && this.isTranscriber)
                 {
                     getConnection().addAsyncStanzaListener(roomMetadataListener,
                         new AndFilter(
@@ -2007,13 +2017,12 @@ public class JvbConference
                 discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
 
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
-            boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
-            boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
+            boolean lobbyEnabled = df.getField(DATA_FORM_LOBBY_ROOM_FIELD) != null;
+            boolean singleModeratorEnabled = df.getField(DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
 
-            List<String> roomMetadataValues
-                    = df.getField(TranscriptionGatewaySession.DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
+            List<String> roomMetadataValues = df.getField(DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
             if (roomMetadataValues != null && !roomMetadataValues.isEmpty())
             {
                 // it is supposed to have a single value
@@ -2028,7 +2037,7 @@ public class JvbConference
 
     private void processRoomMetadataJson(String json)
     {
-        if (!(this.gatewaySession instanceof TranscriptionGatewaySession))
+        if (!this.isTranscriber)
         {
             return;
         }
