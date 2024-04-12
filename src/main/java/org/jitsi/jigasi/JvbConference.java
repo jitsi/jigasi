@@ -94,8 +94,7 @@ public class JvbConference
      * The name of XMPP feature which states for Jigasi SIP Gateway and can be
      * used to recognize gateway client.
      */
-    public static final String SIP_GATEWAY_FEATURE_NAME
-        = "http://jitsi.org/protocol/jigasi";
+    public static final String JIGASI_FEATURE_NAME = "http://jitsi.org/protocol/jigasi";
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -197,24 +196,22 @@ public class JvbConference
     {
         FeaturesExtension features = new FeaturesExtension();
 
-        meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-        features.addChildExtension(Util.createFeature(SIP_GATEWAY_FEATURE_NAME));
+        meetTools.addSupportedFeature(JIGASI_FEATURE_NAME);
+        features.addChildExtension(Util.createFeature(JIGASI_FEATURE_NAME));
         meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
         features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
 
-        ConfigurationService cfg
-                = JigasiBundleActivator.getConfigurationService();
+        ConfigurationService cfg = JigasiBundleActivator.getConfigurationService();
 
         // Remove ICE support from features list ?
         if (cfg.getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
         {
-            meetTools.removeSupportedFeature(
-                    "urn:xmpp:jingle:transports:ice-udp:1");
+            meetTools.removeSupportedFeature("urn:xmpp:jingle:transports:ice-udp:1");
 
             logger.info("ICE feature will not be advertised");
         }
 
-        ExtensionElement audioMuteFeature = AudioModeration.addSupportedFeatures(meetTools);
+        ExtensionElement audioMuteFeature = AudioModeration.getSupportedFeatures(meetTools);
         if (audioMuteFeature != null)
         {
             features.addChildExtension(audioMuteFeature);
@@ -874,9 +871,7 @@ public class JvbConference
                 // creates an extension to hold all headers, as when using
                 // addPresencePacketExtensions it requires unique extensions
                 // otherwise overrides them
-                AbstractPacketExtension initiator
-                    = new AbstractPacketExtension(
-                        SIP_GATEWAY_FEATURE_NAME, "initiator"){};
+                AbstractPacketExtension initiator = new AbstractPacketExtension(JIGASI_FEATURE_NAME, "initiator"){};
 
                 // let's add all extra headers from the context
                 callContext.getExtraHeaders().forEach(
@@ -1214,7 +1209,7 @@ public class JvbConference
                     // we use initiator as its easier for checking/parsing
                     if (presence != null
                         && !jigasiChatRoomMembers.contains(member.getName())
-                        && presence.hasExtension("initiator", SIP_GATEWAY_FEATURE_NAME))
+                        && presence.hasExtension("initiator", JIGASI_FEATURE_NAME))
                     {
                         jigasiChatRoomMembers.add(member.getName());
                     }

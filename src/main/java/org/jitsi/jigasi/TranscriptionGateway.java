@@ -165,15 +165,14 @@ public class TranscriptionGateway
     @Override
     public TranscriptionGatewaySession createOutgoingCall(CallContext ctx)
     {
-        String customTranscriptionServiceClass
-            = getCustomTranscriptionServiceClass(ctx.getTenant());
+        String customTranscriptionServiceClass = getCustomTranscriptionServiceClass(ctx.getTenant());
         AbstractTranscriptionService service = null;
         if (customTranscriptionServiceClass != null)
         {
             try
             {
                 service = (AbstractTranscriptionService)Class.forName(
-                        customTranscriptionServiceClass).getDeclaredConstructor().newInstance();
+                    customTranscriptionServiceClass).getDeclaredConstructor().newInstance();
             }
             catch(Exception e)
             {
