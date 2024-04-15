@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.util;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.jigasi.*;
@@ -28,6 +29,8 @@ import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.packet.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -43,6 +46,22 @@ import java.util.concurrent.*;
  */
 public class Util
 {
+    /**
+     * The name of the property to get the array of trusted domains. To be used when checking
+     * presences for jibri/jigasi features.
+     */
+    public static final String P_NAME_TRUSTED_DOMAINS = "org.jitsi.jigasi.TRUSTED_DOMAINS";
+
+    /**
+     * List of trusted domains to check when checking the presence for jigasi/jibri features.
+     */
+    private static List<String> trustedDomains = null;
+
+    /**
+     * The logger.
+     */
+    private final static Logger logger = Logger.getLogger(Util.class);
+
     /**
      * Returns <tt>MediaFormat</tt> of the first {@link CallPeer} that belongs
      * to given {@link Call}(if peer and formats are available).
@@ -228,16 +247,74 @@ public class Util
         return feature;
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<String> getTrustedDomains()
+    {
+        if (Util.trustedDomains == null)
+        {
+            String trustedDomainsStr
+                = JigasiBundleActivator.getConfigurationService().getString(P_NAME_TRUSTED_DOMAINS);
+
+            if (trustedDomainsStr != null)
+            {
+                JSONParser parser = new JSONParser();
+                try
+                {
+                    JSONArray trustedArray = (JSONArray) parser.parse(trustedDomainsStr);
+
+                    Util.trustedDomains = new ArrayList<String>(trustedArray);
+                } catch (ParseException e)
+                {
+                    logger.error("Cannot parse trusted domains:" + trustedDomainsStr, e);
+                    Util.trustedDomains = new ArrayList<>();
+                }
+            }
+            else
+            {
+                Util.trustedDomains = new ArrayList<>();
+            }
+        }
+
+        return Util.trustedDomains;
+    }
+
     /**
      * Checks for the transcriber feature in presence.
-     * @param presence the presence to check
+     * @param member the member to check
      * @return <tt>true</tt> when the presence is from a transcriber.
      */
-    public static boolean isTranscriberJigasi(Presence presence)
+    public static boolean isTranscriberJigasi(ChatRoomMemberJabberImpl member)
     {
+        Presence presence = member.getLastPresence();
+
         FeaturesExtension features = presence.getExtension(FeaturesExtension.class);
+
+        if (features == null || !getTrustedDomains().contains(member.getJabberID().asDomainBareJid().toString()))
+        {
+            return false;
+        }
 
         return features.getFeatureExtensions().stream()
             .anyMatch(f -> f.getVar().equals(JvbConference.TRANSCRIBER_FEATURE_NAME));
+    }
+
+    /**
+     * Checks for the jigasi feature in presence.
+     * @param member the member to check
+     * @return <tt>true</tt> when the presence is from a jigasi.
+     */
+    public static boolean isJigasi(ChatRoomMemberJabberImpl member)
+    {
+        Presence presence = member.getLastPresence();
+
+        FeaturesExtension features = presence.getExtension(FeaturesExtension.class);
+
+        if (features == null || !getTrustedDomains().contains(member.getJabberID().asDomainBareJid().toString()))
+        {
+            return false;
+        }
+
+        return features.getFeatureExtensions().stream()
+            .anyMatch(f -> f.getVar().equals(JvbConference.JIGASI_FEATURE_NAME));
     }
 }

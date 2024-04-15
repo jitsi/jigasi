@@ -977,6 +977,9 @@ public class JvbConference
             updateFromRoomConfiguration();
 
             logger.info(this.callContext + " Joined room: " + roomName + " meetingId:" + this.getMeetingId());
+
+            // let's check existing members in the call
+            this.mucRoom.getMembers().forEach(this::updateJigasiChatRoomMembers);
         }
         catch (Exception e)
         {
@@ -1204,6 +1207,27 @@ public class JvbConference
         xmppInvokeQueue.add(() -> memberPresenceChangedInternal(evt));
     }
 
+    private void updateJigasiChatRoomMembers(ChatRoomMember member)
+    {
+        if (!(member instanceof ChatRoomMemberJabberImpl))
+        {
+            return;
+        }
+
+        ChatRoomMemberJabberImpl chatRoomMember = (ChatRoomMemberJabberImpl) member;
+
+        Presence presence = chatRoomMember.getLastPresence();
+
+        // let's check and whether it is a jigasi participant
+        // we use initiator as its easier for checking/parsing
+        if (presence != null
+                && !jigasiChatRoomMembers.containsKey(member.getName())
+                && Util.isJigasi(chatRoomMember))
+        {
+            jigasiChatRoomMembers.put(member.getName(), !Util.isTranscriberJigasi(chatRoomMember));
+        }
+    }
+
     private void memberPresenceChangedInternal(ChatRoomMemberPresenceChangeEvent evt)
     {
         if (logger.isTraceEnabled())
@@ -1227,18 +1251,10 @@ public class JvbConference
             {
                 if (member instanceof ChatRoomMemberJabberImpl)
                 {
-                    Presence presence = ((ChatRoomMemberJabberImpl) member).getLastPresence();
+                    gatewaySession.notifyChatRoomMemberUpdated(member,
+                        ((ChatRoomMemberJabberImpl) member).getLastPresence());
 
-                    gatewaySession.notifyChatRoomMemberUpdated(member, presence);
-
-                    // let's check and whether it is a jigasi participant
-                    // we use initiator as its easier for checking/parsing
-                    if (presence != null
-                        && !jigasiChatRoomMembers.containsKey(member.getName())
-                        && presence.hasExtension("initiator", JIGASI_FEATURE_NAME))
-                    {
-                        jigasiChatRoomMembers.put(member.getName(), !Util.isTranscriberJigasi(presence));
-                    }
+                    updateJigasiChatRoomMembers(member);
                 }
             }
 
