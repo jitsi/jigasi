@@ -47,6 +47,22 @@ import java.util.concurrent.*;
 public class Util
 {
     /**
+     * The name of XMPP feature which is used to recognize jibri participants.
+     */
+    public static final String JIBRI_FEATURE_NAME = "http://jitsi.org/protocol/jibri";
+
+    /**
+     * The name of XMPP feature which states for Jigasi SIP Gateway and can be
+     * used to recognize gateway client.
+     */
+    public static final String JIGASI_FEATURE_NAME = "http://jitsi.org/protocol/jigasi";
+
+    /**
+     * The name of XMPP feature which states this Jigasi is participating as transcriber.
+     */
+    public static final String TRANSCRIBER_FEATURE_NAME = "http://jitsi.org/protocol/transcriber";
+
+    /**
      * The name of the property to get the array of trusted domains. To be used when checking
      * presences for jibri/jigasi features.
      */
@@ -278,12 +294,7 @@ public class Util
         return Util.trustedDomains;
     }
 
-    /**
-     * Checks for the transcriber feature in presence.
-     * @param member the member to check
-     * @return <tt>true</tt> when the presence is from a transcriber.
-     */
-    public static boolean isTranscriberJigasi(ChatRoomMemberJabberImpl member)
+    private static boolean checkForFeature(ChatRoomMemberJabberImpl member, String feature)
     {
         Presence presence = member.getLastPresence();
 
@@ -294,8 +305,17 @@ public class Util
             return false;
         }
 
-        return features.getFeatureExtensions().stream()
-            .anyMatch(f -> f.getVar().equals(JvbConference.TRANSCRIBER_FEATURE_NAME));
+        return features.getFeatureExtensions().stream().anyMatch(f -> f.getVar().equals(feature));
+    }
+
+    /**
+     * Checks for the transcriber feature in presence.
+     * @param member the member to check
+     * @return <tt>true</tt> when the presence is from a transcriber.
+     */
+    public static boolean isTranscriberJigasi(ChatRoomMemberJabberImpl member)
+    {
+        return checkForFeature(member, TRANSCRIBER_FEATURE_NAME);
     }
 
     /**
@@ -305,16 +325,16 @@ public class Util
      */
     public static boolean isJigasi(ChatRoomMemberJabberImpl member)
     {
-        Presence presence = member.getLastPresence();
+        return checkForFeature(member, JIGASI_FEATURE_NAME);
+    }
 
-        FeaturesExtension features = presence.getExtension(FeaturesExtension.class);
-
-        if (features == null || !getTrustedDomains().contains(member.getJabberID().asDomainBareJid().toString()))
-        {
-            return false;
-        }
-
-        return features.getFeatureExtensions().stream()
-            .anyMatch(f -> f.getVar().equals(JvbConference.JIGASI_FEATURE_NAME));
+    /**
+     * Checks for the jibri feature in presence.
+     * @param member the member to check
+     * @return <tt>true</tt> when the presence is from a jibri.
+     */
+    public static boolean isJibri(ChatRoomMemberJabberImpl member)
+    {
+        return checkForFeature(member, JIBRI_FEATURE_NAME);
     }
 }

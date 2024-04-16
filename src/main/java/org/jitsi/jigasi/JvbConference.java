@@ -68,6 +68,7 @@ import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
 
 import static org.jitsi.jigasi.lobby.Lobby.*;
 import static org.jitsi.jigasi.TranscriptionGatewaySession.*;
+import static org.jitsi.jigasi.util.Util.*;
 
 
 /**
@@ -93,17 +94,6 @@ public class JvbConference
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(JvbConference.class);
-
-    /**
-     * The name of XMPP feature which states for Jigasi SIP Gateway and can be
-     * used to recognize gateway client.
-     */
-    public static final String JIGASI_FEATURE_NAME = "http://jitsi.org/protocol/jigasi";
-
-    /**
-     * The name of XMPP feature which states this Jigasi is participating as transcriber.
-     */
-    public static final String TRANSCRIBER_FEATURE_NAME = "http://jitsi.org/protocol/transcriber";
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -392,12 +382,6 @@ public class JvbConference
      * Listens for messages from room metadata component for changes in room metadata.
      */
     private final RoomMetadataListener roomMetadataListener = new RoomMetadataListener();
-
-    /**
-     * Up-to-date list of participants in the room that are jigasi and the value is a flag is it sip jigasi(true)
-     * or transcriber(false).
-     */
-    private final Map<String,Boolean> jigasiChatRoomMembers = Collections.synchronizedMap(new Hashtable<>());
 
     /**
      * The features for the current xmpp provider we will use later adding to the room presence we send.
@@ -977,9 +961,6 @@ public class JvbConference
             updateFromRoomConfiguration();
 
             logger.info(this.callContext + " Joined room: " + roomName + " meetingId:" + this.getMeetingId());
-
-            // let's check existing members in the call
-            this.mucRoom.getMembers().forEach(this::updateJigasiChatRoomMembers);
         }
         catch (Exception e)
         {
@@ -1207,27 +1188,6 @@ public class JvbConference
         xmppInvokeQueue.add(() -> memberPresenceChangedInternal(evt));
     }
 
-    private void updateJigasiChatRoomMembers(ChatRoomMember member)
-    {
-        if (!(member instanceof ChatRoomMemberJabberImpl))
-        {
-            return;
-        }
-
-        ChatRoomMemberJabberImpl chatRoomMember = (ChatRoomMemberJabberImpl) member;
-
-        Presence presence = chatRoomMember.getLastPresence();
-
-        // let's check and whether it is a jigasi participant
-        // we use initiator as its easier for checking/parsing
-        if (presence != null
-                && !jigasiChatRoomMembers.containsKey(member.getName())
-                && Util.isJigasi(chatRoomMember))
-        {
-            jigasiChatRoomMembers.put(member.getName(), !Util.isTranscriberJigasi(chatRoomMember));
-        }
-    }
-
     private void memberPresenceChangedInternal(ChatRoomMemberPresenceChangeEvent evt)
     {
         if (logger.isTraceEnabled())
@@ -1253,8 +1213,6 @@ public class JvbConference
                 {
                     gatewaySession.notifyChatRoomMemberUpdated(member,
                         ((ChatRoomMemberJabberImpl) member).getLastPresence());
-
-                    updateJigasiChatRoomMembers(member);
                 }
             }
 
@@ -1266,8 +1224,6 @@ public class JvbConference
             logger.info(
                 this.callContext + " Member left : " + member.getRole()
                             + " " + member.getContactAddress());
-
-            jigasiChatRoomMembers.remove(member.getName());
 
             CallPeer peer;
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
@@ -1338,7 +1294,8 @@ public class JvbConference
             boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
                 m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
                 || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
-                || jigasiChatRoomMembers.get(m.getName()));
+                || (Util.isJigasi((ChatRoomMemberJabberImpl) m)
+                        && !Util.isTranscriberJigasi((ChatRoomMemberJabberImpl)m)));
 
             if (onlyJigasisInRoom)
             {
@@ -1364,6 +1321,25 @@ public class JvbConference
                     // transcriber case
                     stop();
                 }
+
+                return;
+            }
+        }
+
+        if (JvbConference.this.isTranscriber)
+        {
+            // make sure we hangup transcriber if only backend services are in the room - Jibri/Jigasi
+            // (maybe a second transcriber if there is some glitch in the system).
+            boolean onlyBotsInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
+                    m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
+                            || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
+                            || Util.isTranscriberJigasi((ChatRoomMemberJabberImpl)m)
+                            || Util.isJibri((ChatRoomMemberJabberImpl)m));
+
+            if (onlyBotsInRoom)
+            {
+                logger.info(this.callContext + " Leaving room only bots in the room!");
+                stop();
             }
         }
     }
