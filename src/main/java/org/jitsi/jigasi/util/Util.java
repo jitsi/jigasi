@@ -279,7 +279,8 @@ public class Util
                     JSONArray trustedArray = (JSONArray) parser.parse(trustedDomainsStr);
 
                     Util.trustedDomains = new ArrayList<String>(trustedArray);
-                } catch (ParseException e)
+                }
+                catch (ParseException e)
                 {
                     logger.error("Cannot parse trusted domains:" + trustedDomainsStr, e);
                     Util.trustedDomains = new ArrayList<>();

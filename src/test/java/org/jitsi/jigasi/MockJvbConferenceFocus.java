@@ -143,11 +143,25 @@ public class MockJvbConferenceFocus
         if (leaveRoomAfterInvite)
         {
             logger.info(myName + " invited peer will leave the room");
+
+            // let's leave after the xmpp call is in progress, as ended and connected will race for the call
             new Thread(new Runnable()
             {
                 @Override
                 public void run()
                 {
+                    try
+                    {
+                        logger.info("waiting for in progress on " + xmppCall);
+                        CallStateListener callStateWatch = new CallStateListener();
+                        callStateWatch.waitForState(xmppCall, CallState.CALL_IN_PROGRESS, 2000);
+                        logger.info("done waiting for in progress on " + xmppCall);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+
                     logger.info(myName + " leaving the room");
                     tearDown();
                 }
