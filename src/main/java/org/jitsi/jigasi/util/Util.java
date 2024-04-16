@@ -276,6 +276,7 @@ public class Util
                 JSONParser parser = new JSONParser();
                 try
                 {
+                    logger.info("Initialized trusted domains: " + trustedDomainsStr);
                     JSONArray trustedArray = (JSONArray) parser.parse(trustedDomainsStr);
 
                     Util.trustedDomains = new ArrayList<String>(trustedArray);

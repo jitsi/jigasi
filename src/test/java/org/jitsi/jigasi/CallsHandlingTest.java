@@ -588,7 +588,6 @@ public class CallsHandlingTest
         AbstractGateway.setJvbInviteTimeout(
             AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
 
-        logger.info("");
+        logger.info("Finished testNoFocusInTheRoom");
     }
-
 }
