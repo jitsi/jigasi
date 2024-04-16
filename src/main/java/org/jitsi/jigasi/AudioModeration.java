@@ -131,7 +131,7 @@ public class AudioModeration
      * @param meetTools the <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the features extension element that can be added to presence.
      */
-    static ExtensionElement addSupportedFeatures(OperationSetJitsiMeetToolsJabber meetTools)
+    static ExtensionElement getSupportedFeatures(OperationSetJitsiMeetToolsJabber meetTools)
     {
         if (isMutingSupported())
         {

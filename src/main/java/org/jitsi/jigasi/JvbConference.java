@@ -22,12 +22,12 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.media.*;
-import net.java.sip.communicator.util.DataObject;
-import net.java.sip.communicator.util.osgi.ServiceUtils;
+import net.java.sip.communicator.util.*;
+import net.java.sip.communicator.util.osgi.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.jigasi.lobby.Lobby;
+import org.jitsi.jigasi.lobby.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
@@ -66,6 +66,11 @@ import java.util.*;
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
 
+import static org.jitsi.jigasi.lobby.Lobby.*;
+import static org.jitsi.jigasi.TranscriptionGatewaySession.*;
+import static org.jitsi.jigasi.util.Util.*;
+
+
 /**
  * Class takes care of handling Jitsi Videobridge conference. Currently, it waits
  * for the first XMPP provider service to be registered and uses it to join the
@@ -89,13 +94,6 @@ public class JvbConference
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(JvbConference.class);
-
-    /**
-     * The name of XMPP feature which states for Jigasi SIP Gateway and can be
-     * used to recognize gateway client.
-     */
-    public static final String SIP_GATEWAY_FEATURE_NAME
-        = "http://jitsi.org/protocol/jigasi";
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -192,29 +190,37 @@ public class JvbConference
      * <tt>OperationSetJitsiMeetTools</tt> instance.
      * @return Returns the 'features' extension element that can be added to presence.
      */
-    private static ExtensionElement addSupportedFeatures(
+    private ExtensionElement addSupportedFeatures(
             OperationSetJitsiMeetToolsJabber meetTools)
     {
         FeaturesExtension features = new FeaturesExtension();
 
-        meetTools.addSupportedFeature(SIP_GATEWAY_FEATURE_NAME);
-        features.addChildExtension(Util.createFeature(SIP_GATEWAY_FEATURE_NAME));
-        meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
-        features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
+        meetTools.addSupportedFeature(JIGASI_FEATURE_NAME);
+        features.addChildExtension(Util.createFeature(JIGASI_FEATURE_NAME));
 
-        ConfigurationService cfg
-                = JigasiBundleActivator.getConfigurationService();
+        if (this.isTranscriber)
+        {
+            meetTools.addSupportedFeature(TRANSCRIBER_FEATURE_NAME);
+            features.addChildExtension(Util.createFeature(TRANSCRIBER_FEATURE_NAME));
+        }
+        else
+        {
+            // dtmf is used only when sip calling
+            meetTools.addSupportedFeature(DTMF_FEATURE_NAME);
+            features.addChildExtension(Util.createFeature(DTMF_FEATURE_NAME));
+        }
+
+        ConfigurationService cfg = JigasiBundleActivator.getConfigurationService();
 
         // Remove ICE support from features list ?
         if (cfg.getBoolean(SipGateway.P_NAME_DISABLE_ICE, false))
         {
-            meetTools.removeSupportedFeature(
-                    "urn:xmpp:jingle:transports:ice-udp:1");
+            meetTools.removeSupportedFeature("urn:xmpp:jingle:transports:ice-udp:1");
 
             logger.info("ICE feature will not be advertised");
         }
 
-        ExtensionElement audioMuteFeature = AudioModeration.addSupportedFeatures(meetTools);
+        ExtensionElement audioMuteFeature = AudioModeration.getSupportedFeatures(meetTools);
         if (audioMuteFeature != null)
         {
             features.addChildExtension(audioMuteFeature);
@@ -228,6 +234,11 @@ public class JvbConference
      * instance.
      */
     private final AbstractGatewaySession gatewaySession;
+
+    /**
+     * Whether Jigasi will join as transcriber.
+     */
+    private final boolean isTranscriber;
 
     /**
      * Whether to auto stop when only jigasi are left in the room.
@@ -373,11 +384,6 @@ public class JvbConference
     private final RoomMetadataListener roomMetadataListener = new RoomMetadataListener();
 
     /**
-     * Up-to-date list of participants in the room that are jigasi.
-     */
-    private final List<String> jigasiChatRoomMembers = Collections.synchronizedList(new ArrayList<>());
-
-    /**
      * The features for the current xmpp provider we will use later adding to the room presence we send.
      */
     private ExtensionElement features = null;
@@ -391,17 +397,18 @@ public class JvbConference
     public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
     {
         this.gatewaySession = gatewaySession;
+        this.isTranscriber = this.gatewaySession instanceof TranscriptionGatewaySession;
         this.callContext = ctx;
         this.allowOnlyJigasiInRoom = JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ALLOW_ONLY_JIGASIS_IN_ROOM, true);
 
-        if (this.gatewaySession instanceof SipGatewaySession)
+        if (this.isTranscriber)
         {
-            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
+            this.audioModeration = null;
         }
         else
         {
-            this.audioModeration = null;
+            this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
         }
     }
 
@@ -772,7 +779,7 @@ public class JvbConference
                         .findFirst().orElse(null);
 
                 // we process room metadata messages only when we are transcribing
-                if (roomMetadataIdentity != null && this.gatewaySession instanceof TranscriptionGatewaySession)
+                if (roomMetadataIdentity != null && this.isTranscriber)
                 {
                     getConnection().addAsyncStanzaListener(roomMetadataListener,
                         new AndFilter(
@@ -874,9 +881,7 @@ public class JvbConference
                 // creates an extension to hold all headers, as when using
                 // addPresencePacketExtensions it requires unique extensions
                 // otherwise overrides them
-                AbstractPacketExtension initiator
-                    = new AbstractPacketExtension(
-                        SIP_GATEWAY_FEATURE_NAME, "initiator"){};
+                AbstractPacketExtension initiator = new AbstractPacketExtension(JIGASI_FEATURE_NAME, "initiator"){};
 
                 // let's add all extra headers from the context
                 callContext.getExtraHeaders().forEach(
@@ -1206,18 +1211,8 @@ public class JvbConference
             {
                 if (member instanceof ChatRoomMemberJabberImpl)
                 {
-                    Presence presence = ((ChatRoomMemberJabberImpl) member).getLastPresence();
-
-                    gatewaySession.notifyChatRoomMemberUpdated(member, presence);
-
-                    // let's check and whether it is a jigasi participant
-                    // we use initiator as its easier for checking/parsing
-                    if (presence != null
-                        && !jigasiChatRoomMembers.contains(member.getName())
-                        && presence.hasExtension("initiator", SIP_GATEWAY_FEATURE_NAME))
-                    {
-                        jigasiChatRoomMembers.add(member.getName());
-                    }
+                    gatewaySession.notifyChatRoomMemberUpdated(member,
+                        ((ChatRoomMemberJabberImpl) member).getLastPresence());
                 }
             }
 
@@ -1229,8 +1224,6 @@ public class JvbConference
             logger.info(
                 this.callContext + " Member left : " + member.getRole()
                             + " " + member.getContactAddress());
-
-            jigasiChatRoomMembers.remove(member.getName());
 
             CallPeer peer;
             if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
@@ -1301,7 +1294,8 @@ public class JvbConference
             boolean onlyJigasisInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
                 m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
                 || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
-                || jigasiChatRoomMembers.contains(m.getName()));
+                || (Util.isJigasi((ChatRoomMemberJabberImpl) m)
+                        && !Util.isTranscriberJigasi((ChatRoomMemberJabberImpl)m)));
 
             if (onlyJigasisInRoom)
             {
@@ -1327,6 +1321,25 @@ public class JvbConference
                     // transcriber case
                     stop();
                 }
+
+                return;
+            }
+        }
+
+        if (JvbConference.this.isTranscriber)
+        {
+            // make sure we hangup transcriber if only backend services are in the room - Jibri/Jigasi
+            // (maybe a second transcriber if there is some glitch in the system).
+            boolean onlyBotsInRoom = this.mucRoom.getMembers().stream().allMatch(m ->
+                    m.getName().equals(getResourceIdentifier().toString()) // ignore if it is us
+                            || m.getName().equals(gatewaySession.getFocusResourceAddr()) // ignore if it is jicofo
+                            || Util.isTranscriberJigasi((ChatRoomMemberJabberImpl)m)
+                            || Util.isJibri((ChatRoomMemberJabberImpl)m));
+
+            if (onlyBotsInRoom)
+            {
+                logger.info(this.callContext + " Leaving room only bots in the room!");
+                stop();
             }
         }
     }
@@ -2012,13 +2025,12 @@ public class JvbConference
                 discoverInfo(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid());
 
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
-            boolean lobbyEnabled = df.getField(Lobby.DATA_FORM_LOBBY_ROOM_FIELD) != null;
-            boolean singleModeratorEnabled = df.getField(Lobby.DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
+            boolean lobbyEnabled = df.getField(DATA_FORM_LOBBY_ROOM_FIELD) != null;
+            boolean singleModeratorEnabled = df.getField(DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
 
-            List<String> roomMetadataValues
-                    = df.getField(TranscriptionGatewaySession.DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
+            List<String> roomMetadataValues = df.getField(DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
             if (roomMetadataValues != null && !roomMetadataValues.isEmpty())
             {
                 // it is supposed to have a single value
@@ -2033,7 +2045,7 @@ public class JvbConference
 
     private void processRoomMetadataJson(String json)
     {
-        if (!(this.gatewaySession instanceof TranscriptionGatewaySession))
+        if (!this.isTranscriber)
         {
             return;
         }
@@ -2267,9 +2279,9 @@ public class JvbConference
         public void run()
         {
             // if the call was stopped before we check ignore
-            if (!started)
+            if (!started || jvbCall == null)
             {
-                logger.warn("Media activity checker exiting early as call is not started!");
+                logger.warn("Media activity checker exiting early as call is not started or jvbCall is stopped!");
                 return;
             }
 

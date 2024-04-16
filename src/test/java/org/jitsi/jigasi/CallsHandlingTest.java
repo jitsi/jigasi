@@ -24,6 +24,7 @@ import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.*;
@@ -45,6 +46,11 @@ import org.osgi.framework.launch.*;
  */
 public class CallsHandlingTest
 {
+    /**
+     * The logger.
+     */
+    private final static Logger logger = Logger.getLogger(CallsHandlingTest.class);
+
     private static OSGiHandler osgi;
 
     private MockProtocolProvider sipProvider;
@@ -234,6 +240,7 @@ public class CallsHandlingTest
     public void testMultipleTime()
         throws Exception
     {
+        logger.info("Starting testMultipleTime");
         testIncomingSipCall();
         tearDown();
 
@@ -255,6 +262,7 @@ public class CallsHandlingTest
 
         setUp();
         testOutgoingSipCall();
+        logger.info("Finished testMultipleTime");
     }
 
     @Test
@@ -262,6 +270,8 @@ public class CallsHandlingTest
         throws OperationFailedException,
                OperationNotSupportedException, InterruptedException
     {
+        logger.info("Starting testFocusLeftTheRoomWithNoResume");
+
         long origValue = AbstractGateway.getJvbInviteTimeout();
         AbstractGateway.setJvbInviteTimeout(-1);
 
@@ -282,6 +292,8 @@ public class CallsHandlingTest
         assertNull(focus.getChatRoom());
 
         AbstractGateway.setJvbInviteTimeout(origValue);
+
+        logger.info("Finished testFocusLeftTheRoomWithNoResume");
     }
 
     @Test
@@ -289,6 +301,8 @@ public class CallsHandlingTest
         throws OperationFailedException,
                OperationNotSupportedException, InterruptedException
     {
+        logger.info("Starting testFocusLeftTheRoomWithResume");
+
         long origValue = AbstractGateway.getJvbInviteTimeout();
         AbstractGateway.setJvbInviteTimeout(AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
 
@@ -312,12 +326,16 @@ public class CallsHandlingTest
 
         // clear
         CallManager.hangupCall(sipCall);
+
+        logger.info("Finished testFocusLeftTheRoomWithResume");
     }
 
     @Test
     public void testCallControl()
         throws Exception
     {
+        logger.info("Starting testCallControl");
+
         String serverName = "conference.net";
 
         CallControl callControl = new CallControl(JigasiBundleActivator.getConfigurationService());
@@ -392,6 +410,8 @@ public class CallsHandlingTest
         callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
         assertFalse(conferenceChatRoom.isJoined());
+
+        logger.info("Finished testCallControl");
     }
 
     /**
@@ -401,6 +421,8 @@ public class CallsHandlingTest
     public void testDefaultJVbRoomProperty()
         throws Exception
     {
+        logger.info("Starting testDefaultJvbRoomProperty");
+
         // Once the chat room is joined the focus sends
         // session-initiate request to new participant.
         focus.setup();
@@ -438,12 +460,16 @@ public class CallsHandlingTest
         callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
         callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
         assertFalse(jvbRoom.isJoined());
+
+        logger.info("Finished testDefaultJvbRoomProperty");
     }
 
     @Test
     public void testSimultaneousCalls()
         throws Exception
     {
+        logger.info("Starting testSimultaneousCalls");
+
         // Once the chat room is joined the focus sends
         // session-initiate request to new participant.
         focus.setup();
@@ -503,12 +529,16 @@ public class CallsHandlingTest
         assertFalse(jvbRoom1.isJoined());
         assertFalse(jvbRoom2.isJoined());
         assertFalse(jvbRoom3.isJoined());
+
+        logger.info("Finished testSimultaneousCalls");
     }
 
     @Test
     public void testNoFocusInTheRoom()
         throws Exception
     {
+        logger.info("Starting testNoFocusInTheRoom");
+
         // Set wait for JVB invite timeout
         long jvbInviteTimeout = 200;
         AbstractGateway.setJvbInviteTimeout(jvbInviteTimeout);
@@ -557,6 +587,7 @@ public class CallsHandlingTest
 
         AbstractGateway.setJvbInviteTimeout(
             AbstractGateway.DEFAULT_JVB_INVITE_TIMEOUT);
-    }
 
+        logger.info("Finished testNoFocusInTheRoom");
+    }
 }
