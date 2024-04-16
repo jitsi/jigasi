@@ -2279,9 +2279,9 @@ public class JvbConference
         public void run()
         {
             // if the call was stopped before we check ignore
-            if (!started)
+            if (!started || jvbCall == null)
             {
-                logger.warn("Media activity checker exiting early as call is not started!");
+                logger.warn("Media activity checker exiting early as call is not started or jvbCall is stopped!");
                 return;
             }
 
