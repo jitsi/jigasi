@@ -459,7 +459,8 @@ public class GoogleCloudTranscriptionService
                     logger.warn(debugName + ": not able to send request", e);
                 }
             });
-            logger.trace(debugName + ": queued request");
+            if (logger.isTraceEnabled())
+                logger.trace(debugName + ": queued request");
         }
 
         @Override
@@ -759,7 +760,8 @@ public class GoogleCloudTranscriptionService
 
                 terminatingSessionThread.interrupt();
             }
-            logger.trace(debugName + ": sent a request");
+            if (logger.isTraceEnabled())
+                logger.trace(debugName + ": sent a request");
         }
 
         /**

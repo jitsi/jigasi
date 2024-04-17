@@ -305,9 +305,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug(
-                    getDebugName()
-                        + ": added participant with identifier " + identifier);
+                logger.debug(getDebugName() + ": added participant with identifier " + identifier);
 
             return;
         }
@@ -481,11 +479,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-            {
-                logger.debug(
-                    getDebugName() + ": removed participant with identifier "
-                        + identifier);
-            }
+                logger.debug(getDebugName() + ": removed participant with identifier " + identifier);
 
             return;
         }
@@ -534,8 +528,7 @@ public class Transcriber
         if (State.TRANSCRIBING.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug(
-                    getDebugName() + ": transcriber is now finishing up");
+                logger.debug(getDebugName() + ": transcriber is now finishing up");
 
             updateDDClient(reason == null ? DD_ASPECT_STOP : DD_ASPECT_FAILED);
 
@@ -579,9 +572,7 @@ public class Transcriber
         {
             dClient.increment(ddAspectStop);
             if (logger.isDebugEnabled())
-            {
                 logger.debug(getDebugName() + " thrown stat: " + ddAspectStop);
-            }
         }
     }
 
@@ -728,8 +719,9 @@ public class Transcriber
     {
         if (!isTranscribing())
         {
-            logger.trace(
-                getDebugName() + ": receiving audio while not transcribing");
+            if (logger.isTraceEnabled())
+                logger.trace(getDebugName() + ": receiving audio while not transcribing");
+
             return;
         }
 
@@ -741,7 +733,9 @@ public class Transcriber
         {
             if (p.hasValidSourceLanguage())
             {
-                logger.trace(getDebugName() + ": gave audio to buffer");
+                if (logger.isTraceEnabled())
+                    logger.trace(getDebugName() + ": gave audio to buffer");
+
                 p.giveBuffer(buffer);
             }
         }
@@ -842,9 +836,9 @@ public class Transcriber
                 {
                     if (!participant.isCompleted())
                     {
-                        logger.debug(
-                            participant.getDebugName()
-                                + " is still not finished");
+                        if (logger.isDebugEnabled())
+                            logger.debug(participant.getDebugName() + " is still not finished");
+
                         return;
                     }
                 }
