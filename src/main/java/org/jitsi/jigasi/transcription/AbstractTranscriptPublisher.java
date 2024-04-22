@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.Message;
@@ -845,46 +844,7 @@ public abstract class AbstractTranscriptPublisher<T>
                         logger.info("executing " + scriptPath +
                         " with arguments '" + absDirPath + "'");
 
-                        Process p = new ProcessBuilder(scriptPath.toString(),
-                            absDirPath.toString()).start();
-
-                        StatsDClient dClient
-                            = JigasiBundleActivator.getDataDogClient();
-                        if (dClient != null)
-                        {
-                            int returnValue;
-
-                            try
-                            {
-                                returnValue = p.waitFor();
-                            }
-                            catch (InterruptedException e)
-                            {
-                                logger.error("", e);
-                                returnValue = -1;
-                            }
-
-                            if (returnValue == 0)
-                            {
-                                dClient.increment(DD_ASPECT_SUCCESS);
-                                if (logger.isDebugEnabled())
-                                {
-                                    logger.debug("thrown stat: " +
-                                        DD_ASPECT_SUCCESS
-                                    );
-                                }
-                            }
-                            else
-                            {
-                                dClient.increment(DD_ASPECT_FAIL);
-                                if (logger.isDebugEnabled())
-                                {
-                                    logger.debug("thrown stat: " +
-                                        DD_ASPECT_FAIL
-                                    );
-                                }
-                            }
-                        }
+                        new ProcessBuilder(scriptPath.toString(), absDirPath.toString()).start();
                     }
                     catch (IOException e)
                     {

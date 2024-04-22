@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi;
 
-import com.timgroup.statsd.*;
 import net.java.sip.communicator.util.osgi.*;
 import org.jitsi.meet.*;
 import org.jitsi.utils.logging.Logger;
@@ -171,16 +170,6 @@ public class JigasiBundleActivator
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_SIP_STARTMUTED, ENABLE_SIP_STARTMUTED_DEFAULT_VALUE);
-    }
-
-    /**
-     * Returns a {@link StatsDClient} instance to push statistics to datadog
-     *
-     * @return the {@link StatsDClient}
-     */
-    public static StatsDClient getDataDogClient()
-    {
-        return ServiceUtils.getService(osgiContext, StatsDClient.class);
     }
 
     public JigasiBundleActivator()

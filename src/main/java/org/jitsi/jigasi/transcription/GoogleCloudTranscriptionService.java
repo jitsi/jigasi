@@ -22,8 +22,8 @@ import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
-import com.timgroup.statsd.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
 
@@ -506,25 +506,6 @@ public class GoogleCloudTranscriptionService
         private final static int INTERVAL_LENGTH_MS = 15000;
 
         /**
-         * The aspect to log the information to about the total number of
-         * 15 second intervals submitted to the Google API for transcription.
-         */
-        private final static String ASPECT_INTERVAL
-            = "google_cloud_speech_15s_intervals";
-
-        /**
-         * The aspect to log the information to about the total number of
-         * requests submitted to the Google Cloud Speec API.
-         */
-        private final static String ASPECT_TOTAL_REQUESTS
-            = "google_cloud_speech_requests";
-
-        /**
-         * The client to send statistics to
-         */
-        private final StatsDClient client = JigasiBundleActivator.getDataDogClient();
-
-        /**
          * Extra string added to every log.
          */
         private final String debugName;
@@ -582,11 +563,8 @@ public class GoogleCloudTranscriptionService
             // round up to 15 second intervals
             int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
 
-            if (client != null)
-            {
-                client.count(ASPECT_INTERVAL, intervals15s);
-                client.count(ASPECT_TOTAL_REQUESTS, requestsCount);
-            }
+            Statistics.incrementTotalTranscriber15sIntervals(intervals15s);
+            Statistics.incrementTotalTranscriberRequests();
 
             logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
                             "for a total of " + intervals15s + " intervals " +

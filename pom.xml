@@ -84,11 +84,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.datadoghq</groupId>
-      <artifactId>java-dogstatsd-client</artifactId>
-      <version>4.0.0</version>
-    </dependency>
-    <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack-extensions</artifactId>
       <version>${smack.version}</version>

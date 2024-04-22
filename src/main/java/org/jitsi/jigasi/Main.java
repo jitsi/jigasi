@@ -41,7 +41,6 @@ import net.java.sip.communicator.util.*;
 import org.apache.commons.lang3.*;
 import org.jitsi.cmd.*;
 import org.jitsi.impl.osgi.framework.launch.*;
-import org.jitsi.jigasi.ddclient.*;
 import org.jitsi.jigasi.osgi.*;
 import org.jitsi.jigasi.rest.*;
 import org.jitsi.jigasi.version.*;
@@ -337,8 +336,7 @@ public class Main
             JigasiBundleActivator.class,
             RESTBundleActivator.class,
             TranscriptServerBundleActivator.class,
-            CallControlMucActivator.class,
-            DdClientActivator.class
+            CallControlMucActivator.class
         ));
         var options = new HashMap<String, String>();
         options.put(Constants.FRAMEWORK_BEGINNING_STARTLEVEL, "3");

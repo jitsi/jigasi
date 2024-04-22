@@ -110,6 +110,31 @@ public class Statistics
     public static final String TOTAL_CALLS_NO_HEARTBEAT = "total_calls_no_heartbeat_response";
 
     /**
+     * The name of the number of started transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_STARTED = "total_transcriber_started";
+
+    /**
+     * The name of the number of stopped transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_STOPPED = "total_transcriber_stopped";
+
+    /**
+     * The name of the number of failed transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_FAILED = "total_transcriber_failed";
+
+    /**
+     * The total number of 15 second intervals submitted to the Google API for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_G_15S_INTERVALS = "total_transcriber_g_15s_intervals";
+
+    /**
+     * The total number of requests submitted to the Google Cloud Speech API.
+     */
+    public static final String TOTAL_TRANSCRIBER_G_REQUESTS = "total_transcriber_g_requests";
+
+    /**
      * The name of the property that holds the normalizing constant that is used to reduce the number of
      * current conferences to a stress level metric {@link #CONFERENCES_THRESHOLD}.
      */
@@ -210,6 +235,41 @@ public class Statistics
             "Total number of calls dropped due to no response to sip heartbeat.");
 
     /**
+     * Total number of transcriptions started.
+     */
+    private static CounterMetric totalTrasnscriberStarted = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_STARTED,
+            "Total number of started transcriptions.");
+
+    /**
+     * Total number of transcriptions stopped.
+     */
+    private static CounterMetric totalTrasnscriberStopped = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_STOPPED,
+            "Total number of stopped transcriptions.");
+
+    /**
+     * Total number of transcriptions failes.
+     */
+    private static CounterMetric totalTrasnscriberFailed = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_FAILED,
+            "Total number of failed transcriptions.");
+
+    /**
+     * The total number of 15 second intervals submitted to the Google API for transcription.
+     */
+    private static LongGaugeMetric total15sIntervals = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_G_15S_INTERVALS,
+            "Total number of 15 second intervals.");
+
+    /**
+     * The total number of requests submitted to the Google Cloud Speech API.
+     */
+    private static CounterMetric totalTrasnscriberRequests = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_G_REQUESTS,
+            "Total number of transcriber requests.");
+
+    /**
      * Cumulative number of seconds of all conferences.
      */
     private static CounterMetric cumulativeConferenceSeconds = JigasiMetricsContainer.INSTANCE.registerCounter(
@@ -296,6 +356,10 @@ public class Statistics
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
+
+        stats.put(TOTAL_TRANSCRIBER_STARTED, totalTrasnscriberStarted.get());
+        stats.put(TOTAL_TRANSCRIBER_STOPPED, totalTrasnscriberStopped.get());
+        stats.put(TOTAL_TRANSCRIBER_FAILED, totalTrasnscriberFailed.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS, shutdownMetric.get());
 
@@ -482,6 +546,46 @@ public class Statistics
     public static void incrementTotalCallsWithNoSipHeartbeat()
     {
         totalCallsWithNoHeartBeatResponse.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber started.
+     */
+    public static void incrementTotalTranscriberStarted()
+    {
+        totalTrasnscriberStarted.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber stopped.
+     */
+    public static void incrementTotalTranscriberSopped()
+    {
+        totalTrasnscriberStopped.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber failes.
+     */
+    public static void incrementTotalTranscriberFailed()
+    {
+        totalTrasnscriberFailed.inc();
+    }
+
+    /**
+     * Increment the value of total number of 15s transcriber intervals.
+     */
+    public static void incrementTotalTranscriber15sIntervals(long value)
+    {
+        total15sIntervals.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of transcriber request.
+     */
+    public static void incrementTotalTranscriberRequests()
+    {
+        totalTrasnscriberRequests.inc();
     }
 
     /**
