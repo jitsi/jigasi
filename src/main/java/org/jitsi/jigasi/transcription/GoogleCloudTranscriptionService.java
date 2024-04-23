@@ -22,8 +22,8 @@ import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.*;
-import com.timgroup.statsd.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
 
@@ -201,6 +201,9 @@ public class GoogleCloudTranscriptionService
                 return;
             }
         }
+
+        Statistics.incrementTotalTranscriberConnectionErrors();
+
         throw new UnsupportedOperationException(tag + " is not a language " +
                                                     "supported by the Google " +
                                                     "Cloud speech-to-text API");
@@ -353,6 +356,7 @@ public class GoogleCloudTranscriptionService
         }
         catch (Exception e)
         {
+            Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Error sending single req", e);
         }
     }
@@ -442,6 +446,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 logger.error(debugName + ": error creating stream observer", e);
             }
         }
@@ -456,10 +461,12 @@ public class GoogleCloudTranscriptionService
                 }
                 catch(Exception e)
                 {
+                    Statistics.incrementTotalTranscriberSendErrors();
                     logger.warn(debugName + ": not able to send request", e);
                 }
             });
-            logger.trace(debugName + ": queued request");
+            if (logger.isTraceEnabled())
+                logger.trace(debugName + ": queued request");
         }
 
         @Override
@@ -481,6 +488,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 logger.error(debugName + ": error ending session", e);
             }
         }
@@ -502,26 +510,7 @@ public class GoogleCloudTranscriptionService
         /**
          * The length of a cost interval of the Google cloud speech-to-text API
          */
-        private final static int INTERVAL_LENGTH_MS = 15000;
-
-        /**
-         * The aspect to log the information to about the total number of
-         * 15 second intervals submitted to the Google API for transcription.
-         */
-        private final static String ASPECT_INTERVAL
-            = "google_cloud_speech_15s_intervals";
-
-        /**
-         * The aspect to log the information to about the total number of
-         * requests submitted to the Google Cloud Speec API.
-         */
-        private final static String ASPECT_TOTAL_REQUESTS
-            = "google_cloud_speech_requests";
-
-        /**
-         * The client to send statistics to
-         */
-        private final StatsDClient client = JigasiBundleActivator.getDataDogClient();
+        private final static int INTERVAL_LENGTH_MS = 60000;
 
         /**
          * Extra string added to every log.
@@ -570,6 +559,7 @@ public class GoogleCloudTranscriptionService
         synchronized void incrementRequestsCounter()
         {
             requestsCount += 1;
+            Statistics.incrementTotalTranscriberRequests();
         }
 
         /**
@@ -578,17 +568,13 @@ public class GoogleCloudTranscriptionService
          */
         synchronized void sessionEnded()
         {
-            // round up to 15 second intervals
-            int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
+            // round up to 60 second intervals
+            int intervals = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
 
-            if (client != null)
-            {
-                client.count(ASPECT_INTERVAL, intervals15s);
-                client.count(ASPECT_TOTAL_REQUESTS, requestsCount);
-            }
+            Statistics.incrementTotalTranscriberMinutes(intervals);
 
             logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
-                            "for a total of " + intervals15s + " intervals " +
+                            "for a total of " + intervals + " intervals " +
                             "with a total of " + requestsCount + " requests.");
 
             summedTime = 0;
@@ -759,7 +745,8 @@ public class GoogleCloudTranscriptionService
 
                 terminatingSessionThread.interrupt();
             }
-            logger.trace(debugName + ": sent a request");
+            if (logger.isTraceEnabled())
+                logger.trace(debugName + ": sent a request");
         }
 
         /**
@@ -899,6 +886,8 @@ public class GoogleCloudTranscriptionService
                 logger.debug(debugName + ": received a StreamingRecognizeResponse");
             if (message.hasError())
             {
+                Statistics.incrementTotalTranscriberSendErrors();
+
                 // it is expected to get an error if the 60 seconds are exceeded
                 // without any speech in the audio OR if someone muted their mic
                 // and no new audio is coming in
@@ -917,7 +906,7 @@ public class GoogleCloudTranscriptionService
                 if (logger.isDebugEnabled())
                     logger.debug(
                         debugName + ": received a message with an empty results list");
-
+                Statistics.incrementTotalTranscriberNoResultErrors();
                 requestManager.terminateCurrentSession();
                 return;
             }
@@ -930,6 +919,7 @@ public class GoogleCloudTranscriptionService
             // so this is never supposed to happen
             if (result.getAlternativesList().isEmpty())
             {
+                Statistics.incrementTotalTranscriberNoResultErrors();
                 logger.warn(
                     debugName + ": received a list of alternatives which"
                             + " was empty");
@@ -1014,7 +1004,7 @@ public class GoogleCloudTranscriptionService
         public void onError(Throwable t)
         {
             logger.warn(debugName + ": received an error from the Google Cloud API", t);
-
+            Statistics.incrementTotalTranscriberSendErrors();
             if (t instanceof ResourceExhaustedException)
             {
                 for (TranscriptionListener l : requestManager.getListeners())

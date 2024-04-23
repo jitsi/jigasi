@@ -17,11 +17,11 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import com.timgroup.statsd.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
@@ -46,21 +46,6 @@ public class Transcriber
      * The logger of this class
      */
     private final static Logger logger = Logger.getLogger(Transcriber.class);
-
-    /**
-     * Datadog aspect for failing the transcription process.
-     */
-    private final static String DD_ASPECT_FAILED = "failed_transcriber";
-
-    /**
-     * Datadog aspect for starting transcribing
-     */
-    private final static String DD_ASPECT_START = "start_transcriber";
-
-    /**
-     * Datadog aspect for ending transcribing
-     */
-    private final static String DD_ASPECT_STOP = "stop_transcriber";
 
     /**
      * The property name for the boolean value whether translations should be
@@ -305,9 +290,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug(
-                    getDebugName()
-                        + ": added participant with identifier " + identifier);
+                logger.debug(getDebugName() + ": added participant with identifier " + identifier);
 
             return;
         }
@@ -481,11 +464,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-            {
-                logger.debug(
-                    getDebugName() + ": removed participant with identifier "
-                        + identifier);
-            }
+                logger.debug(getDebugName() + ": removed participant with identifier " + identifier);
 
             return;
         }
@@ -505,7 +484,7 @@ public class Transcriber
             if (logger.isDebugEnabled())
                 logger.debug(getDebugName() + ": transcriber is now transcribing");
 
-            updateDDClient(DD_ASPECT_START);
+            Statistics.incrementTotalTranscriberStarted();
 
             this.state = State.TRANSCRIBING;
             this.executorService = Executors.newSingleThreadExecutor();
@@ -534,10 +513,7 @@ public class Transcriber
         if (State.TRANSCRIBING.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug(
-                    getDebugName() + ": transcriber is now finishing up");
-
-            updateDDClient(reason == null ? DD_ASPECT_STOP : DD_ASPECT_FAILED);
+                logger.debug(getDebugName() + ": transcriber is now finishing up");
 
             this.state = reason == null ? State.FINISHING_UP : State.FINISHED;
             this.executorService.shutdown();
@@ -549,10 +525,14 @@ public class Transcriber
 
             if (reason == null)
             {
+                Statistics.incrementTotalTranscriberSopped();
+
                 checkIfFinishedUp();
             }
             else
             {
+                Statistics.incrementTotalTranscriberFailed();
+
                 for (TranscriptionListener listener : listeners)
                 {
                     listener.failed(reason);
@@ -564,24 +544,6 @@ public class Transcriber
             logger.warn(
                 getDebugName() + ": trying to stop Transcriber while it is "
                     + " already stopped");
-        }
-    }
-
-    /**
-     * Updated dd client with a stat.
-     *
-     * @param ddAspectStop
-     */
-    private void updateDDClient(String ddAspectStop)
-    {
-        StatsDClient dClient = JigasiBundleActivator.getDataDogClient();
-        if (dClient != null)
-        {
-            dClient.increment(ddAspectStop);
-            if (logger.isDebugEnabled())
-            {
-                logger.debug(getDebugName() + " thrown stat: " + ddAspectStop);
-            }
         }
     }
 
@@ -728,8 +690,9 @@ public class Transcriber
     {
         if (!isTranscribing())
         {
-            logger.trace(
-                getDebugName() + ": receiving audio while not transcribing");
+            if (logger.isTraceEnabled())
+                logger.trace(getDebugName() + ": receiving audio while not transcribing");
+
             return;
         }
 
@@ -741,7 +704,9 @@ public class Transcriber
         {
             if (p.hasValidSourceLanguage())
             {
-                logger.trace(getDebugName() + ": gave audio to buffer");
+                if (logger.isTraceEnabled())
+                    logger.trace(getDebugName() + ": gave audio to buffer");
+
                 p.giveBuffer(buffer);
             }
         }
@@ -842,9 +807,9 @@ public class Transcriber
                 {
                     if (!participant.isCompleted())
                     {
-                        logger.debug(
-                            participant.getDebugName()
-                                + " is still not finished");
+                        if (logger.isDebugEnabled())
+                            logger.debug(participant.getDebugName() + " is still not finished");
+
                         return;
                     }
                 }

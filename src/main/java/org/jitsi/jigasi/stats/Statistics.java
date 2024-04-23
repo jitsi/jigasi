@@ -110,6 +110,51 @@ public class Statistics
     public static final String TOTAL_CALLS_NO_HEARTBEAT = "total_calls_no_heartbeat_response";
 
     /**
+     * The name of the number of started transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_STARTED = "total_transcriber_started";
+
+    /**
+     * The name of the number of stopped transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_STOPPED = "total_transcriber_stopped";
+
+    /**
+     * The name of the number of failed transcriptions.
+     */
+    public static final String TOTAL_TRANSCRIBER_FAILED = "total_transcriber_failed";
+
+    /**
+     * The total number of minute intervals submitted to the Google API for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_G_MINUTES = "total_transcriber_g_minutes";
+
+    /**
+     * The total number of requests submitted to the Google Cloud Speech API.
+     */
+    public static final String TOTAL_TRANSCRIBER_G_REQUESTS = "total_transcriber_g_requests";
+
+    /**
+     * The total number of connection errors for the transcriber.
+     */
+    public static final String TOTAL_TRANSCRIBER_CONNECTION_ERRORS = "total_transcriber_connection_errors";
+
+    /**
+     * The total number of no result errors for the transcriber.
+     */
+    public static final String TOTAL_TRANSCRIBER_NO_RESUL_ERRORS = "total_transcriber_no_result_errors";
+
+    /**
+     * The total number of send errors for the transcriber.
+     */
+    public static final String TOTAL_TRANSCRIBER_SEND_ERRORS = "total_transcriber_send_errors";
+
+    /**
+     * The total number of session creation errors for the transcriber.
+     */
+    public static final String TOTAL_TRANSCRIBER_SESSION_CREATION_ERRORS = "total_transcriber_session_creation_errors";
+
+    /**
      * The name of the property that holds the normalizing constant that is used to reduce the number of
      * current conferences to a stress level metric {@link #CONFERENCES_THRESHOLD}.
      */
@@ -210,6 +255,69 @@ public class Statistics
             "Total number of calls dropped due to no response to sip heartbeat.");
 
     /**
+     * Total number of transcriptions started.
+     */
+    private static CounterMetric totalTrasnscriberStarted = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_STARTED,
+            "Total number of started transcriptions.");
+
+    /**
+     * Total number of transcriptions stopped.
+     */
+    private static CounterMetric totalTrasnscriberStopped = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_STOPPED,
+            "Total number of stopped transcriptions.");
+
+    /**
+     * Total number of transcriptions failures.
+     */
+    private static CounterMetric totalTrasnscriberFailed = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_FAILED,
+            "Total number of failed transcriptions.");
+
+    /**
+     * Total number of transcriptions connection errors.
+     */
+    private static CounterMetric totalTrasnscriberConnectionErrors = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_CONNECTION_ERRORS,
+            "Total number of transcriber connection errors.");
+
+    /**
+     * Total number of transcriptions no result errors.
+     */
+    private static CounterMetric totalTrasnscriberNoResultErrors = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_NO_RESUL_ERRORS,
+            "Total number of transcriber no result errors.");
+
+    /**
+     * Total number of transcriptions send errors.
+     */
+    private static CounterMetric totalTrasnscriberSendErrors = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_SEND_ERRORS,
+            "Total number of transcriber send errors.");
+
+    /**
+     * Total number of transcriptions session creation errors.
+     */
+    private static CounterMetric totalTrasnscriberSessionCreationErrors
+        = JigasiMetricsContainer.INSTANCE.registerCounter(TOTAL_TRANSCRIBER_SESSION_CREATION_ERRORS,
+            "Total number of transcriber session creation errors.");
+
+    /**
+     * The total number of 15 second intervals submitted to the Google API for transcription.
+     */
+    private static LongGaugeMetric totalTranscriberMinutes = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_G_MINUTES,
+            "Total number of minute intervals.");
+
+    /**
+     * The total number of requests submitted to the Google Cloud Speech API.
+     */
+    private static CounterMetric totalTrasnscriberRequests = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_G_REQUESTS,
+            "Total number of transcriber requests.");
+
+    /**
      * Cumulative number of seconds of all conferences.
      */
     private static CounterMetric cumulativeConferenceSeconds = JigasiMetricsContainer.INSTANCE.registerCounter(
@@ -296,6 +404,18 @@ public class Statistics
         stats.put(TOTAL_CALLS_WITH_JVB_MIGRATE, totalCallsWithJvbMigrate.get());
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
+
+        stats.put(TOTAL_TRANSCRIBER_G_REQUESTS, totalTrasnscriberRequests.get());
+        stats.put(TOTAL_TRANSCRIBER_G_MINUTES, totalTranscriberMinutes.get());
+
+        stats.put(TOTAL_TRANSCRIBER_STARTED, totalTrasnscriberStarted.get());
+        stats.put(TOTAL_TRANSCRIBER_STOPPED, totalTrasnscriberStopped.get());
+        stats.put(TOTAL_TRANSCRIBER_FAILED, totalTrasnscriberFailed.get());
+
+        stats.put(TOTAL_TRANSCRIBER_CONNECTION_ERRORS, totalTrasnscriberConnectionErrors.get());
+        stats.put(TOTAL_TRANSCRIBER_NO_RESUL_ERRORS, totalTrasnscriberNoResultErrors.get());
+        stats.put(TOTAL_TRANSCRIBER_SEND_ERRORS, totalTrasnscriberSendErrors.get());
+        stats.put(TOTAL_TRANSCRIBER_SESSION_CREATION_ERRORS, totalTrasnscriberSessionCreationErrors.get());
 
         stats.put(SHUTDOWN_IN_PROGRESS, shutdownMetric.get());
 
@@ -482,6 +602,78 @@ public class Statistics
     public static void incrementTotalCallsWithNoSipHeartbeat()
     {
         totalCallsWithNoHeartBeatResponse.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber started.
+     */
+    public static void incrementTotalTranscriberStarted()
+    {
+        totalTrasnscriberStarted.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber stopped.
+     */
+    public static void incrementTotalTranscriberSopped()
+    {
+        totalTrasnscriberStopped.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber failes.
+     */
+    public static void incrementTotalTranscriberFailed()
+    {
+        totalTrasnscriberFailed.inc();
+    }
+
+    /**
+     * Increment the value of total number of minute transcriber intervals.
+     */
+    public static void incrementTotalTranscriberMinutes(long value)
+    {
+        totalTranscriberMinutes.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of transcriber request.
+     */
+    public static void incrementTotalTranscriberRequests()
+    {
+        totalTrasnscriberRequests.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber connection errors.
+     */
+    public static void incrementTotalTranscriberConnectionErrors()
+    {
+        totalTrasnscriberConnectionErrors.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber no result errors.
+     */
+    public static void incrementTotalTranscriberNoResultErrors()
+    {
+        totalTrasnscriberNoResultErrors.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber send errors.
+     */
+    public static void incrementTotalTranscriberSendErrors()
+    {
+        totalTrasnscriberSendErrors.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber session creation errors.
+     */
+    public static void incrementTotalTranscriberSessionCreationErrors()
+    {
+        totalTrasnscriberSessionCreationErrors.inc();
     }
 
     /**
