@@ -510,7 +510,7 @@ public class GoogleCloudTranscriptionService
         /**
          * The length of a cost interval of the Google cloud speech-to-text API
          */
-        private final static int INTERVAL_LENGTH_MS = 15000;
+        private final static int INTERVAL_LENGTH_MS = 60000;
 
         /**
          * Extra string added to every log.
@@ -568,13 +568,13 @@ public class GoogleCloudTranscriptionService
          */
         synchronized void sessionEnded()
         {
-            // round up to 15 second intervals
-            int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
+            // round up to 60 second intervals
+            int intervals = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
 
-            Statistics.incrementTotalTranscriber15sIntervals(intervals15s);
+            Statistics.incrementTotalTranscriberMinutes(intervals);
 
             logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
-                            "for a total of " + intervals15s + " intervals " +
+                            "for a total of " + intervals + " intervals " +
                             "with a total of " + requestsCount + " requests.");
 
             summedTime = 0;

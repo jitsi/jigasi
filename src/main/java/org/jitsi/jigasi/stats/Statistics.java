@@ -125,9 +125,9 @@ public class Statistics
     public static final String TOTAL_TRANSCRIBER_FAILED = "total_transcriber_failed";
 
     /**
-     * The total number of 15 second intervals submitted to the Google API for transcription.
+     * The total number of minute intervals submitted to the Google API for transcription.
      */
-    public static final String TOTAL_TRANSCRIBER_G_15S_INTERVALS = "total_transcriber_g_15s_intervals";
+    public static final String TOTAL_TRANSCRIBER_G_MINUTES = "total_transcriber_g_minutes";
 
     /**
      * The total number of requests submitted to the Google Cloud Speech API.
@@ -306,9 +306,9 @@ public class Statistics
     /**
      * The total number of 15 second intervals submitted to the Google API for transcription.
      */
-    private static LongGaugeMetric total15sIntervals = JigasiMetricsContainer.INSTANCE.registerLongGauge(
-            TOTAL_TRANSCRIBER_G_15S_INTERVALS,
-            "Total number of 15 second intervals.");
+    private static LongGaugeMetric totalTranscriberMinutes = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_G_MINUTES,
+            "Total number of minute intervals.");
 
     /**
      * The total number of requests submitted to the Google Cloud Speech API.
@@ -406,7 +406,7 @@ public class Statistics
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
 
         stats.put(TOTAL_TRANSCRIBER_G_REQUESTS, totalTrasnscriberRequests.get());
-        stats.put(TOTAL_TRANSCRIBER_G_15S_INTERVALS, total15sIntervals.get());
+        stats.put(TOTAL_TRANSCRIBER_G_MINUTES, totalTranscriberMinutes.get());
 
         stats.put(TOTAL_TRANSCRIBER_STARTED, totalTrasnscriberStarted.get());
         stats.put(TOTAL_TRANSCRIBER_STOPPED, totalTrasnscriberStopped.get());
@@ -629,11 +629,11 @@ public class Statistics
     }
 
     /**
-     * Increment the value of total number of 15s transcriber intervals.
+     * Increment the value of total number of minute transcriber intervals.
      */
-    public static void incrementTotalTranscriber15sIntervals(long value)
+    public static void incrementTotalTranscriberMinutes(long value)
     {
-        total15sIntervals.addAndGet(value);
+        totalTranscriberMinutes.addAndGet(value);
     }
 
     /**
