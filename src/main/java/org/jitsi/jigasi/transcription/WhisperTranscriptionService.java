@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.utils.logging.*;
 
 import java.nio.*;
@@ -96,6 +97,7 @@ public class WhisperTranscriptionService
         }
         catch (Exception e)
         {
+            Statistics.incrementTotalTranscriberSessionCreationErrors();
             throw new UnsupportedOperationException("Failed to create WS streaming session", e);
         }
     }
@@ -150,6 +152,7 @@ public class WhisperTranscriptionService
         {
             if (this.wsClient.ended())
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 logger.warn("Trying to send buffer without a connection.");
                 return;
             }
@@ -160,6 +163,7 @@ public class WhisperTranscriptionService
             }
             catch (Exception e)
             {
+                Statistics.incrementTotalTranscriberSendErrors();
                 logger.error("Error while sending websocket request for participant " + participantId, e);
             }
         }

@@ -22,6 +22,7 @@ import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
 import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.stats.*;
 import org.jitsi.utils.logging.*;
 import org.json.*;
 
@@ -169,6 +170,7 @@ public class WhisperWebsocket
         }
         catch (Exception e)
         {
+            Statistics.incrementTotalTranscriberConnectionErrors();
             logger.error("Failed generating JWT for Whisper. " + e);
         }
         if (logger.isDebugEnabled())
@@ -206,6 +208,7 @@ public class WhisperWebsocket
             }
             catch (Exception e)
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 int remaining = maxRetryAttempts - attempt;
                 waitTime *= multiplier;
                 logger.error("Failed connecting to " + websocketUrl + ". Retrying in "
@@ -222,6 +225,7 @@ public class WhisperWebsocket
 
         if (!isConnected)
         {
+            Statistics.incrementTotalTranscriberConnectionErrors();
             logger.error("Failed connecting to " + websocketUrl + ". Nothing to do.");
         }
     }
@@ -290,6 +294,7 @@ public class WhisperWebsocket
     {
         if (wsSession != null)
         {
+            Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Error while streaming audio data to transcription service.", cause);
         }
     }
@@ -356,6 +361,7 @@ public class WhisperWebsocket
         RemoteEndpoint remoteEndpoint = wsSession.getRemote();
         if (remoteEndpoint == null)
         {
+            Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Failed sending audio for " + participantId + ". Attempting to reconnect.");
             if (!wsSession.isOpen())
             {
@@ -378,6 +384,7 @@ public class WhisperWebsocket
             }
             catch (IOException e)
             {
+                Statistics.incrementTotalTranscriberSendErrors();
                 logger.error("Failed sending audio for " + participantId + ". " + e);
             }
         }

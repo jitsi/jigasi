@@ -201,6 +201,9 @@ public class GoogleCloudTranscriptionService
                 return;
             }
         }
+
+        Statistics.incrementTotalTranscriberConnectionErrors();
+
         throw new UnsupportedOperationException(tag + " is not a language " +
                                                     "supported by the Google " +
                                                     "Cloud speech-to-text API");
@@ -353,6 +356,7 @@ public class GoogleCloudTranscriptionService
         }
         catch (Exception e)
         {
+            Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Error sending single req", e);
         }
     }
@@ -442,6 +446,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 logger.error(debugName + ": error creating stream observer", e);
             }
         }
@@ -456,6 +461,7 @@ public class GoogleCloudTranscriptionService
                 }
                 catch(Exception e)
                 {
+                    Statistics.incrementTotalTranscriberSendErrors();
                     logger.warn(debugName + ": not able to send request", e);
                 }
             });
@@ -482,6 +488,7 @@ public class GoogleCloudTranscriptionService
             }
             catch(Exception e)
             {
+                Statistics.incrementTotalTranscriberConnectionErrors();
                 logger.error(debugName + ": error ending session", e);
             }
         }
@@ -879,6 +886,8 @@ public class GoogleCloudTranscriptionService
                 logger.debug(debugName + ": received a StreamingRecognizeResponse");
             if (message.hasError())
             {
+                Statistics.incrementTotalTranscriberSendErrors();
+
                 // it is expected to get an error if the 60 seconds are exceeded
                 // without any speech in the audio OR if someone muted their mic
                 // and no new audio is coming in
@@ -897,7 +906,7 @@ public class GoogleCloudTranscriptionService
                 if (logger.isDebugEnabled())
                     logger.debug(
                         debugName + ": received a message with an empty results list");
-
+                Statistics.incrementTotalTranscriberNoResultErrors();
                 requestManager.terminateCurrentSession();
                 return;
             }
@@ -910,6 +919,7 @@ public class GoogleCloudTranscriptionService
             // so this is never supposed to happen
             if (result.getAlternativesList().isEmpty())
             {
+                Statistics.incrementTotalTranscriberNoResultErrors();
                 logger.warn(
                     debugName + ": received a list of alternatives which"
                             + " was empty");
@@ -994,7 +1004,7 @@ public class GoogleCloudTranscriptionService
         public void onError(Throwable t)
         {
             logger.warn(debugName + ": received an error from the Google Cloud API", t);
-
+            Statistics.incrementTotalTranscriberSendErrors();
             if (t instanceof ResourceExhaustedException)
             {
                 for (TranscriptionListener l : requestManager.getListeners())
