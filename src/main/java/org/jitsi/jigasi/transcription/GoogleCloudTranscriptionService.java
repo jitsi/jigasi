@@ -559,6 +559,7 @@ public class GoogleCloudTranscriptionService
         synchronized void incrementRequestsCounter()
         {
             requestsCount += 1;
+            Statistics.incrementTotalTranscriberRequests();
         }
 
         /**
@@ -571,7 +572,6 @@ public class GoogleCloudTranscriptionService
             int intervals15s = 1 + (int) (summedTime  / INTERVAL_LENGTH_MS);
 
             Statistics.incrementTotalTranscriber15sIntervals(intervals15s);
-            Statistics.incrementTotalTranscriberRequests();
 
             logger.info(debugName + ": sent " + summedTime + "ms to speech API, " +
                             "for a total of " + intervals15s + " intervals " +

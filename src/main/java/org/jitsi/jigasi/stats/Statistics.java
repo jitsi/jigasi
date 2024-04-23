@@ -405,6 +405,9 @@ public class Statistics
         stats.put(TOTAL_CALLS_JVB_NO_MEDIA, totalCallsJvbNoMedia.get());
         stats.put(TOTAL_CALLS_NO_HEARTBEAT, totalCallsWithNoHeartBeatResponse.get());
 
+        stats.put(TOTAL_TRANSCRIBER_G_REQUESTS, totalTrasnscriberRequests.get());
+        stats.put(TOTAL_TRANSCRIBER_G_15S_INTERVALS, total15sIntervals.get());
+
         stats.put(TOTAL_TRANSCRIBER_STARTED, totalTrasnscriberStarted.get());
         stats.put(TOTAL_TRANSCRIBER_STOPPED, totalTrasnscriberStopped.get());
         stats.put(TOTAL_TRANSCRIBER_FAILED, totalTrasnscriberFailed.get());
