@@ -688,6 +688,7 @@ public class Participant
                 session = transcriber.getTranscriptionService()
                         .initStreamingSession(this);
                 session.addTranscriptionListener(this);
+                sessions.put(getLanguageKey(), session);
             }
             else
             // fallback if TranscriptionService does not support streams
