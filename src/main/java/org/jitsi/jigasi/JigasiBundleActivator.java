@@ -185,6 +185,8 @@ public class JigasiBundleActivator
 
         StartMutedProvider.registerStartMutedProvider();
 
+        new ConferenceIqProvider();
+
         ProviderManager.addExtensionProvider(
                 FeaturesExtension.ELEMENT,
                 FeaturesExtension.NAMESPACE,

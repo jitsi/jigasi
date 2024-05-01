@@ -389,6 +389,11 @@ public class JvbConference
     private ExtensionElement features = null;
 
     /**
+     * Whether we are currently joining as a visitor.
+     */
+    private boolean isVisitor = false;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -504,37 +509,37 @@ public class JvbConference
 
         Localpart resourceIdentifier = getResourceIdentifier();
 
-        this.xmppProviderFactory
-            = ProtocolProviderFactory.getProtocolProviderFactory(
-                JigasiBundleActivator.osgiContext,
-                ProtocolNames.JABBER);
+        this.createAndLoadAccount(createAccountPropertiesForCallId(callContext, resourceIdentifier.toString()));
 
-        this.xmppAccount
-            = xmppProviderFactory.createAccount(
-                    createAccountPropertiesForCallId(
-                            callContext,
-                            resourceIdentifier.toString()));
+        if (this.xmppProvider == null)
+        {
+            // Listen for XMPP provider to be added
+            JigasiBundleActivator.osgiContext.addServiceListener(this);
+        }
+    }
+
+    private void createAndLoadAccount(Map<String, String> accountProperties)
+    {
+        this.xmppProviderFactory = ProtocolProviderFactory.getProtocolProviderFactory(
+            JigasiBundleActivator.osgiContext, ProtocolNames.JABBER);
+
+        this.xmppAccount = xmppProviderFactory.createAccount(accountProperties);
 
         xmppProviderFactory.loadAccount(xmppAccount);
 
         started = true;
 
         // Look for first XMPP provider
-        Collection<ServiceReference<ProtocolProviderService>> providers
-            = ServiceUtils.getServiceReferences(
-                    JigasiBundleActivator.osgiContext,
-                    ProtocolProviderService.class);
+        Collection<ServiceReference<ProtocolProviderService>> providers = ServiceUtils.getServiceReferences(
+            JigasiBundleActivator.osgiContext, ProtocolProviderService.class);
 
         for (ServiceReference<ProtocolProviderService> serviceRef : providers)
         {
-            ProtocolProviderService candidate
-                = JigasiBundleActivator.osgiContext.getService(serviceRef);
+            ProtocolProviderService candidate = JigasiBundleActivator.osgiContext.getService(serviceRef);
 
             if (ProtocolNames.JABBER.equals(candidate.getProtocolName()))
             {
-                if (candidate.getAccountID()
-                    .getAccountUniqueID()
-                    .equals(xmppAccount.getAccountUniqueID()))
+                if (candidate.getAccountID().getAccountUniqueID().equals(xmppAccount.getAccountUniqueID()))
                 {
                     setXmppProvider(candidate);
 
@@ -544,12 +549,6 @@ public class JvbConference
                     }
                 }
             }
-        }
-
-        if (this.xmppProvider == null)
-        {
-            // Listen for XMPP provider to be added
-            JigasiBundleActivator.osgiContext.addServiceListener(this);
         }
     }
 
@@ -912,12 +911,46 @@ public class JvbConference
                 this.audioModeration.notifyWillJoinJvbRoom(mucRoom);
             }
 
-            // we invite focus and wait for its response
-            // to be sure that if it is not in the room, the focus will be the
-            // first to join, mimic the web behaviour
-            inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
-
             Localpart resourceIdentifier = getResourceIdentifier();
+
+            // we are inviting focus when not a visitor, if we have received a response to join as a visitor
+            // we skip sending the request and just join as a visitor
+            if (!this.isVisitor)
+            {
+                // we invite focus and wait for its response
+                // to be sure that if it is not in the room, the focus will be the
+                // first to join, mimic the web behaviour
+                String vnode = inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
+
+                if (vnode != null)
+                {
+                    this.isVisitor = true;
+
+                    // update domain with the predefined visitor's domain
+                    this.callContext.setRoomName(this.callContext.getRoomJid().toString()
+                        .replaceAll(this.callContext.getDomain(), vnode + ".meet.jitsi"));
+
+                    this.xmppProvider.unregister(true); // let's recreate it after disconnect
+
+                    // remove old first
+                    xmppProvider.removeRegistrationStateChangeListener(this);
+
+                    logger.info(callContext + " Removing account to prepare visitor " + xmppAccount);
+                    xmppProviderFactory.unloadAccount(xmppAccount);
+                    this.xmppProvider = null;
+
+                    // create a new account, so it will match the domain for the userID from the room jid we updated
+                    Map<String, String> props
+                        = createAccountPropertiesForCallId(callContext, resourceIdentifier.toString());
+
+                    props.put(JabberAccountID.BOSH_URL,
+                        this.xmppAccount.getAccountPropertyString(JabberAccountID.BOSH_URL) + "&vnode=" + vnode);
+
+                    this.createAndLoadAccount(props);
+
+                    return;
+                }
+            }
 
             lobbyLocalpart = resourceIdentifier;
 
@@ -1557,8 +1590,15 @@ public class JvbConference
             // disable hole punching jvb
             if (peer instanceof MediaAwareCallPeer)
             {
-                ((MediaAwareCallPeer)peer).getMediaHandler()
-                    .setDisableHolePunching(true);
+                CallPeerMediaHandler peerMediaHandler = ((MediaAwareCallPeer)peer).getMediaHandler();
+
+                peerMediaHandler.setDisableHolePunching(true);
+
+                if (isVisitor)
+                {
+                    // no sources
+                    peerMediaHandler.setLocalAudioTransmissionEnabled(false);
+                }
             }
 
             jvbCall.addCallChangeListener(callChangeListener);
@@ -1841,19 +1881,20 @@ public class JvbConference
      * Sends invite to jicofo to join a room.
      *
      * @param roomIdentifier the room to join
+     * @return Returns vnode if one exist in focus response.
      */
-    private void inviteFocus(final EntityBareJid roomIdentifier)
+    private String inviteFocus(final EntityBareJid roomIdentifier)
     {
         if (callContext == null || callContext.getRoomJidDomain() == null)
         {
             logger.error(this.callContext
-                + " No domain name info to use for inviting focus!"
-                + " Please set DOMAIN_BASE to the sip account.");
-            return;
+                + " No domain name info to use for inviting focus! Please set DOMAIN_BASE to the sip account.");
+            return null;
         }
 
         ConferenceIq focusInviteIQ = new ConferenceIq();
         focusInviteIQ.setRoom(roomIdentifier);
+        focusInviteIQ.addProperty("visitors-version", "1");
 
         try
         {
@@ -1864,9 +1905,8 @@ public class JvbConference
         }
         catch (XmppStringprepException e)
         {
-            logger.error(this.callContext +
-                " Could not create destination address for focus invite", e);
-            return;
+            logger.error(this.callContext + " Could not create destination address for focus invite", e);
+            return null;
         }
 
         // this check just skips an exception when running tests
@@ -1875,16 +1915,16 @@ public class JvbConference
             StanzaCollector collector = null;
             try
             {
-                collector = getConnection()
-                    .createStanzaCollectorAndSend(focusInviteIQ);
-                collector.nextResultOrThrow();
+                collector = getConnection().createStanzaCollectorAndSend(focusInviteIQ);
+                ConferenceIq res = collector.nextResultOrThrow();
+
+                return res.getVnode();
             }
             catch (SmackException
                 | XMPPException.XMPPErrorException
                 | InterruptedException e)
             {
-                logger.error(this.callContext +
-                    " Could not invite the focus to the conference", e);
+                logger.error(this.callContext + " Could not invite the focus to the conference", e);
             }
             finally
             {
@@ -1894,6 +1934,8 @@ public class JvbConference
                 }
             }
         }
+
+        return null;
     }
 
     /**
@@ -2030,11 +2072,15 @@ public class JvbConference
             setLobbyEnabled(lobbyEnabled);
             this.singleModeratorEnabled = singleModeratorEnabled;
 
-            List<String> roomMetadataValues = df.getField(DATA_FORM_ROOM_METADATA_FIELD).getValuesAsString();
-            if (roomMetadataValues != null && !roomMetadataValues.isEmpty())
+            FormField roomMetadata = df.getField(DATA_FORM_ROOM_METADATA_FIELD);
+            if (roomMetadata != null)
             {
-                // it is supposed to have a single value
-                processRoomMetadataJson(roomMetadataValues.get(0));
+                List<String> roomMetadataValues = roomMetadata.getValuesAsString();
+                if (roomMetadataValues != null && !roomMetadataValues.isEmpty())
+                {
+                    // it is supposed to have a single value
+                    processRoomMetadataJson(roomMetadataValues.get(0));
+                }
             }
         }
         catch(Exception e)

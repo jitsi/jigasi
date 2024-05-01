@@ -14,12 +14,12 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.14.77b1f5e65</jitsi-desktop.version>
+    <jitsi-desktop.version>2.14.eb4d6487d</jitsi-desktop.version>
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.36</slf4j.version>
     <junit.version>5.8.2</junit.version>
-    <smack.version>4.4.6</smack.version>
+    <smack.version>4.4.8</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
     <jicoco.version>1.1-140-g8f45a9f</jicoco.version>
