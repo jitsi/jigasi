@@ -363,8 +363,10 @@ public class AudioModeration
                 ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(lowerHandExtension);
             }
 
+            long timeMillis = new Date().getTime();
+
             // let's raise hand
-            jitsiMeetTools.sendPresenceExtension(mucRoom, new RaiseHandExtension().setRaisedHandValue(true));
+            jitsiMeetTools.sendPresenceExtension(mucRoom, new RaiseHandExtension().setRaisedHandValue(timeMillis));
 
             return false;
         }
@@ -622,14 +624,13 @@ public class AudioModeration
         }
 
         /**
-         * Sets user's audio muted status.
+         * Sets user's raised hand status.
          *
-         * @param value <tt>true</tt> or <tt>false</tt> which indicates audio
-         *                   muted status of the user.
+         * @param value the UNIX timestamp in miliseconds or null.
          */
-        public ExtensionElement setRaisedHandValue(Boolean value)
+        public ExtensionElement setRaisedHandValue(Long value)
         {
-            setText(value ? value.toString() : null);
+            setText(value == null ? "0" : value.toString());
 
             return this;
         }
