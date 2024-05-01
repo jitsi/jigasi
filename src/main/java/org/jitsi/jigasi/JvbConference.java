@@ -2028,22 +2028,7 @@ public class JvbConference
 
         if (this.meetingId == null)
         {
-            try
-            {
-                DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(getConnection())
-                    .discoverInfo(((ChatRoomJabberImpl) this.mucRoom).getIdentifierAsJid());
-
-                DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
-                FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
-                if (meetingIdField != null)
-                {
-                    this.meetingId = meetingIdField.getFirstValue();
-                }
-            }
-            catch (Exception e)
-            {
-                logger.error(this.callContext + " Error checking room configuration", e);
-            }
+            updateFromRoomConfiguration();
         }
 
         return this.meetingId;
@@ -2068,9 +2053,9 @@ public class JvbConference
 
             DataForm df = (DataForm) info.getExtension(DataForm.NAMESPACE);
             boolean lobbyEnabled = df.getField(DATA_FORM_LOBBY_ROOM_FIELD) != null;
-            boolean singleModeratorEnabled = df.getField(DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
             setLobbyEnabled(lobbyEnabled);
-            this.singleModeratorEnabled = singleModeratorEnabled;
+
+            this.singleModeratorEnabled = df.getField(DATA_FORM_SINGLE_MODERATOR_FIELD) != null;
 
             FormField roomMetadata = df.getField(DATA_FORM_ROOM_METADATA_FIELD);
             if (roomMetadata != null)
@@ -2081,6 +2066,12 @@ public class JvbConference
                     // it is supposed to have a single value
                     processRoomMetadataJson(roomMetadataValues.get(0));
                 }
+            }
+
+            FormField meetingIdField = df.getField(DATA_FORM_MEETING_ID_FIELD_NAME);
+            if (meetingIdField != null)
+            {
+                this.meetingId = meetingIdField.getFirstValue();
             }
         }
         catch(Exception e)
