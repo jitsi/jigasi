@@ -922,7 +922,7 @@ public class JvbConference
                 // first to join, mimic the web behaviour
                 String vnode = inviteFocus(JidCreate.entityBareFrom(mucRoom.getIdentifier()));
 
-                if (vnode != null)
+                if (vnode != null && !this.isTranscriber && JigasiBundleActivator.isSipVisitorsEnabled())
                 {
                     this.isVisitor = true;
 
@@ -1894,7 +1894,11 @@ public class JvbConference
 
         ConferenceIq focusInviteIQ = new ConferenceIq();
         focusInviteIQ.setRoom(roomIdentifier);
-        focusInviteIQ.addProperty("visitors-version", "1");
+
+        if (JigasiBundleActivator.isSipVisitorsEnabled() && !this.isTranscriber)
+        {
+            focusInviteIQ.addProperty("visitors-version", "1");
+        }
 
         try
         {
