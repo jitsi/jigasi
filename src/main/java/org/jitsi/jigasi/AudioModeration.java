@@ -23,14 +23,12 @@ import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.logging.*;
-import org.jitsi.xmpp.extensions.*;
+import org.jitsi.jigasi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
-import org.jivesoftware.smackx.disco.*;
-import org.jivesoftware.smackx.disco.packet.*;
 import org.json.simple.parser.*;
 import org.jxmpp.jid.*;
 
@@ -594,44 +592,6 @@ public class AudioModeration
             }
 
             return IQ.createResultIQ(muteIq);
-        }
-    }
-
-    /**
-     * Added to presence to raise hand.
-     */
-    private static class RaiseHandExtension
-        extends AbstractPacketExtension
-    {
-        /**
-         * The namespace of this packet extension.
-         */
-        public static final String NAMESPACE = "jabber:client";
-
-        /**
-         * XML element name of this packet extension.
-         */
-        public static final String ELEMENT_NAME = "jitsi_participant_raisedHand";
-
-        /**
-         * Creates a {@link org.jitsi.xmpp.extensions.jitsimeet.TranslationLanguageExtension} instance.
-         */
-        public RaiseHandExtension()
-        {
-            super(NAMESPACE, ELEMENT_NAME);
-        }
-
-        /**
-         * Sets user's audio muted status.
-         *
-         * @param value <tt>true</tt> or <tt>false</tt> which indicates audio
-         *                   muted status of the user.
-         */
-        public ExtensionElement setRaisedHandValue(Boolean value)
-        {
-            setText(value ? value.toString() : null);
-
-            return this;
         }
     }
 
