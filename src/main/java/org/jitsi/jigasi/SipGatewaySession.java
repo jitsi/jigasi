@@ -1140,6 +1140,24 @@ public class SipGatewaySession
         {
             soundNotificationManager.notifyJvbRoomJoined();
         }
+
+        if (this.jvbConference.isVisitor())
+        {
+            try
+            {
+                SipGatewaySession.this.sendJson(SipInfoJsonProtocol.createSIPCallVisitors(true));
+            }
+            catch(OperationFailedException ex)
+            {
+                logger.error("Cannot send visitor message", ex);
+            }
+
+            if (this.jvbConference.getAudioModeration() != null)
+            {
+                // notify user that is muted
+                this.jvbConference.getAudioModeration().mute();
+            }
+        }
     }
 
     /**

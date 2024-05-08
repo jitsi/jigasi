@@ -277,8 +277,12 @@ public class AudioModeration
 
                     boolean bAudioMute = (boolean)data.get("audio");
 
+                    if (this.jvbConference.isVisitor())
+                    {
+                        this.raiseHand();
+                    }
                     // Send request to jicofo
-                    if (this.requestAudioMuteByJicofo(bAudioMute))
+                    else if (this.requestAudioMuteByJicofo(bAudioMute))
                     {
                         // Send response through sip, respondRemoteAudioMute
                         this.gatewaySession.sendJson(
@@ -351,18 +355,7 @@ public class AudioModeration
 
         if (!bMuted && this.avModerationEnabled && !isAllowedToUnmute)
         {
-            OperationSetJitsiMeetToolsJabber jitsiMeetTools
-                = this.jvbConference.getXmppProvider()
-                .getOperationSet(OperationSetJitsiMeetToolsJabber.class);
-
-            if (mucRoom instanceof ChatRoomJabberImpl)
-            {
-                // remove the default value which is lowering the hand
-                ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(lowerHandExtension);
-            }
-
-            // let's raise hand
-            jitsiMeetTools.sendPresenceExtension(mucRoom, new RaiseHandExtension().setRaisedHandValue(true));
+            this.raiseHand();
 
             return false;
         }
@@ -461,6 +454,26 @@ public class AudioModeration
         {
             logger.error(this.callContext + " Error sending mute request", ex);
         }
+    }
+
+    /**
+     * Raises hand, by adding the extension. We remove the lower hand extension first.
+     */
+    private void raiseHand()
+    {
+        OperationSetJitsiMeetToolsJabber jitsiMeetTools = this.jvbConference.getXmppProvider()
+                .getOperationSet(OperationSetJitsiMeetToolsJabber.class);
+
+        ChatRoom mucRoom = this.jvbConference.getJvbRoom();
+
+        if (mucRoom instanceof ChatRoomJabberImpl)
+        {
+            // remove the default value which is lowering the hand
+            ((ChatRoomJabberImpl) mucRoom).removePresencePacketExtensions(lowerHandExtension);
+        }
+
+        // let's raise hand
+        jitsiMeetTools.sendPresenceExtension(mucRoom, new RaiseHandExtension().setRaisedHandValue(true));
     }
 
     /**

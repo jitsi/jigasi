@@ -28,9 +28,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.jigasi.lobby.*;
+import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.jigasi.xmpp.extensions.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.utils.queue.*;
@@ -40,9 +42,11 @@ import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.xmpp.extensions.rayo.*;
+import org.jitsi.xmpp.extensions.visitors.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.filter.*;
+import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.disco.*;
 import org.jivesoftware.smackx.disco.packet.*;
@@ -394,6 +398,23 @@ public class JvbConference
     private boolean isVisitor = false;
 
     /**
+     * Listens for visitor IQs, waiting for promotion responses.
+     */
+    private VisitorIqHandler visitorIqHandler = null;
+
+    /**
+     * Whether the sip inviting focus on the next attempt to join a room.
+     */
+    private boolean skipFocus = false;
+
+    /**
+     * We store bosh connection and room before joining as a visitor, to be able
+     * to restore them when promoting back to main room.
+     */
+    private String oldRoom = null;
+    private String oldBosh = null;
+
+    /**
      * Creates new instance of <tt>JvbConference</tt>
      * @param gatewaySession the <tt>AbstractGatewaySession</tt> that will be
      *                       using this <tt>JvbConference</tt>.
@@ -509,7 +530,7 @@ public class JvbConference
 
         Localpart resourceIdentifier = getResourceIdentifier();
 
-        this.createAndLoadAccount(createAccountPropertiesForCallId(callContext, resourceIdentifier.toString()));
+        this.createAndLoadAccount(createAccountPropertiesForCallId(resourceIdentifier.toString()));
 
         if (this.xmppProvider == null)
         {
@@ -577,6 +598,16 @@ public class JvbConference
         {
             this.audioModeration.clean();
             this.audioModeration.cleanXmppProvider();
+        }
+
+        if (this.visitorIqHandler != null)
+        {
+            XMPPConnection connection = this.getConnection();
+            if (connection != null)
+            {
+                connection.unregisterIQRequestHandler(this.visitorIqHandler);
+                this.visitorIqHandler = null;
+            }
         }
 
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
@@ -812,6 +843,15 @@ public class JvbConference
     }
 
     /**
+     * Indicates whether this conference has been joined as visitor.
+     * @return <tt>true</tt> is this conference is joined as visitor, false otherwise.
+     */
+    public boolean isVisitor()
+    {
+        return this.isVisitor;
+    }
+
+    /**
      * When calling this method, make sure it is not executed in any of the Smack threads.
      */
     public void joinConferenceRoom()
@@ -915,7 +955,7 @@ public class JvbConference
 
             // we are inviting focus when not a visitor, if we have received a response to join as a visitor
             // we skip sending the request and just join as a visitor
-            if (!this.isVisitor)
+            if (!this.skipFocus)
             {
                 // we invite focus and wait for its response
                 // to be sure that if it is not in the room, the focus will be the
@@ -925,10 +965,10 @@ public class JvbConference
                 if (vnode != null && !this.isTranscriber && JigasiBundleActivator.isSipVisitorsEnabled())
                 {
                     this.isVisitor = true;
-
-                    // update domain with the predefined visitor's domain
-                    this.callContext.setRoomName(this.callContext.getRoomJid().toString()
-                        .replaceAll(this.callContext.getDomain(), vnode + ".meet.jitsi"));
+                    this.skipFocus = true;
+                    this.oldRoom = this.callContext.getRoomJid().toString();
+                    String oldDomain = this.callContext.getDomain();
+                    String newDomain = vnode + ".meet.jitsi";
 
                     this.xmppProvider.unregister(true); // let's recreate it after disconnect
 
@@ -937,14 +977,24 @@ public class JvbConference
 
                     logger.info(callContext + " Removing account to prepare visitor " + xmppAccount);
                     xmppProviderFactory.unloadAccount(xmppAccount);
+
                     this.xmppProvider = null;
 
-                    // create a new account, so it will match the domain for the userID from the room jid we updated
-                    Map<String, String> props
-                        = createAccountPropertiesForCallId(callContext, resourceIdentifier.toString());
+                    // update domain with the predefined visitor's domain
+                    this.callContext.setRoomName(this.oldRoom.replaceAll(oldDomain, newDomain));
 
-                    props.put(JabberAccountID.BOSH_URL,
-                        this.xmppAccount.getAccountPropertyString(JabberAccountID.BOSH_URL) + "&vnode=" + vnode);
+                    // create a new account, it will match the domain for the userID from the room jid we updated
+                    Map<String, String> props = createAccountPropertiesForCallId(resourceIdentifier.toString());
+
+                    if (!Boolean.parseBoolean(props.get(JabberAccountID.ANONYMOUS_AUTH)))
+                    {
+                        // if there is authentication we want to use it but with the visitor's domain
+                        props.put(ProtocolProviderFactory.USER_ID,
+                            props.get(ProtocolProviderFactory.USER_ID).replace(oldDomain, newDomain));
+                    }
+
+                    this.oldBosh = this.xmppAccount.getAccountPropertyString(JabberAccountID.BOSH_URL);
+                    props.put(JabberAccountID.BOSH_URL, this.oldBosh + "&vnode=" + vnode);
 
                     this.createAndLoadAccount(props);
 
@@ -988,12 +1038,20 @@ public class JvbConference
                     new AndFilter(
                         FromMatchesFilter.create(((ChatRoomJabberImpl)this.mucRoom).getIdentifierAsJid()),
                         MessageTypeFilter.GROUPCHAT));
+
+                if (this.isVisitor)
+                {
+                    this.visitorIqHandler = new VisitorIqHandler();
+                    getConnection().registerIQRequestHandler(this.visitorIqHandler);
+                }
             }
 
             // let's check room config
             updateFromRoomConfiguration();
 
             logger.info(this.callContext + " Joined room: " + roomName + " meetingId:" + this.getMeetingId());
+
+            this.skipFocus = false;
         }
         catch (Exception e)
         {
@@ -1596,7 +1654,7 @@ public class JvbConference
 
                 if (isVisitor)
                 {
-                    // no sources
+                    // no sources when visitor, or we get rejection from jicofo
                     peerMediaHandler.setLocalAudioTransmissionEnabled(false);
                 }
             }
@@ -1653,19 +1711,19 @@ public class JvbConference
     }
 
     /**
-     * FIXME: temporary
+     * Generates new account properties.
      */
-    private Map<String, String> createAccountPropertiesForCallId(CallContext ctx, String resourceName)
+    private Map<String, String> createAccountPropertiesForCallId(String nodePart)
     {
         HashMap<String, String> properties = new HashMap<>();
 
-        String domain = ctx.getRoomJidDomain();
+        String domain = this.callContext.getRoomJidDomain();
 
-        properties.put(ProtocolProviderFactory.USER_ID, resourceName + "@" + domain);
+        properties.put(ProtocolProviderFactory.USER_ID, nodePart + "@" + domain);
         properties.put(ProtocolProviderFactory.SERVER_ADDRESS, domain);
         properties.put(ProtocolProviderFactory.SERVER_PORT, "5222");
 
-        properties.put(ProtocolProviderFactory.RESOURCE, resourceName);
+        properties.put(ProtocolProviderFactory.RESOURCE, nodePart);
         properties.put(ProtocolProviderFactory.AUTO_GENERATE_RESOURCE, "false");
         properties.put(ProtocolProviderFactory.RESOURCE_PRIORITY, "30");
 
@@ -1761,9 +1819,9 @@ public class JvbConference
             {
                 // do not override boshURL with the global setting if
                 // we already have a value
-                if (StringUtils.isEmpty(ctx.getBoshURL()))
+                if (StringUtils.isEmpty(this.callContext.getBoshURL()))
                 {
-                    ctx.setBoshURL(value);
+                    this.callContext.setBoshURL(value);
                 }
             }
             else if ("org.jitsi.jigasi.xmpp.acc.USER_ID".equals(overridenProp)
@@ -1793,43 +1851,42 @@ public class JvbConference
             }
         }
 
-        String boshUrl = ctx.getBoshURL();
+        String boshUrl = this.callContext.getBoshURL();
         if (StringUtils.isNotEmpty(boshUrl))
         {
-            boshUrl = boshUrl.replace("{roomName}", callContext.getConferenceName());
+            boshUrl = boshUrl.replace("{roomName}", this.callContext.getConferenceName());
 
             try
             {
                 // Make sure we encode the roomName parameter
                 URIBuilder encodedUrlBuilder = new URIBuilder(boshUrl);
-                encodedUrlBuilder.setParameter("room", callContext.getConferenceName());
+                encodedUrlBuilder.setParameter("room", this.callContext.getConferenceName());
                 boshUrl = encodedUrlBuilder.build().toURL().toString();
             }
             catch (URISyntaxException | MalformedURLException e)
             {
-                logger.error(ctx + " Cannot encode bosh url param room", e);
+                logger.error(this.callContext + " Cannot encode bosh url param room", e);
             }
 
-            logger.info(ctx + " Using bosh url:" + boshUrl);
+            logger.info(this.callContext + " Using bosh url:" + boshUrl);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
 
-            if (ctx.hasAuthToken() &&  ctx.getAuthUserId() != null)
+            if (this.callContext.hasAuthToken() &&  this.callContext.getAuthUserId() != null)
             {
-                properties.put(ProtocolProviderFactory.USER_ID, ctx.getAuthUserId());
+                properties.put(ProtocolProviderFactory.USER_ID, this.callContext.getAuthUserId());
             }
         }
 
         // Necessary when doing authenticated XMPP login, otherwise the dynamic
         // accounts get assigned the same ACCOUNT_UID which leads to problems.
-        String accountUID = "Jabber:" + properties.get(ProtocolProviderFactory.USER_ID) + "/" + resourceName;
+        String accountUID = "Jabber:" + properties.get(ProtocolProviderFactory.USER_ID) + "/" + nodePart;
         properties.put(ProtocolProviderFactory.ACCOUNT_UID, accountUID);
 
         // Because some AbstractGatewaySessions needs access to the audio,
         // we can't always use translator
         if (!gatewaySession.isTranslatorSupported())
         {
-            properties.put(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE,
-                "false");
+            properties.put(ProtocolProviderFactory.USE_TRANSLATOR_IN_CONFERENCE, "false");
         }
 
         return properties;
@@ -2307,6 +2364,116 @@ public class JvbConference
             }
 
             processRoomMetadataJson(jsonMsg.getJson());
+        }
+    }
+
+    /**
+     * Handles visitor iq requests received by jigasi.
+     * If promoted, we hangup call and remove the registered account.
+     * The ServiceListener waits for the xmpp account to be removed, before connecting
+     * to the main room.
+     */
+    private class VisitorIqHandler
+        extends AbstractIqRequestHandler
+    {
+        public VisitorIqHandler()
+        {
+            super(VisitorsIq.ELEMENT, VisitorsIq.NAMESPACE, IQ.Type.set, Mode.async);
+        }
+
+        @Override
+        public IQ handleIQRequest(IQ iqRequest)
+        {
+            VisitorsIq visitorsIq = (VisitorsIq) iqRequest;
+
+            VisitorsPromotionResponseExtension promotionResponse
+                    = visitorsIq.getExtension(VisitorsPromotionResponseExtension.class);
+
+            if (promotionResponse != null && promotionResponse.isAllowed())
+            {
+                if (JvbConference.this.gatewaySession instanceof SipGatewaySession)
+                {
+                    try
+                    {
+                        ((SipGatewaySession) JvbConference.this.gatewaySession)
+                            .sendJson(SipInfoJsonProtocol.createSIPCallVisitors(false));
+                    }
+                    catch (OperationFailedException e)
+                    {
+                        logger.error("Failed to send visitor update via sip", e);
+                    }
+                }
+                // let's reconnect to the main prosody
+                try
+                {
+                    leaveConferenceRoom();
+
+                    // we will wait for the provider unregister event before proceeding with the new connection
+                    JigasiBundleActivator.osgiContext.addServiceListener(new ServiceListener()
+                    {
+                        @Override
+                        public void serviceChanged(ServiceEvent serviceEvent)
+                        {
+                            if (serviceEvent.getType() != ServiceEvent.UNREGISTERING)
+                            {
+                                return;
+                            }
+
+                            ServiceReference<?> ref = serviceEvent.getServiceReference();
+
+                            Object service = JigasiBundleActivator.osgiContext.getService(ref);
+
+                            if (!(service instanceof ProtocolProviderService)
+                                    || !JvbConference.this.xmppProvider.equals(service))
+                            {
+                                return;
+                            }
+
+                            JigasiBundleActivator.osgiContext.removeServiceListener(this);
+
+                            JvbConference.this.xmppProvider.removeRegistrationStateChangeListener(JvbConference.this);
+                            JvbConference.this.xmppProvider = null;
+
+                            try
+                            {
+                                JvbConference.this.callContext.setRoomName(JvbConference.this.oldRoom);
+
+                                Localpart resourceIdentifier = getResourceIdentifier();
+
+                                // create a new account, it will match the domain for the userID from the room jid we
+                                // just updated
+                                Map<String, String> props
+                                    = createAccountPropertiesForCallId(resourceIdentifier.toString());
+
+                                props.put(JabberAccountID.BOSH_URL,
+                                    JvbConference.this.oldBosh + "&customusername=" + promotionResponse.getUsername());
+
+                                JvbConference.this.oldBosh = null;
+                                JvbConference.this.oldRoom = null;
+                                JvbConference.this.isVisitor = false;
+                                JvbConference.this.skipFocus = true;
+
+                                JvbConference.this.createAndLoadAccount(props);
+                            }
+                            catch (XmppStringprepException e)
+                            {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+
+                    if (jvbCall != null)
+                    {
+                        CallManager.hangupCall(jvbCall, true);
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            return IQ.createResultIQ(visitorsIq);
         }
     }
 
