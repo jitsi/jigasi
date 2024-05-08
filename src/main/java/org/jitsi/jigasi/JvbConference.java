@@ -403,7 +403,7 @@ public class JvbConference
     private VisitorIqHandler visitorIqHandler = null;
 
     /**
-     * Whether the sip inviting focus on the next attempt to join a room.
+     * Whether to skip inviting focus on the next attempt to join a room.
      */
     private boolean skipFocus = false;
 
@@ -973,10 +973,10 @@ public class JvbConference
                     this.xmppProvider.unregister(true); // let's recreate it after disconnect
 
                     // remove old first
-                    xmppProvider.removeRegistrationStateChangeListener(this);
+                    this.xmppProvider.removeRegistrationStateChangeListener(this);
 
-                    logger.info(callContext + " Removing account to prepare visitor " + xmppAccount);
-                    xmppProviderFactory.unloadAccount(xmppAccount);
+                    logger.info(callContext + " Removing account to prepare visitor " + this.xmppAccount);
+                    this.xmppProviderFactory.unloadAccount(this.xmppAccount);
 
                     this.xmppProvider = null;
 
@@ -2471,6 +2471,11 @@ public class JvbConference
                 {
                     throw new RuntimeException(e);
                 }
+            }
+            else
+            {
+                logger.info(JvbConference.this.callContext
+                    + " Missing extension or promotion denied: " + promotionResponse);
             }
 
             return IQ.createResultIQ(visitorsIq);

@@ -277,7 +277,7 @@ public class AudioModeration
 
                     boolean bAudioMute = (boolean)data.get("audio");
 
-                    if (this.jvbConference.isVisitor())
+                    if (this.jvbConference.isVisitor() && bAudioMute)
                     {
                         this.raiseHand();
                     }

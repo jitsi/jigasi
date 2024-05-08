@@ -51,10 +51,7 @@ public class RaiseHandExtension
      */
     public ExtensionElement setRaisedHandValue(Boolean value)
     {
-        if (value)
-        {
-            setText(String.valueOf(System.currentTimeMillis()));
-        }
+        setText(value ? String.valueOf(System.currentTimeMillis()) : null);
 
         return this;
     }
