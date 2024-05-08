@@ -24,6 +24,8 @@ import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.xmpp.extensions.rayo.*;
+import org.jitsi.xmpp.extensions.visitors.*;
+import org.jitsi.jigasi.xmpp.extensions.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
@@ -201,6 +203,13 @@ public class JigasiBundleActivator
         StartMutedProvider.registerStartMutedProvider();
 
         new ConferenceIqProvider();
+
+        VisitorsIq.Companion.registerProviders();
+        ProviderManager.addExtensionProvider(
+                VisitorsPromotionResponseExtension.ELEMENT,
+                VisitorsIq.NAMESPACE,
+                new DefaultPacketExtensionProvider<>(VisitorsPromotionResponseExtension.class)
+        );
 
         ProviderManager.addExtensionProvider(
                 FeaturesExtension.ELEMENT,
