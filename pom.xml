@@ -200,7 +200,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.1-29-g00e62769</version>
+      <version>1.1-34-gb93ce2ee</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
