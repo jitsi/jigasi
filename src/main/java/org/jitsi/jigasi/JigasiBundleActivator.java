@@ -24,6 +24,8 @@ import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.jibri.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.xmpp.extensions.rayo.*;
+import org.jitsi.xmpp.extensions.visitors.*;
+import org.jitsi.jigasi.xmpp.extensions.*;
 import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.health.*;
 import org.jitsi.jigasi.stats.*;
@@ -83,6 +85,11 @@ public class JigasiBundleActivator
      */
     public final static String P_NAME_ENABLE_SIP_STARTMUTED
         = "org.jitsi.jigasi.ENABLE_SIP_STARTMUTED";
+
+    /**
+     * The property name for the boolean value that enables or disables visitors for sip calls.
+     */
+    public final static String P_NAME_ENABLE_SIP_VISITORS = "org.jitsi.jigasi.ENABLE_SIP_VISITORS";
 
     /**
      * The default value for room join timeout.
@@ -162,7 +169,7 @@ public class JigasiBundleActivator
     }
 
     /**
-     * Get wether starmuted is enabled over sip.
+     * Get whether starmuted is enabled over sip.
      *
      * @return true if startmuted is enabled, false, otherwise.
      */
@@ -170,6 +177,16 @@ public class JigasiBundleActivator
     {
         return JigasiBundleActivator.getConfigurationService()
             .getBoolean(P_NAME_ENABLE_SIP_STARTMUTED, ENABLE_SIP_STARTMUTED_DEFAULT_VALUE);
+    }
+
+    /**
+     * Get whether visitors are enabled for sip.
+     *
+     * @return true if jigasi is enabled to join as visitor.
+     */
+    public static boolean isSipVisitorsEnabled()
+    {
+        return JigasiBundleActivator.getConfigurationService().getBoolean(P_NAME_ENABLE_SIP_VISITORS, false);
     }
 
     public JigasiBundleActivator()
@@ -184,6 +201,15 @@ public class JigasiBundleActivator
         configService = getService(ConfigurationService.class);
 
         StartMutedProvider.registerStartMutedProvider();
+
+        new ConferenceIqProvider();
+
+        VisitorsIq.Companion.registerProviders();
+        ProviderManager.addExtensionProvider(
+                VisitorsPromotionResponseExtension.ELEMENT,
+                VisitorsIq.NAMESPACE,
+                new DefaultPacketExtensionProvider<>(VisitorsPromotionResponseExtension.class)
+        );
 
         ProviderManager.addExtensionProvider(
                 FeaturesExtension.ELEMENT,
