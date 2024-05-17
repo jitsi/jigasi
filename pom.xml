@@ -426,6 +426,16 @@
           <version>${jicoco.version}</version>
           <scope>compile</scope>
       </dependency>
+    <dependency>
+      <groupId>com.oracle.oci.sdk</groupId>
+      <artifactId>oci-java-sdk-common</artifactId>
+      <version>3.41.1</version>
+    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.oracle.oci.sdk</groupId>-->
+<!--      <artifactId>oci-java-sdk-aispeech</artifactId>-->
+<!--      <version>3.34.2-preview1-SNAPSHOT</version>-->
+<!--    </dependency>-->
   </dependencies>
 
   <build>
