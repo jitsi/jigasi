@@ -195,8 +195,7 @@ public class WhisperWebsocket
                 upgradeRequest.setHeader("Authorization", "Bearer " + getJWT());
                 ws = new WebSocketClient();
                 ws.start();
-                CompletableFuture<Session> connectFuture = ws.connect(this, new URI(websocketUrl), upgradeRequest);
-                wsSession = connectFuture.get();
+                wsSession = ws.connect(this, new URI(websocketUrl), upgradeRequest).get();
                 wsSession.setIdleTimeout(Duration.ofSeconds(300));
                 isConnected = true;
                 logger.info("Successfully connected to " + websocketUrl);
