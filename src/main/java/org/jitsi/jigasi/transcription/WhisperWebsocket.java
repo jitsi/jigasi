@@ -107,6 +107,8 @@ public class WhisperWebsocket
 
     private final static String jwtAudience;
 
+    private WebSocketClient ws;
+
     static
     {
         jwtAudience = JigasiBundleActivator.getConfigurationService()
@@ -135,11 +137,11 @@ public class WhisperWebsocket
         logger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
     }
 
-    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException
+    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException
     {
         if (privateKey.isEmpty() || privateKeyName.isEmpty())
         {
-            return null;
+            throw new IOException("Failed generating JWT for Whisper. Missing private key or key name.");
         }
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
@@ -164,15 +166,7 @@ public class WhisperWebsocket
      */
     private void generateWebsocketUrl()
     {
-        try
-        {
-            websocketUrl = websocketUrlConfig + "/" + connectionId + "?auth_token=" + getJWT();
-        }
-        catch (Exception e)
-        {
-            Statistics.incrementTotalTranscriberConnectionErrors();
-            logger.error("Failed generating JWT for Whisper. " + e);
-        }
+        websocketUrl = websocketUrlConfig + "/" + connectionId;
         if (logger.isDebugEnabled())
         {
             logger.debug("Whisper URL: " + websocketUrl);
@@ -197,9 +191,11 @@ public class WhisperWebsocket
             {
                 generateWebsocketUrl();
                 logger.info("Connecting to " + websocketUrl);
-                WebSocketClient ws = new WebSocketClient();
+                ClientUpgradeRequest upgradeRequest = new ClientUpgradeRequest();
+                upgradeRequest.setHeader("Authorization", "Bearer " + getJWT());
+                ws = new WebSocketClient();
                 ws.start();
-                CompletableFuture<Session> connectFuture = ws.connect(this, new URI(websocketUrl));
+                CompletableFuture<Session> connectFuture = ws.connect(this, new URI(websocketUrl), upgradeRequest);
                 wsSession = connectFuture.get();
                 wsSession.setIdleTimeout(Duration.ofSeconds(300));
                 isConnected = true;
@@ -216,11 +212,14 @@ public class WhisperWebsocket
                 logger.error(e.toString());
             }
             attempt++;
-            try
+            synchronized (this)
             {
-                wait(waitTime);
+                try
+                {
+                    wait(waitTime);
+                }
+                catch (InterruptedException ignored) {}
             }
-            catch (InterruptedException ignored) {}
         }
 
         if (!isConnected)
@@ -236,6 +235,18 @@ public class WhisperWebsocket
         wsSession = null;
         participants = null;
         participantListeners = null;
+        try
+        {
+            if (ws != null)
+            {
+                ws.stop();
+                ws = null;
+            }
+        }
+        catch (Exception e)
+        {
+            logger.error("Error while stopping WebSocketClient", e);
+        }
     }
 
 
