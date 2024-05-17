@@ -39,7 +39,8 @@ import java.util.function.Consumer;
  */
 
 public class OracleTranscriptionService
-        extends AbstractTranscriptionService {
+        extends AbstractTranscriptionService
+{
 
     /**
      * Uses the PCMAudioSilenceMediaDevice which performs a transcoding to 16khz PCM audio
@@ -50,7 +51,8 @@ public class OracleTranscriptionService
 
 
     @Override
-    public AudioMixerMediaDevice getMediaDevice(ReceiveStreamBufferListener listener) {
+    public AudioMixerMediaDevice getMediaDevice(ReceiveStreamBufferListener listener)
+    {
         if (this.mediaDevice == null)
         {
             this.mediaDevice = new TranscribingAudioMixerMediaDevice(new PCMAudioSilenceMediaDevice(), listener);
@@ -114,18 +116,21 @@ public class OracleTranscriptionService
     /**
      * If the websocket url is a JSON, language routing is supported
      */
-    public boolean supportsLanguageRouting() {
+    public boolean supportsLanguageRouting()
+    {
         return false;
     }
 
 
     @Override
-    public boolean supportsStreamRecognition() {
+    public boolean supportsStreamRecognition()
+    {
         return true;
     }
 
     @Override
-    public boolean supportsFragmentTranscription() {
+    public boolean supportsFragmentTranscription()
+    {
         return false;
     }
 
@@ -144,7 +149,8 @@ public class OracleTranscriptionService
     }
 
     @Override
-    public boolean isConfiguredProperly() {
+    public boolean isConfiguredProperly()
+    {
         return true;
     }
 
@@ -177,7 +183,8 @@ public class OracleTranscriptionService
                         this,
                         new ConfigFileAuthenticationDetailsProvider(configFile),
                         compartmentId);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 e.printStackTrace();
             }
@@ -197,7 +204,8 @@ public class OracleTranscriptionService
             {
                 client.open(websocketUrl, 443, realtimeClientParameters);
                 sessionStart = Instant.now();
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 e.printStackTrace();
             }
@@ -314,7 +322,10 @@ public class OracleTranscriptionService
         }
 
         @Override
-        public void onConnect() { logger.info("Connected to OCI service"); }
+        public void onConnect()
+        {
+            logger.info("Connected to OCI service");
+        }
 
         @Override
         public void onConnectMessage(RealtimeMessageConnect connectMessage)
