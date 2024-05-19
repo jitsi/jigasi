@@ -49,10 +49,10 @@ public class Util
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
             OutputStream os = conn.getOutputStream();
-            os.write(json.toString().getBytes());
+            os.write(json.toString().getBytes("UTF-8"));
             os.flush();
 
             if (conn.getResponseCode() != HttpURLConnection.HTTP_OK)
