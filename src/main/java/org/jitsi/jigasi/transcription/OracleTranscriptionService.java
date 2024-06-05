@@ -113,9 +113,6 @@ public class OracleTranscriptionService
                 .getString(COMPARTMENT_ID, "");
     }
 
-    /**
-     * If the websocket url is a JSON, language routing is supported
-     */
     public boolean supportsLanguageRouting()
     {
         return false;
@@ -292,6 +289,7 @@ public class OracleTranscriptionService
             if (result.getTranscriptions().size() > 0)
             {
                 String tsResult = result.getTranscriptions().get(0).getTranscription().trim();
+                logger.info("++++++++++ Received result: " + tsResult);
                 Boolean isFinal = result.getTranscriptions().get(0).getIsFinal();
 
                 for (TranscriptionListener l : listeners)
