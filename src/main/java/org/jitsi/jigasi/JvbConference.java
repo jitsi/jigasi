@@ -1955,6 +1955,10 @@ public class JvbConference
         if (JigasiBundleActivator.isSipVisitorsEnabled() && !this.isTranscriber)
         {
             focusInviteIQ.addProperty("visitors-version", "1");
+            if (callContext.isRequestVisitor())
+            {
+                focusInviteIQ.addProperty("visitor", Boolean.TRUE.toString());
+            }
         }
 
         try

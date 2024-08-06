@@ -124,6 +124,11 @@ public class CallContext
     private String authUserId;
 
     /**
+     * Whether to request visitor when joining.
+     */
+    private boolean requestVisitor = false;
+
+    /**
      * Optional bosh url that we use to join a room with the
      * xmpp account.
      * The bosh URL is a pattern:
@@ -618,5 +623,15 @@ public class CallContext
     public Map<String, String> getExtraHeaders()
     {
         return Collections.unmodifiableMap(this.extraHeaders);
+    }
+
+    public boolean isRequestVisitor()
+    {
+        return requestVisitor;
+    }
+
+    public void setRequestVisitor(boolean requestVisitor)
+    {
+        this.requestVisitor = requestVisitor;
     }
 }

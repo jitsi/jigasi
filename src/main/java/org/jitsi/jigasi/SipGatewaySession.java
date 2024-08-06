@@ -160,6 +160,21 @@ public class SipGatewaySession
         = "JITSI_MEET_DOMAIN_TENANT_HEADER_NAME";
 
     /**
+     * The name of the header to search in the INVITE headers whether to request joining as a visitor.
+     */
+    private final String visitorHeaderName;
+
+    /**
+     * Default value optional INVITE header which specifies whether to join as visitor.
+     */
+    public static final String JITSI_MEET_VISITOR_HEADER_DEFAULT = "Jitsi-Visitor";
+
+    /**
+     * The account property to use to set custom header name for domain tenant.
+     */
+    private static final String JITSI_MEET_VISITOR_HEADER_PROPERTY = "JITSI_MEET_VISITOR_HEADER_NAME";
+
+    /**
      * The account property to use to set outbound prefix to be added to all outgoing calls.
      */
     private static final String OUTBOUND_PREFIX_PROPERTY = "OUTBOUND_PREFIX";
@@ -386,6 +401,9 @@ public class SipGatewaySession
             .getAccountPropertyString(
                 JITSI_MEET_DOMAIN_TENANT_HEADER_PROPERTY,
                 JITSI_MEET_DOMAIN_TENANT_HEADER_DEFAULT);
+
+        visitorHeaderName = sipProvider.getAccountID()
+            .getAccountPropertyString(JITSI_MEET_VISITOR_HEADER_PROPERTY, JITSI_MEET_VISITOR_HEADER_DEFAULT);
 
         heartbeatPeriodInSec = sipProvider.getAccountID()
             .getAccountPropertyInt(HEARTBEAT_SECONDS_PROPERTY, heartbeatPeriodInSec);
@@ -747,6 +765,7 @@ public class SipGatewaySession
                     callContext.setAuthUserId(data.get(authUserIdHeaderName));
                     callContext.setMucAddressPrefix(sipProvider.getAccountID()
                         .getAccountPropertyString(CallContext.MUC_DOMAIN_PREFIX_PROP, null));
+                    callContext.setRequestVisitor(Boolean.parseBoolean(data.get(visitorHeaderName)));
 
                     joinJvbConference(callContext);
                 }
