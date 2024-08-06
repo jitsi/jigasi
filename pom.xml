@@ -24,6 +24,7 @@
     <!-- Match jicoco's jetty version. -->
     <jicoco.version>1.1-140-g8f45a9f</jicoco.version>
     <jetty.version>11.0.20</jetty.version>
+    <oci-sdk.version>3.45.0</oci-sdk.version>
   </properties>
 
   <dependencies>
@@ -426,16 +427,16 @@
           <version>${jicoco.version}</version>
           <scope>compile</scope>
       </dependency>
-    <dependency>
-      <groupId>com.oracle.oci.sdk</groupId>
-      <artifactId>oci-java-sdk-common</artifactId>
-      <version>3.41.1</version>
-    </dependency>
-<!--    <dependency>-->
-<!--      <groupId>com.oracle.oci.sdk</groupId>-->
-<!--      <artifactId>oci-java-sdk-aispeech</artifactId>-->
-<!--      <version>3.34.2-preview1-SNAPSHOT</version>-->
-<!--    </dependency>-->
+      <dependency>
+        <groupId>com.oracle.oci.sdk</groupId>
+        <artifactId>oci-java-sdk-common</artifactId>
+        <version>${oci-sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oracle.oci.sdk</groupId>
+        <artifactId>oci-java-sdk-aispeech</artifactId>
+        <version>${oci-sdk.version}</version>
+      </dependency>
   </dependencies>
 
   <build>
