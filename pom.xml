@@ -210,7 +210,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>ice4j</artifactId>
-      <version>3.0-59-g71e244d</version>
+      <version>3.0-72-g824cd4b</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sip</groupId>
