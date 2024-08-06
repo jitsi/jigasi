@@ -1,7 +1,7 @@
 package org.jitsi.jigasi.transcription.oracle;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.*;
 import com.oracle.bmc.aispeech.model.*;
@@ -15,11 +15,13 @@ import org.jitsi.utils.logging.Logger;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
 @WebSocket
-public class OracleRealtimeClient {
+public class OracleRealtimeClient
+{
     private Session session;
     private boolean isConnected;
     private final OracleRealtimeClientListener listener;
@@ -168,16 +170,16 @@ public class OracleRealtimeClient {
             if (parameters.getFinalSilenceThresholdInMs() != null)
                 queryParameter += "finalSilenceThresholdInMs=" + parameters.getFinalSilenceThresholdInMs() + "&";
             if (parameters.getLanguageCode() != null)
-                queryParameter += "languageCode=" + parameters.getLanguageCode().getValue() + "&";
+                queryParameter += "languageCode=" + parameters.getLanguageCode() + "&";
             if (parameters.getModelDomain() != null)
                 queryParameter += "modelDomain=" + parameters.getModelDomain().getValue() + "&";
             if (parameters.getCustomizations() != null && !parameters.getCustomizations().isEmpty())
-                queryParameter += "customizations=" + URLEncoder.encode(customizationsJson, "UTF-8");
+                queryParameter += "customizations=" + URLEncoder.encode(customizationsJson, StandardCharsets.UTF_8);
             if (queryParameter.charAt(queryParameter.length() - 1) == '&')
                 queryParameter = queryParameter.substring(0, queryParameter.length() - 1);
             // The server should contain ws or wss
             destUri = new URI(
-                    server
+                        server
                             + ":"
                             + port
                             + "/ws/transcribe/stream?"
@@ -208,7 +210,7 @@ public class OracleRealtimeClient {
     /**
      * Sends the audio data of bytes to remote.
      *
-     * @param audioBytes represeting the audio data
+     * @param audioBytes representing the audio data
      * @throws OracleServiceDisruptionException If session is closed
      * @throws IOException                If errors happens on sending
      */

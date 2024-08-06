@@ -24,7 +24,6 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.jigasi.transcription.oracle.*;
 import org.jitsi.utils.logging.Logger;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
@@ -86,6 +85,7 @@ public class OracleTranscriptionService
     {
         try
         {
+//            TODO: work on the authentication
             configFile = ConfigFileReader.parse("~/.oci/config");
         }
         catch (IOException e)
@@ -286,7 +286,7 @@ public class OracleTranscriptionService
         @Override
         public void onResult(RealtimeMessageResult result)
         {
-            if (result.getTranscriptions().size() > 0)
+            if (!result.getTranscriptions().isEmpty())
             {
                 String tsResult = result.getTranscriptions().get(0).getTranscription().trim();
                 logger.info("++++++++++ Received result: " + tsResult);
@@ -297,7 +297,7 @@ public class OracleTranscriptionService
                     l.notify(new TranscriptionResult(
                             null,
                             uuid,
-                            sessionStart.plusMillis(result.getTranscriptions().get(0).getStartTime()),
+                            sessionStart.plusMillis(result.getTranscriptions().get(0).getStartTimeInMs()),
                             !isFinal,
                             "en-US",
                             1.0,
