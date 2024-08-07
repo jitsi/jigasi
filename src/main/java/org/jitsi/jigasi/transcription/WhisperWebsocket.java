@@ -17,7 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import io.jsonwebtoken.*;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
@@ -29,8 +28,6 @@ import org.json.*;
 import java.io.*;
 import java.net.*;
 import java.nio.*;
-import java.security.*;
-import java.security.spec.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -137,29 +134,6 @@ public class WhisperWebsocket
         logger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
     }
 
-    private String getJWT() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException
-    {
-        if (privateKey.isEmpty() || privateKeyName.isEmpty())
-        {
-            throw new IOException("Failed generating JWT for Whisper. Missing private key or key name.");
-        }
-        long nowMillis = System.currentTimeMillis();
-        Date now = new Date(nowMillis);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
-        PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
-        JwtBuilder builder = Jwts.builder()
-                .setHeaderParam("kid", privateKeyName)
-                .setIssuedAt(now)
-                .setAudience(jwtAudience)
-                .setIssuer("jigasi")
-                .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
-        long expires = nowMillis + (60 * 5 * 1000);
-        Date expiry = new Date(expires);
-        builder.setExpiration(expiry);
-        return builder.compact();
-    }
-
     /**
      * Creates a connection url by concatenating the websocket
      * url with the Connection Id;
@@ -192,7 +166,8 @@ public class WhisperWebsocket
                 generateWebsocketUrl();
                 logger.info("Connecting to " + websocketUrl);
                 ClientUpgradeRequest upgradeRequest = new ClientUpgradeRequest();
-                upgradeRequest.setHeader("Authorization", "Bearer " + getJWT());
+                upgradeRequest.setHeader("Authorization", "Bearer " +
+                    org.jitsi.jigasi.util.Util.generateAsapToken(privateKey, privateKeyName, jwtAudience, "jigasi"));
                 ws = new WebSocketClient();
                 ws.start();
                 wsSession = ws.connect(this, new URI(websocketUrl), upgradeRequest).get();

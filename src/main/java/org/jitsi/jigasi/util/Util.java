@@ -17,9 +17,11 @@
  */
 package org.jitsi.jigasi.util;
 
+import io.jsonwebtoken.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.media.*;
+import org.apache.commons.lang3.StringUtils;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
@@ -32,7 +34,9 @@ import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
+import java.io.*;
 import java.lang.reflect.*;
+import java.security.spec.*;
 import java.util.*;
 
 import java.math.*;
@@ -150,7 +154,7 @@ public class Util
         }
         catch (NoSuchAlgorithmException e)
         {
-            e.printStackTrace();
+            Logger.getLogger(Util.class).error("Error creating hash", e);
         }
 
         return null;
@@ -338,5 +342,37 @@ public class Util
     public static boolean isJibri(ChatRoomMemberJabberImpl member)
     {
         return checkForFeature(member, JIBRI_FEATURE_NAME);
+    }
+
+    /**
+     * Generates asap token.
+     * @return the generated token.
+     */
+    public static String generateAsapToken(
+            String privateKey, String privateKeyId, String audience, String issuer)
+        throws NoSuchAlgorithmException,
+               InvalidKeySpecException,
+               IOException
+    {
+        if (StringUtils.isEmpty(privateKey) || StringUtils.isEmpty(privateKeyId))
+        {
+            throw new IOException("Failed generating JWT for Whisper. Missing private key or key name.");
+        }
+
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
+        PrivateKey finalPrivateKey = kf.generatePrivate(keySpecPKCS8);
+
+        JwtBuilder builder = Jwts.builder()
+            .setHeaderParam("kid", privateKeyId)
+            .setIssuedAt(now)
+            .setAudience(audience)
+            .setIssuer(issuer)
+            .signWith(finalPrivateKey, SignatureAlgorithm.RS256);
+        builder.setExpiration(new Date(nowMillis + (60 * 5 * 1000)));
+
+        return builder.compact();
     }
 }
