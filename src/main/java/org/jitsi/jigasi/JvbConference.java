@@ -32,6 +32,7 @@ import org.jitsi.jigasi.sip.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.jigasi.version.*;
+import org.jitsi.jigasi.visitor.*;
 import org.jitsi.jigasi.xmpp.extensions.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
@@ -141,6 +142,32 @@ public class JvbConference
      * The milliseconds to wait before check the jvb side of the call for activity.
      */
     private static final int JVB_ACTIVITY_CHECK_DELAY = 5000;
+
+    /**
+     * The name of the property which enables visitors queue service.
+     */
+    public static final String P_NAME_VISITORS_QUEUE_SERVICE = "org.jitsi.jigasi.VISITOR_QUEUE_SERVICE";
+
+    /**
+     * The visitors queue service url.
+     */
+    private static String visitorsQueueServiceUrl = null;
+    static
+    {
+        visitorsQueueServiceUrl = JigasiBundleActivator.getConfigurationService()
+            .getString(P_NAME_VISITORS_QUEUE_SERVICE);
+    }
+
+    /**
+     * The error code used to indicate that the meeting is not live.
+     * (number that is not clashing with OperationFailedException error codes)
+     */
+    private static final int NOT_LIVE_ERROR_CODE = 101;
+
+    /**
+     * The websocket client to connect to visitors queue if configured.
+     */
+    private WebsocketClient websocketClient;
 
     /**
      * A timer which will be used to schedule a quick non-blocking check whether there is any activity
@@ -613,6 +640,11 @@ public class JvbConference
         gatewaySession.onJvbConferenceWillStop(this, endReasonCode, endReason);
 
         leaveConferenceRoom();
+
+        if (this.websocketClient != null)
+        {
+            this.websocketClient.disconnect();
+        }
 
         if (jvbCall != null)
         {
@@ -1128,6 +1160,15 @@ public class JvbConference
                             logger.error(callContext + " Failed to join lobby room!", ex);
                         }
                     }
+                }
+                else if (opex.getErrorCode() == NOT_LIVE_ERROR_CODE)
+                {
+                    logger.info(this.callContext + " Conference is not live yet.");
+
+                    websocketClient = new WebsocketClient(this, visitorsQueueServiceUrl, this.callContext);
+                    websocketClient.connect();
+
+                    return;
                 }
             }
 
@@ -1941,6 +1982,7 @@ public class JvbConference
      * @return Returns vnode if one exist in focus response.
      */
     private String inviteFocus(final EntityBareJid roomIdentifier)
+        throws OperationFailedException
     {
         if (callContext == null || callContext.getRoomJidDomain() == null)
         {
@@ -1983,6 +2025,10 @@ public class JvbConference
                 collector = getConnection().createStanzaCollectorAndSend(focusInviteIQ);
                 ConferenceIq res = collector.nextResultOrThrow();
 
+                if (visitorsQueueServiceUrl != null && !Boolean.parseBoolean(res.getPropertiesMap().get("live")))
+                {
+                    throw new OperationFailedException("Not live conference", NOT_LIVE_ERROR_CODE);
+                }
                 return res.getVnode();
             }
             catch (SmackException
