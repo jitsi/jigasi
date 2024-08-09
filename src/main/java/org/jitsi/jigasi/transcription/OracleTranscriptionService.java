@@ -15,21 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.jitsi.jigasi.transcription;
 
-import com.oracle.bmc.ConfigFileReader;
+import com.fasterxml.uuid.*;
+import com.oracle.bmc.*;
 import com.oracle.bmc.aispeech.model.*;
 import com.oracle.bmc.auth.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.jigasi.JigasiBundleActivator;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.transcription.oracle.*;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging.*;
 
-import java.io.IOException;
-import java.time.Instant;
+import java.io.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.function.*;
 
 
 /**
@@ -177,7 +179,7 @@ public class OracleTranscriptionService
     {
         private OracleRealtimeClient client;
 
-        private UUID uuid = UUID.randomUUID();
+        private UUID uuid;
 
         private boolean sessionEnding = false;
 
@@ -196,6 +198,7 @@ public class OracleTranscriptionService
         public OracleStreamingSession(String websocketUrl)
         {
             this.websocketUrl = websocketUrl;
+            uuid = Generators.timeBasedReorderedGenerator().generate();
             try
             {
                 client = new OracleRealtimeClient(
@@ -323,7 +326,7 @@ public class OracleTranscriptionService
 
                 if (isFinal)
                 {
-                    uuid = UUID.randomUUID();
+                    uuid = Generators.timeBasedReorderedGenerator().generate();
                 }
             }
 
