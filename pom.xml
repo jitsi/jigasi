@@ -467,7 +467,7 @@
                 <bannedDependencies>
                   <excludes>
                     <exclude>org.bouncycastle:bc*-jdk15on*</exclude>
-                    <exclude>org.bouncycastle:bc*-jdk15to18</exclude>
+<!--                    <exclude>org.bouncycastle:bc*-jdk15to18</exclude>-->
                   </excludes>
                 </bannedDependencies>
               </rules>
