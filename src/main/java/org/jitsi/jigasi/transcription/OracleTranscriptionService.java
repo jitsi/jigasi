@@ -19,14 +19,16 @@ package org.jitsi.jigasi.transcription;
 
 import com.oracle.bmc.ConfigFileReader;
 import com.oracle.bmc.aispeech.model.*;
-import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
+import com.oracle.bmc.auth.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.jigasi.transcription.oracle.*;
 import org.jitsi.utils.logging.Logger;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 
@@ -42,13 +44,11 @@ public class OracleTranscriptionService
 {
 
     /**
-     * Uses the PCMAudioSilenceMediaDevice which performs a transcoding to 16khz PCM audio
+     * Uses the PCMAudioSilenceMediaDevice which transcodes to 16khz PCM audio
      *
      * @param listener
      * @return AudioMixerMediaDevice
      */
-
-
     @Override
     public AudioMixerMediaDevice getMediaDevice(ReceiveStreamBufferListener listener)
     {
@@ -72,6 +72,14 @@ public class OracleTranscriptionService
     public final static String WEBSOCKET_URL
             = "org.jitsi.jigasi.transcription.oci.websocketUrl";
 
+    public final static String OCI_AUTH_CONFIGURATION_FILE
+            = "org.jitsi.jigasi.transcription.oci.configFile";
+
+    public final static String defaultOCIAuthConfFile = "~/.oci/config";
+
+    private static final String configFilePath = JigasiBundleActivator.getConfigurationService()
+            .getString(OCI_AUTH_CONFIGURATION_FILE, defaultOCIAuthConfFile);
+
     public final static String COMPARTMENT_ID
             = "org.jitsi.jigasi.transcription.oci.compartmentId";
 
@@ -79,18 +87,32 @@ public class OracleTranscriptionService
 
     public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws";
 
-    private final static ConfigFileReader.ConfigFile configFile;
+    private static BasicAuthenticationDetailsProvider authProvider;
 
     static
     {
+
         try
         {
-//            TODO: work on the authentication
-            configFile = ConfigFileReader.parse("~/.oci/config");
+            authProvider = new ConfigFileAuthenticationDetailsProvider(ConfigFileReader.parse(configFilePath));
         }
         catch (IOException e)
         {
-            throw new RuntimeException(e);
+            logger.warn("Error while reading OCI configuration file, trying to use the instance's principal", e);
+        }
+
+        if (authProvider == null)
+        {
+            try
+            {
+                authProvider = new InstancePrincipalsAuthenticationDetailsProvider.
+                        InstancePrincipalsAuthenticationDetailsProviderBuilder().
+                        build();
+            }
+            catch (Exception e)
+            {
+                logger.error("Error while creating OCI instance principal provider", e);
+            }
         }
     }
 
@@ -178,25 +200,26 @@ public class OracleTranscriptionService
             {
                 client = new OracleRealtimeClient(
                         this,
-                        new ConfigFileAuthenticationDetailsProvider(configFile),
+                        authProvider,
                         compartmentId);
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                logger.error("Error while creating OCI client", e);
             }
         }
 
         private void connect()
         {
-            final RealtimeParameters realtimeClientParameters = RealtimeParameters.builder()
-                    .isAckEnabled(false)
-                    .finalSilenceThresholdInMs(1000)
-                    .build();
             if (client.isConnected())
             {
                 return;
             }
+
+            final RealtimeParameters realtimeClientParameters = RealtimeParameters.builder()
+                    .isAckEnabled(false)
+                    .finalSilenceThresholdInMs(1000)
+                    .build();
             try
             {
                 client.open(websocketUrl, 443, realtimeClientParameters);
@@ -204,7 +227,7 @@ public class OracleTranscriptionService
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                logger.error("Error while connecting to OCI service", e);
             }
         }
 
@@ -218,25 +241,23 @@ public class OracleTranscriptionService
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                logger.error("Error while sending audio data to OCI service", e);
             }
         }
 
         @Override
         public void end()
         {
-            logger.info("+++++Ending OCI session and waiting for the last results");
+            logger.info("Ending OCI session and waiting for the last results");
             try
             {
                 // Wait for 5 seconds for the last results to come in
-                Thread.sleep(5000);
+                CountDownLatch latch = new CountDownLatch(1);
+                latch.await(5, TimeUnit.SECONDS);
             }
             catch (InterruptedException e)
             {
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("Interrupted while waiting for the last results");
-                }
+                logger.warn("Interrupted while waiting for the last results", e);
             }
 
             try
@@ -245,10 +266,7 @@ public class OracleTranscriptionService
             }
             catch (Exception e)
             {
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("Error while closing the OCI connection", e);
-                }
+                logger.error("Error while closing the OCI connection", e);
             }
             sessionEnding = true;
         }
@@ -289,7 +307,6 @@ public class OracleTranscriptionService
             if (!result.getTranscriptions().isEmpty())
             {
                 String tsResult = result.getTranscriptions().get(0).getTranscription().trim();
-                logger.info("++++++++++ Received result: " + tsResult);
                 Boolean isFinal = result.getTranscriptions().get(0).getIsFinal();
 
                 for (TranscriptionListener l : listeners)
@@ -315,14 +332,13 @@ public class OracleTranscriptionService
         @Override
         public void onError(Throwable error)
         {
-            logger.error("Error" + error.toString());
-            error.printStackTrace();
+            logger.error(error);
         }
 
         @Override
         public void onConnect()
         {
-            logger.info("Connected to OCI service");
+            logger.info("Connected to OCI Transcription Service");
         }
 
         @Override

@@ -3,7 +3,8 @@ import com.oracle.bmc.aispeech.model.RealtimeMessageConnect;
 import com.oracle.bmc.aispeech.model.RealtimeMessageAckAudio;
 import com.oracle.bmc.aispeech.model.RealtimeMessageResult;
 
-public interface OracleRealtimeClientListener {
+public interface OracleRealtimeClientListener
+{
     void onClose(int statusCode, String statusMessage);
 
     void onAckMessage(RealtimeMessageAckAudio ackMessage);

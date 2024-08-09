@@ -48,7 +48,8 @@ public class OracleRealtimeClient
     public OracleRealtimeClient(
             OracleRealtimeClientListener listener,
             BasicAuthenticationDetailsProvider authenticationDetailsProvider,
-            String compartmentId) {
+            String compartmentId)
+    {
         this.isConnected = false;
         this.listener = listener;
         this.authenticationDetailsProvider = authenticationDetailsProvider;
@@ -62,15 +63,19 @@ public class OracleRealtimeClient
      * @param reason     the close reason sent from remote
      */
     @OnWebSocketClose
-    public void onClose(int statusCode, String reason) {
+    public void onClose(int statusCode, String reason)
+    {
         String closedBy = isClosureClientInitiated ? "client" : "server";
         logger.info("Session closed by " + closedBy + ", reason = " + reason + ", status code = " + statusCode);
         isConnected = false;
         this.session = null;
-        try {
+        try
+        {
             this.client.stop();
-        } catch (Exception e) {
-            logger.error("The following exception occured while trying to stop the realtime speech websocket client: ", e);
+        }
+        catch (Exception e)
+        {
+            logger.error("Error while stopping the OCI transcription client: ", e);
         }
         //The listener can implement their own closing logic
         this.listener.onClose(statusCode, reason);
@@ -82,13 +87,15 @@ public class OracleRealtimeClient
      * @param error the error throwable sent from remote
      */
     @OnWebSocketError
-    public void onError(Throwable error) {
-        logger.info("Error: " + error.getMessage());
+    public void onError(Throwable error)
+    {
+        logger.error(error.getMessage());
         isConnected = false;
         this.session = null;
 
         // Pass the exception down to the listener.
-        if (listener != null) {
+        if (listener != null)
+        {
             listener.onError(error);
         }
     }
@@ -99,18 +106,19 @@ public class OracleRealtimeClient
      * @param session the session that got connected
      */
     @OnWebSocketConnect
-    public void onConnect(Session session) {
-        logger.info("Connect: " + session.getRemoteAddress());
-        synchronized (this) {
+    public void onConnect(Session session)
+    {
+        logger.info("Connected to: " + session.getRemoteAddress());
+        synchronized (this)
+        {
             this.session = session;
         }
 
-        // We need to decide if we want to send tokens or credentials in the client
-        // initialization
         sendCreds(compartmentId);
 
         isConnected = true;
-        if (listener != null) {
+        if (listener != null)
+        {
             listener.onConnect();
         }
     }
@@ -122,25 +130,36 @@ public class OracleRealtimeClient
      * @throws JsonProcessingException if errors happens on processing json response
      */
     @OnWebSocketMessage
-    public void onMessage(String message) throws JsonProcessingException {
-        if (listener == null) {
+    public void onMessage(String message) throws JsonProcessingException
+    {
+        if (listener == null)
+        {
             return;
         }
-        try {
+        try
+        {
             final RealtimeMessage realtimeMessage = objectMapper.readValue(message, RealtimeMessage.class);
-            if (realtimeMessage instanceof RealtimeMessageAckAudio) {
+            if (realtimeMessage instanceof RealtimeMessageAckAudio)
+            {
                 listener.onAckMessage((RealtimeMessageAckAudio) realtimeMessage);
-            } else if (realtimeMessage instanceof RealtimeMessageConnect) {
+            }
+            else if (realtimeMessage instanceof RealtimeMessageConnect)
+            {
                 listener.onConnectMessage((RealtimeMessageConnect) realtimeMessage);
-            } else if (realtimeMessage instanceof RealtimeMessageResult) {
+            }
+            else if (realtimeMessage instanceof RealtimeMessageResult)
+            {
                 listener.onResult((RealtimeMessageResult) realtimeMessage);
-            } else if (realtimeMessage instanceof RealtimeMessageError) {
+            }
+            else if (realtimeMessage instanceof RealtimeMessageError)
+            {
                 final RealtimeMessageError errorMessage = (RealtimeMessageError) realtimeMessage;
-                logger.error(
-                        "Received RealtimeMessageError with message {}" + errorMessage.getMessage());
+                logger.error("Received RealtimeMessageError {}" + errorMessage.getMessage());
                 listener.onError(new ConnectException(errorMessage.getMessage()));
             }
-        } catch (JsonProcessingException e) {
+        }
+        catch (JsonProcessingException e)
+        {
             logger.error("Text Message: JsonProcessingException {}", e);
             throw e;
         }
@@ -153,11 +172,12 @@ public class OracleRealtimeClient
      * @param port       the port to connect
      * @param parameters other additional connection parameters
      */
-    public void open(String server, int port, RealtimeParameters parameters) throws OracleServiceDisruptionException {
-        try {
+    public void open(String server, int port, RealtimeParameters parameters) throws OracleServiceDisruptionException
+    {
+        try
+        {
             this.client = new WebSocketClient(); // TODO Should be global
             client.start();
-
             final String customizationsJson = objectMapper.writeValueAsString(parameters.getCustomizations());
             String queryParameter = "";
             if (parameters.getIsAckEnabled() != null)
@@ -178,22 +198,15 @@ public class OracleRealtimeClient
             if (queryParameter.charAt(queryParameter.length() - 1) == '&')
                 queryParameter = queryParameter.substring(0, queryParameter.length() - 1);
             // The server should contain ws or wss
-            destUri = new URI(
-                        server
-                            + ":"
-                            + port
-                            + "/ws/transcribe/stream?"
-                            + queryParameter); // TODO
-
+            destUri = new URI(server + ":" + port + "/ws/transcribe/stream?" + queryParameter);
             logger.info("Connecting to " + destUri);
-
             final ClientUpgradeRequest request = new ClientUpgradeRequest();
-            logger.info("Content-Type: " + parameters.getEncoding());
             request.setHeader("Content-Type", parameters.getEncoding());
-            logger.info("Connecting to: " + destUri);
             this.session = client.connect(this, destUri, request).get(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            logger.error("Open connection exception {}", e);
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed to connect to OCI Transcriber {}", e);
             throw new OracleServiceDisruptionException(e);
         }
     }
@@ -203,7 +216,8 @@ public class OracleRealtimeClient
      *
      * @return true if connected
      */
-    public boolean isConnected() {
+    public boolean isConnected()
+    {
         return isConnected;
     }
 
@@ -214,43 +228,56 @@ public class OracleRealtimeClient
      * @throws OracleServiceDisruptionException If session is closed
      * @throws IOException                If errors happens on sending
      */
-    public void sendAudioData(byte[] audioBytes) throws OracleServiceDisruptionException, IOException {
-        if (this.session == null) {
-            logger.error("Session has been closed, cannot send audio anymore");
+    public void sendAudioData(byte[] audioBytes) throws OracleServiceDisruptionException, IOException
+    {
+        if (this.session == null)
+        {
             throw new OracleServiceDisruptionException("Session has been closed, cannot send audio anymore");
         }
-        try {
-            if (this.isConnected) {
-                synchronized (this) {
+        try
+        {
+            if (this.isConnected)
+            {
+                synchronized (this)
+                {
                     this.session.getRemote().sendBytes(ByteBuffer.wrap(audioBytes));
                 }
-            } else {
-                throw new ConnectException("Websocket not connected.");
             }
-        } catch (IOException e) {
-            logger.error("Send exception {}", e);
+            else
+            {
+                logger.error("Websocket not connected.");
+            }
+        }
+        catch (IOException e)
+        {
+            logger.error("Error while sending audio data: ", e);
             throw e;
         }
     }
 
     /** Closes the connection. */
-    public void close() {
+    public void close()
+    {
         isClosureClientInitiated = true;
-        logger.info("Closing SDK connection");
-        if (this.session != null) {
+        logger.info("Closing OCI Transcriber connection");
+        if (this.session != null)
+        {
             this.session.close();
-            try {
+            try
+            {
                 this.client.stop();
-            } catch (Exception e) {
-                logger.error("RealtimeSDK client could not be stopped.");
+            }
+            catch (Exception e)
+            {
+                logger.error("RealtimeSDK client could not be stopped.", e);
             }
             this.isConnected = false;
         }
     }
 
-    private void sendCreds(String compartmentId) {
+    private void sendCreds(String compartmentId)
+    {
         final RequestSigner requestSigner = DefaultRequestSigner.createRequestSigner(authenticationDetailsProvider);
-        logger.info("Sending credentials");
         final Map<String, List<String>> headers = new HashMap<>();
         final Map<String, String> newHeaders = requestSigner.signRequest(destUri, "GET", headers, null);
         newHeaders.put("uri", destUri.toString());
@@ -260,22 +287,25 @@ public class OracleRealtimeClient
                 .compartmentId(compartmentId)
                 .headers(newHeaders)
                 .build();
-        try {
+        try
+        {
             sendMessage(objectMapper.writeValueAsString(authenticationMessage));
-        } catch (JsonProcessingException e) {
-            logger.info("Could not serialize authentication credentials: " + e);
-            // TODO: Add better exceptions
-            throw new RuntimeException(e);
+        }
+        catch (JsonProcessingException e)
+        {
+            logger.error("Could not serialize authentication credentials: " + e);
         }
     }
 
-    public void sendMessage(String message) {
-        try {
+    public void sendMessage(String message)
+    {
+        try
+        {
             session.getRemote().sendString(message);
-        } catch (IOException e) {
-            logger.info("Could not send message to the remote server: " + e);
-            // TODO: Add better exceptions
-            throw new RuntimeException(e);
+        }
+        catch (IOException e)
+        {
+            logger.error("Could not send message to the remote server: " + e);
         }
     }
 }
