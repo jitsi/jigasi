@@ -18,25 +18,19 @@
 
 package org.jitsi.jigasi.transcription;
 
-import com.fasterxml.uuid.Generators;
-import com.oracle.bmc.ConfigFileReader;
+import com.fasterxml.uuid.*;
+import com.oracle.bmc.*;
 import com.oracle.bmc.aispeech.model.*;
-import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
-import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
-import com.oracle.bmc.auth.InstancePrincipalsAuthenticationDetailsProvider;
-import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
-import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
-import org.jitsi.jigasi.JigasiBundleActivator;
-import org.jitsi.jigasi.transcription.oracle.OracleRealtimeClient;
-import org.jitsi.jigasi.transcription.oracle.OracleRealtimeClientListener;
-import org.jitsi.utils.logging.Logger;
+import com.oracle.bmc.auth.*;
+import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.jigasi.*;
+import org.jitsi.jigasi.transcription.oracle.*;
+import org.jitsi.utils.logging.*;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Consumer;
+import java.io.*;
+import java.time.*;
+import java.util.*;
+import java.util.function.*;
 
 
 /**
