@@ -273,7 +273,7 @@ public class OracleTranscriptionService
         @Override
         public void end()
         {
-            logger.info("Ending OCI session and waiting for the last results");
+            logger.info("Ending OCI session.");
             sessionEnding = true;
             try
             {
