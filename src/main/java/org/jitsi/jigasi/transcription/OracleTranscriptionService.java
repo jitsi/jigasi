@@ -18,20 +18,25 @@
 
 package org.jitsi.jigasi.transcription;
 
-import com.fasterxml.uuid.*;
-import com.oracle.bmc.*;
+import com.fasterxml.uuid.Generators;
+import com.oracle.bmc.ConfigFileReader;
 import com.oracle.bmc.aispeech.model.*;
-import com.oracle.bmc.auth.*;
-import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.jigasi.*;
-import org.jitsi.jigasi.transcription.oracle.*;
-import org.jitsi.utils.logging.*;
+import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
+import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
+import com.oracle.bmc.auth.InstancePrincipalsAuthenticationDetailsProvider;
+import org.jitsi.impl.neomedia.device.AudioMixerMediaDevice;
+import org.jitsi.impl.neomedia.device.ReceiveStreamBufferListener;
+import org.jitsi.jigasi.JigasiBundleActivator;
+import org.jitsi.jigasi.transcription.oracle.OracleRealtimeClient;
+import org.jitsi.jigasi.transcription.oracle.OracleRealtimeClientListener;
+import org.jitsi.utils.logging.Logger;
 
-import java.io.*;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.*;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 
 /**
@@ -85,39 +90,13 @@ public class OracleTranscriptionService
     public final static String COMPARTMENT_ID
             = "org.jitsi.jigasi.transcription.oci.compartmentId";
 
-    private final String compartmentId;
-
     public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws";
 
-    private static BasicAuthenticationDetailsProvider authProvider;
+    private BasicAuthenticationDetailsProvider authProvider;
 
-    static
-    {
+    private final String compartmentId;
 
-        try
-        {
-            authProvider = new ConfigFileAuthenticationDetailsProvider(ConfigFileReader.parse(configFilePath));
-        }
-        catch (IOException e)
-        {
-            logger.warn("Error while reading OCI configuration file, trying to use the instance's principal", e);
-        }
-
-        if (authProvider == null)
-        {
-            try
-            {
-                authProvider = new InstancePrincipalsAuthenticationDetailsProvider.
-                        InstancePrincipalsAuthenticationDetailsProviderBuilder().
-                        build();
-            }
-            catch (Exception e)
-            {
-                logger.error("Error while creating OCI instance principal provider", e);
-            }
-        }
-    }
-
+    private boolean isConfiguredProperly = true;
 
     /**
      * The config value of the websocket to the speech-to-text service.
@@ -134,7 +113,40 @@ public class OracleTranscriptionService
         websocketUrlConfig = JigasiBundleActivator.getConfigurationService()
                 .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
         compartmentId = JigasiBundleActivator.getConfigurationService()
-                .getString(COMPARTMENT_ID, "");
+                .getString(COMPARTMENT_ID, null);
+        if (compartmentId == null)
+        {
+            logger.error("Missing OCI compartment ID");
+            isConfiguredProperly = false;
+        }
+    }
+
+    private void setupAuthProvider()
+    {
+        try
+        {
+            authProvider = new ConfigFileAuthenticationDetailsProvider(ConfigFileReader.parse(configFilePath));
+        }
+        catch (IOException e)
+        {
+            logger.warn("Error while reading OCI configuration file, trying to use the instance's principal", e);
+        }
+
+        // try to use the Oracle instance principal provider if the config file is not available
+        if (authProvider == null)
+        {
+            try
+            {
+                authProvider = new InstancePrincipalsAuthenticationDetailsProvider.
+                        InstancePrincipalsAuthenticationDetailsProviderBuilder().
+                        build();
+            }
+            catch (Exception e)
+            {
+                logger.error("Error while creating OCI instance principal provider", e);
+                isConfiguredProperly = false;
+            }
+        }
     }
 
     public boolean supportsLanguageRouting()
@@ -166,24 +178,23 @@ public class OracleTranscriptionService
     public StreamingRecognitionSession initStreamingSession(
             Participant participant)
     {
-        return new OracleStreamingSession(websocketUrlConfig);
+        return new OracleStreamingSession();
     }
 
     @Override
     public boolean isConfiguredProperly()
     {
-        return true;
+        return isConfiguredProperly;
     }
+
 
     public class OracleStreamingSession implements StreamingRecognitionSession, OracleRealtimeClientListener
     {
         private OracleRealtimeClient client;
 
-        private UUID uuid;
+        private UUID transcriptionId;
 
         private boolean sessionEnding = false;
-
-        private final String websocketUrl;
 
 
         /**
@@ -194,11 +205,14 @@ public class OracleTranscriptionService
 
         private Instant sessionStart;
 
+        private boolean isConnecting = false;
 
-        public OracleStreamingSession(String websocketUrl)
+
+        public OracleStreamingSession()
         {
-            this.websocketUrl = websocketUrl;
-            uuid = Generators.timeBasedReorderedGenerator().generate();
+            setupAuthProvider();
+            transcriptionId = Generators.timeBasedReorderedGenerator().generate();
+
             try
             {
                 client = new OracleRealtimeClient(
@@ -214,7 +228,7 @@ public class OracleTranscriptionService
 
         private void connect()
         {
-            if (client.isConnected())
+            if (client.isConnected() || isConnecting)
             {
                 return;
             }
@@ -225,26 +239,40 @@ public class OracleTranscriptionService
                     .build();
             try
             {
-                client.open(websocketUrl, 443, realtimeClientParameters);
+                isConnecting = true;
+                client.open(websocketUrlConfig, 443, realtimeClientParameters);
                 sessionStart = Instant.now();
             }
             catch (Exception e)
             {
                 logger.error("Error while connecting to OCI service", e);
             }
+            isConnecting = false;
         }
 
         @Override
         public void sendRequest(TranscriptionRequest request)
         {
             connect();
+            if (isConnecting)
+            {
+                logger.warn("OCI client is connecting, cannot send audio data");
+                return;
+            }
+
+            if (sessionEnding)
+            {
+                logger.warn("The session is about to end, cannot send audio data");
+                return;
+            }
+
             try
             {
                 client.sendAudioData(request.getAudio());
             }
             catch (Exception e)
             {
-                logger.error("Error while sending audio data to OCI service", e);
+                logger.error("Error while sending audio data to the OCI service", e);
             }
         }
 
@@ -252,17 +280,7 @@ public class OracleTranscriptionService
         public void end()
         {
             logger.info("Ending OCI session and waiting for the last results");
-            try
-            {
-                // Wait for 5 seconds for the last results to come in
-                CountDownLatch latch = new CountDownLatch(1);
-                latch.await(5, TimeUnit.SECONDS);
-            }
-            catch (InterruptedException e)
-            {
-                logger.warn("Interrupted while waiting for the last results", e);
-            }
-
+            sessionEnding = true;
             try
             {
                 client.close();
@@ -271,7 +289,6 @@ public class OracleTranscriptionService
             {
                 logger.error("Error while closing the OCI connection", e);
             }
-            sessionEnding = true;
         }
 
         @Override
@@ -309,15 +326,16 @@ public class OracleTranscriptionService
         {
             if (!result.getTranscriptions().isEmpty())
             {
-                String tsResult = result.getTranscriptions().get(0).getTranscription().trim();
-                Boolean isFinal = result.getTranscriptions().get(0).getIsFinal();
+                RealtimeMessageResultTranscription ts = result.getTranscriptions().get(0);
+                String tsResult = ts.getTranscription().trim();
+                Boolean isFinal = ts.getIsFinal();
 
                 for (TranscriptionListener l : listeners)
                 {
                     l.notify(new TranscriptionResult(
                             null,
-                            uuid,
-                            sessionStart.plusMillis(result.getTranscriptions().get(0).getStartTimeInMs()),
+                            transcriptionId,
+                            sessionStart.plusMillis(ts.getStartTimeInMs()),
                             !isFinal,
                             "en-US",
                             1.0,
@@ -326,7 +344,7 @@ public class OracleTranscriptionService
 
                 if (isFinal)
                 {
-                    uuid = Generators.timeBasedReorderedGenerator().generate();
+                    transcriptionId = Generators.timeBasedReorderedGenerator().generate();
                 }
             }
 
