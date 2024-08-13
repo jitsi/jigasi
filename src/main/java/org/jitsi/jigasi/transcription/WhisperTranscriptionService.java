@@ -46,7 +46,7 @@ public class WhisperTranscriptionService
     {
         if (this.mediaDevice == null)
         {
-            this.mediaDevice = new TranscribingAudioMixerMediaDevice(new WhisperAudioSilenceMediaDevice(), listener);
+            this.mediaDevice = new TranscribingAudioMixerMediaDevice(new PCMAudioSilenceMediaDevice(), listener);
         }
 
         return this.mediaDevice;

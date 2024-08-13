@@ -39,7 +39,7 @@ import java.util.*;
  * @author Boris Grozev
  * @author Razvan Purdel
  */
-public class WhisperAudioSilenceCaptureDevice
+public class PCMAudioSilenceCaptureDevice
         extends AbstractPushBufferCaptureDevice
 {
 
@@ -82,13 +82,13 @@ public class WhisperAudioSilenceCaptureDevice
     private final boolean clockOnly;
 
     /**
-     * Initializes a new {@link WhisperAudioSilenceCaptureDevice}.
+     * Initializes a new {@link PCMAudioSilenceCaptureDevice}.
      * @param clockOnly whether the {@link
-     * WhisperAudioSilenceCaptureDevice.AudioSilenceStream}s created by this instance
+     * PCMAudioSilenceCaptureDevice.AudioSilenceStream}s created by this instance
      * are to be used only for the purpose of ticking the clock which makes
      * {@link org.jitsi.impl.neomedia.conference.AudioMixer} run.
      */
-    public WhisperAudioSilenceCaptureDevice(boolean clockOnly)
+    public PCMAudioSilenceCaptureDevice(boolean clockOnly)
     {
         this.clockOnly = clockOnly;
     }
@@ -126,7 +126,7 @@ public class WhisperAudioSilenceCaptureDevice
      * of audio media.
      */
     private static class AudioSilenceStream
-            extends AbstractPushBufferStream<WhisperAudioSilenceCaptureDevice>
+            extends AbstractPushBufferStream<PCMAudioSilenceCaptureDevice>
             implements Runnable
     {
         /**
@@ -162,7 +162,7 @@ public class WhisperAudioSilenceCaptureDevice
          * the <tt>Format</tt>-related information of the new instance
          */
         public AudioSilenceStream(
-                WhisperAudioSilenceCaptureDevice dataSource,
+                PCMAudioSilenceCaptureDevice dataSource,
                 FormatControl formatControl,
                 boolean clockOnly)
         {

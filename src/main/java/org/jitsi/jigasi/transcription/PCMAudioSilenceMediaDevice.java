@@ -23,12 +23,12 @@ import org.jitsi.service.neomedia.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
-public class WhisperAudioSilenceMediaDevice
+public class PCMAudioSilenceMediaDevice
     extends AudioSilenceMediaDevice
 {
     protected CaptureDevice createCaptureDevice()
     {
-        return new WhisperAudioSilenceCaptureDevice(false);
+        return new PCMAudioSilenceCaptureDevice(false);
     }
 
     protected Processor createPlayer(DataSource dataSource)
