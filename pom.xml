@@ -429,10 +429,10 @@
       </dependency>
       <dependency>
         <groupId>com.oracle.oci.sdk</groupId>
-        <artifactId>oci-java-sdk-common</artifactId>
+        <artifactId>oci-java-sdk-shaded-full</artifactId>
         <version>${oci-sdk.version}</version>
       </dependency>
-      <dependency>
+    <dependency>
         <groupId>com.oracle.oci.sdk</groupId>
         <artifactId>oci-java-sdk-aispeech</artifactId>
         <version>${oci-sdk.version}</version>

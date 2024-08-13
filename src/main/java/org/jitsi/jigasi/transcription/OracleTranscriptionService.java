@@ -129,17 +129,15 @@ public class OracleTranscriptionService
         // try to use the Oracle instance principal provider if the config file is not available
         if (authProvider == null)
         {
-            try
-            {
-                authProvider = new InstancePrincipalsAuthenticationDetailsProvider.
-                        InstancePrincipalsAuthenticationDetailsProviderBuilder().
-                        build();
-            }
-            catch (Exception e)
-            {
-                logger.error("Error while creating OCI instance principal provider", e);
-                isConfiguredProperly = false;
-            }
+            authProvider = new InstancePrincipalsAuthenticationDetailsProvider.
+                    InstancePrincipalsAuthenticationDetailsProviderBuilder().
+                    build();
+        }
+
+        if (authProvider == null)
+        {
+            logger.error("No OCI authentication provider available");
+            isConfiguredProperly = false;
         }
     }
 
