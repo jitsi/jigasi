@@ -246,7 +246,7 @@ public class WhisperWebsocket
         float stability = obj.getFloat("variance");
         if (logger.isDebugEnabled())
         {
-            logger.debug("Received final: " + result);
+            logger.debug("Received result: " + result);
         }
 
         Instant startTranscription = participantTranscriptionStarts.getOrDefault(participantId, null);
