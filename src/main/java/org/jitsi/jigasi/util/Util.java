@@ -356,7 +356,7 @@ public class Util
     {
         if (StringUtils.isEmpty(privateKey) || StringUtils.isEmpty(privateKeyId))
         {
-            throw new IOException("Failed generating JWT for Whisper. Missing private key or key name.");
+            throw new IOException("Failed generating JWT. Missing private key or key name.");
         }
 
         long nowMillis = System.currentTimeMillis();
