@@ -42,6 +42,8 @@ public class WhisperWebsocket
 
     private Map<String, Set<TranscriptionListener>> participantListeners = new ConcurrentHashMap<>();
 
+    private final Map<String, Instant> participantTranscriptionStarts = new ConcurrentHashMap<>();
+
     private static final int maxRetryAttempts = 10;
 
 
@@ -246,6 +248,15 @@ public class WhisperWebsocket
         {
             logger.debug("Received final: " + result);
         }
+
+        Instant startTranscription = participantTranscriptionStarts.getOrDefault(participantId, null);
+        if (startTranscription == null)
+        {
+            Date now = new Date();
+            startTranscription = now.toInstant();
+            participantTranscriptionStarts.put(participantId, startTranscription);
+        }
+
         Set<TranscriptionListener> partListeners = participantListeners.getOrDefault(participantId, null);
         if (!result.isEmpty() && partListeners != null)
         {
@@ -262,12 +273,16 @@ public class WhisperWebsocket
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
                         id,
-                        transcriptionStart,
+                        startTranscription,
                         partial,
                         getLanguage(participant),
                         stability,
                         new TranscriptionAlternative(result));
                 l.notify(tsResult);
+            }
+            if (!partial)
+            {
+                participantTranscriptionStarts.remove(participantId);
             }
         }
     }
