@@ -243,7 +243,6 @@ public class WhisperWebsocket
 
         result = obj.getString("text");
         UUID id = UUID.fromString(obj.getString("id"));
-        Instant transcriptionStart = Instant.ofEpochMilli(obj.getLong("ts"));
         float stability = obj.getFloat("variance");
         if (logger.isDebugEnabled())
         {
