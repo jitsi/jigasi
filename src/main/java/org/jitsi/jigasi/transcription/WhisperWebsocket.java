@@ -42,7 +42,7 @@ public class WhisperWebsocket
 
     private Map<String, Set<TranscriptionListener>> participantListeners = new ConcurrentHashMap<>();
 
-    private final Map<String, Instant> participantTranscriptionStarts = new ConcurrentHashMap<>();
+    private Map<String, Instant> participantTranscriptionStarts = new ConcurrentHashMap<>();
 
     private static final int maxRetryAttempts = 10;
 
@@ -211,6 +211,7 @@ public class WhisperWebsocket
         wsSession = null;
         participants = null;
         participantListeners = null;
+        participantTranscriptionStarts = null;
         try
         {
             if (ws != null)
