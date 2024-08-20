@@ -17,32 +17,30 @@
  */
 package org.jitsi.jigasi.visitor;
 
-import org.apache.commons.io.*;
 import org.bouncycastle.util.io.pem.*;
+import org.eclipse.jetty.websocket.client.*;
+import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
+import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.logging.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
-import org.springframework.http.*;
-import org.springframework.lang.*;
-import org.springframework.messaging.converter.*;
-import org.springframework.messaging.simp.stomp.*;
-import org.springframework.scheduling.concurrent.*;
-import org.springframework.web.socket.*;
-import org.springframework.web.socket.client.*;
-import org.springframework.web.socket.client.standard.*;
-import org.springframework.web.socket.messaging.*;
 
 import java.io.*;
-import java.lang.reflect.*;
-import java.nio.charset.*;
+import java.net.*;
+import java.nio.channels.*;
 import java.util.*;
+import java.util.concurrent.*;
+
+import static org.jitsi.jigasi.visitor.StompUtils.*;
 
 /**
  * The websocket client to connect to visitors queue.
+ * It implements the needed parts to use STOMP (https://stomp.github.io/stomp-specification-1.2.html).
  */
 public class WebsocketClient
+    implements WebSocketListener
 {
     /**
      * The logger.
@@ -77,13 +75,8 @@ public class WebsocketClient
     /**
      * The thread pool for heartbeat of the sockets.
      */
-    private static final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-    static
-    {
-        taskScheduler.setPoolSize(1);
-        taskScheduler.setThreadNamePrefix("stomp-heartbeat-client-thread-");
-        taskScheduler.initialize();
-    }
+    private static final ScheduledExecutorService heartbeatThreadPool = Executors.newScheduledThreadPool(
+            1, new CustomizableThreadFactory("stomp-heartbeat-client-thread-", true));
 
     /**
      * The call context used to for the current conference.
@@ -101,9 +94,34 @@ public class WebsocketClient
     private final JvbConference conference;
 
     /**
-     * The stomp client that is active when connected.
+     * The websocket session used to communicate with the service.
      */
-    private WebSocketStompClient stompClient;
+    private Session websocketSession;
+
+    /**
+     * The last time we saw a message from the server. It should be sending us pings every 15 seconds or so.
+     */
+    private long lastServerActivity;
+
+    /**
+     * The outgoing heartbeat sent to server interval in ms.
+     */
+    private long heartbeatOutgoing = 15000;
+
+    /**
+     * The incoming heartbeat sent to server interval in ms.
+     */
+    private long heartbeatIncoming = 15000;
+
+    /**
+     * The tasks for sending heartbeats, used to cancel the pinger.
+     */
+    private ScheduledFuture pinger;
+
+    /**
+     * The tasks for checking of received heartbeats, used to cancel the ponger.
+     */
+    private ScheduledFuture ponger;
 
     /**
      * A timer which will be used to schedule connection to conference after going live.
@@ -122,121 +140,289 @@ public class WebsocketClient
      */
     public void connect()
     {
-        String token;
-        try (
-            PemReader pemReader = new PemReader(new InputStreamReader(new FileInputStream(privateKeyFilePath)));
-        )
+        try
         {
-            PemObject pemObject = pemReader.readPemObject();
-            token = Util.generateAsapToken(
-                Base64.getEncoder().encodeToString(pemObject.getContent()),
-                privateKeyId,
-                "jitsi",
-                "jitsi");
+            WebSocketClient client = new WebSocketClient();
+            client.start();
+
+            Future<Session> fut = client.connect(this, new URI(this.serviceUrl));
+
+            fut.get(5, TimeUnit.SECONDS);
         }
         catch (Exception e)
         {
-            logger.error(this.callContext + " Error generating token", e);
-            return;
+            logger.error(this.callContext + " Error starting websocket client", e);
         }
-
-        WebSocketClient webSocketClient = new StandardWebSocketClient();
-
-        this.stompClient = new WebSocketStompClient(webSocketClient);
-        this.stompClient.setMessageConverter(new JsonbMessageConverter());
-        this.stompClient.setTaskScheduler(taskScheduler); // for heartbeats
-
-        StompHeaders connectHeaders = new StompHeaders();
-        connectHeaders.add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
-        // to avoid the connection being closed by the server, client sends every 100ms, server sends every 100ms
-        connectHeaders.add(StompHeaders.HEARTBEAT, "100,100");
-
-        this.stompClient.connectAsync(this.serviceUrl, new WebSocketHttpHeaders(), connectHeaders,
-            new StompSessionHandlerAdapter()
-            {
-                public void handleException(StompSession session,
-                                            @Nullable StompCommand command,
-                                            StompHeaders headers,
-                                            byte[] payload,
-                                            Throwable exception)
-                {
-                    logger.error(WebsocketClient.this.callContext + " headers:" + headers
-                            + " payload:" + new String(payload), exception);
-                }
-
-                public void handleTransportError(StompSession session, Throwable exception)
-                {
-                    logger.error(WebsocketClient.this.callContext + " Transport error.", exception);
-                }
-
-                @Override
-                public void afterConnected(StompSession session, StompHeaders connectedHeaders)
-                {
-                    session.subscribe(
-                        "/secured/conference/visitor/topic." + WebsocketClient.this.callContext.getRoomJid().toString(),
-                        new StompFrameHandler()
-                        {
-                            @Override
-                            public Type getPayloadType(StompHeaders headers)
-                            {
-                                return Object.class;
-                            }
-
-                            @Override
-                            public void handleFrame(StompHeaders headers, Object payload)
-                            {
-                                if (payload instanceof byte[])
-                                {
-                                    try
-                                    {
-                                        Object o = new JSONParser().parse(new String((byte[])payload));
-
-                                        if (o instanceof JSONObject)
-                                        {
-                                            JSONObject obj = (JSONObject)o;
-                                            if (obj.get("status").equals("live"))
-                                            {
-                                                WebsocketClient.this.callContext.setRequestVisitor(true);
-
-                                                Long delayMs = (Long)obj.get("randomDelayMs");
-                                                // now let's connect as visitor after some random delay.
-
-                                                disconnect();
-
-                                                connectTimer.schedule(new TimerTask()
-                                                {
-                                                    @Override
-                                                    public void run()
-                                                    {
-                                                        WebsocketClient.this.conference.joinConferenceRoom();
-                                                    }
-                                                }, (long)(Math.random() * delayMs));
-                                            }
-                                        }
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        logger.error(WebsocketClient.this.callContext
-                                            + " Error parsing payload:" + new String((byte[])payload), e);
-                                    }
-                                }
-                                else
-                                {
-                                    logger.warn(WebsocketClient.this.callContext + " Wrong payload type: " + payload);
-                                }
-                            }
-                    });
-                }
-            });
-
-
     }
 
     public void disconnect()
     {
-        if (this.stompClient != null)
+        if (this.websocketSession != null)
         {
-            this.stompClient.stop();
+            this.websocketSession.close();
         }
+
+        if (this.pinger != null)
+        {
+            this.pinger.cancel(false);
+        }
+        if (this.ponger != null)
+        {
+            this.ponger.cancel(false);
+        }
+    }
+
+    @Override
+    public void onWebSocketClose(int statusCode, String reason)
+    {
+        // local close
+        if (statusCode == 1006)
+        {
+            return;
+        }
+
+        logger.error(this.callContext + " Visitors queue websocket closed: " + statusCode + " " + reason);
+    }
+
+    @Override
+    public void onWebSocketConnect(Session session)
+    {
+        this.websocketSession = session;
+
+        sendConnect();
+    }
+
+    @Override
+    public void onWebSocketError(Throwable cause)
+    {
+        // local close
+        if (cause instanceof ClosedChannelException)
+        {
+            return;
+        }
+
+        logger.error(this.callContext + " Visitors queue websocket error: " + cause);
+
+        reconnect();
+    }
+
+    /**
+     * Sends Stomp connect message over the websocket. Includes the jwt to authorize us.
+     */
+    private void sendConnect()
+    {
+        String token;
+        try (
+                PemReader pemReader = new PemReader(new InputStreamReader(new FileInputStream(privateKeyFilePath)))
+        )
+        {
+            PemObject pemObject = pemReader.readPemObject();
+            token = Util.generateAsapToken(Base64.getEncoder().encodeToString(pemObject.getContent()),
+                privateKeyId, "jitsi", "jitsi");
+        }
+        catch (Exception e)
+        {
+            logger.error(this.callContext + " Error generating token", e);
+            this.disconnect();
+
+            return;
+        }
+
+        this.websocketSession.getRemote().sendString(
+            buildConnectMessage(token, this.heartbeatOutgoing, this.heartbeatIncoming), WriteCallback.NOOP);
+    }
+
+    /**
+     * Receives data over the websocket.
+     * @param message the message that is received.
+     */
+    @Override
+    public void onWebSocketText(String message)
+    {
+        lastServerActivity = System.currentTimeMillis();
+
+        String[] splitMessage = message.split(NEW_LINE);
+
+        if (splitMessage.length == 0)
+        {
+            // this is a ping from server.
+            return;
+        }
+
+        String command = splitMessage[0];
+
+        int cursor = 1;
+        for (int i = cursor; i < splitMessage.length; i++)
+        {
+            // empty line
+            if (splitMessage[i].equals(EMPTY_LINE))
+            {
+                // this is where the body starts
+                cursor = i;
+                break;
+            }
+            else
+            {
+                String[] header = splitMessage[i].split(DELIMITER);
+
+                if (header[0].equals("heart-beat"))
+                {
+                    processHeartbeat(header[1]);
+                }
+            }
+        }
+
+        StringBuilder bodyBuffer = new StringBuilder();
+
+        for (int i = cursor; i < splitMessage.length; i++)
+        {
+            bodyBuffer.append(splitMessage[i]);
+        }
+
+        handleCommand(command, bodyBuffer.toString());
+    }
+
+    /**
+     * Process the header about heartbeat coming from server on CONNECTED command, gets the max as per spec
+     * between local default values and remote settings.
+     * @param value the header value.
+     */
+    private void processHeartbeat(String value)
+    {
+        String[] splitMessage = value.trim().split(",");
+
+        if (splitMessage.length > 2)
+        {
+            return;
+        }
+
+        long sx = Long.parseLong(splitMessage[0]);
+        long sy = Long.parseLong(splitMessage[1]);
+
+        if (sy == 0)
+        {
+            this.heartbeatOutgoing = 0;
+        }
+        else
+        {
+            this.heartbeatOutgoing = Math.max(this.heartbeatOutgoing, sy);
+        }
+
+        if (sx == 0)
+        {
+            this.heartbeatIncoming = 0;
+        }
+        else
+        {
+            this.heartbeatIncoming = Math.max(this.heartbeatIncoming, sx);
+        }
+    }
+
+    /**
+     * Starts the executions of sending pings and checking for received pings from server.
+     */
+    private void setupHeartbeat()
+    {
+        if (this.heartbeatOutgoing > 0)
+        {
+            this.pinger = heartbeatThreadPool.scheduleAtFixedRate(() -> {
+                if (!this.websocketSession.isOpen())
+                {
+                    return;
+                }
+
+                try
+                {
+                    this.websocketSession.getRemote().sendBytes(PING_BODY);
+                }
+                catch (IOException e)
+                {
+                    logger.error(this.callContext + " Error pinging websocket", e);
+                }
+            }, this.heartbeatOutgoing, this.heartbeatOutgoing, TimeUnit.MILLISECONDS);
+
+        }
+
+        if (this.heartbeatIncoming > 0)
+        {
+            this.ponger = heartbeatThreadPool.scheduleAtFixedRate(() -> {
+                // wait twice the interval to be tolerant of timing inaccuracies
+                if (System.currentTimeMillis() - lastServerActivity > this.heartbeatIncoming * 2)
+                {
+                    logger.error(this.callContext + " Visitors queue websocket heartbeat incoming time out");
+
+                    reconnect();
+                }
+            }, this.heartbeatIncoming, this.heartbeatIncoming, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void handleCommand(String command, String body)
+    {
+        if (command.equals("CONNECTED"))
+        {
+            setupHeartbeat();
+
+            this.websocketSession.getRemote().sendString(
+                    buildSubscribeMessage("/secured/conference/visitor/topic."
+                            + this.callContext.getRoomJid().toString()), WriteCallback.NOOP);
+        }
+        else if (command.equals("MESSAGE"))
+        {
+            try
+            {
+                Object o = new JSONParser().parse(body.replace(END, ""));
+
+                if (o instanceof JSONObject)
+                {
+                    JSONObject obj = (JSONObject)o;
+                    if (obj.get("status").equals("live"))
+                    {
+                        logger.info(this.callContext + " Conference is live now.");
+
+                        WebsocketClient.this.callContext.setRequestVisitor(true);
+
+                        Long delayMs = (Long)obj.get("randomDelayMs");
+                        // now let's connect as visitor after some random delay.
+
+                        disconnect();
+
+                        connectTimer.schedule(new TimerTask()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                WebsocketClient.this.conference.joinConferenceRoom();
+                            }
+                        }, (long)(Math.random() * delayMs));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                logger.error(this.callContext + " Error parsing payload:" + body, e);
+            }
+        }
+        else
+        {
+            logger.warn(this.callContext + " Unknown command: " + command);
+        }
+    }
+
+    private void reconnect()
+    {
+        this.disconnect();
+        long delay = (long)(Math.random() * 5000);
+
+        logger.info(this.callContext + " Reconnecting visitors queue in " + delay + " ms.");
+
+        connectTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                connect();
+            }
+        }, delay); // let's reconnect randomly in the next 5 seconds
     }
 }

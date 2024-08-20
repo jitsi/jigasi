@@ -2025,9 +2025,13 @@ public class JvbConference
                 collector = getConnection().createStanzaCollectorAndSend(focusInviteIQ);
                 ConferenceIq res = collector.nextResultOrThrow();
 
-                if (visitorsQueueServiceUrl != null && !Boolean.parseBoolean(res.getPropertiesMap().get("live")))
+                if (visitorsQueueServiceUrl != null)
                 {
-                    throw new OperationFailedException("Not live conference", NOT_LIVE_ERROR_CODE);
+                    String liveValue = res.getPropertiesMap().get("live");
+                    if (liveValue != null && !Boolean.parseBoolean(liveValue))
+                    {
+                        throw new OperationFailedException("Not live conference", NOT_LIVE_ERROR_CODE);
+                    }
                 }
                 return res.getVnode();
             }

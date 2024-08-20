@@ -24,7 +24,6 @@
     <!-- Match jicoco's jetty version. -->
     <jicoco.version>1.1-140-g8f45a9f</jicoco.version>
     <jetty.version>11.0.20</jetty.version>
-    <springboot.version>6.1.11</springboot.version>
   </properties>
 
   <dependencies>
@@ -125,28 +124,6 @@
       <groupId>com.fasterxml.uuid</groupId>
       <artifactId>java-uuid-generator</artifactId>
       <version>4.1.0</version>
-    </dependency>
-
-    <!-- stomp websocket client used visitors queue -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-websocket</artifactId>
-      <version>${springboot.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-messaging</artifactId>
-      <version>${springboot.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tomcat.embed</groupId>
-      <artifactId>tomcat-embed-websocket</artifactId>
-      <version>10.1.26</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse</groupId>
-      <artifactId>yasson</artifactId>
-      <version>3.0.4</version>
     </dependency>
 
     <!-- org.jitsi -->
