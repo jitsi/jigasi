@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import com.fasterxml.uuid.*;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
@@ -44,10 +45,12 @@ public class WhisperWebsocket
 
     private Map<String, Instant> participantTranscriptionStarts = new ConcurrentHashMap<>();
 
+    private Map<String, UUID> participantTranscriptionIds= new ConcurrentHashMap<>();
+
     private static final int maxRetryAttempts = 10;
 
 
-    /* Transcription language requested by the user who requested the transcription */
+    /* Transcription language requested by the user who started the transcription */
     public String transcriptionTag = "en-US";
 
     private final static Logger logger
@@ -212,6 +215,7 @@ public class WhisperWebsocket
         participants = null;
         participantListeners = null;
         participantTranscriptionStarts = null;
+        participantTranscriptionIds = null;
         try
         {
             if (ws != null)
@@ -242,7 +246,6 @@ public class WhisperWebsocket
         }
 
         result = obj.getString("text");
-        UUID id = UUID.fromString(obj.getString("id"));
         float stability = obj.getFloat("variance");
         if (logger.isDebugEnabled())
         {
@@ -250,10 +253,14 @@ public class WhisperWebsocket
         }
 
         Instant startTranscription = participantTranscriptionStarts.getOrDefault(participantId, null);
+        UUID transcriptionId = participantTranscriptionIds.getOrDefault(participantId, null);
+
         if (startTranscription == null)
         {
             Date now = new Date();
             startTranscription = now.toInstant();
+            transcriptionId =  Generators.timeBasedReorderedGenerator().generate();
+            participantTranscriptionIds.put(participantId, transcriptionId);
             participantTranscriptionStarts.put(participantId, startTranscription);
         }
 
@@ -272,7 +279,7 @@ public class WhisperWebsocket
                 }
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
-                        id,
+                        transcriptionId,
                         startTranscription,
                         partial,
                         getLanguage(participant),
@@ -280,10 +287,11 @@ public class WhisperWebsocket
                         new TranscriptionAlternative(result));
                 l.notify(tsResult);
             }
-            if (!partial)
-            {
-                participantTranscriptionStarts.remove(participantId);
-            }
+        }
+        if (!partial)
+        {
+            participantTranscriptionStarts.remove(participantId);
+            participantTranscriptionIds.remove(participantId);
         }
     }
 
