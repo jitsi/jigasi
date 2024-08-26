@@ -175,11 +175,6 @@ public class LocalJsonTranscriptHandler
     public final static String JSON_KEY_PARTICIPANT_EMAIL = "email";
 
     /**
-     * This fields stores the URL of the avatar of a participant as a string
-     */
-    public final static String JSON_KEY_PARTICIPANT_AVATAR_URL = "avatar_url";
-
-    /**
      * This fields stores the identity username of a participant as a string
      */
     public final static String JSON_KEY_PARTICIPANT_IDENTITY_USERNAME
@@ -399,13 +394,6 @@ public class LocalJsonTranscriptHandler
         if (email != null)
         {
             pJSON.put(JSON_KEY_PARTICIPANT_EMAIL, email);
-        }
-
-        // adds avatar-url if it exists
-        String avatarUrl = participant.getAvatarUrl();
-        if (avatarUrl != null)
-        {
-            pJSON.put(JSON_KEY_PARTICIPANT_AVATAR_URL, avatarUrl);
         }
 
         // add identity information if it exists

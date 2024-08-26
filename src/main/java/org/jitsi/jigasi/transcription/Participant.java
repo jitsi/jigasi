@@ -19,7 +19,6 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
-import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.utils.logging.*;
 import org.jivesoftware.smack.packet.*;
@@ -32,7 +31,7 @@ import java.util.concurrent.*;
 /**
  * This class describes a participant in a conference whose
  * transcription is required. It manages the transcription if its own audio
- * will locally buffered until enough audio is collected
+ * will locally buffer it until enough audio is collected
  *
  * @author Nik Vaessen
  * @author Boris Grozev
@@ -79,21 +78,6 @@ public class Participant
      * The audio ssrc when it is not known yet
      */
     public static final long DEFAULT_UNKNOWN_AUDIO_SSRC = -1;
-
-    /**
-     * The standard URL to a gravatar avatar which still needs to be formatted
-     * with the ID. The ID can be received by hasing the email with md5
-     */
-    private final static String GRAVARAR_URL_FORMAT
-        = "https://www.gravatar.com/avatar/%s?d=wavatar&size=200";
-
-    /**
-     * The standard url to a meeple avatar by using a random ID. Default usage
-     * when email not known, but using `avatar-id` does not actually result
-     * int he same meeple
-     */
-    private final static String MEEPLE_URL_FORMAT
-        = "https://abotars.jitsi.net/meeple/%s";
 
     /**
      * The {@link Transcriber} which owns this {@link Participant}.
@@ -246,60 +230,6 @@ public class Participant
     }
 
     /**
-     * @return the URL of the avatar of the participant, if one is set.
-     */
-    public String getAvatarUrl()
-    {
-        if (chatMember == null)
-        {
-            return null;
-        }
-        if (!(chatMember instanceof ChatRoomMemberJabberImpl))
-        {
-            return null;
-        }
-
-        ChatRoomMemberJabberImpl memberJabber
-            = ((ChatRoomMemberJabberImpl) this.chatMember);
-
-        IdentityPacketExtension ipe = getIdentityExtensionOrNull(
-            memberJabber.getLastPresence());
-
-        String url;
-        if (ipe != null && (url = ipe.getUserAvatarUrl()) != null)
-        {
-            return url;
-        }
-        else if ((url = memberJabber.getAvatarUrl()) != null)
-        {
-            return url;
-        }
-
-        String email;
-        if ((email = getEmail()) != null)
-        {
-            return String.format(GRAVARAR_URL_FORMAT,
-                Util.stringToMD5hash(email));
-        }
-
-        // Create a nice looking meeple avatar when avatar-url nor email is set
-        AvatarIdPacketExtension avatarIdExtension = getAvatarIdExtensionOrNull(
-            memberJabber.getLastPresence());
-        String avatarId;
-        if (avatarIdExtension != null &&
-            (avatarId = avatarIdExtension.getAvatarId()) != null)
-        {
-            return String.format(MEEPLE_URL_FORMAT,
-                Util.stringToMD5hash(avatarId));
-        }
-        else
-        {
-            return String.format(MEEPLE_URL_FORMAT,
-                Util.stringToMD5hash(identifier));
-        }
-    }
-
-    /**
      * Get the user-name in the identity presence, if present
      *
      * @return the user-name or null
@@ -387,18 +317,6 @@ public class Participant
     private IdentityPacketExtension getIdentityExtensionOrNull(Presence p)
     {
         return p.getExtension(IdentityPacketExtension.class);
-    }
-
-    /**
-     * Get the {@link AvatarIdPacketExtension} inside a {@link Presence} or null
-     * when it's not inside
-     *
-     * @param p the presence
-     * @return the {@link AvatarIdPacketExtension} or null
-     */
-    private AvatarIdPacketExtension getAvatarIdExtensionOrNull(Presence p)
-    {
-        return p.getExtension(AvatarIdPacketExtension.class);
     }
 
     private TranscriptionRequestExtension
