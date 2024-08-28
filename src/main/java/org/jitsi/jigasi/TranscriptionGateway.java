@@ -129,11 +129,11 @@ public class TranscriptionGateway
 
         if (transcriberClass == null)
         {
-            String transcriberIdentifier = JigasiBundleActivator.getConfigurationService()
+            String transcriberType = JigasiBundleActivator.getConfigurationService()
                 .getString(
                         CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                         null);
-            transcriberClass = transcriberClasses.getOrDefault(transcriberIdentifier, null);
+            transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
         }
         return transcriberClass;
     }
@@ -165,8 +165,8 @@ public class TranscriptionGateway
                 }
                 inputStream.close();
                 JSONObject obj = new JSONObject(responseBody.toString());
-                String transcriberIdentifier = obj.getString("transcriberId");
-                transcriberClass = transcriberClasses.getOrDefault(transcriberIdentifier, null);
+                String transcriberType = obj.getString("transcriberType");
+                transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
             }
             conn.disconnect();
         }
