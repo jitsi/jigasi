@@ -25,6 +25,7 @@ import org.osgi.framework.*;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 /**
  * A Gateway which creates a TranscriptionGatewaySession when it has an outgoing
@@ -64,6 +65,19 @@ public class TranscriptionGateway
      * The actions service handler.
      */
     private ActionServicesHandler actionServicesHandler;
+
+    /**
+     * Map of the available transcribers
+     */
+    private static final Map<String, String> transcriberClasses = new HashMap<String, String>();
+
+    static {
+        transcriberClasses.put("GOOGLE", "org.jitsi.jigasi.transcription.GoogleCloudTranscriptionService");
+        transcriberClasses.put("ORACLE_CLOUD_AI_SPEECH",
+                "org.jitsi.jigasi.transcription.OracleCloudTranscriptionService");
+        transcriberClasses.put("EGHT_WHISPER", "org.jitsi.jigasi.transcription.WhisperTranscriptionService");
+        transcriberClasses.put("VOSK", "org.jitsi.jigasi.transcription.VoskTranscriptionService");
+    }
 
     /**
      * Create a new TranscriptionGateway, which manages
@@ -115,11 +129,11 @@ public class TranscriptionGateway
 
         if (transcriberClass == null)
         {
-            transcriberClass
-                    = JigasiBundleActivator.getConfigurationService()
-                    .getString(
-                            CUSTOM_TRANSCRIPTION_SERVICE_PROP,
-                            null);
+            String transcriberIdentifier = JigasiBundleActivator.getConfigurationService()
+                .getString(
+                        CUSTOM_TRANSCRIPTION_SERVICE_PROP,
+                        null);
+            transcriberClass = transcriberClasses.getOrDefault(transcriberIdentifier, null);
         }
         return transcriberClass;
     }
@@ -151,7 +165,8 @@ public class TranscriptionGateway
                 }
                 inputStream.close();
                 JSONObject obj = new JSONObject(responseBody.toString());
-                transcriberClass = obj.getString("transcriber");
+                String transcriberIdentifier = obj.getString("transcriberId");
+                transcriberClass = transcriberClasses.getOrDefault(transcriberIdentifier, null);
             }
             conn.disconnect();
         }
