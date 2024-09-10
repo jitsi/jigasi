@@ -152,7 +152,6 @@ public class Main
             "org.jivesoftware.smackx.si",
             "org.jivesoftware.smackx.vcardtemp",
             "org.jivesoftware.smackx.xhtmlim",
-            "org.jivesoftware.smackx.xdata",
             "org.jivesoftware.smackx.eme",
             "org.jivesoftware.smackx.iqprivate",
             "org.jivesoftware.smackx.bookmarks",
