@@ -835,6 +835,14 @@ public class Transcriber
     }
 
     /**
+     * @return the {@link TranslationManager}.
+     */
+    public TranslationManager getTranslationManager()
+    {
+        return this.translationManager;
+    }
+
+    /**
      * Notifies all of the listeners of this {@link Transcriber} of a new
      * {@link TranscriptionResult} which was received.
      *

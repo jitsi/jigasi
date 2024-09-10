@@ -2212,10 +2212,21 @@ public class JvbConference
 
                 if (data.get("type").equals("room_metadata"))
                 {
+                    TranscriptionGatewaySession transcriptionSession = (TranscriptionGatewaySession)this.gatewaySession;
+
                     JSONObject metadataObj = (JSONObject)data.getOrDefault("metadata", new JSONObject());
                     JSONObject recordingObj = (JSONObject)metadataObj.getOrDefault("recording", new JSONObject());
-                    ((TranscriptionGatewaySession)this.gatewaySession).setBackendTranscribingEnabled(
+                    transcriptionSession.setBackendTranscribingEnabled(
                         (boolean)recordingObj.getOrDefault("isTranscribingEnabled", false));
+
+                    JSONObject visitorsObj = (JSONObject)metadataObj.getOrDefault("visitors", new JSONObject());
+                    String languages = (String)visitorsObj.get("transcribingLanguages");
+                    if (StringUtils.isNotEmpty(languages))
+                    {
+                        transcriptionSession.updateTranslateLanguages(languages.split(","));
+                    }
+                    transcriptionSession.setVisitorsCountRequestingTranscription(
+                        Integer.parseInt((String)visitorsObj.get("transcribingCount")));
                 }
             }
         }

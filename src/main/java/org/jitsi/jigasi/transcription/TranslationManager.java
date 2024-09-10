@@ -140,9 +140,15 @@ public class TranslationManager
         {
             for (String targetLanguage : translationLanguages)
             {
+                String sourceLang = result.getParticipant().getSourceLanguage();
+                if (sourceLang != null && sourceLang.equals(targetLanguage))
+                {
+                    continue;
+                }
+
                 String translatedText = translationService.translate(
                     alternatives.iterator().next().getTranscription(),
-                    result.getParticipant().getSourceLanguage(),
+                    sourceLang,
                     targetLanguage);
 
                 translatedResults.add(new TranslationResult(

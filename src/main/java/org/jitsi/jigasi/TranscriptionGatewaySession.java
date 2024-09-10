@@ -127,6 +127,17 @@ public class TranscriptionGatewaySession
     private int numberOfScheduledParticipantsLeaving = 0;
 
     /**
+     * The currently used additional languages for translation.
+     * Used for visitors to announce the languages used by visitors.
+     */
+    private List<String> additionalLanguages = new ArrayList<>();
+
+    /**
+     * The number of visitors that are requesting transcriptions.
+     */
+    private int numberOfVisitorsRequestingTranscription = 0;
+
+    /**
      * Create a TranscriptionGatewaySession which can handle the transcription
      * of a JVB conference
      *
@@ -359,7 +370,9 @@ public class TranscriptionGatewaySession
 
     private boolean isTranscriptionRequested()
     {
-        return transcriber.isAnyParticipantRequestingTranscription() || isBackendTranscribingEnabled;
+        return transcriber.isAnyParticipantRequestingTranscription()
+                || isBackendTranscribingEnabled
+                || this.numberOfVisitorsRequestingTranscription > 0;
     }
 
     private void maybeStopTranscription()
@@ -752,5 +765,33 @@ public class TranscriptionGatewaySession
         this.isBackendTranscribingEnabled = backendTranscribingEnabled;
 
         this.maybeStopTranscription();
+    }
+
+    /**
+     * @param count The count of visitors that are requesting transcriptions.
+     */
+    public void setVisitorsCountRequestingTranscription(int count)
+    {
+        this.numberOfVisitorsRequestingTranscription = count;
+
+        this.maybeStopTranscription();
+    }
+
+    /**
+     * To update all participant languages with the additional that are provided.
+     * @param additionalLanguages languages to add to those from the participants.
+     */
+    void updateTranslateLanguages(String[] additionalLanguages)
+    {
+        List<String> oldLangs = this.additionalLanguages;
+        this.additionalLanguages = Arrays.asList(additionalLanguages);
+
+        // remove unused streams
+        oldLangs.stream().filter(s -> !this.additionalLanguages.contains(s))
+            .forEach(lang -> this.transcriber.getTranslationManager().removeLanguage(lang));
+
+        // add new languages
+        this.additionalLanguages.stream().filter(s -> !oldLangs.contains(s))
+            .forEach(lang -> this.transcriber.getTranslationManager().addLanguage(lang));
     }
 }
