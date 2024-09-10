@@ -1358,7 +1358,8 @@ public class JvbConference
                             + " " + member.getContactAddress());
 
             CallPeer peer;
-            if (jvbCall != null && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
+            if (jvbCall != null && jvbCall.getCallPeerCount() > 0
+                    && (peer = jvbCall.getCallPeers().next()) instanceof MediaAwareCallPeer)
             {
                 MediaAwareCallPeer<?, ?, ?> peerMedia = (MediaAwareCallPeer<?, ?, ?>) peer;
                 peerMedia.getConferenceMembers().forEach(confMember ->
