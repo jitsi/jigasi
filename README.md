@@ -54,15 +54,9 @@ Component "internal.auth.meet.example.com" "muc"
  
  ```
  cd jigasi/target/jigasi-{os-version}-{version}/
- ./jigasi.sh --domain=meet.example.com
+ ./jigasi.sh
  ```
 After Jigasi is started it will register to the XMPP server and connect to the brewery room.
-
-Supported arguments:
- * --domain: specifies the XMPP domain to use.
- * --host: the IP address or the name of the XMPP host to connect to (localhost by default).
- * --min-port: the minimum port number that we'd like our RTP managers to bind upon.
- * --max-port: the maximum port number that we'd like our RTP managers to bind upon.
 
 How it works
 ============
@@ -72,7 +66,7 @@ Jigasi registers as a SIP client and can be called or be used by Jitsi Meet to m
 Outgoing calls
 ==============
 
-To call someone from Jitsi Meet application, Jigasi must be configured and started like described in the 'Install and run' section. This will cause the telephone icon to appear in the toolbar which will popup a call dialog on click.
+To call someone from Jitsi Meet application, Jigasi must be configured and started like described in the 'Install and run' section. From the invite dialog from the Participants pane you can invite (dial-out) telephone participants.
 
 Incoming calls
 ==============
@@ -81,7 +75,7 @@ Jigasi will register on your SIP server with some identity and it will accept ca
 
 Example:
 
-Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234' will cause Jigasi to join the conference 'https://meet.example.com/room1234' (assuming that our domain is 'meet.example.com').
+Received SIP INVITE with room header 'Jitsi-Conference-Room': 'room1234@conference.meet.example.com"' will cause Jigasi to join the conference 'https://meet.example.com/room1234' (assuming that our domain is 'meet.example.com').
 
 Configuring SIP and Transcription
 =======================================
@@ -102,13 +96,44 @@ Using Jigasi to transcribe a Jitsi Meet conference
 
 It is also possible to use Jigasi as a provider of nearly real-time transcription
 as well as translation while a conference is ongoing as well as serving a complete transcription
-after the conference is over. This can be done by using the SIP dial button and 
-using the URI `jitsi_meet_transcribe`. 
-Currently Jigasi can send speech-to-text results to
-the chat of a Jitsi Meet room as either plain text or JSON. If it's send in JSON,
-Jitsi Meet will provide subtitles in the left corner of the video, while plain text
+after the conference is over. This can be done by using the `Subtitles` button from the menu in jitsi-meet.
+
+Currently, Jigasi can send speech-to-text results to jitsi-meet as either plain text or JSON. If it's send as JSON,
+Jitsi Meet will provide subtitles in the video, while plain text
 will just be posted in the chat. Jigasi will also provide a link to where the final, 
-complete transcript will be served when it enters the room.
+complete transcript will be served when it enters the room if that is configured.
+
+To configure jigasi as a transcriber in a meeting, you will need to have it login with a specific domain that is set as hidden in jitsi-meet config.
+In prosody config (/etc/prosody/conf.d/meet.example.com.cfg.lua) you need to have: 
+```
+VirtualHost "recorder.meet.example.com"
+  modules_enabled = {
+    "ping";
+  }
+  authentication = "internal_hashed"
+```
+Restart prosody if you have added the virtual host config and then create the transcriber account:
+```
+prosodyctl register transcriber recorder.yourdomain.com jigasirecorderexamplepass
+```
+
+Edit the /etc/jitsi/meet/meet.example.com-config.js file, add/set the following:
+```
+config.hiddenDomain = "recorder.meet.example.com";
+config.transcription = { enabled: true };
+```
+
+And in jigasi config (/etc/jitsi/jigasi/sip-communicator.properties):
+```
+org.jitsi.jigasi.ENABLE_SIP=false
+org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true
+org.jitsi.jigasi.xmpp.acc.USER_ID=transcriber@recorder.meet.example.com
+org.jitsi.jigasi.xmpp.acc.PASS=jigasirecorderexamplepass
+org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH=false
+org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true
+```
+Configure a transcription provider(Google, Vosk etc.) and restart jigasi.
+
 
 Google configuration
 ====================
@@ -116,16 +141,30 @@ Google configuration
 For jigasi to act as a transcriber, it sends the audio of all participants in the
 room to an external speech-to-text service. To use [Google Cloud speech-to-text API](https://cloud.google.com/speech/)
 it is required to install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/)
-on the machine running Jigasi. To install on a regular debian/ubuntu environment:
+on the machine running Jigasi. To install on a regular [Debian/Ubuntu](https://cloud.google.com/sdk/docs/install#deb) environment:
 
 ```
-export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
-echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-sudo apt-get update && sudo apt-get install google-cloud-sdk google-cloud-sdk-app-engine-java
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+sudo apt-get update && sudo apt-get install google-cloud-cli
+
 gcloud init
 gcloud auth application-default login
 ```
+
+You will generate a file used for authentication of Google cloud api in jigasi. You will see a result like:
+`Credentials saved to file: [/root/.config/gcloud/application_default_credentials.json]`
+Move the file to jigasi config and change its permissions:
+```
+mv /root/.config/gcloud/application_default_credentials.json /etc/jitsi/jigasi
+chown jigasi:jitsi /etc/jitsi/jigasi/application_default_credentials.json
+```
+In the file `/etc/jitsi/jigasi/config` add at the end:
+```
+# Credential for Google Cloud Speech API
+GOOGLE_APPLICATION_CREDENTIALS=/etc/jitsi/jigasi/application_default_credentials.json
+```
+Restart jigasi
 
 Vosk configuration for transcription
 ==================
