@@ -5,3 +5,4 @@ jigasi.jar                                  usr/share/jigasi
 jigasi.sh                                   usr/share/jigasi
 script/graceful_shutdown.sh                 usr/share/jigasi
 script/collect-dump-logs.sh                 usr/share/jigasi
+script/reconfigure_xmpp.sh                  usr/share/jigasi
