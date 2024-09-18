@@ -135,7 +135,7 @@ public class TranscriptionGatewaySession
     /**
      * The number of visitors that are requesting transcriptions.
      */
-    private int numberOfVisitorsRequestingTranscription = 0;
+    private long numberOfVisitorsRequestingTranscription = 0;
 
     /**
      * Create a TranscriptionGatewaySession which can handle the transcription
@@ -770,7 +770,7 @@ public class TranscriptionGatewaySession
     /**
      * @param count The count of visitors that are requesting transcriptions.
      */
-    public void setVisitorsCountRequestingTranscription(int count)
+    public void setVisitorsCountRequestingTranscription(long count)
     {
         this.numberOfVisitorsRequestingTranscription = count;
 

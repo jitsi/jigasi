@@ -2226,8 +2226,12 @@ public class JvbConference
                     {
                         transcriptionSession.updateTranslateLanguages(languages.split(","));
                     }
-                    transcriptionSession.setVisitorsCountRequestingTranscription(
-                        Integer.parseInt((String)visitorsObj.get("transcribingCount")));
+
+                    Object count = visitorsObj.get("transcribingCount");
+                    if (count != null)
+                    {
+                        transcriptionSession.setVisitorsCountRequestingTranscription((Long)count);
+                    }
                 }
             }
         }
