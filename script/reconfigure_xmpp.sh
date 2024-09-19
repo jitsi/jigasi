@@ -13,7 +13,7 @@ CC_MUC_PREFIX="net.java.sip.communicator.impl.protocol.jabber"
 ESCAPE_PREFIX="${CC_MUC_PREFIX//\./\\.}"
 
 # get all server ids from the configuration files
-CONFIG_SERVER_IDS="$(grep "$CC_MUC_PREFIX.acc" /etc/jitsi/jigasi/sip-communicator.properties \
+CONFIG_SERVER_IDS="$(grep "$CC_MUC_PREFIX.acc" $CONFIG_PATH \
     | cut -d '.' -f 8 \
     | grep '=' \
     | cut -d '=' -f2)"
