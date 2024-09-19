@@ -51,7 +51,7 @@ if [ "$pid" = "" ] ;then
     elif [ -f /var/run/jigasi/jigasi/pid ]; then
         pid=`cat /var/run/jigasi/jigasi.pid`
 	else
-		pid=`ps aux | grep jigasi.jar | grep -v grep | awk '{print $2}'`
+        pid=`ps aux | grep jigasi.jar | grep -v grep | awk '{print $2}'`
     fi
 fi
 
