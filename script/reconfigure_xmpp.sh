@@ -37,7 +37,7 @@ for SERVER_ID in $CONFIG_SERVER_IDS; do
         cat /tmp/cc-muc.json | grep -v 'PASSWORD' | jq
     else
         echo "Adding MUC: $SERVER_ID"
-        curl -s -X POST -d @/tmp/cc-muc.json $CC_MUC_ADD_URL
+        curl -s -H"Content-Type: application/json" -X POST -d @/tmp/cc-muc.json $CC_MUC_ADD_URL
     fi
     rm /tmp/cc-muc.json
     i=$((i+1))
@@ -57,6 +57,6 @@ for MUC in $CC_MUC_REMOVE_LIST; do
         echo "Would Remove MUC: $MUC"
     else
         echo "Removing MUC: $MUC"
-        curl -s -X POST -d "{\"id\":\"$MUC\"}" $CC_MUC_REMOVE_URL
+        curl -s -H"Content-Type: application/json" -X POST -d "{\"id\":\"$MUC\"}" $CC_MUC_REMOVE_URL
     fi
 done
