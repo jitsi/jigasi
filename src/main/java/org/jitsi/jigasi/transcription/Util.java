@@ -22,6 +22,7 @@ import org.json.*;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.*;
 
 /**
  * Utility functions used in the transcription package.
@@ -49,10 +50,10 @@ public class Util
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
             OutputStream os = conn.getOutputStream();
-            os.write(json.toString().getBytes());
+            os.write(json.toString().getBytes(StandardCharsets.UTF_8));
             os.flush();
 
             if (conn.getResponseCode() != HttpURLConnection.HTTP_OK)
