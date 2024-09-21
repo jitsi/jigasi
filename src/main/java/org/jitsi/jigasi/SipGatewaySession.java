@@ -1197,6 +1197,24 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
+    public void notifyConferenceNotLive()
+    {
+        super.notifyConferenceNotLive();
+
+        try
+        {
+            SipGatewaySession.this.sendJson(SipInfoJsonProtocol.createSIPCallNotLive());
+        }
+        catch(OperationFailedException ex)
+        {
+            logger.error("Cannot send visitor message", ex);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     void handleMaxOccupantsLimitReached()
     {
         soundNotificationManager.indicateMaxOccupantsLimitReached();

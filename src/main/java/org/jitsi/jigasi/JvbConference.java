@@ -1165,6 +1165,8 @@ public class JvbConference
                 {
                     logger.info(this.callContext + " Conference is not live yet.");
 
+                    gatewaySession.notifyConferenceNotLive();
+
                     websocketClient = new WebsocketClient(this, visitorsQueueServiceUrl, this.callContext);
                     websocketClient.connect();
 

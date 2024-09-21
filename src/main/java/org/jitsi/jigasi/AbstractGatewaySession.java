@@ -308,6 +308,12 @@ public abstract class AbstractGatewaySession
     }
 
     /**
+     * Method called to notify that the conference is not live yet.
+     */
+    public void notifyConferenceNotLive()
+    {}
+
+    /**
      *  Method called by {@link JvbConference} that it has reached
      *  the maximum number of occupants and gives a chance to the session to
      *  handle it.
