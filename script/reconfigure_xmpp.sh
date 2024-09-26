@@ -31,7 +31,7 @@ for SERVER_ID in $CONFIG_SERVER_IDS; do
             | sed 's/=/":"/' \
             | sed 's/$/",/')"
     # build the json for the configuration call
-    echo "{$CONFIG_JSON\"id\":\"$SERVER_ID\"}" > /tmp/cc-muc.json
+    echo "{$CONFIG_JSON\"id\":\"$SERVER_ID\"}" | jq '. + {"PASSWORD": .PASSWORD|@base64d}' > /tmp/cc-muc.json
     if [ "$DRY_RUN" == "true" ]; then
         echo "Would Add MUC: $SERVER_ID"
         cat /tmp/cc-muc.json | grep -v 'PASSWORD' | jq
