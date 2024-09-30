@@ -368,6 +368,14 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
         </td>
     </tr>
     <tr>
+        <td>org.jitsi.jigasi.transcription.google_model</td>
+        <td>latest_long</td>
+        <td>
+            The model used by the Google speech-to-text API, check the available models 
+            <a href="https://cloud.google.com/speech-to-text/docs/transcription-model">here</a>.
+        </td>
+    </tr>
+    <tr>
         <td>org.jitsi.jigasi.transcription.whisper.private_key</td>
         <td>""</td>
         <td>A base64 RSA256 private key to sign an ASAP JWT with when <code>EGHT_WHISPER</code> is chosen.</td>
