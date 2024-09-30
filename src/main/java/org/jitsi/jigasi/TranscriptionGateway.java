@@ -156,13 +156,18 @@ public class TranscriptionGateway
 
         if (remoteTranscriptionConfigUrl != null)
         {
-            String tsConfigUrl = remoteTranscriptionConfigUrl + "/" + tenant;
+            String tsConfigUrl;
 
             // this is JaaS specific
             if (remoteTranscriptionConfigUrl.contains("jitsi.net"))
             {
                 tsConfigUrl = remoteTranscriptionConfigUrl + "?conferenceFullName="
                         + URLEncoder.encode(roomJid, java.nio.charset.StandardCharsets.UTF_8);
+            }
+            else
+            {
+                String maybeTenant = tenant == null ? "" : tenant;
+                tsConfigUrl = remoteTranscriptionConfigUrl + "/" + maybeTenant;
             }
 
             transcriberClass = getTranscriberFromRemote(tsConfigUrl);
