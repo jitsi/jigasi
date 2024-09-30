@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
+import org.jitsi.jigasi.util.Util;
 import org.jitsi.utils.logging.*;
 import org.json.*;
 import org.osgi.framework.*;
@@ -56,6 +57,25 @@ public class TranscriptionGateway
             = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl";
 
     /**
+     * JWT audience for ASAP Auth.
+     */
+    public final static String JWT_AUDIENCE
+            = "org.jitsi.jigasi.transcription.remoteEndpoint.aud";
+
+
+    /**
+     * The kid header used for signing
+     */
+    public final static String PRIVATE_KEY_NAME
+            = "org.jitsi.jigasi.transcription.remoteEndpoint.kid";
+
+    /**
+     * The base64 encoded private key used for signing
+     */
+    public final static String PRIVATE_KEY
+            = "org.jitsi.jigasi.transcription.remoteEndpoint.key";
+
+    /**
      * Class which manages the desired {@link TranscriptPublisher} and
      * {@link TranscriptionResultPublisher}
      */
@@ -66,6 +86,14 @@ public class TranscriptionGateway
      */
     private ActionServicesHandler actionServicesHandler;
 
+    private final static String privateKey;
+
+    private final static String privateKeyName;
+
+    private final static String jwtAudience;
+
+    private static String remoteTranscriptionConfigUrl;
+
     /**
      * Map of the available transcribers
      */
@@ -74,9 +102,15 @@ public class TranscriptionGateway
     static {
         transcriberClasses.put("GOOGLE", "org.jitsi.jigasi.transcription.GoogleCloudTranscriptionService");
         transcriberClasses.put("ORACLE_CLOUD_AI_SPEECH",
-                "org.jitsi.jigasi.transcription.OracleCloudTranscriptionService");
+                "org.jitsi.jigasi.transcription.OracleTranscriptionService");
         transcriberClasses.put("EGHT_WHISPER", "org.jitsi.jigasi.transcription.WhisperTranscriptionService");
         transcriberClasses.put("VOSK", "org.jitsi.jigasi.transcription.VoskTranscriptionService");
+
+        privateKey = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY, null);
+        privateKeyName = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY_NAME, null);
+        jwtAudience = JigasiBundleActivator.getConfigurationService().getString(JWT_AUDIENCE, null);
+        remoteTranscriptionConfigUrl = JigasiBundleActivator.getConfigurationService()
+                .getString(REMOTE_TRANSCRIPTION_CONFIG_URL, null);
     }
 
     /**
@@ -106,35 +140,46 @@ public class TranscriptionGateway
     }
 
     /**
-     * Tries to retrieve a transcriber assigned to a tenant
-     * if the property value is a json. Returns the value as
-     * is if no JSON is found.
+     * Tries to retrieve a custom defined transcriber by checking
+     * multiple sources. First it issues a GET request to the
+     * remoteTranscriptionConfigUrl property if defined. It expects
+     * a JSON response with a transcriberType property. If not found
+     * it tries to read the transcription.customService property. If
+     * that also fails it returns the default GoogleCloudTranscriptionService.
      *
      * @param tenant the tenant which is retrieved from the context
+     * @param roomJid the roomJid which is retrieved from the context (used only with JaaS)
      */
-    private String getCustomTranscriptionServiceClass(String tenant)
+    private String getCustomTranscriptionServiceClass(String tenant, String roomJid)
     {
         String transcriberClass = null;
-        String remoteTranscriptionConfigUrl
-                = JigasiBundleActivator.getConfigurationService()
-                .getString(
-                        REMOTE_TRANSCRIPTION_CONFIG_URL,
-                        null);
 
-        if (remoteTranscriptionConfigUrl != null && tenant != null)
+        if (remoteTranscriptionConfigUrl != null)
         {
             String tsConfigUrl = remoteTranscriptionConfigUrl + "/" + tenant;
+
+            // this is JaaS specific
+            if (remoteTranscriptionConfigUrl.contains("jitsi.net"))
+            {
+                tsConfigUrl = remoteTranscriptionConfigUrl + "?conferenceFullName="
+                        + URLEncoder.encode(roomJid, java.nio.charset.StandardCharsets.UTF_8);
+            }
+
             transcriberClass = getTranscriberFromRemote(tsConfigUrl);
+            logger.info("Transcriber class retrieved from remote " + remoteTranscriptionConfigUrl
+                    + ": " + transcriberClass);
         }
 
         if (transcriberClass == null)
         {
             String transcriberType = JigasiBundleActivator.getConfigurationService()
-                .getString(
-                        CUSTOM_TRANSCRIPTION_SERVICE_PROP,
-                        null);
+                    .getString(
+                            CUSTOM_TRANSCRIPTION_SERVICE_PROP,
+                            null);
             transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
+            logger.info("Transcriber class retrieved from config: " + transcriberClass);
         }
+
         return transcriberClass;
     }
 
@@ -151,6 +196,11 @@ public class TranscriptionGateway
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
+            if (privateKey != null && privateKeyName != null && jwtAudience != null)
+            {
+                String token = Util.generateAsapToken(privateKey, privateKeyName, jwtAudience, "jitsi");
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+            }
             conn.setConnectTimeout(3000);
             int responseCode = conn.getResponseCode();
             if (responseCode == 200)
@@ -166,7 +216,16 @@ public class TranscriptionGateway
                 inputStream.close();
                 JSONObject obj = new JSONObject(responseBody.toString());
                 String transcriberType = obj.getString("transcriberType");
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Retrieved transcriberType: " + transcriberType);
+                }
                 transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
+            }
+            else
+            {
+                logger.warn("Could not retrieve transcriber from remote URL " + remoteTsConfigUrl
+                        + ". Response code: " + responseCode);
             }
             conn.disconnect();
         }
@@ -180,7 +239,8 @@ public class TranscriptionGateway
     @Override
     public TranscriptionGatewaySession createOutgoingCall(CallContext ctx)
     {
-        String customTranscriptionServiceClass = getCustomTranscriptionServiceClass(ctx.getTenant());
+        String customTranscriptionServiceClass = getCustomTranscriptionServiceClass(ctx.getTenant(),
+                ctx.getRoomJid().toString());
         AbstractTranscriptionService service = null;
         if (customTranscriptionServiceClass != null)
         {
@@ -191,7 +251,7 @@ public class TranscriptionGateway
             }
             catch(Exception e)
             {
-                logger.error("Cannot instantiate custom transcription service", e);
+                logger.warn("Cannot instantiate custom transcription service", e);
             }
         }
 
