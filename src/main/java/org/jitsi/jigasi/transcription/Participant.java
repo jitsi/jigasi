@@ -32,7 +32,7 @@ import java.util.concurrent.*;
 /**
  * This class describes a participant in a conference whose
  * transcription is required. It manages the transcription if its own audio
- * will locally buffered until enough audio is collected
+ * will locally buffer until enough audio is collected
  *
  * @author Nik Vaessen
  * @author Boris Grozev
@@ -59,7 +59,7 @@ public class Participant
      * The size of the local buffer. A single packet is expected to contain
      * 1920 bytes, so the size should be a multiple of 1920. Using
      * 25 results in 20 ms * 25 packets = 500 ms of audio being buffered
-     * locally before being send to the TranscriptionService
+     * locally before being sent to the TranscriptionService
      */
     private static final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
 
@@ -90,7 +90,7 @@ public class Participant
     /**
      * The standard url to a meeple avatar by using a random ID. Default usage
      * when email not known, but using `avatar-id` does not actually result
-     * int he same meeple
+     * in the same meeple
      */
     private final static String MEEPLE_URL_FORMAT
         = "https://abotars.jitsi.net/meeple/%s";
@@ -99,6 +99,16 @@ public class Participant
      * The {@link Transcriber} which owns this {@link Participant}.
      */
     private Transcriber transcriber;
+
+    /**
+     * The time when the last audio packet was received
+     */
+    private long lastAudioReceivedTime = System.currentTimeMillis();
+
+    /**
+     * Whether the buffer has been flushed after a period of inactivity
+     */
+    private boolean flushed = false;
 
     /**
      * The chat room participant.
@@ -524,6 +534,7 @@ public class Participant
             session.addTranscriptionListener(this);
             sessions.put(getLanguageKey(), session);
             isCompleted = false;
+            startBufferCheck();
         }
     }
 
@@ -555,6 +566,7 @@ public class Participant
      */
     void giveBuffer(javax.media.Buffer buffer)
     {
+        lastAudioReceivedTime = System.currentTimeMillis();
         if (audioFormat == null)
         {
             audioFormat = (AudioFormat) buffer.getFormat();
@@ -645,6 +657,7 @@ public class Participant
                try
                {
                    buffer.put(toBuffer);
+                   flushed = false;
                }
                catch (BufferOverflowException | ReadOnlyBufferException e)
                {
@@ -722,12 +735,12 @@ public class Participant
      * with unsigned longs
      *
      * @param confMember the conference member whose SSRC to get
-     * @return the ssrc which is casted to unsigned long
+     * @return the ssrc which is cast to unsigned long
      */
     private static long getConferenceMemberAudioSSRC(
         ConferenceMember confMember)
     {
-        // bitwise AND to fix signed int casted to long
+        // bitwise AND to fix signed int cast to long
         return confMember.getAudioSsrc() & 0xffffffffL;
     }
 
@@ -765,5 +778,37 @@ public class Participant
                 memberJabber != null ? memberJabber.getLastPresence() : null);
 
         return ext != null && Boolean.parseBoolean(ext.getText());
+    }
+
+    private void startBufferCheck()
+    {
+        new Thread(() -> {
+            while (true) {
+                try
+                {
+                    Thread.sleep(1000); // Check every second
+                }
+                catch (InterruptedException e)
+                {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                long currentTime = System.currentTimeMillis();
+                if ((currentTime - lastAudioReceivedTime) > 1000 && !flushed)
+                {
+                    flushBufferOnInactivity();
+                }
+            }
+        }).start();
+    }
+
+    private void flushBufferOnInactivity()
+    {
+        transcriber.executorService.execute(() -> {
+            sendRequest(buffer.array());
+            ((Buffer) buffer).clear();
+            flushed = true;
+        });
     }
 }
