@@ -146,7 +146,7 @@ Jigasi supports multiple transcription services, including Google Cloud speech-t
 API, Vosk speech recognition server, a custom flavor of Whisper
 and Oracle Cloud AI Speech.
 
-Google configuration
+Google configuration for transcription
 ====================
 
 For Jigasi to act as a transcriber, it sends the audio of all participants in the
@@ -180,11 +180,6 @@ In the file `/etc/jitsi/jigasi/config` add at the end:
 GOOGLE_APPLICATION_CREDENTIALS=/etc/jitsi/jigasi/application_default_credentials.json
 ```
 
-Set the following property in `~/jigasi/jigasi-home/sip-communicator.properties`:
-
-```
-org.jitsi.jigasi.transcription.customService=GOOGLE
-```
 and restart Jigasi.
 
 Vosk configuration for transcription
@@ -197,13 +192,13 @@ start the server with a docker:
 docker run -d -p 2700:2700 alphacep/kaldi-en:latest
 ```
 
-Then configure the transcription class with the following property in `~/jigasi/jigasi-home/sip-communicator.properties`:
+Then configure the transcription class with the following property in `/etc/jitsi/jigasi/sip-communicator.properties`:
 
 ```
-org.jitsi.jigasi.transcription.customService=VOSK
+org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.VoskTranscriptionService
 ```
 
-Finally, configure the websocket URL of the VOSK service in `~/jigasi/jigasi-home/sip-communicator.properties`:
+Finally, configure the websocket URL of the VOSK service in `/etc/jitsi/jigasi/sip-communicator.properties`:
 
 If you only have one instance of VOSK server:
 
@@ -220,11 +215,11 @@ the URLs of different VOSK instances in JSON format:
 Whisper configuration for transcription
 ==================
 
-If you plan to use our own flavor of Whisper (check [jitsi/skynet](github.com/jitsi/skynet)), start by configuring the 
-following properties in `~/jigasi/jigasi-home/sip-communicator.properties`:
+If you plan to use our own flavor of Whisper (check [jitsi/skynet](https://github.com/jitsi/skynet)), start by 
+configuring the following properties in `/etc/jitsi/jigasi/sip-communicator.properties`:
 
 ```
-org.jitsi.jigasi.transcription.customService=EGHT_WHISPER
+org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperTranscriptionService
 org.jitsi.jigasi.transcription.whisper.websocket_url=wss://<YOUR-DOMAIN>:<<PORT>>
 ```
 
@@ -237,21 +232,22 @@ Oracle Cloud AI Speech configuration for transcription
 ==================
 
 To use [Oracle Cloud AI Speech](https://docs.oracle.com/en-us/iaas/Content/speech/home.htm), you need to configure the 
-following properties in `~/jigasi/jigasi-home/sip-communicator.properties`:
+following properties in `/etc/jitsi/jigasi/sip-communicator.properties`:
 
 ```
-org.jitsi.jigasi.transcription.customService=ORACLE_CLOUD_AI_SPEECH
+org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.OracleTranscriptionService
 org.jitsi.jigasi.transcription.oci.websocketUrl=wss://realtime.aiservice-<<ENV>>.<<REGION>>.oci.oraclecloud.com
 ```
 
-You also need to place valid OCI credentials under `~/.oci`. 
+You also need to place valid OCI credentials under `/usr/share/jigasi/.oci`. Or point to a different location by setting 
+the `OCI_CONFIG_FILE` environment variable.
 
 
 LibreTranslate configuration for translation
 ==================
 
 To use [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)
-for translation, configure the following properties in `~/jigasi/jigasi-home/sip-communicator.properties`:
+for translation, configure the following properties in `/etc/jitsi/jigasi/sip-communicator.properties`:
 
 ```
 org.jitsi.jigasi.transcription.translationService=org.jitsi.jigasi.transcription.LibreTranslateTranslationService
@@ -271,7 +267,7 @@ Transcription options
 =====================
 
 There are several configuration options regarding transcription. These should
-be placed in `~/jigasi/jigasi-home/sip-communicator.properties`. The default 
+be placed in `/etc/jitsi/jigasi/sip-communicator.properties`. The default 
 value will be used when the property is not set in the property file. A valid 
 XMPP account must also be set to make Jigasi be able to join a conference room.
 
@@ -333,7 +329,7 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl</td>
-        <td>""</td>
+        <td></td>
         <td>
             Makes a GET request to https://YOUR-URL/tenant in order to retrieve which transcription service to use.
             It expects a JSON response with the <code>transcriberType</code> key set to one of the following values:
@@ -344,27 +340,27 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
         </td>
     </tr>
     <tr>
-        <td>org.jitsi.jigasi.transcription.remoteEndpoint.key</td>
-        <td>""</td>
+        <td>org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.key</td>
+        <td></td>
         <td>Base64 RSA256 private key to sign an ASAP JWT with when issuing the request above.</td>
     </tr>
     <tr>
-        <td>org.jitsi.jigasi.transcription.remoteEndpoint.kid</td>
-        <td>""</td>
+        <td>org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.kid</td>
+        <td></td>
         <td>The key's ID.</td>
     </tr>
     <tr>
-        <td>org.jitsi.jigasi.transcription.remoteEndpoint.aud</td>
-        <td>""</td>
+        <td>org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.aud</td>
+        <td></td>
         <td>The JWT audience.</td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.customService</td>
-        <td>GOOGLE</td>
+        <td></td>
         <td>
-            Which transcription service to use between <code>GOOGLE</code>, <code>EGHT_WHISPER</code> 
-            (see <a href="github.com/jitsi/skynet">jitsi/skynet</a>), <code>ORACLE_CLOUD_AI_SPEECH</code> and
-            <code>VOSK</code>.
+            Which transcription service to use between GoogleCloudTranscriptionService, WhisperTranscriptionService 
+            (see <a href="github.com/jitsi/skynet">jitsi/skynet</a>), OracleTranscriptionService and
+            VoskTranscriptionService.
         </td>
     </tr>
     <tr>
@@ -377,33 +373,45 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.whisper.private_key</td>
-        <td>""</td>
-        <td>A base64 RSA256 private key to sign an ASAP JWT with when <code>EGHT_WHISPER</code> is chosen.</td>
+        <td></td>
+        <td>
+            A base64 RSA256 private key to sign an ASAP JWT with when 
+            <code>org.jitsi.jigasi.transcription.WhisperTranscriptionService</code> is chosen.
+        </td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.whisper.private_key_name</td>
-        <td>""</td>
-        <td>The key ID for the <code>EGHT_WHISPER</code> JWT.</td>
+        <td></td>
+        <td>The key ID for the <code>org.jitsi.jigasi.transcription.WhisperTranscriptionService</code> JWT.</td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.whisper.jwt_audience</td>
-        <td>""</td>
-        <td>The audience for the <code>EGHT_WHISPER</code> JWT.</td>
+        <td></td>
+        <td>The audience for the <code>org.jitsi.jigasi.transcription.WhisperTranscriptionService</code> JWT.</td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.whisper.websocket_url</td>
         <td>ws://localhost:8000/ws</td>
-        <td>The websocket URL for the <code>EGHT_WHISPER</code> transcription service.</td>
+        <td>
+            The websocket URL for the <code>org.jitsi.jigasi.transcription.WhisperTranscriptionService</code> 
+            transcription service.
+        </td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.oci.websocketUrl</td>
-        <td>""</td>
-        <td>The websocket url for the <code>ORACLE_CLOUD_AI_SPEECH</code> transcription service.</td>
+        <td></td>
+        <td>
+            The websocket url for the <code>org.jitsi.jigasi.transcription.OracleTranscriptionService</code>
+            transcription service.
+        </td>
     </tr>
     <tr>
         <td>org.jitsi.jigasi.transcription.oci.compartmentId</td>
-        <td>""</td>
-        <td>The compartment ID for the <code>ORACLE_CLOUD_AI_SPEECH</code> transcription service.</td>
+        <td></td>
+        <td>
+            The compartment ID for the <code>org.jitsi.jigasi.transcription.OracleTranscriptionService</code> 
+            transcription service.
+        </td>
     </tr>
 </table>
 

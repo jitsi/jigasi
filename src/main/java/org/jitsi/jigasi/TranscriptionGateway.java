@@ -60,20 +60,20 @@ public class TranscriptionGateway
      * JWT audience for ASAP Auth.
      */
     public final static String JWT_AUDIENCE
-            = "org.jitsi.jigasi.transcription.remoteEndpoint.aud";
+            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.aud";
 
 
     /**
      * The kid header used for signing
      */
     public final static String PRIVATE_KEY_NAME
-            = "org.jitsi.jigasi.transcription.remoteEndpoint.kid";
+            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.kid";
 
     /**
      * The base64 encoded private key used for signing
      */
     public final static String PRIVATE_KEY
-            = "org.jitsi.jigasi.transcription.remoteEndpoint.key";
+            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.key";
 
     /**
      * Class which manages the desired {@link TranscriptPublisher} and
@@ -177,11 +177,10 @@ public class TranscriptionGateway
 
         if (transcriberClass == null)
         {
-            String transcriberType = JigasiBundleActivator.getConfigurationService()
+            transcriberClass = JigasiBundleActivator.getConfigurationService()
                     .getString(
                             CUSTOM_TRANSCRIPTION_SERVICE_PROP,
                             null);
-            transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
             logger.info("Transcriber class retrieved from config: " + transcriberClass);
         }
 
