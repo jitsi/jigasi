@@ -101,16 +101,6 @@ public class Participant
     private Transcriber transcriber;
 
     /**
-     * The time when the last audio packet was received
-     */
-    private long lastAudioReceivedTime = System.currentTimeMillis();
-
-    /**
-     * Whether the buffer has been flushed after a period of inactivity
-     */
-    private boolean flushed = false;
-
-    /**
      * The chat room participant.
      */
     private ChatRoomMember chatMember;
@@ -534,7 +524,6 @@ public class Participant
             session.addTranscriptionListener(this);
             sessions.put(getLanguageKey(), session);
             isCompleted = false;
-            startBufferCheck();
         }
     }
 
@@ -566,7 +555,6 @@ public class Participant
      */
     void giveBuffer(javax.media.Buffer buffer)
     {
-        lastAudioReceivedTime = System.currentTimeMillis();
         if (audioFormat == null)
         {
             audioFormat = (AudioFormat) buffer.getFormat();
@@ -657,7 +645,6 @@ public class Participant
                try
                {
                    buffer.put(toBuffer);
-                   flushed = false;
                }
                catch (BufferOverflowException | ReadOnlyBufferException e)
                {
@@ -780,35 +767,11 @@ public class Participant
         return ext != null && Boolean.parseBoolean(ext.getText());
     }
 
-    private void startBufferCheck()
-    {
-        new Thread(() -> {
-            while (true) {
-                try
-                {
-                    Thread.sleep(1000); // Check every second
-                }
-                catch (InterruptedException e)
-                {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-
-                long currentTime = System.currentTimeMillis();
-                if ((currentTime - lastAudioReceivedTime) > 1000 && !flushed)
-                {
-                    flushBufferOnInactivity();
-                }
-            }
-        }).start();
-    }
-
-    private void flushBufferOnInactivity()
+    public void flushBuffer()
     {
         transcriber.executorService.execute(() -> {
             sendRequest(buffer.array());
             ((Buffer) buffer).clear();
-            flushed = true;
         });
     }
 }

@@ -475,6 +475,20 @@ public class Transcriber
     }
 
     /**
+     * Flush the audio buffer of a participant.
+     *
+     * @param identifier the identifier of the participant
+     */
+    public void flushParticipantAudioBuffer(String identifier)
+    {
+        Participant participant = getParticipant(identifier);
+        if (participant != null)
+        {
+            participant.flushBuffer();
+        }
+    }
+
+    /**
      * Start transcribing all participants added to the list
      */
     public void start()
