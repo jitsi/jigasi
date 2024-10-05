@@ -23,6 +23,7 @@ import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.utils.logging.*;
 import org.jivesoftware.smack.packet.*;
+import org.jitsi.jigasi.stats.*;
 
 import javax.media.format.*;
 import java.nio.*;
@@ -152,6 +153,8 @@ public class Participant
      */
     private SilenceFilter silenceFilter = null;
 
+    private String transcriptionServiceName;
+
     /**
      * Create a participant with a given name and audio stream
      *
@@ -173,6 +176,7 @@ public class Participant
     {
         this.transcriber = transcriber;
         this.identifier = identifier;
+        this.transcriptionServiceName = transcriber.getTranscriptionService().getClass().getSimpleName();
 
         if (filterAudio)
         {
@@ -661,6 +665,35 @@ public class Participant
            });
     }
 
+    private void incrementSentStats(int byteCount)
+    {
+        int divider = EXPECTED_AUDIO_LENGTH;
+
+        if (transcriptionServiceName.equals("WhisperTranscriptionService")
+                || transcriptionServiceName.equals("OracleTranscriptionService"))
+        {
+            // the byte count for each 20ms packet if the audio format is 16kHz mono
+            divider = 640;
+        }
+
+        long millis = byteCount / divider * 20;
+
+        switch (transcriptionServiceName) {
+            case "WhisperTranscriptionService":
+                Statistics.incrementTotalTranscriberWhisperMillis(millis);
+                break;
+            case "OracleTranscriptionService":
+                Statistics.incrementTotalTranscriberOracleMillis(millis);
+                break;
+            case "VoskTranscriptionService":
+                Statistics.incrementTotalTranscriberVoskMillis(millis);
+                break;
+            case "GoogleCloudTranscriptionService":
+                Statistics.incrementTotalTranscriberGoogleMillis(millis);
+                break;
+        }
+    }
+
     /**
      * Send the specified audio to the TranscriptionService.
      * <p>
@@ -681,6 +714,7 @@ public class Participant
             if (session != null && !session.ended())
             {
                 session.sendRequest(request);
+                incrementSentStats(audio.length);
             }
             else if (transcriber.getTranscriptionService().supportsStreamRecognition())
             // re-establish prematurely ended streaming session
@@ -704,6 +738,7 @@ public class Participant
                 transcriber.getTranscriptionService().sendSingleRequest(
                         request,
                         this::notify);
+                incrementSentStats(audio.length);
             }
         });
     }

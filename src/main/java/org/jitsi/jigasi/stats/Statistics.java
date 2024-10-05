@@ -130,6 +130,26 @@ public class Statistics
     public static final String TOTAL_TRANSCRIBER_G_MINUTES = "total_transcriber_g_minutes";
 
     /**
+     * The total number of milliseconds submitted to Google API for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_GGL_MILLIS = "total_transcriber_ggl_millis";
+
+    /**
+     * The total number of milliseconds submitted to Oracle API for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_OCI_MILLIS = "total_transcriber_oci_millis";
+
+    /**
+     * The total number of milliseconds submitted to Skynet/Whisper for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_WSP_MILLIS = "total_transcriber_wsp_millis";
+
+    /**
+     * The total number of milliseconds submitted to Vosk for transcription.
+     */
+    public static final String TOTAL_TRANSCRIBER_VSK_MILLIS = "total_transcriber_vsk_millis";
+
+    /**
      * The total number of requests submitted to the Google Cloud Speech API.
      */
     public static final String TOTAL_TRANSCRIBER_G_REQUESTS = "total_transcriber_g_requests";
@@ -318,6 +338,34 @@ public class Statistics
             "Total number of transcriber requests.");
 
     /**
+     * The total number of milliseconds submitted to Google API for transcription.
+     */
+    private static LongGaugeMetric totalTranscriberGoogleMillis = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_GGL_MILLIS,
+            "Total number of milliseconds sent to Google's API.");
+
+    /**
+     * The total number of milliseconds submitted to Oracle Cloud API for transcription.
+     */
+    private static LongGaugeMetric totalTranscriberOracleMillis = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_OCI_MILLIS,
+            "Total number of milliseconds sent to OCI API.");
+
+    /**
+     * The total number of milliseconds submitted to Skynet Whisper for transcription.
+     */
+    private static LongGaugeMetric totalTranscriberWhisperMillis = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_WSP_MILLIS,
+            "Total number of milliseconds sent to Skynet Whisper.");
+
+    /**
+     * The total number of milliseconds submitted to Vosk for transcription.
+     */
+    private static LongGaugeMetric totalTranscriberVoskMillis = JigasiMetricsContainer.INSTANCE.registerLongGauge(
+            TOTAL_TRANSCRIBER_VSK_MILLIS,
+            "Total number of milliseconds sent to Vosk.");
+
+    /**
      * Cumulative number of seconds of all conferences.
      */
     private static CounterMetric cumulativeConferenceSeconds = JigasiMetricsContainer.INSTANCE.registerCounter(
@@ -407,7 +455,10 @@ public class Statistics
 
         stats.put(TOTAL_TRANSCRIBER_G_REQUESTS, totalTrasnscriberRequests.get());
         stats.put(TOTAL_TRANSCRIBER_G_MINUTES, totalTranscriberMinutes.get());
-
+        stats.put(TOTAL_TRANSCRIBER_GGL_MILLIS, totalTranscriberGoogleMillis.get());
+        stats.put(TOTAL_TRANSCRIBER_OCI_MILLIS, totalTranscriberOracleMillis.get());
+        stats.put(TOTAL_TRANSCRIBER_WSP_MILLIS, totalTranscriberWhisperMillis.get());
+        stats.put(TOTAL_TRANSCRIBER_VSK_MILLIS, totalTranscriberVoskMillis.get());
         stats.put(TOTAL_TRANSCRIBER_STARTED, totalTrasnscriberStarted.get());
         stats.put(TOTAL_TRANSCRIBER_STOPPED, totalTrasnscriberStopped.get());
         stats.put(TOTAL_TRANSCRIBER_FAILED, totalTrasnscriberFailed.get());
@@ -634,6 +685,38 @@ public class Statistics
     public static void incrementTotalTranscriberMinutes(long value)
     {
         totalTranscriberMinutes.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of milliseconds sent to Google API for transcription.
+     */
+    public static void incrementTotalTranscriberGoogleMillis(long value)
+    {
+        totalTranscriberGoogleMillis.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of milliseconds sent to Oracle API for transcription.
+     */
+    public static void incrementTotalTranscriberOracleMillis(long value)
+    {
+        totalTranscriberOracleMillis.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of milliseconds sent to Skynet Whisper for transcription.
+     */
+    public static void incrementTotalTranscriberWhisperMillis(long value)
+    {
+        totalTranscriberWhisperMillis.addAndGet(value);
+    }
+
+    /**
+     * Increment the value of total number of milliseconds sent to Vosk for transcription.
+     */
+    public static void incrementTotalTranscriberVoskMillis(long value)
+    {
+        totalTranscriberVoskMillis.addAndGet(value);
     }
 
     /**
