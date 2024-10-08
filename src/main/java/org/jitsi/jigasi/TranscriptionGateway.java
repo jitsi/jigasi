@@ -148,7 +148,7 @@ public class TranscriptionGateway
      * that also fails it returns the default GoogleCloudTranscriptionService.
      *
      * @param tenant the tenant which is retrieved from the context
-     * @param roomJid the roomJid which is retrieved from the context (used only with JaaS)
+     * @param roomJid the roomJid which is retrieved from the context
      */
     private String getCustomTranscriptionServiceClass(String tenant, String roomJid)
     {
@@ -156,19 +156,8 @@ public class TranscriptionGateway
 
         if (remoteTranscriptionConfigUrl != null)
         {
-            String tsConfigUrl;
-
-            // this is JaaS specific
-            if (remoteTranscriptionConfigUrl.contains("jitsi.net"))
-            {
-                tsConfigUrl = remoteTranscriptionConfigUrl + "?conferenceFullName="
-                        + URLEncoder.encode(roomJid, java.nio.charset.StandardCharsets.UTF_8);
-            }
-            else
-            {
-                String maybeTenant = tenant == null ? "" : tenant;
-                tsConfigUrl = remoteTranscriptionConfigUrl + "/" + maybeTenant;
-            }
+            String tsConfigUrl = remoteTranscriptionConfigUrl + "?conferenceFullName="
+                    + URLEncoder.encode(roomJid, java.nio.charset.StandardCharsets.UTF_8);
 
             transcriberClass = getTranscriberFromRemote(tsConfigUrl);
             logger.info("Transcriber class retrieved from remote " + remoteTranscriptionConfigUrl
