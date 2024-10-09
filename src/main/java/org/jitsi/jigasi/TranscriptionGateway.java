@@ -101,8 +101,7 @@ public class TranscriptionGateway
 
     static {
         transcriberClasses.put("GOOGLE", "org.jitsi.jigasi.transcription.GoogleCloudTranscriptionService");
-        transcriberClasses.put("ORACLE_CLOUD_AI_SPEECH",
-                "org.jitsi.jigasi.transcription.OracleTranscriptionService");
+        transcriberClasses.put("ORACLE_CLOUD_AI_SPEECH", "org.jitsi.jigasi.transcription.OracleTranscriptionService");
         transcriberClasses.put("EGHT_WHISPER", "org.jitsi.jigasi.transcription.WhisperTranscriptionService");
         transcriberClasses.put("VOSK", "org.jitsi.jigasi.transcription.VoskTranscriptionService");
 
@@ -110,7 +109,7 @@ public class TranscriptionGateway
         privateKeyName = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY_NAME, null);
         jwtAudience = JigasiBundleActivator.getConfigurationService().getString(JWT_AUDIENCE, null);
         remoteTranscriptionConfigUrl = JigasiBundleActivator.getConfigurationService()
-                .getString(REMOTE_TRANSCRIPTION_CONFIG_URL, null);
+            .getString(REMOTE_TRANSCRIPTION_CONFIG_URL, null);
     }
 
     /**
@@ -147,41 +146,41 @@ public class TranscriptionGateway
      * it tries to read the transcription.customService property. If
      * that also fails it returns the default GoogleCloudTranscriptionService.
      *
-     * @param tenant the tenant which is retrieved from the context
-     * @param roomJid the roomJid which is retrieved from the context
+     * @param ctx the context
      */
-    private String getCustomTranscriptionServiceClass(String tenant, String roomJid)
+    private String getCustomTranscriptionServiceClass(CallContext ctx)
     {
         String transcriberClass = null;
 
         if (remoteTranscriptionConfigUrl != null)
         {
             String tsConfigUrl = remoteTranscriptionConfigUrl + "?conferenceFullName="
-                    + URLEncoder.encode(roomJid, java.nio.charset.StandardCharsets.UTF_8);
+                + URLEncoder.encode(ctx.getRoomJid().toString(), java.nio.charset.StandardCharsets.UTF_8);
 
-            transcriberClass = getTranscriberFromRemote(tsConfigUrl);
-            logger.info("Transcriber class retrieved from remote " + remoteTranscriptionConfigUrl
-                    + ": " + transcriberClass);
+            transcriberClass = getTranscriberFromRemote(tsConfigUrl, ctx);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(ctx + " Transcriber class retrieved from remote "
+                    + remoteTranscriptionConfigUrl + ": " + transcriberClass);
+            }
         }
 
         if (transcriberClass == null)
         {
             transcriberClass = JigasiBundleActivator.getConfigurationService()
-                    .getString(
-                            CUSTOM_TRANSCRIPTION_SERVICE_PROP,
-                            null);
-            logger.info("Transcriber class retrieved from config: " + transcriberClass);
+                .getString(CUSTOM_TRANSCRIPTION_SERVICE_PROP, null);
+            logger.info(ctx + " Transcriber class retrieved from config: " + transcriberClass);
         }
 
         return transcriberClass;
     }
 
-    private String getTranscriberFromRemote(String remoteTsConfigUrl)
+    private String getTranscriberFromRemote(String remoteTsConfigUrl, CallContext ctx)
     {
         String transcriberClass = null;
         if (logger.isDebugEnabled())
         {
-            logger.debug("Calling  " + remoteTsConfigUrl + " to retrieve transcriber.");
+            logger.debug(ctx + " Calling  " + remoteTsConfigUrl + " to retrieve transcriber.");
         }
         try
         {
@@ -211,14 +210,14 @@ public class TranscriptionGateway
                 String transcriberType = obj.getString("transcriberType");
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Retrieved transcriberType: " + transcriberType);
+                    logger.debug(ctx + " Retrieved transcriberType: " + transcriberType);
                 }
                 transcriberClass = transcriberClasses.getOrDefault(transcriberType, null);
             }
             else
             {
-                logger.warn("Could not retrieve transcriber from remote URL " + remoteTsConfigUrl
-                        + ". Response code: " + responseCode);
+                logger.warn(ctx + " Could not retrieve transcriber from remote URL " + remoteTsConfigUrl
+                    + ". Response code: " + responseCode);
             }
             conn.disconnect();
         }
@@ -232,8 +231,7 @@ public class TranscriptionGateway
     @Override
     public TranscriptionGatewaySession createOutgoingCall(CallContext ctx)
     {
-        String customTranscriptionServiceClass = getCustomTranscriptionServiceClass(ctx.getTenant(),
-                ctx.getRoomJid().toString());
+        String customTranscriptionServiceClass = getCustomTranscriptionServiceClass(ctx);
         AbstractTranscriptionService service = null;
         if (customTranscriptionServiceClass != null)
         {
