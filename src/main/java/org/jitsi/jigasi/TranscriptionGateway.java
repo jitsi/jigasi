@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import org.bouncycastle.util.io.pem.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.jigasi.util.Util;
@@ -66,14 +67,14 @@ public class TranscriptionGateway
     /**
      * The kid header used for signing
      */
-    public final static String PRIVATE_KEY_NAME
+    public final static String PRIVATE_KEY_ID
             = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.kid";
 
     /**
-     * The base64 encoded private key used for signing
+     * The path to the private key file.
      */
-    public final static String PRIVATE_KEY
-            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.key";
+    public final static String PRIVATE_KEY_PATH
+            = "org.jitsi.jigasi.transcription.remoteTranscriptionConfigUrl.keyPath";
 
     /**
      * Class which manages the desired {@link TranscriptPublisher} and
@@ -86,13 +87,12 @@ public class TranscriptionGateway
      */
     private ActionServicesHandler actionServicesHandler;
 
-    private final static String privateKey;
-
-    private final static String privateKeyName;
+    private static final String privateKeyFilePath;
+    private static final String privateKeyId;
 
     private final static String jwtAudience;
 
-    private static String remoteTranscriptionConfigUrl;
+    private final static String remoteTranscriptionConfigUrl;
 
     /**
      * Map of the available transcribers
@@ -105,9 +105,9 @@ public class TranscriptionGateway
         transcriberClasses.put("EGHT_WHISPER", "org.jitsi.jigasi.transcription.WhisperTranscriptionService");
         transcriberClasses.put("VOSK", "org.jitsi.jigasi.transcription.VoskTranscriptionService");
 
-        privateKey = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY, null);
-        privateKeyName = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY_NAME, null);
-        jwtAudience = JigasiBundleActivator.getConfigurationService().getString(JWT_AUDIENCE, null);
+        privateKeyFilePath = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY_PATH);
+        privateKeyId = JigasiBundleActivator.getConfigurationService().getString(PRIVATE_KEY_ID);
+        jwtAudience = JigasiBundleActivator.getConfigurationService().getString(JWT_AUDIENCE);
         remoteTranscriptionConfigUrl = JigasiBundleActivator.getConfigurationService()
             .getString(REMOTE_TRANSCRIPTION_CONFIG_URL, null);
     }
@@ -188,17 +188,29 @@ public class TranscriptionGateway
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
-            if (privateKey != null && privateKeyName != null && jwtAudience != null)
+
+            if (privateKeyId != null && privateKeyFilePath != null && jwtAudience != null)
             {
-                String token = Util.generateAsapToken(privateKey, privateKeyName, jwtAudience, "jitsi");
-                conn.setRequestProperty("Authorization", "Bearer " + token);
+                try (
+                    PemReader pemReader = new PemReader(new InputStreamReader(new FileInputStream(privateKeyFilePath)))
+                )
+                {
+                    PemObject pemObject = pemReader.readPemObject();
+                    String token = Util.generateAsapToken(Base64.getEncoder().encodeToString(pemObject.getContent()),
+                            privateKeyId, jwtAudience, "jitsi");
+                    conn.setRequestProperty("Authorization", "Bearer " + token);
+                }
+                catch (Exception e)
+                {
+                    logger.error(ctx + " Error generating token", e);
+                }
             }
+
             conn.setConnectTimeout(3000);
             int responseCode = conn.getResponseCode();
             if (responseCode == 200)
             {
-                BufferedReader inputStream = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream()));
+                BufferedReader inputStream = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 String inputLine;
                 StringBuilder responseBody = new StringBuilder();
                 while ((inputLine = inputStream.readLine()) != null)
