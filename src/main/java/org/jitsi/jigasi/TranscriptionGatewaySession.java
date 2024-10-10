@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.Message;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.utils.concurrent.*;
@@ -28,8 +29,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.utils.*;
-import org.jivesoftware.smack.packet.Presence;
-import org.jivesoftware.smack.packet.StandardExtensionElement;
+import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 import org.jxmpp.jid.*;
@@ -378,7 +378,7 @@ public class TranscriptionGatewaySession
             }
             catch (Exception e)
             {
-                logger.error("Error parsing presence while checking if participant is muted", e);
+                logger.error(this.callContext + " Error parsing presence while checking if participant is muted", e);
             }
 
             if (hasMuted)

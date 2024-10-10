@@ -98,7 +98,7 @@ public class Participant
     /**
      * The {@link Transcriber} which owns this {@link Participant}.
      */
-    private Transcriber transcriber;
+    private final Transcriber transcriber;
 
     /**
      * The chat room participant.
@@ -118,7 +118,7 @@ public class Participant
     /**
      * A buffer which is used to locally store audio before sending
      */
-    private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    private final ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
     /**
      * The AudioFormat of the audio being read. It is assumed to not change
