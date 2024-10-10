@@ -766,4 +766,12 @@ public class Participant
 
         return ext != null && Boolean.parseBoolean(ext.getText());
     }
+
+    public void flushBuffer()
+    {
+        transcriber.executorService.execute(() -> {
+            sendRequest(buffer.array());
+            ((Buffer) buffer).clear();
+        });
+    }
 }
