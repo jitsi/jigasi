@@ -19,6 +19,7 @@ package org.jitsi.jigasi;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.Message;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.media.*;
 import org.jitsi.utils.concurrent.*;
@@ -28,8 +29,9 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.utils.*;
-import org.jivesoftware.smack.packet.Presence;
+import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
+import org.json.simple.parser.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -355,13 +357,45 @@ public class TranscriptionGatewaySession
         );
     }
 
+    /**
+     /* Checks if the participant has muted and flushes the audio buffer if so.
+     **/
+    private void flushParticipantTranscriptionBufferOnMute(ChatRoomMember chatMember, Presence presence)
+    {
+        boolean hasMuted = false;
+        StandardExtensionElement sourceInfo = (StandardExtensionElement) presence.getExtensionElement("SourceInfo",
+                "jabber:client");
+        if (sourceInfo != null)
+        {
+            String mutedText = sourceInfo.getText();
+            JSONParser jsonParser = new JSONParser();
+            try
+            {
+                JSONObject jsonObject = (JSONObject) jsonParser.parse(mutedText);
+                String participantKey = jsonObject.keySet().toArray()[0].toString();
+                JSONObject mutedJsonObject = (JSONObject) jsonParser.parse(jsonObject.get(participantKey).toString());
+                hasMuted = (boolean) mutedJsonObject.get("muted");
+            }
+            catch (Exception e)
+            {
+                logger.error(this.callContext + " Error parsing presence while checking if participant is muted", e);
+            }
+
+            if (hasMuted)
+            {
+                this.transcriber.flushParticipantAudioBuffer(getParticipantIdentifier(chatMember));
+            }
+        }
+    }
+
     @Override
     void notifyChatRoomMemberUpdated(ChatRoomMember chatMember, Presence presence)
     {
         super.notifyChatRoomMemberUpdated(chatMember, presence);
+        this.flushParticipantTranscriptionBufferOnMute(chatMember, presence);
 
-        //This needed for the translation language change.
-        //update a language change coming in the presence
+        //This is needed for the translation language change.
+        //Updates a language change coming in the presence
         String identifier = getParticipantIdentifier(chatMember);
         this.transcriber.updateParticipant(identifier, chatMember);
 
