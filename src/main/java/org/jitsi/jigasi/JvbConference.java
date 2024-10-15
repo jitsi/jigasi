@@ -415,6 +415,11 @@ public class JvbConference
     private final RoomMetadataListener roomMetadataListener = new RoomMetadataListener();
 
     /**
+     * Listens for messages from visitors component.
+     */
+    private final VisitorsMessagesListener visitorsMessagesListener = new VisitorsMessagesListener();
+
+    /**
      * The features for the current xmpp provider we will use later adding to the room presence we send.
      */
     private ExtensionElement features = null;
@@ -848,6 +853,18 @@ public class JvbConference
                             MessageTypeFilter.NORMAL,
                             FromMatchesFilter.create(JidCreate.domainBareFrom(roomMetadataIdentity.getName()))));
                 }
+
+                DiscoverInfo.Identity visitorsIdentity = info.getIdentities().stream().
+                        filter(di -> di.getCategory().equals("component") && di.getType().equals("visitors"))
+                        .findFirst().orElse(null);
+
+                if (visitorsIdentity != null && !this.isTranscriber)
+                {
+                    getConnection().addAsyncStanzaListener(visitorsMessagesListener,
+                        new AndFilter(
+                            MessageTypeFilter.CHAT,
+                            FromMatchesFilter.create(JidCreate.domainBareFrom(visitorsIdentity.getName()))));
+                }
             }
             catch(Exception e)
             {
@@ -1274,6 +1291,7 @@ public class JvbConference
         {
             connection.removeAsyncStanzaListener(roomConfigurationListener);
             connection.removeAsyncStanzaListener(roomMetadataListener);
+            connection.removeAsyncStanzaListener(visitorsMessagesListener);
         }
 
         // remove listener needs to be after leave,
@@ -2244,6 +2262,44 @@ public class JvbConference
     }
 
     /**
+     * Process received demote request. Leaves the current room and keeps the connection
+     * as we will send the invite to jicofo with the request to be visitor.
+     * After the response the visitor's logic will kick in with disconnecting and connecting to the visitor's node.
+     * @param json The received json.
+     */
+    private void processVisitorsJson(String json)
+    {
+        try
+        {
+            Object o = new JSONParser().parse(json);
+
+            if (o instanceof JSONObject)
+            {
+                JSONObject data = (JSONObject) o;
+
+                if (data.get("type").equals("visitors")
+                    && data.get("action").equals("demote-request")
+                    && data.get("id").equals(this.mucRoom.getUserNickname()))
+                {
+                    logger.info(callContext + " Received demote request to become visitor from: "
+                        + data.get("actor"));
+
+                    this.leaveConferenceRoom();
+
+                    this.callContext.setRequestVisitor(true);
+
+                    logger.info(callContext + " Will join requesting to be visitor.");
+                    this.joinConferenceRoom();
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            logger.error(callContext + " Error parsing", e);
+        }
+    }
+
+    /**
      * Threads handles the timeout for stopping the conference.
      * For waiting for conference call invite sent by the focus or for waiting
      * another participant to joins.
@@ -2626,4 +2682,23 @@ public class JvbConference
             stop();
         }
     }
-}
+
+    /**
+     * Listening for visitor's messages.
+     */
+    private class VisitorsMessagesListener
+            implements StanzaListener
+    {
+        @Override
+        public void processStanza(Stanza stanza)
+        {
+            JsonMessageExtension jsonMsg = stanza.getExtension(JsonMessageExtension.class);
+
+            if (jsonMsg == null)
+            {
+                return;
+            }
+
+            processVisitorsJson(jsonMsg.getJson());
+        }
+    }}
