@@ -10,3 +10,8 @@ jigasi.iml
 .DS_Store
 
 target
+out
+
+src/main/resources/META-INF/
+
+.DS_Store
