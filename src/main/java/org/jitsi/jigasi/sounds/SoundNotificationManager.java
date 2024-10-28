@@ -30,6 +30,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jibri.*;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
@@ -232,13 +233,30 @@ public class SoundNotificationManager
      */
     public void process(Presence presence)
     {
-        RecordingStatus rs = presence.getExtension(RecordingStatus.class);
-
-        if (rs != null
-            && gatewaySession.getFocusResourceAddr().equals(
-                presence.getFrom().getResourceOrEmpty().toString()))
+        if (gatewaySession.getFocusResourceAddr().equals(presence.getFrom().getResourceOrEmpty().toString()))
         {
-            notifyRecordingStatusChanged(rs.getRecordingMode(), rs.getStatus());
+            RecordingStatus rs = presence.getExtension(RecordingStatus.class);
+
+            if (rs != null)
+            {
+                notifyRecordingStatusChanged(rs.getRecordingMode(), rs.getStatus());
+
+                return;
+            }
+
+            ConferenceProperties props = presence.getExtension(ConferenceProperties.class);
+            if (props != null)
+            {
+                props.getProperties().stream()
+                    .filter(p -> ConferenceProperties.KEY_AUDIO_RECORDING_ENABLED.equals(p.getKey()))
+                    .findFirst().ifPresent(p ->
+                    {
+                        if (p.getValue().equals(Boolean.TRUE.toString()))
+                        {
+                            notifyRecordingStatusChanged(JibriIq.RecordingMode.FILE, JibriIq.Status.ON);
+                        }
+                    });
+            }
         }
     }
 
