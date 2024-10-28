@@ -239,7 +239,7 @@ public class SoundNotificationManager
             RecordingStatus rs = presence.getExtension(RecordingStatus.class);
             if (rs != null)
             {
-                isJibriRecordingOn = true;
+                isJibriRecordingOn = rs.getStatus() == JibriIq.Status.ON;
             }
 
             boolean isAudioRecordingOn = false;
