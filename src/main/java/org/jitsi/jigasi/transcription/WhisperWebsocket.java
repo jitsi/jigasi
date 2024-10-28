@@ -336,9 +336,20 @@ public class WhisperWebsocket
         return fullPayload;
     }
 
+    /**
+     * Disconnect a participant from the transcription service.
+     * @param participantId the participant to disconnect.
+     * @return <tt>true</tt> if the last participant has left and the session was closed.
+     * @throws IOException
+     */
     public boolean disconnectParticipant(String participantId)
         throws IOException
     {
+        if (this.wsSession == null)
+        {
+            return true;
+        }
+
         synchronized (this)
         {
             if (participants.containsKey(participantId))
