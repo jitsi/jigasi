@@ -166,7 +166,7 @@ public class WhisperWebsocket
     }
 
     /**
-     * Connect to the websocket in a new thread.
+     * Connect to the websocket in a new thread so we do not block Smack.
      */
     void connect()
     {
@@ -403,7 +403,7 @@ public class WhisperWebsocket
     }
 
     /**
-     * Disconnect a participant from the transcription service, executing that in a new thread.
+     * Disconnect a participant from the transcription service, executing that in a new thread so we do not block Smack.
      * @param participantId the participant to disconnect.
      * @param callback the callback to execute when the last participant is disconnected and session is closed.
      */

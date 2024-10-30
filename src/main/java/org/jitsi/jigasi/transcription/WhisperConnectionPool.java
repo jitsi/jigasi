@@ -61,7 +61,6 @@ public class WhisperConnectionPool
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
             final WhisperWebsocket socket = new WhisperWebsocket();
 
-            // connect socket in new thread to not block Smack threads
             socket.connect();
 
             pool.put(roomId, socket);
@@ -77,7 +76,6 @@ public class WhisperConnectionPool
      */
     public void end(String roomId, String participantId)
     {
-        // execute this in new thread to not block Smack
         WhisperWebsocket wsConn = pool.getOrDefault(roomId, null);
         if (wsConn == null)
         {
