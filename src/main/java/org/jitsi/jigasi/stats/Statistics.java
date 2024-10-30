@@ -160,6 +160,11 @@ public class Statistics
     public static final String TOTAL_TRANSCRIBER_CONNECTION_ERRORS = "total_transcriber_connection_errors";
 
     /**
+     * The total number of connection retries for the transcriber.
+     */
+    public static final String TOTAL_TRANSCRIBER_CONNECTION_RETRIES = "total_transcriber_connection_retries";
+
+    /**
      * The total number of no result errors for the transcriber.
      */
     public static final String TOTAL_TRANSCRIBER_NO_RESUL_ERRORS = "total_transcriber_no_result_errors";
@@ -301,6 +306,13 @@ public class Statistics
     private static CounterMetric totalTrasnscriberConnectionErrors = JigasiMetricsContainer.INSTANCE.registerCounter(
             TOTAL_TRANSCRIBER_CONNECTION_ERRORS,
             "Total number of transcriber connection errors.");
+
+    /**
+     * Total number of transcriptions connection retries.
+     */
+    private static CounterMetric totalTrasnscriberConnectionRetries = JigasiMetricsContainer.INSTANCE.registerCounter(
+            TOTAL_TRANSCRIBER_CONNECTION_RETRIES,
+            "Total number of transcriber connection retries.");
 
     /**
      * Total number of transcriptions no result errors.
@@ -465,6 +477,7 @@ public class Statistics
         stats.put(TOTAL_TRANSCRIBER_FAILED, totalTrasnscriberFailed.get());
 
         stats.put(TOTAL_TRANSCRIBER_CONNECTION_ERRORS, totalTrasnscriberConnectionErrors.get());
+        stats.put(TOTAL_TRANSCRIBER_CONNECTION_RETRIES, totalTrasnscriberConnectionRetries.get());
         stats.put(TOTAL_TRANSCRIBER_NO_RESUL_ERRORS, totalTrasnscriberNoResultErrors.get());
         stats.put(TOTAL_TRANSCRIBER_SEND_ERRORS, totalTrasnscriberSendErrors.get());
         stats.put(TOTAL_TRANSCRIBER_SESSION_CREATION_ERRORS, totalTrasnscriberSessionCreationErrors.get());
@@ -734,6 +747,14 @@ public class Statistics
     public static void incrementTotalTranscriberConnectionErrors()
     {
         totalTrasnscriberConnectionErrors.inc();
+    }
+
+    /**
+     * Increment the value of total number of transcriber connection retries.
+     */
+    public static void incrementTotalTranscriberConnectionRetries()
+    {
+        totalTrasnscriberConnectionRetries.inc();
     }
 
     /**

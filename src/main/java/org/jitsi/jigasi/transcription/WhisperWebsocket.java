@@ -23,6 +23,7 @@ import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
+import org.jitsi.jigasi.util.Util;
 import org.jitsi.utils.logging.*;
 import org.json.*;
 
@@ -32,8 +33,13 @@ import java.nio.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.*;
 
-
+/**
+ * This holds the websocket that is used to send audio data to the Whisper.
+ * This is one WhisperWebsocket per room (mapping is in <link>WhisperConnectionPool</link>).
+ * The jetty WebSocketClient process messages in a single thread.
+ */
 @WebSocket
 public class WhisperWebsocket
 {
@@ -111,6 +117,8 @@ public class WhisperWebsocket
 
     private WebSocketClient ws;
 
+    private boolean reconnecting = false;
+
     static
     {
         jwtAudience = JigasiBundleActivator.getConfigurationService()
@@ -140,6 +148,11 @@ public class WhisperWebsocket
     }
 
     /**
+     * The thread pool to serve all connect, disconnect ore reconnect operations.
+     */
+    private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
+
+    /**
      * Creates a connection url by concatenating the websocket
      * url with the Connection Id;
      */
@@ -152,12 +165,19 @@ public class WhisperWebsocket
         }
     }
 
+    /**
+     * Connect to the websocket in a new thread so we do not block Smack.
+     */
+    void connect()
+    {
+        threadPool.submit(this::connectInternal);
+    }
 
     /**
      * Connect to the websocket, retry up to maxRetryAttempts
      * with exponential backoff in case of failure
      */
-    void connect()
+    private void connectInternal()
     {
         int attempt = 0;
         float multiplier = 1.5f;
@@ -178,6 +198,7 @@ public class WhisperWebsocket
                 wsSession = ws.connect(this, new URI(websocketUrl), upgradeRequest).get();
                 wsSession.setIdleTimeout(Duration.ofSeconds(300));
                 isConnected = true;
+                reconnecting = false;
                 logger.info("Successfully connected to " + websocketUrl);
                 break;
             }
@@ -208,14 +229,59 @@ public class WhisperWebsocket
         }
     }
 
+    private synchronized void reconnect()
+    {
+        if (reconnecting)
+        {
+            return;
+        }
+        reconnecting = true;
+
+        Statistics.incrementTotalTranscriberConnectionRetries();
+
+        threadPool.submit(() ->
+        {
+            this.stopWebSocketClient();
+
+            this.connectInternal();
+        });
+    }
+
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
+        if (!this.participants.isEmpty())
+        {
+            // let's try to reconnect
+            if (!wsSession.isOpen())
+            {
+                reconnect();
+
+                return;
+            }
+        }
+
+        if (participants != null && !participants.isEmpty())
+        {
+            logger.error("Websocket closed: " + statusCode + " reason:" + reason);
+        }
+
         wsSession = null;
         participants = null;
         participantListeners = null;
         participantTranscriptionStarts = null;
         participantTranscriptionIds = null;
+
+        threadPool.submit(this::stopWebSocketClient);
+    }
+
+    /**
+     * Stop the websocket client.
+     * Make sure this is executed in a different thread than the one
+     * the websocket client is running in (the onMessage, onError or onClose callbacks).
+     */
+    private void stopWebSocketClient()
+    {
         try
         {
             if (ws != null)
@@ -300,7 +366,7 @@ public class WhisperWebsocket
     @OnWebSocketError
     public void onError(Throwable cause)
     {
-        if (wsSession != null)
+        if (!ended() && participants != null && !participants.isEmpty())
         {
             Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Error while streaming audio data to transcription service.", cause);
@@ -337,17 +403,21 @@ public class WhisperWebsocket
     }
 
     /**
-     * Disconnect a participant from the transcription service.
+     * Disconnect a participant from the transcription service, executing that in a new thread so we do not block Smack.
      * @param participantId the participant to disconnect.
-     * @return <tt>true</tt> if the last participant has left and the session was closed.
-     * @throws IOException
+     * @param callback the callback to execute when the last participant is disconnected and session is closed.
      */
-    public boolean disconnectParticipant(String participantId)
-        throws IOException
+    public void disconnectParticipant(String participantId, Consumer<Boolean> callback)
     {
-        if (this.wsSession == null)
+        threadPool.submit(() -> this.disconnectParticipantInternal(participantId, callback));
+    }
+
+    private void disconnectParticipantInternal(String participantId, Consumer<Boolean> callback)
+    {
+        if (ended() && (participants == null || participants.isEmpty()))
         {
-            return true;
+            callback.accept(true);
+            return;
         }
 
         synchronized (this)
@@ -362,11 +432,21 @@ public class WhisperWebsocket
             if (participants.isEmpty())
             {
                 logger.info("All participants have left, disconnecting from Whisper transcription server.");
-                wsSession.getRemote().sendBytes(EOF_MESSAGE);
+
+                try
+                {
+                    wsSession.getRemote().sendBytes(EOF_MESSAGE);
+                }
+                catch (IOException e)
+                {
+                    logger.error("Error while finalizing websocket connection for participant " + participantId, e);
+                }
+
                 wsSession.disconnect();
-                return true;
+                callback.accept(true);
             }
-            return false;
+
+            callback.accept(false);
         }
     }
 
@@ -384,18 +464,15 @@ public class WhisperWebsocket
             logger.error("Failed sending audio for " + participantId + ". Attempting to reconnect.");
             if (!wsSession.isOpen())
             {
-                try
-                {
-                    connect();
-                    remoteEndpoint = wsSession.getRemote();
-                }
-                catch (Exception ex)
-                {
-                    logger.error(ex);
-                }
+                reconnect();
+            }
+            else
+            {
+                logger.warn("Failed sending audio for " + participantId
+                    + ". RemoteEndpoint is null but sessions is open.");
             }
         }
-        if (remoteEndpoint != null)
+        else
         {
             try
             {

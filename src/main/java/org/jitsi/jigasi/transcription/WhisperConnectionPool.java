@@ -50,11 +50,6 @@ public class WhisperConnectionPool
     private final Map<String, WhisperWebsocket> pool = new ConcurrentHashMap<>();
 
     /**
-     * The thread pool to serve all connect disconnect operations.
-     */
-    private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
-
-    /**
      * Gets a connection if it exists, creates one if it doesn't.
      * @param roomId The room jid.
      * @return The websocket.
@@ -66,8 +61,7 @@ public class WhisperConnectionPool
             logger.info("Room " + roomId + " doesn't exist. Creating a new connection.");
             final WhisperWebsocket socket = new WhisperWebsocket();
 
-            // connect socket in new thread to not block Smack threads
-            threadPool.execute(socket::connect);
+            socket.connect();
 
             pool.put(roomId, socket);
         }
@@ -82,30 +76,19 @@ public class WhisperConnectionPool
      */
     public void end(String roomId, String participantId)
     {
-        // execute this in new thread to not block Smack
-        threadPool.execute(() -> this.endInternal(roomId, participantId));
-    }
-
-    private void endInternal(String roomId, String participantId)
-    {
         WhisperWebsocket wsConn = pool.getOrDefault(roomId, null);
         if (wsConn == null)
         {
             return;
         }
 
-        try
+        wsConn.disconnectParticipant(participantId, allDisconnected ->
         {
-            if (wsConn.disconnectParticipant(participantId))
+            if (allDisconnected)
             {
-                // remove from the pull if everyone is disconnected
                 pool.remove(roomId);
             }
-        }
-        catch (IOException e)
-        {
-            logger.error("Error while finalizing websocket connection for participant " + participantId, e);
-        }
+        });
     }
 
     /**
