@@ -67,6 +67,7 @@ import java.beans.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
@@ -185,6 +186,8 @@ public class JvbConference
      */
     private String meetingId;
 
+    private static ExecutorService threadPool = Util.createNewThreadPool("xmpp-executor-pool");
+
     /**
      * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
      * by executing the tasks in new thread
@@ -208,7 +211,32 @@ public class JvbConference
                 return false;
             }
         },
-        Util.createNewThreadPool("xmpp-executor-pool")
+        threadPool
+    );
+
+    /**
+     * A queue used for sending xmpp messages.
+     */
+    public final PacketQueue<Runnable> xmppSendQueue = new PacketQueue<>(
+            Integer.MAX_VALUE,
+            false,
+            "xmpp-send-queue",
+            r -> {
+                // do process and try
+                try
+                {
+                    r.run();
+
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    logger.error("Error processing xmpp queue item", e);
+
+                    return false;
+                }
+            },
+            threadPool
     );
 
     /**
@@ -2306,7 +2334,7 @@ public class JvbConference
      */
     public void sendMessageToRoom(String messageString)
     {
-        xmppInvokeQueue.add(() -> sendMessageToRoomInternal(messageString));
+        xmppSendQueue.add(() -> sendMessageToRoomInternal(messageString));
     }
 
     public void sendMessageToRoomInternal(String messageString)
@@ -2338,7 +2366,7 @@ public class JvbConference
      */
     public void sendJsonMessage(JSONObject jsonMessage)
     {
-        xmppInvokeQueue.add(() -> sendJsonMessageInternal(jsonMessage));
+        xmppSendQueue.add(() -> sendJsonMessageInternal(jsonMessage));
     }
 
     private void sendJsonMessageInternal(JSONObject jsonMessage)
