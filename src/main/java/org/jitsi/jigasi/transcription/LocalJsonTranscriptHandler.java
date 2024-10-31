@@ -18,6 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 import org.json.simple.*;
 
 import java.time.*;
@@ -225,19 +226,15 @@ public class LocalJsonTranscriptHandler
     }
 
     @Override
-    public void publish(ChatRoom room, TranscriptionResult result)
+    public void publish(JvbConference jvbConference, TranscriptionResult result)
     {
-        JSONObject eventObject = createTranscriptionJSONObject(result);
-
-        super.sendJsonMessage(room, eventObject);
+        jvbConference.sendJsonMessage(createTranscriptionJSONObject(result));
     }
 
     @Override
-    public void publish(ChatRoom room, TranslationResult result)
+    public void publish(JvbConference jvbConference, TranslationResult result)
     {
-        JSONObject eventObject = createTranslationJSONObject(result);
-
-        super.sendJsonMessage(room, eventObject);
+        jvbConference.sendJsonMessage(createTranslationJSONObject(result));
     }
 
     /**

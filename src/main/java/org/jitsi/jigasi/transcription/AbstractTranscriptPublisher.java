@@ -17,9 +17,6 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import net.java.sip.communicator.impl.protocol.jabber.*;
-import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.Message;
 import org.jitsi.jigasi.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -157,16 +154,6 @@ public abstract class AbstractTranscriptPublisher<T>
         = Logger.getLogger(AbstractTranscriptPublisher.class);
 
     /**
-     * Aspect for successful upload of transcript
-     */
-    private static final String DD_ASPECT_SUCCESS = "upload_success";
-
-    /**
-     * Aspect for failed upload of transcript
-     */
-    private static final String DD_ASPECT_FAIL = "upload_fail";
-
-    /**
      * Get a string which contains a time stamp and a random UUID, with an
      * optional pre- and suffix attached.
      *
@@ -187,76 +174,6 @@ public abstract class AbstractTranscriptPublisher<T>
             UUID.randomUUID(), suffix);
     }
 
-    /**
-     * Send a message to the muc room
-     *
-     * @param chatRoom the chatroom to send the message to
-     * @param message the message to send
-     */
-    protected void sendMessage(ChatRoom chatRoom, T message)
-    {
-        if (chatRoom == null)
-        {
-            logger.error("Cannot send message as chatRoom is null");
-            return;
-        }
-
-        String messageString = message.toString();
-        Message chatRoomMessage = chatRoom.createMessage(messageString);
-        try
-        {
-            chatRoom.sendMessage(chatRoomMessage);
-            if (logger.isTraceEnabled())
-                logger.trace("Sending message: \"" + messageString + "\"");
-        }
-        catch (OperationFailedException e)
-        {
-            logger.warn("Failed to send message " + messageString, e);
-        }
-    }
-
-    /**
-     * Send a json-message to the muc room
-     *
-     * @param chatRoom the chatroom to send the message to
-     * @param jsonMessage the json message to send
-     */
-    protected void sendJsonMessage(ChatRoom chatRoom, T jsonMessage)
-    {
-        if (chatRoom == null)
-        {
-            logger.error("Cannot send message as chatRoom is null");
-            return;
-        }
-
-        if (!(chatRoom instanceof ChatRoomJabberImpl))
-        {
-            logger.error("Cannot send message as chatRoom is not an" +
-                "instance of ChatRoomJabberImpl");
-            return;
-        }
-
-        if (!chatRoom.isJoined())
-        {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Skip sending message to room which we left!");
-            }
-            return;
-        }
-
-        String messageString = jsonMessage.toString();
-        try
-        {
-            ((ChatRoomJabberImpl)chatRoom).sendJsonMessage(messageString);
-            if (logger.isTraceEnabled())
-                logger.trace("Sending json message: \"" + messageString + "\"");
-        }
-        catch (OperationFailedException e)
-        {
-            logger.warn("Failed to send json message " + messageString, e);
-        }
-    }
     /**
      * Save a transcript given as a String to subdirectory of getLogDirPath()
      * with the given directory name and the given file name

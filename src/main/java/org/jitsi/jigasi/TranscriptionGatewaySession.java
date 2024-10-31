@@ -86,13 +86,6 @@ public class TranscriptionGatewaySession
     private TranscriptHandler handler;
 
     /**
-     * The ChatRoom of the conference which is going to be transcribed.
-     * We will post messages to the ChatRoom to update users of progress
-     * of transcription
-     */
-    private ChatRoom chatRoom = null;
-
-    /**
      * The transcriber managing transcriptions of audio
      */
     private Transcriber transcriber;
@@ -213,14 +206,13 @@ public class TranscriptionGatewaySession
         // We can now safely set the Call connecting to the muc room
         // and the ChatRoom of the muc room
         this.jvbCall = jvbConferenceCall;
-        this.chatRoom = super.jvbConference.getJvbRoom();
 
         // If the transcription service is not correctly configured, there is no
         // point in continuing this session, so end it immediately
         if (!service.isConfiguredProperly())
         {
             logger.warn("TranscriptionService is not properly configured");
-            sendMessageToRoom("Transcriber is not properly " +
+            super.jvbConference.sendMessageToRoom("Transcriber is not properly " +
                 "configured. Contact the service administrators and let them " +
                 "know! I will now leave.");
             jvbConference.stop();
@@ -260,7 +252,7 @@ public class TranscriptionGatewaySession
 
         if (welcomeMessage.length() > 0)
         {
-            sendMessageToRoom(welcomeMessage.toString());
+            super.jvbConference.sendMessageToRoom(welcomeMessage.toString());
         }
 
         try
@@ -637,6 +629,13 @@ public class TranscriptionGatewaySession
      */
     private List<ChatRoomMember> getCurrentChatRoomMembers()
     {
+        if (super.jvbConference == null)
+        {
+            return null;
+        }
+
+        ChatRoom chatRoom = super.jvbConference.getJvbRoom();
+
         return chatRoom == null ? null : chatRoom.getMembers();
     }
 
@@ -710,32 +709,6 @@ public class TranscriptionGatewaySession
         return getConferenceMemberResourceID(conferenceMember);
     }
 
-
-    /**
-     * Send a message to the muc room
-     *
-     * @param messageString the message to send
-     */
-    private void sendMessageToRoom(String messageString)
-    {
-        if (chatRoom == null)
-        {
-            logger.error("Cannot send message as chatRoom is null");
-            return;
-        }
-
-        Message message = chatRoom.createMessage(messageString);
-        try
-        {
-            chatRoom.sendMessage(message);
-            logger.debug("Sending message: \"" + messageString + "\"");
-        }
-        catch (OperationFailedException e)
-        {
-            logger.warn("Failed to send message " + messageString, e);
-        }
-    }
-
     /**
      * Send a {@link TranscriptionResult} to the {@link ChatRoom}
      *
@@ -743,7 +716,7 @@ public class TranscriptionGatewaySession
      */
     private void sendTranscriptionResultToRoom(TranscriptionResult result)
     {
-        handler.publishTranscriptionResult(this.chatRoom, result);
+        handler.publishTranscriptionResult(super.jvbConference, result);
     }
 
     /**
@@ -753,7 +726,7 @@ public class TranscriptionGatewaySession
      */
     private void sendTranslationResultToRoom(TranslationResult result)
     {
-        handler.publishTranslationResult(this.chatRoom, result);
+        handler.publishTranslationResult(super.jvbConference, result);
     }
 
     @Override

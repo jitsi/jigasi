@@ -67,6 +67,7 @@ import java.beans.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoomPresenceChangeEvent.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.*;
@@ -185,11 +186,13 @@ public class JvbConference
      */
     private String meetingId;
 
+    private static ExecutorService threadPool = Util.createNewThreadPool("xmpp-executor-pool");
+
     /**
      * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
      * by executing the tasks in new thread
      */
-    public static final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
+    public final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
         Integer.MAX_VALUE,
         false,
         "xmpp-invoke-queue",
@@ -208,7 +211,32 @@ public class JvbConference
                 return false;
             }
         },
-        Util.createNewThreadPool("xmpp-executor-pool")
+        threadPool
+    );
+
+    /**
+     * A queue used for sending xmpp messages.
+     */
+    public final PacketQueue<Runnable> xmppSendQueue = new PacketQueue<>(
+            Integer.MAX_VALUE,
+            false,
+            "xmpp-send-queue",
+            r -> {
+                // do process and try
+                try
+                {
+                    r.run();
+
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    logger.error("Error processing xmpp queue item", e);
+
+                    return false;
+                }
+            },
+            threadPool
     );
 
     /**
@@ -2296,6 +2324,80 @@ public class JvbConference
         catch(Exception e)
         {
             logger.error(callContext + " Error parsing", e);
+        }
+    }
+
+    /**
+     * Send a message to the muc room
+     *
+     * @param messageString the message to send
+     */
+    public void sendMessageToRoom(String messageString)
+    {
+        xmppSendQueue.add(() -> sendMessageToRoomInternal(messageString));
+    }
+
+    public void sendMessageToRoomInternal(String messageString)
+    {
+        if (isInTheRoom())
+        {
+            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            return;
+        }
+
+        try
+        {
+            this.mucRoom.sendMessage(this.mucRoom.createMessage(messageString));
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(this.callContext + " Sending message: \"" + messageString + "\"");
+            }
+        }
+        catch (OperationFailedException e)
+        {
+            logger.warn(this.callContext + " Failed to send message " + messageString, e);
+        }
+    }
+
+    /**
+     * Send a json-message to the muc room
+     *
+     * @param jsonMessage the json message to send
+     */
+    public void sendJsonMessage(JSONObject jsonMessage)
+    {
+        xmppSendQueue.add(() -> sendJsonMessageInternal(jsonMessage));
+    }
+
+    private void sendJsonMessageInternal(JSONObject jsonMessage)
+    {
+        if (this.mucRoom == null)
+        {
+            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            return;
+        }
+
+        if (!isInTheRoom())
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(this.callContext + " Skip sending message to room which we left!");
+            }
+            return;
+        }
+
+        String messageString = jsonMessage.toString();
+        try
+        {
+            ((ChatRoomJabberImpl)this.mucRoom).sendJsonMessage(messageString);
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(this.callContext + " Sending json message: \"" + messageString + "\"");
+            }
+        }
+        catch (OperationFailedException e)
+        {
+            logger.warn(this.callContext + " Failed to send json message " + messageString, e);
         }
     }
 

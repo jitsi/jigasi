@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.utils.logging.*;
 
 import java.time.*;
@@ -180,7 +180,7 @@ public class LocalTxtTranscriptHandler
      * {@inheritDoc}
      */
     @Override
-    public void publish(ChatRoom chatRoom, TranscriptionResult result)
+    public void publish(JvbConference jvbConference, TranscriptionResult result)
     {
         if (result.isInterim())
         {
@@ -191,8 +191,7 @@ public class LocalTxtTranscriptHandler
         String transcription = result.getAlternatives().iterator()
             .next().getTranscription();
 
-        String toSend = name + ": " + transcription;
-        super.sendMessage(chatRoom, toSend);
+        jvbConference.sendMessageToRoom(name + ": " + transcription);
     }
 
     /**
@@ -202,7 +201,7 @@ public class LocalTxtTranscriptHandler
      * {@inheritDoc}
      */
     @Override
-    public void publish(ChatRoom chatRoom, TranslationResult result)
+    public void publish(JvbConference jvbConference, TranslationResult result)
     {
         /*
          * We do not send the translated speech-to-text results to the Chatroom
