@@ -28,6 +28,7 @@ import com.oracle.bmc.http.signing.*;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
+import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.logging.*;
 
 import java.io.*;
@@ -59,6 +60,11 @@ public class OracleRealtimeClient
             = Logger.getLogger(OracleRealtimeClient.class);
 
     /**
+     * The thread pool to serve all connect, disconnect ore reconnect operations.
+     */
+    private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-oracle-ws");
+
+    /**
      * Constructor.
      *
      * @param listener for the RealtimeClientListener
@@ -83,20 +89,23 @@ public class OracleRealtimeClient
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
-        String closedBy = isClosureClientInitiated ? "client" : "server";
-        logger.info("Session closed by " + closedBy + ", reason = " + reason + ", status code = " + statusCode);
-        isConnected = false;
-        this.session = null;
-        try
+        threadPool.submit(() ->
         {
-            this.client.stop();
-        }
-        catch (Exception e)
-        {
-            logger.error("Error while stopping the OCI transcription client: ", e);
-        }
-        //The listener can implement their own closing logic
-        this.listener.onClose(statusCode, reason);
+            String closedBy = isClosureClientInitiated ? "client" : "server";
+            logger.info("Session closed by " + closedBy + ", reason = " + reason + ", status code = " + statusCode);
+            isConnected = false;
+            this.session = null;
+            try
+            {
+                this.client.stop();
+            }
+            catch (Exception e)
+            {
+                logger.error("Error while stopping the OCI transcription client: ", e);
+            }
+            //The listener can implement their own closing logic
+            this.listener.onClose(statusCode, reason);
+        });
     }
 
     /**
