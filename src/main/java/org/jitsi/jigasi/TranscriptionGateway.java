@@ -22,7 +22,8 @@ import org.jitsi.jigasi.transcription.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.utils.logging.*;
-import org.json.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 import org.osgi.framework.*;
 
 import java.io.*;
@@ -218,8 +219,8 @@ public class TranscriptionGateway
                     responseBody.append(inputLine);
                 }
                 inputStream.close();
-                JSONObject obj = new JSONObject(responseBody.toString());
-                String transcriberType = obj.getString("transcriberType");
+                JSONObject obj = (JSONObject)new JSONParser().parse(responseBody.toString());
+                String transcriberType = (String)obj.get("transcriberType");
                 if (logger.isDebugEnabled())
                 {
                     logger.debug(ctx + " Retrieved transcriberType: " + transcriberType);

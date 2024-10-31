@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import org.jitsi.utils.logging.*;
-import org.json.*;
+import org.json.simple.*;
 
 import java.io.*;
 import java.net.*;

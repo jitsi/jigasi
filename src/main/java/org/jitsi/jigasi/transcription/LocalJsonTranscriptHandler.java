@@ -18,7 +18,7 @@
 package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.service.protocol.*;
-import org.json.*;
+import org.json.simple.*;
 
 import java.time.*;
 import java.util.*;
@@ -369,7 +369,7 @@ public class LocalJsonTranscriptHandler
             alternativeJSON.put(JSON_KEY_ALTERNATIVE_CONFIDENCE,
                 alternative.getConfidence());
 
-            alternativeJSONArray.put(alternativeJSON);
+            alternativeJSONArray.add(alternativeJSON);
         }
 
         jsonObject.put(JSON_KEY_EVENT_TRANSCRIPT, alternativeJSONArray);
@@ -476,7 +476,7 @@ public class LocalJsonTranscriptHandler
 
                 addParticipantDescription(pJSON, participant);
 
-                participantArray.put(pJSON);
+                participantArray.add(pJSON);
             }
 
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_INITIAL_PARTICIPANTS,
@@ -486,7 +486,7 @@ public class LocalJsonTranscriptHandler
         {
             JSONArray eventArray = new JSONArray();
 
-            events.forEach(eventArray::put);
+            eventArray.addAll(events);
 
             jsonObject.put(JSON_KEY_FINAL_TRANSCRIPT_EVENTS, eventArray);
         }
