@@ -25,7 +25,8 @@ import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.utils.logging.*;
-import org.json.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 
 import java.io.*;
 import java.net.*;
@@ -151,6 +152,8 @@ public class WhisperWebsocket
      * The thread pool to serve all connect, disconnect ore reconnect operations.
      */
     private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
+
+    private final JSONParser jsonParser = new JSONParser();
 
     /**
      * Creates a connection url by concatenating the websocket
@@ -301,19 +304,33 @@ public class WhisperWebsocket
     @OnWebSocketMessage
     public void onMessage(String msg)
     {
+        try
+        {
+            this.onMessageInternal(msg);
+        }
+        catch (ParseException e)
+        {
+            logger.error("Error parsing message: " + msg, e);
+        }
+    }
+
+    private void onMessageInternal(String msg)
+        throws ParseException
+    {
         boolean partial = true;
         String result;
-        JSONObject obj = new JSONObject(msg);
-        String msgType = obj.getString("type");
-        String participantId = obj.getString("participant_id");
+
+        JSONObject obj = (JSONObject)jsonParser.parse(msg);
+        String msgType = (String)obj.get("type");
+        String participantId = (String)obj.get("participant_id");
         Participant participant = participants.get(participantId);
         if (msgType.equals("final"))
         {
             partial = false;
         }
 
-        result = obj.getString("text");
-        float stability = obj.getFloat("variance");
+        result = (String)obj.get("text");
+        double stability = (double)obj.get("variance");
         if (logger.isDebugEnabled())
         {
             logger.debug("Received result: " + result);

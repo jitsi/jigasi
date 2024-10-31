@@ -614,6 +614,8 @@ public class AudioModeration
     private class AVModerationListener
         implements StanzaListener
     {
+        private JSONParser parser = new JSONParser();
+
         @Override
         public void processStanza(Stanza packet)
         {
@@ -627,7 +629,7 @@ public class AudioModeration
 
             try
             {
-                Object o = new JSONParser().parse(jsonMsg.getJson());
+                Object o = parser.parse(jsonMsg.getJson());
 
                 if (o instanceof JSONObject)
                 {

@@ -21,7 +21,7 @@ import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.utils.logging.Logger;
-import org.json.*;
+import org.json.simple.*;
 import org.osgi.framework.*;
 
 import java.util.*;

@@ -20,7 +20,8 @@ package org.jitsi.jigasi.transcription;
 import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.*;
-import org.json.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.utils.logging.*;
 
@@ -74,6 +75,8 @@ public class VoskTranscriptionService
      * The URL of the websocket to the speech-to-text service.
      */
     private String websocketUrl;
+
+    private final JSONParser jsonParser = new JSONParser();
 
     /**
      * Assigns the websocketUrl to use to websocketUrl by reading websocketUrlConfig;
@@ -260,19 +263,35 @@ public class VoskTranscriptionService
         @OnWebSocketMessage
         public void onMessage(String msg)
         {
+            try
+            {
+                this.onMessageInternal(msg);
+            }
+            catch (ParseException e)
+            {
+                logger.error("Error parsing message: " + msg, e);
+            }
+        }
+
+        private void onMessageInternal(String msg)
+            throws ParseException
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(debugName + "Received response: " + msg);
+            }
+
             boolean partial = true;
             String result = "";
-            if (logger.isDebugEnabled())
-                logger.debug(debugName + "Recieved response: " + msg);
-            JSONObject obj = new JSONObject(msg);
-            if (obj.has("partial"))
+            JSONObject obj = (JSONObject)jsonParser.parse(msg);
+            if (obj.containsKey("partial"))
             {
-                result = obj.getString("partial");
+                result = (String)obj.get("partial");
             }
             else
             {
                 partial = false;
-                result = obj.getString("text");
+                result = (String)obj.get("text");
             }
 
             if (!result.isEmpty() && (!partial || !result.equals(lastResult)))
