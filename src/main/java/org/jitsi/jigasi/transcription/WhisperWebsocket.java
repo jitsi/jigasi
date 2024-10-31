@@ -184,7 +184,8 @@ public class WhisperWebsocket
         long waitTime = 1000L;
         boolean isConnected = false;
         wsSession = null;
-        while (attempt < maxRetryAttempts && !isConnected)
+        // avoid executing if meeting ended (we are not running) while we were reconnecting
+        while (attempt < maxRetryAttempts && !(reconnecting && !isRunning()) && !isConnected)
         {
             try
             {
@@ -231,7 +232,7 @@ public class WhisperWebsocket
 
     private synchronized void reconnect()
     {
-        if (reconnecting)
+        if (reconnecting && !isRunning())
         {
             return;
         }
@@ -250,7 +251,7 @@ public class WhisperWebsocket
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
-        if (!this.participants.isEmpty())
+        if (isRunning())
         {
             // let's try to reconnect
             if (!wsSession.isOpen())
@@ -261,7 +262,7 @@ public class WhisperWebsocket
             }
         }
 
-        if (participants != null && !participants.isEmpty())
+        if (isRunning())
         {
             logger.error("Websocket closed: " + statusCode + " reason:" + reason);
         }
@@ -366,7 +367,7 @@ public class WhisperWebsocket
     @OnWebSocketError
     public void onError(Throwable cause)
     {
-        if (!ended() && participants != null && !participants.isEmpty())
+        if (!ended() && isRunning())
         {
             Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Error while streaming audio data to transcription service.", cause);
@@ -414,7 +415,7 @@ public class WhisperWebsocket
 
     private void disconnectParticipantInternal(String participantId, Consumer<Boolean> callback)
     {
-        if (ended() && (participants == null || participants.isEmpty()))
+        if (ended() && !isRunning())
         {
             callback.accept(true);
             return;
@@ -513,5 +514,16 @@ public class WhisperWebsocket
     public boolean ended()
     {
         return wsSession == null;
+    }
+
+    /**
+     * We consider this websocket transcription running when there are participants.
+     * While reconnecting we still have participants. After disconnectParticipantInternal where we clean
+     * all participants and close the socket we are no longer running, and we should not try to reconnect.
+     * @return true if operational.
+     */
+    private boolean isRunning()
+    {
+        return participants != null && !participants.isEmpty();
     }
 }
