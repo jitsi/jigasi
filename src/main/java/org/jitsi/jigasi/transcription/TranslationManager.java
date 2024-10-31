@@ -17,7 +17,10 @@
  */
 package org.jitsi.jigasi.transcription;
 
+import org.jitsi.jigasi.util.Util;
+
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * This class manages the translations to be done by the transcriber.
@@ -44,6 +47,11 @@ public class TranslationManager
      * The translationService to be used for translations.
      */
     private final TranslationService translationService;
+
+    /**
+     * The thread pool to serve all connect, disconnect ore reconnect operations.
+     */
+    private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-translation");
 
     /**
      * Initializes the translationManager with a TranslationService
@@ -171,20 +179,21 @@ public class TranslationManager
     @Override
     public void notify(TranscriptionResult result)
     {
-        if (!result.isInterim())
+        threadPool.submit(() ->
         {
-            List<TranslationResult> translations
-                = getTranslations(result);
-            Iterable<TranslationResultListener> translationResultListeners;
-
-            synchronized (listeners)
+            if (!result.isInterim())
             {
-                translationResultListeners = new ArrayList<>(listeners);
-            }
+                List<TranslationResult> translations = getTranslations(result);
+                Iterable<TranslationResultListener> translationResultListeners;
 
-            translationResultListeners.forEach(
-                listener -> translations.forEach(listener::notify));
-        }
+                synchronized (listeners)
+                {
+                    translationResultListeners = new ArrayList<>(listeners);
+                }
+
+                translationResultListeners.forEach(listener -> translations.forEach(listener::notify));
+            }
+        });
     }
 
     @Override
