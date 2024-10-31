@@ -123,6 +123,8 @@ public class WebsocketClient
      */
     private ScheduledFuture ponger;
 
+    private final JSONParser jsonParser = new JSONParser();
+
     /**
      * A timer which will be used to schedule connection to conference after going live.
      */
@@ -371,7 +373,7 @@ public class WebsocketClient
         {
             try
             {
-                Object o = new JSONParser().parse(body.replace(END, ""));
+                Object o = jsonParser.parse(body.replace(END, ""));
 
                 if (o instanceof JSONObject)
                 {

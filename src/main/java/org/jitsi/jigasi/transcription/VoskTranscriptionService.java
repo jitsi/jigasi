@@ -76,6 +76,8 @@ public class VoskTranscriptionService
      */
     private String websocketUrl;
 
+    private final JSONParser jsonParser = new JSONParser();
+
     /**
      * Assigns the websocketUrl to use to websocketUrl by reading websocketUrlConfig;
      */
@@ -281,7 +283,7 @@ public class VoskTranscriptionService
 
             boolean partial = true;
             String result = "";
-            JSONObject obj = (JSONObject)new JSONParser().parse(msg);
+            JSONObject obj = (JSONObject)jsonParser.parse(msg);
             if (obj.containsKey("partial"))
             {
                 result = (String)obj.get("partial");

@@ -153,6 +153,8 @@ public class WhisperWebsocket
      */
     private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
 
+    private final JSONParser jsonParser = new JSONParser();
+
     /**
      * Creates a connection url by concatenating the websocket
      * url with the Connection Id;
@@ -318,7 +320,7 @@ public class WhisperWebsocket
         boolean partial = true;
         String result;
 
-        JSONObject obj = (JSONObject)new JSONParser().parse(msg);
+        JSONObject obj = (JSONObject)jsonParser.parse(msg);
         String msgType = (String)obj.get("type");
         String participantId = (String)obj.get("participant_id");
         Participant participant = participants.get(participantId);
