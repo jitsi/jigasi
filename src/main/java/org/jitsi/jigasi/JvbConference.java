@@ -2300,6 +2300,80 @@ public class JvbConference
     }
 
     /**
+     * Send a message to the muc room
+     *
+     * @param messageString the message to send
+     */
+    public void sendMessageToRoom(String messageString)
+    {
+        xmppInvokeQueue.add(() -> sendMessageToRoomInternal(messageString));
+    }
+
+    public void sendMessageToRoomInternal(String messageString)
+    {
+        if (isInTheRoom())
+        {
+            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            return;
+        }
+
+        try
+        {
+            this.mucRoom.sendMessage(this.mucRoom.createMessage(messageString));
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(this.callContext + " Sending message: \"" + messageString + "\"");
+            }
+        }
+        catch (OperationFailedException e)
+        {
+            logger.warn(this.callContext + " Failed to send message " + messageString, e);
+        }
+    }
+
+    /**
+     * Send a json-message to the muc room
+     *
+     * @param jsonMessage the json message to send
+     */
+    public void sendJsonMessage(JSONObject jsonMessage)
+    {
+        xmppInvokeQueue.add(() -> sendJsonMessageInternal(jsonMessage));
+    }
+
+    private void sendJsonMessageInternal(JSONObject jsonMessage)
+    {
+        if (this.mucRoom == null)
+        {
+            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            return;
+        }
+
+        if (!isInTheRoom())
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(this.callContext + " Skip sending message to room which we left!");
+            }
+            return;
+        }
+
+        String messageString = jsonMessage.toString();
+        try
+        {
+            ((ChatRoomJabberImpl)this.mucRoom).sendJsonMessage(messageString);
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(this.callContext + " Sending json message: \"" + messageString + "\"");
+            }
+        }
+        catch (OperationFailedException e)
+        {
+            logger.warn(this.callContext + " Failed to send json message " + messageString, e);
+        }
+    }
+
+    /**
      * Threads handles the timeout for stopping the conference.
      * For waiting for conference call invite sent by the focus or for waiting
      * another participant to joins.

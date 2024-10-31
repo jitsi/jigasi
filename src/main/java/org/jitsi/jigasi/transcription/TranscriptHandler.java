@@ -135,15 +135,15 @@ public class TranscriptHandler
      * Handle a {@link TranscriptionResult} with all given
      * {@link TranscriptionResultPublisher}'s
      *
-     * @param room the {@link ChatRoom} to send the result to
+     * @param jvbConference the {@link JvbConference} to send the result to
      * @param result the {@link TranscriptionResult} to handle
      */
-    public void publishTranscriptionResult(ChatRoom room,
+    public void publishTranscriptionResult(JvbConference jvbConference,
                                            TranscriptionResult result)
     {
         for (TranscriptionResultPublisher p : resultPublishers)
         {
-            p.publish(room, result);
+            p.publish(jvbConference, result);
         }
     }
 
@@ -151,15 +151,15 @@ public class TranscriptHandler
      * Handle a {@link TranslationResult} with all given
      * {@link TranscriptionResultPublisher}'s
      *
-     * @param room the {@link ChatRoom} to send the result to
+     * @param jvbConference the {@link JvbConference} to send the result to
      * @param result the {@link TranslationResult} to handle
      */
-    public void publishTranslationResult(ChatRoom room,
+    public void publishTranslationResult(JvbConference jvbConference,
                                          TranslationResult result)
     {
         for (TranscriptionResultPublisher p : resultPublishers)
         {
-            p.publish(room, result);
+            p.publish(jvbConference, result);
         }
     }
 

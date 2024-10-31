@@ -17,7 +17,7 @@
  */
 package org.jitsi.jigasi.transcription;
 
-import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 
 /**
  * This interface is used to send a message to the chatRoom of a jitsi-meet
@@ -30,16 +30,16 @@ public interface TranscriptionResultPublisher
     /**
      * Publish the given TranscriptionResult to the given ChatRoom
      *
-     * @param chatRoom the chat room
+     * @param jvbConference the meeting room
      * @param result the result
      */
-    void publish(ChatRoom chatRoom, TranscriptionResult result);
+    void publish(JvbConference jvbConference, TranscriptionResult result);
 
     /**
      * Publish the given TranslationResult to the given ChatRoom
      *
-     * @param chatRoom the chat room
+     * @param jvbConference the meeting room
      * @param result the result
      */
-    void publish(ChatRoom chatRoom, TranslationResult result);
+    void publish(JvbConference jvbConference, TranslationResult result);
 }
