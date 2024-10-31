@@ -189,7 +189,7 @@ public class JvbConference
      * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
      * by executing the tasks in new thread
      */
-    public static final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
+    public final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
         Integer.MAX_VALUE,
         false,
         "xmpp-invoke-queue",
