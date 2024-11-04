@@ -236,6 +236,17 @@ public class JigasiBundleActivator
                 new DefaultPacketExtensionProvider<>(RecordingStatus.class)
             );
 
+            ProviderManager.addExtensionProvider(
+                    ConferenceProperties.ELEMENT,
+                    ConferenceProperties.NAMESPACE,
+                    new DefaultPacketExtensionProvider<>(ConferenceProperties.class)
+            );
+            ProviderManager.addExtensionProvider(
+                    ConferenceProperties.ConferenceProperty.ELEMENT,
+                    ConferenceProperties.NAMESPACE,
+                    new DefaultPacketExtensionProvider<>(ConferenceProperties.ConferenceProperty.class)
+            );
+
             logger.info("initialized SipGateway");
             sipGateway = new SipGateway(bundleContext)
             {

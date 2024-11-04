@@ -30,6 +30,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jibri.*;
+import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
@@ -232,13 +233,37 @@ public class SoundNotificationManager
      */
     public void process(Presence presence)
     {
-        RecordingStatus rs = presence.getExtension(RecordingStatus.class);
-
-        if (rs != null
-            && gatewaySession.getFocusResourceAddr().equals(
-                presence.getFrom().getResourceOrEmpty().toString()))
+        if (gatewaySession.getFocusResourceAddr().equals(presence.getFrom().getResourceOrEmpty().toString()))
         {
-            notifyRecordingStatusChanged(rs.getRecordingMode(), rs.getStatus());
+            boolean isJibriRecordingOn = false;
+            RecordingStatus rs = presence.getExtension(RecordingStatus.class);
+            if (rs != null)
+            {
+                isJibriRecordingOn = rs.getStatus() == JibriIq.Status.ON;
+            }
+
+            boolean isAudioRecordingOn = false;
+            ConferenceProperties props = presence.getExtension(ConferenceProperties.class);
+
+            if (props != null)
+            {
+                ConferenceProperties.ConferenceProperty prop
+                    = props.getProperties().stream()
+                        .filter(p -> ConferenceProperties.KEY_AUDIO_RECORDING_ENABLED.equals(p.getKey()))
+                        .findFirst().orElse(null);
+
+                isAudioRecordingOn = prop != null && Boolean.parseBoolean(prop.getValue());
+            }
+
+            JibriIq.Status newStatus
+                = isJibriRecordingOn || isAudioRecordingOn ? JibriIq.Status.ON : JibriIq.Status.OFF;
+
+            if (currentJibriStatus.equals(newStatus))
+            {
+                return;
+            }
+
+            notifyRecordingStatusChanged(rs != null ? rs.getRecordingMode() : JibriIq.RecordingMode.FILE, newStatus);
         }
     }
 
@@ -251,11 +276,6 @@ public class SoundNotificationManager
     private void notifyRecordingStatusChanged(
         JibriIq.RecordingMode mode, JibriIq.Status status)
     {
-        // not a change, ignore
-        if (currentJibriStatus.equals(status))
-        {
-            return;
-        }
         currentJibriStatus = status;
 
         String offSound;
