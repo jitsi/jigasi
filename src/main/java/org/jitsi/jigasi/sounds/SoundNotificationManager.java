@@ -252,7 +252,7 @@ public class SoundNotificationManager
                         .filter(p -> ConferenceProperties.KEY_AUDIO_RECORDING_ENABLED.equals(p.getKey()))
                         .findFirst().orElse(null);
 
-                isAudioRecordingOn = prop != null && prop.getValue().equals(Boolean.TRUE.toString());
+                isAudioRecordingOn = prop != null && Boolean.parseBoolean(prop.getValue());
             }
 
             JibriIq.Status newStatus
