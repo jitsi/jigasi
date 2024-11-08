@@ -2339,7 +2339,7 @@ public class JvbConference
 
     public void sendMessageToRoomInternal(String messageString)
     {
-        if (isInTheRoom())
+        if (!isInTheRoom())
         {
             logger.error(this.callContext + " Cannot send message as chatRoom is null");
             return;
