@@ -15,15 +15,18 @@
  */
 package org.jitsi.jigasi.rest;
 
-import io.prometheus.client.exporter.common.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-import org.eclipse.jetty.server.*;
+import jakarta.ws.rs.core.*;
+import kotlin.*;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.*;
 import org.jitsi.jigasi.metrics.*;
 import org.jitsi.jigasi.stats.*;
 
 import java.io.*;
+import java.util.*;
+import java.util.stream.*;
 
 public class MetricsHandler extends AbstractHandler
 {
@@ -37,27 +40,44 @@ public class MetricsHandler extends AbstractHandler
 
             Statistics.updateMetrics();
 
-            String responseBody;
-            if (accept != null && accept.startsWith("application/openmetrics-text"))
-            {
-                responseBody = JigasiMetricsContainer.INSTANCE.getPrometheusMetrics(
-                        TextFormat.CONTENT_TYPE_OPENMETRICS_100);
-                response.setContentType(TextFormat.CONTENT_TYPE_OPENMETRICS_100);
-            }
-            else if (accept != null && accept.startsWith("text/plain"))
-            {
-                responseBody = JigasiMetricsContainer.INSTANCE.getPrometheusMetrics(TextFormat.CONTENT_TYPE_004);
-                response.setContentType(TextFormat.CONTENT_TYPE_004);
-            }
-            else
-            {
-                responseBody = JigasiMetricsContainer.INSTANCE.getJsonString();
-                response.setContentType(RESTUtil.JSON_CONTENT_TYPE_WITH_CHARSET);
-            }
+            Pair<String, String> metricsAndContentType
+                    = JigasiMetricsContainer.INSTANCE.getMetrics(getMediaTypes(accept));
+            response.setContentType(metricsAndContentType.getSecond());
 
             Writer writer = response.getWriter();
-            writer.write(responseBody);
+            writer.write(metricsAndContentType.getFirst());
             response.setStatus(200);
+        }
+    }
+
+    private List<String> getMediaTypes(String accept)
+    {
+        if (accept == null)
+        {
+            return Collections.emptyList();
+        }
+
+        if (accept.startsWith("Accept: "))
+        {
+            accept = accept.substring("Accept: ".length());
+        }
+
+        return Arrays.stream(accept.split(","))
+            .map(String::trim)
+            .map(MediaType::valueOf)
+            .sorted(new MediaTypeComparator())
+            .map(m -> m.getType() + "/" + m.getSubtype())
+            .collect(Collectors.toList());
+    }
+
+    private static class MediaTypeComparator implements Comparator<MediaType>
+    {
+        @Override
+        public int compare(MediaType o1, MediaType o2)
+        {
+            double q1 = Double.parseDouble(o1.getParameters().getOrDefault("q", "1.0"));
+            double q2 = Double.parseDouble(o2.getParameters().getOrDefault("q", "1.0"));
+            return Double.compare(q1, q2);
         }
     }
 }
