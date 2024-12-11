@@ -130,7 +130,12 @@
     <!-- org.jitsi -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>jicoco</artifactId>
+      <artifactId>jicoco-jetty</artifactId>
+      <version>${jicoco.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jicoco-mucclient</artifactId>
       <version>${jicoco.version}</version>
     </dependency>
     <dependency>
