@@ -88,7 +88,6 @@ public class WhisperTranscriptionService
         {
             WhisperWebsocketStreamingSession streamingSession = new WhisperWebsocketStreamingSession(participant);
 
-            streamingSession.transcriptionTag = participant.getTranslationLanguage();
             if (streamingSession.transcriptionTag == null)
             {
                 streamingSession.transcriptionTag = participant.getSourceLanguage();
