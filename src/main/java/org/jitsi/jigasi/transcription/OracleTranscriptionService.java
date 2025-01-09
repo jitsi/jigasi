@@ -67,6 +67,8 @@ public class OracleTranscriptionService
     private final static Logger logger
             = Logger.getLogger(OracleTranscriptionService.class);
 
+    private String languageCode;
+
     /**
      * The config key of the websocket to the speech-to-text service.
      */
@@ -218,15 +220,18 @@ public class OracleTranscriptionService
             }
         }
 
-        private void connect()
+        private void connect(TranscriptionRequest request)
         {
             if (client.isConnected() || isConnecting)
             {
                 return;
             }
 
+            languageCode = request.getLocale().toLanguageTag();
+
             final RealtimeParameters realtimeClientParameters = RealtimeParameters.builder()
                     .isAckEnabled(false)
+                    .languageCode(languageCode)
                     .finalSilenceThresholdInMs(1000)
                     .build();
             try
@@ -245,7 +250,7 @@ public class OracleTranscriptionService
         @Override
         public void sendRequest(TranscriptionRequest request)
         {
-            connect();
+            connect(request);
             if (isConnecting)
             {
                 logger.warn("OCI client is connecting, cannot send audio data");
@@ -329,7 +334,7 @@ public class OracleTranscriptionService
                             transcriptionId,
                             sessionStart.plusMillis(ts.getStartTimeInMs()),
                             !isFinal,
-                            "en-US",
+                            languageCode,
                             1.0,
                             new TranscriptionAlternative(tsResult)));
                 }
