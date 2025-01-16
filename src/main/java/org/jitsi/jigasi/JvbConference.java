@@ -51,6 +51,7 @@ import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.disco.*;
 import org.jivesoftware.smackx.disco.packet.*;
+import org.jivesoftware.smackx.muc.filter.*;
 import org.jivesoftware.smackx.muc.packet.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jivesoftware.smackx.xdata.packet.*;
@@ -446,6 +447,12 @@ public class JvbConference
      * Listens for messages from visitors component.
      */
     private final VisitorsMessagesListener visitorsMessagesListener = new VisitorsMessagesListener();
+
+    /**
+     * The Presence listener we use to monitor the initial participants when joining. We need this only when in
+     * transcriber mode. To make sure there is a single transcriber in the room.
+     */
+    private final ChatRoomPresenceListener presenceListener = new ChatRoomPresenceListener();
 
     /**
      * The features for the current xmpp provider we will use later adding to the room presence we send.
@@ -964,16 +971,16 @@ public class JvbConference
 
             if (mucRoom instanceof ChatRoomJabberImpl)
             {
+                ChatRoomJabberImpl chatRoom = (ChatRoomJabberImpl)mucRoom;
+
                 String displayName = gatewaySession.getMucDisplayName();
                 if (displayName != null)
                 {
-                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(
-                        new Nick(displayName));
+                    chatRoom.addPresencePacketExtensions(new Nick(displayName));
                 }
                 else
                 {
-                    logger.error(this.callContext
-                        + " No display name to use...");
+                    logger.error(this.callContext + " No display name to use...");
                 }
 
                 String region = JigasiBundleActivator.getConfigurationService().getString(LOCAL_REGION_PNAME);
@@ -982,10 +989,10 @@ public class JvbConference
                     JitsiParticipantRegionPacketExtension rpe = new JitsiParticipantRegionPacketExtension();
                     rpe.setRegionId(region);
 
-                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(rpe);
+                    chatRoom.addPresencePacketExtensions(rpe);
                 }
 
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(new ColibriStatsExtension.Stat(
+                chatRoom.addPresencePacketExtensions(new ColibriStatsExtension.Stat(
                     ColibriStatsExtension.VERSION,
                         CurrentVersionImpl.VERSION.getApplicationName() + " " + CurrentVersionImpl.VERSION));
 
@@ -1006,10 +1013,18 @@ public class JvbConference
                     });
                 if (!initiator.getChildExtensions().isEmpty())
                 {
-                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(initiator);
+                    chatRoom.addPresencePacketExtensions(initiator);
                 }
 
-                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(this.features);
+                chatRoom.addPresencePacketExtensions(this.features);
+
+                if (this.isTranscriber)
+                {
+                    getConnection().addAsyncStanzaListener(
+                            presenceListener,
+                            new AndFilter(
+                                FromMatchesFilter.create(chatRoom.getIdentifierAsJid()), StanzaTypeFilter.PRESENCE));
+                }
             }
             else
             {
@@ -2797,4 +2812,39 @@ public class JvbConference
 
             processVisitorsJson(jsonMsg.getJson());
         }
-    }}
+    }
+
+    /**
+     * Listens for presence packets.
+     */
+    private class ChatRoomPresenceListener
+        implements StanzaListener
+    {
+        /**
+         * Processes an incoming presence packet.
+         * @param packet the incoming packet.
+         */
+        @Override
+        public void processStanza(Stanza packet)
+        {
+            if (!(packet instanceof Presence) || packet.getError() != null)
+            {
+                logger.warn("Unable to handle packet: " + packet);
+                return;
+            }
+
+            Presence presence = (Presence) packet;
+            if (MUCUserStatusCodeFilter.STATUS_110_PRESENCE_TO_SELF.accept(presence))
+            {
+                getConnection().removeAsyncStanzaListener(this);
+            }
+            else if (Util.isTranscriberJigasi(presence))
+            {
+                getConnection().removeAsyncStanzaListener(this);
+
+                logger.warn(callContext + " Detected another transcriber in the room, will leave!");
+                stop();
+            }
+        }
+    }
+}

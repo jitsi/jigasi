@@ -31,6 +31,7 @@ import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smackx.muc.packet.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -312,6 +313,26 @@ public class Util
         }
 
         return features.getFeatureExtensions().stream().anyMatch(f -> f.getVar().equals(feature));
+    }
+
+    /**
+     * Checks for the transcriber feature in presence.
+     * @param presence the presence to check,
+     * @return <tt>true</tt> when the presence is from a transcriber.
+     */
+    public static boolean isTranscriberJigasi(Presence presence)
+    {
+        FeaturesExtension features = presence.getExtension(FeaturesExtension.class);
+        MUCUser mucUser = (MUCUser) presence.getExtensionElement("x", "http://jabber.org/protocol/muc#user");
+
+        if (features == null || mucUser == null || mucUser.getItem() == null
+            || !getTrustedDomains().contains(mucUser.getItem().getJid().asDomainBareJid().toString()))
+        {
+            return false;
+        }
+
+        return features.getFeatureExtensions().stream()
+            .anyMatch(f -> f.getVar().equals(TRANSCRIBER_FEATURE_NAME));
     }
 
     /**
