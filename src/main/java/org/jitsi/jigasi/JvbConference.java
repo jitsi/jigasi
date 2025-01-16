@@ -976,23 +976,18 @@ public class JvbConference
                         + " No display name to use...");
                 }
 
-                String region = JigasiBundleActivator.getConfigurationService()
-                    .getString(LOCAL_REGION_PNAME);
+                String region = JigasiBundleActivator.getConfigurationService().getString(LOCAL_REGION_PNAME);
                 if (StringUtils.isNotEmpty(region))
                 {
                     JitsiParticipantRegionPacketExtension rpe = new JitsiParticipantRegionPacketExtension();
                     rpe.setRegionId(region);
 
-                    ((ChatRoomJabberImpl)mucRoom)
-                        .addPresencePacketExtensions(rpe);
+                    ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(rpe);
                 }
 
-                ((ChatRoomJabberImpl)mucRoom)
-                    .addPresencePacketExtensions(
-                        new ColibriStatsExtension.Stat(
-                            ColibriStatsExtension.VERSION,
-                            CurrentVersionImpl.VERSION.getApplicationName()
-                                + " " + CurrentVersionImpl.VERSION));
+                ((ChatRoomJabberImpl)mucRoom).addPresencePacketExtensions(new ColibriStatsExtension.Stat(
+                    ColibriStatsExtension.VERSION,
+                        CurrentVersionImpl.VERSION.getApplicationName() + " " + CurrentVersionImpl.VERSION));
 
                 // creates an extension to hold all headers, as when using
                 // addPresencePacketExtensions it requires unique extensions
@@ -1018,8 +1013,7 @@ public class JvbConference
             }
             else
             {
-                logger.error(this.callContext
-                    + " Cannot set presence extensions as chatRoom "
+                logger.error(this.callContext + " Cannot set presence extensions as chatRoom "
                     + "is not an instance of ChatRoomJabberImpl");
             }
 
