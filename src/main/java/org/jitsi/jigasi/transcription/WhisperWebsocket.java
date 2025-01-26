@@ -195,8 +195,10 @@ public class WhisperWebsocket
                 generateWebsocketUrl();
                 logger.info("Connecting to " + websocketUrl);
                 ClientUpgradeRequest upgradeRequest = new ClientUpgradeRequest();
+                if(privateKey != "" ||privateKeyName !=""){
                 upgradeRequest.setHeader("Authorization", "Bearer " +
                     org.jitsi.jigasi.util.Util.generateAsapToken(privateKey, privateKeyName, jwtAudience, "jigasi"));
+                }
                 ws = new WebSocketClient();
                 ws.start();
                 wsSession = ws.connect(this, new URI(websocketUrl), upgradeRequest).get();
