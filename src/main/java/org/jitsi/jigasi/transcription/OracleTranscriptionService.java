@@ -86,6 +86,12 @@ public class OracleTranscriptionService
     public final static String COMPARTMENT_ID
             = "org.jitsi.jigasi.transcription.oci.compartmentId";
 
+    public final static String OCI_FINAL_THRESHOLD_MS
+            = "org.jitsi.jigasi.transcription.oci.finalThresholdMs";
+
+    public final static String OCI_INTERIM_THRESHOLD_MS
+            = "org.jitsi.jigasi.transcription.oci.interimThresholdMs";
+
     public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws";
 
     private BasicAuthenticationDetailsProvider authProvider;
@@ -98,6 +104,18 @@ public class OracleTranscriptionService
      * The config value of the websocket to the speech-to-text service.
      */
     private final String websocketUrlConfig;
+
+    /**
+     * The final threshold in milliseconds
+     */
+    private final int finalThresholdMs = JigasiBundleActivator.getConfigurationService()
+            .getInt(OCI_FINAL_THRESHOLD_MS, 500);
+
+    /**
+     * The interim threshold in milliseconds
+     */
+    private final int interimThresholdMs = JigasiBundleActivator.getConfigurationService()
+            .getInt(OCI_INTERIM_THRESHOLD_MS, 500);
 
 
     /**
@@ -232,7 +250,8 @@ public class OracleTranscriptionService
             final RealtimeParameters realtimeClientParameters = RealtimeParameters.builder()
                     .isAckEnabled(false)
                     .languageCode(languageCode)
-                    .finalSilenceThresholdInMs(1000)
+                    .partialSilenceThresholdInMs(interimThresholdMs)
+                    .finalSilenceThresholdInMs(finalThresholdMs)
                     .build();
             try
             {

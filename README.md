@@ -413,6 +413,20 @@ XMPP account must also be set to make Jigasi be able to join a conference room.
             transcription service.
         </td>
     </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.oci.finalThresholdMs</td>
+        <td>500</td>
+        <td>
+            The time in milliseconds after which the final transcript will be sent.
+        </td>
+    </tr>
+    <tr>
+        <td>org.jitsi.jigasi.transcription.oci.interimThresholdMs</td>
+        <td>500</td>
+        <td>
+            The time in milliseconds after which the interim transcript will be sent.
+        </td>
+    </tr>
 </table>
 
 Call control MUCs (brewery)
