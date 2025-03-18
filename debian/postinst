@@ -154,7 +154,7 @@ case "$1" in
 
         PROSODY_HOST_CONFIG="/etc/prosody/conf.avail/$JVB_HOSTNAME.cfg.lua"
         if [ -f $PROSODY_HOST_CONFIG ]; then
-            echo -e "$JIGASI_XMPP_SECRET\n$JIGASI_XMPP_SECRET" | prosodyctl adduser jigasi@auth.$JVB_HOSTNAME || true
+            prosodyctl register jigasi auth.$JVB_HOSTNAME $JIGASI_XMPP_SECRET
         fi
 
         JICOFO_CONFIG="/etc/jitsi/jicofo/jicofo.conf"
