@@ -136,6 +136,11 @@ public class JvbConference
         = "org.jitsi.jigasi.LOCAL_REGION";
 
     /**
+     * The name of the property which configured the stats Id.
+     */
+    public static final String STATS_ID_PNAME = "org.jitsi.jigasi.STATS_ID";
+
+    /**
      * The name of the (unique) meeting id field in the MUC data form.
      */
     private static final String DATA_FORM_MEETING_ID_FIELD_NAME = "muc#roominfo_meetingId";
@@ -1017,6 +1022,12 @@ public class JvbConference
                 }
 
                 chatRoom.addPresencePacketExtensions(this.features);
+
+                String statsId = JigasiBundleActivator.getConfigurationService().getString(STATS_ID_PNAME);
+                if (StringUtils.isNotEmpty(region))
+                {
+                    chatRoom.addPresencePacketExtensions(new StatsId(statsId));
+                }
 
                 if (this.isTranscriber)
                 {
