@@ -1024,7 +1024,7 @@ public class JvbConference
                 chatRoom.addPresencePacketExtensions(this.features);
 
                 String statsId = JigasiBundleActivator.getConfigurationService().getString(STATS_ID_PNAME);
-                if (StringUtils.isNotEmpty(region))
+                if (StringUtils.isNotEmpty(statsId))
                 {
                     chatRoom.addPresencePacketExtensions(new StatsId(statsId));
                 }
