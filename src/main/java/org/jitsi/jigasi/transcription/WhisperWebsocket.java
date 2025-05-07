@@ -38,7 +38,7 @@ import java.util.function.*;
 
 /**
  * This holds the websocket that is used to send audio data to the Whisper.
- * This is one WhisperWebsocket per room (mapping is in <link>WhisperConnectionPool</link>).
+ * This is one WhisperWebsocket per room.
  * The jetty WebSocketClient process messages in a single thread.
  */
 @WebSocket

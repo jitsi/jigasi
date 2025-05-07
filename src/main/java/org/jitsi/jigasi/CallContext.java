@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.util.*;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.base.*;
 
@@ -34,6 +35,7 @@ import java.util.*;
  * @author Damian Minkov
  */
 public class CallContext
+    extends DataObject
 {
     private final static Logger logger = Logger.getLogger(CallContext.class);
 
