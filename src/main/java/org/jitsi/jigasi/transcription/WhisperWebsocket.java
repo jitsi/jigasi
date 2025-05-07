@@ -24,7 +24,7 @@ import org.eclipse.jetty.websocket.client.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.Util;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -44,6 +44,8 @@ import java.util.function.*;
 @WebSocket
 public class WhisperWebsocket
 {
+    private final static Logger classLogger = new LoggerImpl(WhisperWebsocket.class.getName());
+
     private Session wsSession;
 
     private Map<String, Participant> participants = new ConcurrentHashMap<>();
@@ -60,8 +62,7 @@ public class WhisperWebsocket
     /* Transcription language requested by the user who started the transcription */
     public String transcriptionTag = "en-US";
 
-    private final static Logger logger
-            = Logger.getLogger(WhisperWebsocket.class);
+    private final Logger logger;
 
     /**
      * JWT audience for the Whisper service.
@@ -130,7 +131,7 @@ public class WhisperWebsocket
                 .getString(PRIVATE_KEY_NAME, "");
         if (privateKey.isEmpty() || privateKeyName.isEmpty())
         {
-            logger.warn("org.jitsi.jigasi.transcription.whisper.private_key_name or " +
+            classLogger.warn("org.jitsi.jigasi.transcription.whisper.private_key_name or " +
                     "org.jitsi.jigasi.transcription.whisper.private_key are empty." +
                     "Will not generate a JWT for skynet/streaming-whisper.");
         }
@@ -145,7 +146,7 @@ public class WhisperWebsocket
         {
             websocketUrlConfig = wsUrlConfig;
         }
-        logger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
+        classLogger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
     }
 
     /**
@@ -155,11 +156,9 @@ public class WhisperWebsocket
 
     private final JSONParser jsonParser = new JSONParser();
 
-    private final CallContext ctx;
-
-    public WhisperWebsocket(CallContext ctx)
+    public WhisperWebsocket(Logger parentLogger)
     {
-        this.ctx = ctx;
+        logger = parentLogger.createChildLogger(WhisperWebsocket.class.getName());
     }
 
     /**
@@ -171,7 +170,7 @@ public class WhisperWebsocket
         websocketUrl = websocketUrlConfig + "/" + connectionId;
         if (logger.isDebugEnabled())
         {
-            logger.debug(this.ctx + " Whisper URL: " + websocketUrl);
+            logger.debug(" Whisper URL: " + websocketUrl);
         }
     }
 
@@ -200,7 +199,7 @@ public class WhisperWebsocket
             try
             {
                 generateWebsocketUrl();
-                logger.info(ctx + " Connecting to " + websocketUrl);
+                logger.info("Connecting to " + websocketUrl);
                 ClientUpgradeRequest upgradeRequest = new ClientUpgradeRequest();
                 if (!privateKey.isEmpty() && !privateKeyName.isEmpty())
                 {
@@ -213,7 +212,7 @@ public class WhisperWebsocket
                 wsSession.setIdleTimeout(Duration.ofSeconds(300));
                 isConnected = true;
                 reconnecting = false;
-                logger.info(ctx + " Successfully connected to " + websocketUrl);
+                logger.info("Successfully connected to " + websocketUrl);
                 break;
             }
             catch (Exception e)
@@ -221,9 +220,8 @@ public class WhisperWebsocket
                 Statistics.incrementTotalTranscriberConnectionErrors();
                 int remaining = maxRetryAttempts - attempt;
                 waitTime *= multiplier;
-                logger.error(ctx + " Failed connecting to " + websocketUrl + ". Retrying in "
-                        + waitTime/1000 + "seconds for another " + remaining + " times.");
-                logger.error(ctx + " " + e);
+                logger.error("Failed connecting to " + websocketUrl + ". Retrying in "
+                        + waitTime/1000 + "seconds for another " + remaining + " times.", e);
             }
             attempt++;
             synchronized (this)
@@ -239,7 +237,7 @@ public class WhisperWebsocket
         if (!isConnected)
         {
             Statistics.incrementTotalTranscriberConnectionErrors();
-            logger.error(ctx + " Failed connecting to " + websocketUrl + ". Nothing to do.");
+            logger.error("Failed connecting to " + websocketUrl + ". Nothing to do.");
         }
     }
 
@@ -277,7 +275,7 @@ public class WhisperWebsocket
 
         if (isRunning())
         {
-            logger.error(ctx + " Websocket closed: " + statusCode + " reason:" + reason);
+            logger.error("Websocket closed: " + statusCode + " reason:" + reason);
         }
 
         wsSession = null;
@@ -306,7 +304,7 @@ public class WhisperWebsocket
         }
         catch (Exception e)
         {
-            logger.error(ctx + " Error while stopping WebSocketClient", e);
+            logger.error("Error while stopping WebSocketClient", e);
         }
     }
 
@@ -320,7 +318,7 @@ public class WhisperWebsocket
         }
         catch (ParseException e)
         {
-            logger.error(ctx + " Error parsing message: " + msg, e);
+            logger.error("Error parsing message: " + msg, e);
         }
     }
 
@@ -343,7 +341,7 @@ public class WhisperWebsocket
         double stability = (double)obj.get("variance");
         if (logger.isDebugEnabled())
         {
-            logger.debug(ctx + " Received result: " + result);
+            logger.debug("Received result: " + result);
         }
 
         Instant startTranscription = participantTranscriptionStarts.getOrDefault(participantId, null);
@@ -368,8 +366,8 @@ public class WhisperWebsocket
                 i++;
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug(ctx + " ParticipantId: " + i + ", " + participantId);
-                    logger.debug(ctx + " TranscriptionListener: " + l.toString());
+                    logger.debug("ParticipantId: " + i + ", " + participantId);
+                    logger.debug("TranscriptionListener: " + l.toString());
                 }
                 TranscriptionResult tsResult = new TranscriptionResult(
                         participant,
@@ -397,7 +395,7 @@ public class WhisperWebsocket
         if (!ended() && isRunning())
         {
             Statistics.incrementTotalTranscriberSendErrors();
-            logger.error(ctx + " Error while streaming audio data to transcription service.", cause);
+            logger.error("Error while streaming audio data to transcription service.", cause);
         }
     }
 
@@ -406,7 +404,7 @@ public class WhisperWebsocket
         String lang = participant.getTranslationLanguage();
         if (logger.isDebugEnabled())
         {
-            logger.debug(ctx + " Translation language is " + lang);
+            logger.debug("Translation language is " + lang);
         }
         if (lang == null)
         {
@@ -414,7 +412,7 @@ public class WhisperWebsocket
         }
         if (logger.isDebugEnabled())
         {
-            logger.debug(ctx + " Returned language is " + lang);
+            logger.debug("Returned language is " + lang);
         }
         return lang;
     }
@@ -454,12 +452,12 @@ public class WhisperWebsocket
             {
                 participants.remove(participantId);
                 participantListeners.remove(participantId);
-                logger.info(ctx + " Disconnected " + participantId);
+                logger.info("Disconnected " + participantId);
             }
 
             if (participants.isEmpty())
             {
-                logger.info(ctx + " All participants have left, disconnecting from Whisper transcription server.");
+                logger.info("All participants have left, disconnecting from Whisper transcription server.");
 
                 try
                 {
@@ -467,7 +465,7 @@ public class WhisperWebsocket
                 }
                 catch (IOException e)
                 {
-                    logger.error(ctx + " Error while finalizing websocket connection for participant "
+                    logger.error("Error while finalizing websocket connection for participant "
                             + participantId, e);
                 }
 
@@ -483,21 +481,21 @@ public class WhisperWebsocket
     {
         if (logger.isDebugEnabled())
         {
-            logger.debug(ctx + " Sending audio for " + participantId);
+            logger.debug("Sending audio for " + participantId);
         }
         addParticipantIfNotExists(participantId, participant);
         RemoteEndpoint remoteEndpoint = wsSession.getRemote();
         if (remoteEndpoint == null)
         {
             Statistics.incrementTotalTranscriberSendErrors();
-            logger.error(ctx + " Failed sending audio for " + participantId + ". Attempting to reconnect.");
+            logger.error("Failed sending audio for " + participantId + ". Attempting to reconnect.");
             if (!wsSession.isOpen())
             {
                 reconnect();
             }
             else
             {
-                logger.warn(ctx + " Failed sending audio for " + participantId
+                logger.warn("Failed sending audio for " + participantId
                     + ". RemoteEndpoint is null but sessions is open.");
             }
         }
@@ -510,7 +508,7 @@ public class WhisperWebsocket
             catch (IOException e)
             {
                 Statistics.incrementTotalTranscriberSendErrors();
-                logger.error(ctx + " Failed sending audio for " + participantId + ". " + e);
+                logger.error("Failed sending audio for " + participantId + ". " + e);
             }
         }
     }

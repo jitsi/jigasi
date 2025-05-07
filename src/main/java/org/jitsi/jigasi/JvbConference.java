@@ -35,7 +35,7 @@ import org.jitsi.jigasi.version.*;
 import org.jitsi.jigasi.visitor.*;
 import org.jitsi.jigasi.xmpp.extensions.*;
 import org.jitsi.utils.*;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging2.*;
 import org.jitsi.utils.queue.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
@@ -100,7 +100,7 @@ public class JvbConference
     /**
      * The logger.
      */
-    private final static Logger logger = Logger.getLogger(JvbConference.class);
+    private final Logger logger;
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -198,52 +198,12 @@ public class JvbConference
      * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
      * by executing the tasks in new thread
      */
-    public final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
-        Integer.MAX_VALUE,
-        false,
-        "xmpp-invoke-queue",
-        r -> {
-            // do process and try
-            try
-            {
-                r.run();
-
-                return true;
-            }
-            catch (Throwable e)
-            {
-                logger.error("Error processing xmpp queue item", e);
-
-                return false;
-            }
-        },
-        threadPool
-    );
+    public final PacketQueue<Runnable> xmppInvokeQueue;
 
     /**
      * A queue used for sending xmpp messages.
      */
-    public final PacketQueue<Runnable> xmppSendQueue = new PacketQueue<>(
-            Integer.MAX_VALUE,
-            false,
-            "xmpp-send-queue",
-            r -> {
-                // do process and try
-                try
-                {
-                    r.run();
-
-                    return true;
-                }
-                catch (Throwable e)
-                {
-                    logger.error("Error processing xmpp queue item", e);
-
-                    return false;
-                }
-            },
-            threadPool
-    );
+    public final PacketQueue<Runnable> xmppSendQueue;
 
     /**
      * Used for randomizing usernames if needed.
@@ -494,6 +454,7 @@ public class JvbConference
      */
     public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
     {
+        this.logger = ctx.getLogger().createChildLogger(JvbConference.class.getName());
         this.gatewaySession = gatewaySession;
         this.isTranscriber = this.gatewaySession instanceof TranscriptionGatewaySession;
         this.callContext = ctx;
@@ -508,6 +469,48 @@ public class JvbConference
         {
             this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
         }
+        this.xmppSendQueue = new PacketQueue<>(
+            Integer.MAX_VALUE,
+            false,
+            "xmpp-send-queue",
+            r -> {
+                // do process and try
+                try
+                {
+                    r.run();
+
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    logger.error("Error processing xmpp queue item", e);
+
+                    return false;
+                }
+            },
+            threadPool
+        );
+        xmppInvokeQueue = new PacketQueue<>(
+                Integer.MAX_VALUE,
+                false,
+                "xmpp-invoke-queue",
+                r -> {
+                    // do process and try
+                    try
+                    {
+                        r.run();
+
+                        return true;
+                    }
+                    catch (Throwable e)
+                    {
+                        logger.error("Error processing xmpp queue item", e);
+
+                        return false;
+                    }
+                },
+                threadPool
+        );
     }
 
     public AudioModeration getAudioModeration()

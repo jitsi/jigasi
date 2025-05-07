@@ -152,7 +152,7 @@ public class TranscriptionGatewaySession
         this.service = service;
         this.handler = handler;
 
-        this.transcriber = new Transcriber(this.service, context);
+        this.transcriber = new Transcriber(this.service, context, context.getLogger());
 
         if (this.service instanceof TranscriptionEventListener)
         {

@@ -158,7 +158,7 @@ public class WhisperTranscriptionService
             if (socket == null)
             {
                 logger.info(ctx + " Creating a new websocket connection.");
-                socket = new WhisperWebsocket(ctx);
+                socket = new WhisperWebsocket(ctx.getLogger());
 
                 socket.connect();
 
