@@ -19,6 +19,7 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.utils.logging.*;
@@ -155,16 +156,7 @@ public class Participant
 
     private String transcriptionServiceName;
 
-    /**
-     * Create a participant with a given name and audio stream
-     *
-     * @param transcriber the transcriber which created this participant
-     * @param identifier the string which is used to identify this participant
-     */
-    Participant(Transcriber transcriber, String identifier)
-    {
-        this(transcriber, identifier, false);
-    }
+    private CallContext context;
 
     /**
      * Create a participant with a given name and audio stream
@@ -175,6 +167,7 @@ public class Participant
     Participant(Transcriber transcriber, String identifier, boolean filterAudio)
     {
         this.transcriber = transcriber;
+        this.context = transcriber.getCallContext();
         this.identifier = identifier;
         this.transcriptionServiceName = transcriber.getTranscriptionService().getClass().getSimpleName();
 
@@ -581,7 +574,7 @@ public class Participant
     {
         result.setParticipant(this);
         if (logger.isDebugEnabled())
-            logger.debug(result);
+            logger.debug(this.context + " " + result);
         transcriber.notify(result);
     }
 
@@ -596,7 +589,7 @@ public class Participant
     public void failed(FailureReason reason)
     {
         isCompleted = true;
-        logger.error(getDebugName() + " transcription failed: " + reason);
+        logger.error(this.context + " transcription failed: " + reason);
         transcriber.stop(reason);
     }
 
@@ -808,5 +801,15 @@ public class Participant
             sendRequest(buffer.array());
             ((Buffer) buffer).clear();
         });
+    }
+
+    /**
+     * Retrieves the current call context.
+     *
+     * @return the current CallContext instance associated with this object
+     */
+    public CallContext getCallContext()
+    {
+        return this.context;
     }
 }
