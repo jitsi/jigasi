@@ -2307,7 +2307,7 @@ public class JvbConference
                 (boolean)recordingObj.getOrDefault("isTranscribingEnabled", false));
 
         JSONObject visitorsObj = (JSONObject)metadataObj.getOrDefault("visitors", new JSONObject());
-        String languages = (String)visitorsObj.get("transcribingLanguages");
+        String languages = (String)visitorsObj.getOrDefault("transcribingLanguages", "");
         if (StringUtils.isNotEmpty(languages))
         {
             transcriptionSession.updateTranslateLanguages(languages.split(","));
