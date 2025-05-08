@@ -26,7 +26,7 @@ import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jitsi.jigasi.transcription.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.jitsi.utils.*;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
@@ -54,8 +54,7 @@ public class TranscriptionGatewaySession
     /**
      * The logger of this class
      */
-    private final static Logger logger
-            = Logger.getLogger(TranscriptionGatewaySession.class);
+    private final Logger logger;
 
     /**
      * The data form field added when transcription is enabled.
@@ -149,10 +148,11 @@ public class TranscriptionGatewaySession
                                        TranscriptHandler handler)
     {
         super(gateway, context);
+        this.logger = context.getLogger().createChildLogger(TranscriptionGatewaySession.class.getName());
         this.service = service;
         this.handler = handler;
 
-        this.transcriber = new Transcriber(this.service);
+        this.transcriber = new Transcriber(this.service, context, context.getLogger());
 
         if (this.service instanceof TranscriptionEventListener)
         {
@@ -376,7 +376,7 @@ public class TranscriptionGatewaySession
             }
             catch (Exception e)
             {
-                logger.error(this.callContext + " Error parsing presence while checking if participant is muted", e);
+                logger.error("Error parsing presence while checking if participant is muted", e);
             }
 
             if (muted.get())

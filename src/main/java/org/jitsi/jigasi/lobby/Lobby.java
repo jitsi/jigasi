@@ -21,7 +21,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.*;
 
 import org.jitsi.jigasi.sounds.*;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging2.*;
 import org.jivesoftware.smackx.nick.packet.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.parts.*;
@@ -34,7 +34,7 @@ import static net.java.sip.communicator.service.protocol.event.LocalUserChatRoom
 
 /**
  * Class used to join and leave the lobby room and provides a way to handle lobby events.
- * If lobby is enabled JvbConference will fail join registration and Lobby will be used
+ * If a lobby is enabled, JvbConference will fail join registration and Lobby will be used
  * to confirm join in the initial JvbConference.
  *
  * @author Cristian Florin Ghita
@@ -47,10 +47,10 @@ public class Lobby
     /**
      * The logger.
      */
-    private final static Logger logger = Logger.getLogger(Lobby.class);
+    private final Logger logger;
 
     /**
-     * The data form field added when lobby is enabled.
+     * The data form field added when a lobby is enabled.
      */
     public static final String DATA_FORM_LOBBY_ROOM_FIELD = "muc#roominfo_lobbyroom";
 
@@ -60,7 +60,7 @@ public class Lobby
     public static final String DATA_FORM_SINGLE_MODERATOR_FIELD = "muc#roominfo_moderator_identity";
 
     /**
-     * The XMPP provider used to join JVB conference.
+     * The XMPP provider used to join the JVB conference.
      */
     private final ProtocolProviderService xmppProvider;
 
@@ -80,7 +80,7 @@ public class Lobby
     private final CallContext callContext;
 
     /**
-     * <tt>ChatRoom</tt> instance that hosts the conference(not null if joined).
+     * <tt>ChatRoom</tt> instance that hosts the conference (not null if joined).
      */
     private ChatRoom mucRoom = null;
 
@@ -110,16 +110,12 @@ public class Lobby
     {
         super();
 
+        this.logger = context.getLogger().createChildLogger(Lobby.class.getName());
         this.xmppProvider = protocolProviderService;
-
         this.roomJid = lobbyJid;
-
         this.callContext = context;
-
         this.mainRoomJid = roomJid;
-
         this.jvbConference = jvbConference;
-
         this.sipGatewaySession = sipGateway;
     }
 
@@ -184,7 +180,7 @@ public class Lobby
 
         if (mucRoom == null)
         {
-            logger.warn(getCallContext() + " MUC room is null");
+            logger.warn("MUC room is null");
             return;
         }
 
@@ -212,7 +208,7 @@ public class Lobby
             byte[] pass = chatRoomInvitationReceivedEvent.getInvitation().getChatRoomPassword();
             if (pass != null)
             {
-                callContext.setRoomPassword(new String(pass));
+                this.callContext.setRoomPassword(new String(pass));
             }
 
             this.notifyAccessGranted();
@@ -223,14 +219,14 @@ public class Lobby
             }
             else
             {
-                logger.error(getCallContext() + " No JVB conference!!!");
+                logger.error("No JVB conference!!!");
             }
 
             leave();
         }
         catch (Exception ex)
         {
-            logger.error(getCallContext() + " " + ex, ex);
+            logger.error(ex.toString(), ex);
         }
     }
 
@@ -247,8 +243,9 @@ public class Lobby
     }
 
     /**
-     * Participant is kicked if rejected on join and this method handles the lobby rejection and lobby room destruction.
-     * Participant receives LOCAL_USER_ROOM_DESTROYED if lobby is disabled.
+     * Participant is kicked if rejected on join, and this method handles the lobby rejection
+     * and lobby room destruction.
+     * Participant receives LOCAL_USER_ROOM_DESTROYED if a lobby is disabled.
      *
      * @param evt <tt>LocalUserChatRoomPresenceChangeEvent</tt> contains reason.
      */
@@ -265,60 +262,59 @@ public class Lobby
             if (evt.getChatRoom().equals(this.mucRoom))
             {
                 SoundNotificationManager soundManager = this.sipGatewaySession.getSoundNotificationManager();
-                if (evt.getEventType().equals(LOCAL_USER_KICKED))
+                switch (evt.getEventType())
                 {
-
-                    // Lobby access denied.
-                    soundManager.notifyLobbyAccessDenied();
-
-                    sipGatewaySession.notifyLobbyRejectedJoin();
-
-                    leave();
-
-                    return;
-                }
-
-                if (evt.getEventType().equals(LOCAL_USER_LEFT))
-                {
-                    // Lobby access granted.
-                    String alternateAddress = evt.getAlternateAddress();
-
-                    if (alternateAddress != null)
+                    case LOCAL_USER_KICKED:
                     {
-                        accessGranted(alternateAddress);
+                        // Lobby access denied.
+                        soundManager.notifyLobbyAccessDenied();
+
+                        sipGatewaySession.notifyLobbyRejectedJoin();
+
+                        leave();
+
+                        return;
                     }
-
-                    return;
-                }
-
-                if (evt.getEventType().equals(LOCAL_USER_JOIN_FAILED))
-                {
-
-                    //If join has failed playback the meeting ended notification.
-                    logger.error("Failed to join lobby!");
-
-                    return;
-                }
-
-                if (evt.getEventType().equals(LOCAL_USER_ROOM_DESTROYED))
-                {
-                    String alternateAddress = evt.getAlternateAddress();
-
-                    if (alternateAddress == null)
+                    case LOCAL_USER_LEFT:
                     {
-                        soundManager.notifyLobbyRoomDestroyed();
+                        // Lobby access granted.
+                        String alternateAddress = evt.getAlternateAddress();
+
+                        if (alternateAddress != null)
+                        {
+                            accessGranted(alternateAddress);
+                        }
+
+                        return;
                     }
-                    else
+                    case LOCAL_USER_JOIN_FAILED:
                     {
-                        // Lobby access granted by disabling the lobby.
-                        accessGranted(alternateAddress);
+                        //If join has failed to play back, the meeting ended notification.
+                        logger.error("Failed to join lobby!");
+
+                        return;
+                    }
+                    case LOCAL_USER_ROOM_DESTROYED:
+                    {
+                        String alternateAddress = evt.getAlternateAddress();
+
+                        if (alternateAddress == null)
+                        {
+                            soundManager.notifyLobbyRoomDestroyed();
+                        }
+                        else
+                        {
+                            // Lobby access granted by disabling the lobby.
+                            accessGranted(alternateAddress);
+                        }
+                        break;
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.error(getCallContext() + " " + ex, ex);
+            logger.error(ex.toString(), ex);
         }
     }
 
@@ -334,21 +330,20 @@ public class Lobby
 
         if (!alternateJid.equals(this.mainRoomJid))
         {
-            logger.warn(getCallContext() + " Alternate Jid(" + alternateJid
-                + ") not the same as main room Jid(" + this.mainRoomJid + ")!");
+            logger.warn("Alternate Jid(" + alternateJid + ") not the same as main room Jid(" + this.mainRoomJid + ")!");
             return;
         }
 
         try
         {
             // we may receive destroy and user leave with alternate address one after another
-            // in case of lobby disabled, leaving early the lobby will remove listeners and
+            // in case of a lobby disabled, leaving early the lobby will remove listeners, and
             // one of them will not be delivered here
             leave();
         }
         catch(Exception e)
         {
-            logger.error(getCallContext() + " Error leaving lobby", e);
+            logger.error("Error leaving lobby", e);
         }
 
         this.notifyAccessGranted();
@@ -361,18 +356,8 @@ public class Lobby
         }
         else
         {
-            logger.error(getCallContext() + " No JVB conference!!!");
+            logger.error("No JVB conference!!!");
         }
-    }
-
-    /**
-     * Holds call information.
-     *
-     * @return <tt>CallContext</tt>
-     */
-    public CallContext getCallContext()
-    {
-        return this.callContext;
     }
 
     /**

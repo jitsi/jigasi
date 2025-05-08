@@ -19,9 +19,10 @@ package org.jitsi.jigasi.transcription;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
+import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.jivesoftware.smack.packet.*;
 import org.jitsi.jigasi.stats.*;
 
@@ -33,7 +34,7 @@ import java.util.concurrent.*;
 /**
  * This class describes a participant in a conference whose
  * transcription is required. It manages the transcription if its own audio
- * will locally buffered until enough audio is collected
+ * locally buffers until enough audio is collected
  *
  * @author Nik Vaessen
  * @author Boris Grozev
@@ -44,7 +45,7 @@ public class Participant
     /**
      * The logger of this class
      */
-    private final static Logger logger = Logger.getLogger(Participant.class);
+    private final Logger logger;
 
     /**
      * The expected amount of bytes each given buffer will have. Webrtc
@@ -155,16 +156,7 @@ public class Participant
 
     private String transcriptionServiceName;
 
-    /**
-     * Create a participant with a given name and audio stream
-     *
-     * @param transcriber the transcriber which created this participant
-     * @param identifier the string which is used to identify this participant
-     */
-    Participant(Transcriber transcriber, String identifier)
-    {
-        this(transcriber, identifier, false);
-    }
+    private CallContext context;
 
     /**
      * Create a participant with a given name and audio stream
@@ -175,6 +167,8 @@ public class Participant
     Participant(Transcriber transcriber, String identifier, boolean filterAudio)
     {
         this.transcriber = transcriber;
+        this.context = transcriber.getCallContext();
+        this.logger = context.getLogger().createChildLogger(Participant.class.getName());
         this.identifier = identifier;
         this.transcriptionServiceName = transcriber.getTranscriptionService().getClass().getSimpleName();
 
@@ -596,7 +590,7 @@ public class Participant
     public void failed(FailureReason reason)
     {
         isCompleted = true;
-        logger.error(getDebugName() + " transcription failed: " + reason);
+        logger.error("transcription failed: " + reason);
         transcriber.stop(reason);
     }
 
@@ -808,5 +802,15 @@ public class Participant
             sendRequest(buffer.array());
             ((Buffer) buffer).clear();
         });
+    }
+
+    /**
+     * Retrieves the current call context.
+     *
+     * @return the current CallContext instance associated with this object
+     */
+    public CallContext getCallContext()
+    {
+        return this.context;
     }
 }

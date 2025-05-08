@@ -17,10 +17,12 @@
  */
 package org.jitsi.jigasi;
 
+import net.java.sip.communicator.util.*;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.base.*;
 
-import org.jitsi.utils.logging.*;
+import org.jetbrains.annotations.*;
+import org.jitsi.utils.logging2.*;
 import org.jxmpp.jid.*;
 import org.jxmpp.jid.impl.*;
 import org.jxmpp.stringprep.*;
@@ -34,8 +36,10 @@ import java.util.*;
  * @author Damian Minkov
  */
 public class CallContext
+    extends DataObject
 {
-    private final static Logger logger = Logger.getLogger(CallContext.class);
+    @NotNull
+    private final Logger logger = new LoggerImpl(CallContext.class.getName());
 
     /**
      * The name of the property that is used to define the MUC service address.
@@ -194,6 +198,7 @@ public class CallContext
         this.source = source;
         this.timestamp = System.currentTimeMillis();
         this.ctxId = this.timestamp + String.valueOf(super.hashCode());
+        logger.addContext("ctx", ctxId);
 
         if (boshHostsOverrides == null)
         {
@@ -209,6 +214,11 @@ public class CallContext
                 boshHostsOverrides = new HashMap<>();
             }
         }
+    }
+
+    public @NotNull Logger getLogger()
+    {
+        return logger;
     }
 
     /**
@@ -241,6 +251,7 @@ public class CallContext
         }
 
         this.roomJid = JidCreate.entityBareFrom(roomName);
+        logger.addContext("room", roomJid.toString());
 
         update();
     }

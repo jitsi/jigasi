@@ -24,7 +24,7 @@ import org.eclipse.jetty.websocket.client.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.util.Util;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -38,12 +38,14 @@ import java.util.function.*;
 
 /**
  * This holds the websocket that is used to send audio data to the Whisper.
- * This is one WhisperWebsocket per room (mapping is in <link>WhisperConnectionPool</link>).
+ * This is one WhisperWebsocket per room.
  * The jetty WebSocketClient process messages in a single thread.
  */
 @WebSocket
 public class WhisperWebsocket
 {
+    private final static Logger classLogger = new LoggerImpl(WhisperWebsocket.class.getName());
+
     private Session wsSession;
 
     private Map<String, Participant> participants = new ConcurrentHashMap<>();
@@ -60,8 +62,7 @@ public class WhisperWebsocket
     /* Transcription language requested by the user who started the transcription */
     public String transcriptionTag = "en-US";
 
-    private final static Logger logger
-            = Logger.getLogger(WhisperWebsocket.class);
+    private final Logger logger;
 
     /**
      * JWT audience for the Whisper service.
@@ -130,7 +131,7 @@ public class WhisperWebsocket
                 .getString(PRIVATE_KEY_NAME, "");
         if (privateKey.isEmpty() || privateKeyName.isEmpty())
         {
-            logger.warn("org.jitsi.jigasi.transcription.whisper.private_key_name or " +
+            classLogger.warn("org.jitsi.jigasi.transcription.whisper.private_key_name or " +
                     "org.jitsi.jigasi.transcription.whisper.private_key are empty." +
                     "Will not generate a JWT for skynet/streaming-whisper.");
         }
@@ -145,7 +146,7 @@ public class WhisperWebsocket
         {
             websocketUrlConfig = wsUrlConfig;
         }
-        logger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
+        classLogger.info("Websocket transcription streaming endpoint: " + websocketUrlConfig);
     }
 
     /**
@@ -154,6 +155,11 @@ public class WhisperWebsocket
     private static final ExecutorService threadPool = Util.createNewThreadPool("jigasi-whisper-ws");
 
     private final JSONParser jsonParser = new JSONParser();
+
+    public WhisperWebsocket(Logger parentLogger)
+    {
+        logger = parentLogger.createChildLogger(WhisperWebsocket.class.getName());
+    }
 
     /**
      * Creates a connection url by concatenating the websocket
@@ -164,7 +170,7 @@ public class WhisperWebsocket
         websocketUrl = websocketUrlConfig + "/" + connectionId;
         if (logger.isDebugEnabled())
         {
-            logger.debug("Whisper URL: " + websocketUrl);
+            logger.debug(" Whisper URL: " + websocketUrl);
         }
     }
 
@@ -215,8 +221,7 @@ public class WhisperWebsocket
                 int remaining = maxRetryAttempts - attempt;
                 waitTime *= multiplier;
                 logger.error("Failed connecting to " + websocketUrl + ". Retrying in "
-                        + waitTime/1000 + "seconds for another " + remaining + " times.");
-                logger.error(e.toString());
+                        + waitTime/1000 + "seconds for another " + remaining + " times.", e);
             }
             attempt++;
             synchronized (this)
@@ -460,7 +465,8 @@ public class WhisperWebsocket
                 }
                 catch (IOException e)
                 {
-                    logger.error("Error while finalizing websocket connection for participant " + participantId, e);
+                    logger.error("Error while finalizing websocket connection for participant "
+                            + participantId, e);
                 }
 
                 wsSession.disconnect();
