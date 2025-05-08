@@ -20,7 +20,7 @@ package org.jitsi.jigasi.transcription;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 
 import java.nio.*;
 import java.util.function.*;
@@ -37,7 +37,7 @@ public class WhisperTranscriptionService
     /**
      * The logger for this class
      */
-    private final static Logger logger = Logger.getLogger(WhisperTranscriptionService.class);
+    private final static Logger classLogger = new LoggerImpl(WhisperTranscriptionService.class.getName());
 
     /**
      * The Key to use to put a websocket connection in the call context so we can share it for the room.
@@ -80,7 +80,7 @@ public class WhisperTranscriptionService
     public void sendSingleRequest(final TranscriptionRequest request,
                                   final Consumer<TranscriptionResult> resultConsumer)
     {
-        logger.warn("The Whisper transcription service does not support single requests.");
+        classLogger.warn("The Whisper transcription service does not support single requests.");
     }
 
     @Override
@@ -123,6 +123,7 @@ public class WhisperTranscriptionService
     public static class WhisperWebsocketStreamingSession
         implements StreamingRecognitionSession
     {
+        private final Logger logger;
 
         private final Participant participant;
 
@@ -139,6 +140,8 @@ public class WhisperTranscriptionService
         WhisperWebsocketStreamingSession(Participant participant)
         {
             this.participant = participant;
+            this.logger = participant.getCallContext().getLogger()
+                .createChildLogger(WhisperWebsocketStreamingSession.class.getName());
             String[] debugName = this.participant.getDebugName().split("/");
             participantId = debugName[1];
             roomId = participant.getTranscriber().getRoomName();
@@ -157,7 +160,7 @@ public class WhisperTranscriptionService
 
             if (socket == null)
             {
-                logger.info(ctx + " Creating a new websocket connection.");
+                logger.info("Creating a new websocket connection.");
                 socket = new WhisperWebsocket(ctx.getLogger());
 
                 socket.connect();
