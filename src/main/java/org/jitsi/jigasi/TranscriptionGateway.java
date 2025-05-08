@@ -149,7 +149,7 @@ public class TranscriptionGateway
      *
      * @param ctx the context
      */
-    private String getCustomTranscriptionServiceClass(CallContext ctx)
+    private static String getCustomTranscriptionServiceClass(CallContext ctx)
     {
         String transcriberClass = null;
 
@@ -176,7 +176,7 @@ public class TranscriptionGateway
         return transcriberClass;
     }
 
-    private String getTranscriberFromRemote(String remoteTsConfigUrl, CallContext ctx)
+    private static String getTranscriberFromRemote(String remoteTsConfigUrl, CallContext ctx)
     {
         String transcriberClass = null;
         if (logger.isDebugEnabled())

@@ -23,7 +23,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.transcription.action.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
 import org.jivesoftware.smack.packet.*;
 
@@ -45,7 +45,7 @@ public class Transcriber
     /**
      * The logger of this class
      */
-    private final static Logger logger = Logger.getLogger(Transcriber.class);
+    private final Logger logger;
 
     /**
      * The property name for the boolean value whether translations should be
@@ -199,8 +199,10 @@ public class Transcriber
     public Transcriber(String roomName,
                        String roomUrl,
                        AbstractTranscriptionService service,
-                       CallContext context)
+                       CallContext context,
+                       Logger parentLogger)
     {
+        this.logger = parentLogger.createChildLogger(Transcriber.class.getName());
         this.context = context;
 
         if (!service.supportsStreamRecognition())
@@ -229,9 +231,9 @@ public class Transcriber
      * @param service the transcription service which will be used to transcribe
      * the audio streams
      */
-    public Transcriber(AbstractTranscriptionService service, CallContext context)
+    public Transcriber(AbstractTranscriptionService service, CallContext context, Logger parentLogger)
     {
-        this(null, null, service, context);
+        this(null, null, service, context, parentLogger);
     }
 
     /**
@@ -255,7 +257,7 @@ public class Transcriber
             }
             catch(Exception e)
             {
-                logger.error(this.context + " Cannot instantiate custom translation service");
+                logger.error("Cannot instantiate custom translation service");
             }
         }
 
@@ -265,16 +267,6 @@ public class Transcriber
         }
 
         translationManager = new TranslationManager(translationService);
-    }
-
-    /**
-     * A debug name added to every log message printed by this instance.
-     *
-     * @return a {@code String}
-     */
-    private String getDebugName()
-    {
-        return roomName;
     }
 
     /**
@@ -297,12 +289,12 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug(this.context + " added participant with identifier " + identifier);
+                logger.debug("added participant with identifier " + identifier);
 
             return;
         }
 
-        logger.warn(this.context + " participant with identifier " + identifier + " joined while it did not exist");
+        logger.warn("participant with identifier " + identifier + " joined while it did not exist");
 
     }
 
@@ -377,7 +369,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn(this.context + " asked to set chatroom member of participant with identifier " + identifier
+            logger.warn("asked to set chatroom member of participant with identifier " + identifier
                 + " while it wasn't added before");
         }
     }
@@ -467,12 +459,12 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug(this.context + " removed participant with identifier " + identifier);
+                logger.debug("removed participant with identifier " + identifier);
 
             return;
         }
 
-        logger.warn(this.context + " participant with identifier " + identifier +  " left while it did not exist");
+        logger.warn("participant with identifier " + identifier +  " left while it did not exist");
     }
 
     /**
@@ -499,7 +491,7 @@ public class Transcriber
         if (State.NOT_STARTED.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug(this.context + " transcriber is now transcribing");
+                logger.debug("transcriber is now transcribing");
 
             Statistics.incrementTotalTranscriberStarted();
 
@@ -515,7 +507,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn(this.context + " trying to start Transcriber while it is already started");
+            logger.warn("trying to start Transcriber while it is already started");
         }
     }
 
@@ -528,7 +520,7 @@ public class Transcriber
         if (State.TRANSCRIBING.equals(this.state))
         {
             if (logger.isDebugEnabled())
-                logger.debug(this.context + " transcriber is now finishing up");
+                logger.debug("transcriber is now finishing up");
 
             this.state = reason == null ? State.FINISHING_UP : State.FINISHED;
             this.executorService.shutdown();
@@ -556,7 +548,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn(this.context + " trying to stop Transcriber while it is already stopped");
+            logger.warn("trying to stop Transcriber while it is already stopped");
         }
     }
 
@@ -574,7 +566,7 @@ public class Transcriber
         }
         else
         {
-            logger.warn(this.context + " trying to notify Transcriber for a while it is already stopped");
+            logger.warn("trying to notify Transcriber for a while it is already stopped");
         }
     }
 
@@ -702,7 +694,7 @@ public class Transcriber
         if (!isTranscribing())
         {
             if (logger.isTraceEnabled())
-                logger.trace(this.context + " receiving audio while not transcribing");
+                logger.trace("receiving audio while not transcribing");
 
             return;
         }
@@ -716,14 +708,14 @@ public class Transcriber
             if (p.hasValidSourceLanguage())
             {
                 if (logger.isTraceEnabled())
-                    logger.trace(this.context + " gave audio to buffer");
+                    logger.trace("gave audio to buffer");
 
                 p.giveBuffer(buffer);
             }
         }
         else
         {
-            logger.warn(this.context + " reading from SSRC " + ssrc + " while it is not known as a participant");
+            logger.warn("reading from SSRC " + ssrc + " while it is not known as a participant");
         }
     }
 
@@ -817,7 +809,7 @@ public class Transcriber
                     if (!participant.isCompleted())
                     {
                         if (logger.isDebugEnabled())
-                            logger.debug(this.context + " is still not finished");
+                            logger.debug("is still not finished");
 
                         return;
                     }
@@ -825,7 +817,7 @@ public class Transcriber
             }
 
             if (logger.isDebugEnabled())
-                logger.debug(this.context + " transcriber is now finished");
+                logger.debug("transcriber is now finished");
 
             this.state = State.FINISHED;
             for (TranscriptionListener listener : listeners)

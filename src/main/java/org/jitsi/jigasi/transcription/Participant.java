@@ -22,7 +22,7 @@ import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.Util;
 import org.jitsi.xmpp.extensions.jitsimeet.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.jivesoftware.smack.packet.*;
 import org.jitsi.jigasi.stats.*;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.*;
 /**
  * This class describes a participant in a conference whose
  * transcription is required. It manages the transcription if its own audio
- * will locally buffered until enough audio is collected
+ * locally buffers until enough audio is collected
  *
  * @author Nik Vaessen
  * @author Boris Grozev
@@ -45,7 +45,7 @@ public class Participant
     /**
      * The logger of this class
      */
-    private final static Logger logger = Logger.getLogger(Participant.class);
+    private final Logger logger;
 
     /**
      * The expected amount of bytes each given buffer will have. Webrtc
@@ -168,6 +168,7 @@ public class Participant
     {
         this.transcriber = transcriber;
         this.context = transcriber.getCallContext();
+        this.logger = context.getLogger().createChildLogger(Participant.class.getName());
         this.identifier = identifier;
         this.transcriptionServiceName = transcriber.getTranscriptionService().getClass().getSimpleName();
 
@@ -574,7 +575,7 @@ public class Participant
     {
         result.setParticipant(this);
         if (logger.isDebugEnabled())
-            logger.debug(this.context + " " + result);
+            logger.debug(result);
         transcriber.notify(result);
     }
 
@@ -589,7 +590,7 @@ public class Participant
     public void failed(FailureReason reason)
     {
         isCompleted = true;
-        logger.error(this.context + " transcription failed: " + reason);
+        logger.error("transcription failed: " + reason);
         transcriber.stop(reason);
     }
 

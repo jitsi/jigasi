@@ -35,7 +35,7 @@ import org.jitsi.jigasi.version.*;
 import org.jitsi.jigasi.visitor.*;
 import org.jitsi.jigasi.xmpp.extensions.*;
 import org.jitsi.utils.*;
-import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.logging2.*;
 import org.jitsi.utils.queue.*;
 import org.jitsi.xmpp.extensions.*;
 import org.jitsi.xmpp.extensions.colibri.*;
@@ -100,7 +100,7 @@ public class JvbConference
     /**
      * The logger.
      */
-    private final static Logger logger = Logger.getLogger(JvbConference.class);
+    private final Logger logger;
 
     /**
      * The name of XMPP feature for Jingle/DTMF feature (XEP-0181).
@@ -198,52 +198,12 @@ public class JvbConference
      * A queue used to offload xmpp execution in a new thread to avoid blocking xmpp threads,
      * by executing the tasks in new thread
      */
-    public final PacketQueue<Runnable> xmppInvokeQueue = new PacketQueue<>(
-        Integer.MAX_VALUE,
-        false,
-        "xmpp-invoke-queue",
-        r -> {
-            // do process and try
-            try
-            {
-                r.run();
-
-                return true;
-            }
-            catch (Throwable e)
-            {
-                logger.error("Error processing xmpp queue item", e);
-
-                return false;
-            }
-        },
-        threadPool
-    );
+    public final PacketQueue<Runnable> xmppInvokeQueue;
 
     /**
      * A queue used for sending xmpp messages.
      */
-    public final PacketQueue<Runnable> xmppSendQueue = new PacketQueue<>(
-            Integer.MAX_VALUE,
-            false,
-            "xmpp-send-queue",
-            r -> {
-                // do process and try
-                try
-                {
-                    r.run();
-
-                    return true;
-                }
-                catch (Throwable e)
-                {
-                    logger.error("Error processing xmpp queue item", e);
-
-                    return false;
-                }
-            },
-            threadPool
-    );
+    public final PacketQueue<Runnable> xmppSendQueue;
 
     /**
      * Used for randomizing usernames if needed.
@@ -494,6 +454,7 @@ public class JvbConference
      */
     public JvbConference(AbstractGatewaySession gatewaySession, CallContext ctx)
     {
+        this.logger = ctx.getLogger().createChildLogger(JvbConference.class.getName());
         this.gatewaySession = gatewaySession;
         this.isTranscriber = this.gatewaySession instanceof TranscriptionGatewaySession;
         this.callContext = ctx;
@@ -508,6 +469,48 @@ public class JvbConference
         {
             this.audioModeration = new AudioModeration(this, (SipGatewaySession)this.gatewaySession, this.callContext);
         }
+        this.xmppSendQueue = new PacketQueue<>(
+            Integer.MAX_VALUE,
+            false,
+            "xmpp-send-queue",
+            r -> {
+                // do process and try
+                try
+                {
+                    r.run();
+
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    logger.error("Error processing xmpp queue item", e);
+
+                    return false;
+                }
+            },
+            threadPool
+        );
+        xmppInvokeQueue = new PacketQueue<>(
+                Integer.MAX_VALUE,
+                false,
+                "xmpp-invoke-queue",
+                r -> {
+                    // do process and try
+                    try
+                    {
+                        r.run();
+
+                        return true;
+                    }
+                    catch (Throwable e)
+                    {
+                        logger.error("Error processing xmpp queue item", e);
+
+                        return false;
+                    }
+                },
+                threadPool
+        );
     }
 
     public AudioModeration getAudioModeration()
@@ -557,16 +560,13 @@ public class JvbConference
                 }
                 catch (XmppStringprepException e)
                 {
-                    logger.error(this.callContext
-                        + " The SIP URI is invalid to use an XMPP"
-                        + " resource, identifier will be a random string", e);
+                    logger.error(
+                        "The SIP URI is invalid to use an XMPP resource, identifier will be a random string", e);
                 }
             }
             else
             {
-                logger.info(this.callContext
-                    + " The SIP URI is empty! The XMPP resource "
-                    + "identifier will be a random string.");
+                logger.info("The SIP URI is empty! The XMPP resource identifier will be a random string.");
             }
         }
 
@@ -598,7 +598,7 @@ public class JvbConference
             logger.error(this.callContext + " Already started !");
             return;
         }
-        logger.info(this.callContext + " Starting JVB conference room: " + this.callContext.getRoomJid());
+        logger.info("Starting JVB conference room: " + this.callContext.getRoomJid());
 
         Localpart resourceIdentifier = getResourceIdentifier();
 
@@ -652,7 +652,7 @@ public class JvbConference
     {
         if (!started)
         {
-            logger.error(this.callContext + " Already stopped !");
+            logger.error("Already stopped !");
             return;
         }
 
@@ -703,8 +703,7 @@ public class JvbConference
             // in case we were not able to create jvb call, unit tests case
             if (jvbCall == null)
             {
-                logger.info(
-                    callContext + " Removing account " + xmppAccount);
+                logger.info("Removing account " + xmppAccount);
 
                 xmppProviderFactory.unloadAccount(xmppAccount);
             }
@@ -738,12 +737,11 @@ public class JvbConference
                 .equals(xmppAccount.getAccountUniqueID()))
         {
 
-            logger.info(
-                this.callContext + " Rejects XMPP provider " + xmppProvider);
+            logger.info("Rejects XMPP provider " + xmppProvider);
             return;
         }
 
-        logger.info(this.callContext + " Using " + xmppProvider);
+        logger.info("Using " + xmppProvider);
 
         this.xmppProvider = xmppProvider;
 
@@ -793,22 +791,21 @@ public class JvbConference
                 Object sessionId = Util.getConnSessionId(connection);
                 if (sessionId != null)
                 {
-                    logger.error(this.callContext + " Registered bosh sid: "
-                        + sessionId);
+                    logger.error("Registered bosh sid: " + sessionId);
                 }
             }
         }
         else if (evt.getNewState() == RegistrationState.UNREGISTERED)
         {
-            logger.error(this.callContext + " Unregistered XMPP:" + evt);
+            logger.error("Unregistered XMPP:" + evt);
         }
         else if (evt.getNewState() == RegistrationState.REGISTERING)
         {
-            logger.info(this.callContext + " Registering XMPP.");
+            logger.info("Registering XMPP.");
         }
         else if (evt.getNewState() == RegistrationState.CONNECTION_FAILED)
         {
-            logger.error(this.callContext + " XMPP Connection failed. " + evt);
+            logger.error("XMPP Connection failed. " + evt);
 
             if (!connFailedStatsSent)
             {
@@ -840,7 +837,7 @@ public class JvbConference
         }
         else
         {
-            logger.info(this.callContext + evt.toString());
+            logger.info(evt);
         }
     }
 
@@ -868,8 +865,7 @@ public class JvbConference
                 DiscoverInfo info = ServiceDiscoveryManager.getInstanceFor(this.getConnection())
                         .discoverInfo(JidCreate.domainBareFrom(this.callContext.getRoomJidDomain()));
 
-                logger.info(String.format(
-                        "%s Disco-info took %oms.", this.callContext, System.currentTimeMillis() - startQuery));
+                logger.info(String.format("Disco-info took %oms.", System.currentTimeMillis() - startQuery));
 
                 DiscoverInfo.Identity avIdentity = info.getIdentities().stream().
                     filter(di -> di.getCategory().equals("component") && di.getType().equals("av_moderation"))
@@ -970,7 +966,7 @@ public class JvbConference
             String roomName = callContext.getRoomJid().toString();
             String roomPassword = callContext.getRoomPassword();
 
-            logger.info(this.callContext + " Joining JVB conference room: " + roomName);
+            logger.info("Joining JVB conference room: " + roomName);
 
             mucRoom = muc.findRoom(roomName);
 
@@ -985,7 +981,7 @@ public class JvbConference
                 }
                 else
                 {
-                    logger.error(this.callContext + " No display name to use...");
+                    logger.error("No display name to use...");
                 }
 
                 String region = JigasiBundleActivator.getConfigurationService().getString(LOCAL_REGION_PNAME);
@@ -1039,8 +1035,7 @@ public class JvbConference
             }
             else
             {
-                logger.error(this.callContext + " Cannot set presence extensions as chatRoom "
-                    + "is not an instance of ChatRoomJabberImpl");
+                logger.error("Cannot set presence extensions as chatRoom is not an instance of ChatRoomJabberImpl");
             }
 
             if (this.audioModeration != null)
@@ -1072,7 +1067,7 @@ public class JvbConference
                     // remove old first
                     this.xmppProvider.removeRegistrationStateChangeListener(this);
 
-                    logger.info(callContext + " Removing account to prepare visitor " + this.xmppAccount);
+                    logger.info("Removing account to prepare visitor " + this.xmppAccount);
                     this.xmppProviderFactory.unloadAccount(this.xmppAccount);
 
                     this.xmppProvider = null;
@@ -1146,7 +1141,7 @@ public class JvbConference
             // let's check room config
             updateFromRoomConfiguration();
 
-            logger.info(this.callContext + " Joined room: " + roomName + " meetingId:" + this.getMeetingId());
+            logger.info("Joined room: " + roomName + " meetingId:" + this.getMeetingId());
 
             this.skipFocus = false;
         }
@@ -1205,8 +1200,7 @@ public class JvbConference
                                             this,
                                             (SipGatewaySession)this.gatewaySession);
 
-                                    logger.info(
-                                        callContext + " Lobby enabled by moderator! Will try to join lobby!");
+                                    logger.info("Lobby enabled by moderator! Will try to join lobby!");
 
                                     this.lobby.join();
 
@@ -1216,19 +1210,19 @@ public class JvbConference
                                 }
                                 else
                                 {
-                                    logger.error(callContext + " No required lobby jid!");
+                                    logger.error("No required lobby jid!");
                                 }
                             }
                         }
                         catch(Exception ex)
                         {
-                            logger.error(callContext + " Failed to join lobby room!", ex);
+                            logger.error("Failed to join lobby room!", ex);
                         }
                     }
                 }
                 else if (opex.getErrorCode() == NOT_LIVE_ERROR_CODE)
                 {
-                    logger.info(this.callContext + " Conference is not live yet.");
+                    logger.info("Conference is not live yet.");
 
                     gatewaySession.notifyConferenceNotLive();
 
@@ -1250,7 +1244,7 @@ public class JvbConference
                 }
             }
 
-            logger.error(this.callContext + " " + e.getMessage(), e);
+            logger.error(e.getMessage(), e);
 
             // inform that this session had failed
             gatewaySession.getGateway().fireGatewaySessionFailed(gatewaySession);
@@ -1286,7 +1280,7 @@ public class JvbConference
     {
         if (jvbCall == null)
         {
-            logger.warn(this.callContext + " JVB call already disposed");
+            logger.warn("JVB call already disposed");
             return;
         }
 
@@ -1302,8 +1296,7 @@ public class JvbConference
             }
             else
             {
-                logger.info(this.callContext
-                    + " Proceed with gwSession call on xmpp call hangup.");
+                logger.info("Proceed with gwSession call on xmpp call hangup.");
 
                 if (!gwSesisonWaitingStatsSent)
                 {
@@ -1392,7 +1385,7 @@ public class JvbConference
     {
         if (logger.isTraceEnabled())
         {
-            logger.trace(this.callContext + " Member presence change: " + evt);
+            logger.trace("Member presence change: " + evt);
         }
 
         ChatRoomMember member = evt.getChatRoomMember();
@@ -1421,9 +1414,7 @@ public class JvbConference
         else
         {
             gatewaySession.notifyChatRoomMemberLeft(member);
-            logger.info(
-                this.callContext + " Member left : " + member.getRole()
-                            + " " + member.getContactAddress());
+            logger.info("Member left : " + member.getRole() + " " + member.getContactAddress());
 
             CallPeer peer;
             if (jvbCall != null && jvbCall.getCallPeerCount() > 0
@@ -1445,7 +1436,7 @@ public class JvbConference
                         }
                         catch(Exception e)
                         {
-                            logger.error(this.callContext + " Error removing conference member=" + member.getName());
+                            logger.error("Error removing conference member=" + member.getName());
                         }
                     }
                 });
@@ -1474,7 +1465,7 @@ public class JvbConference
         // we leave this here before checking connection to make tests happy
         if (member.getName().equals(gatewaySession.getFocusResourceAddr()))
         {
-            logger.info(this.callContext + " Focus left! - stopping the call");
+            logger.info("Focus left! - stopping the call");
             CallManager.hangupCall(jvbCall, 502, "Focus left");
 
             return;
@@ -1502,13 +1493,13 @@ public class JvbConference
             {
                 if (!this.allowOnlyJigasiInRoom)
                 {
-                    logger.info(this.callContext + " Leaving room without web users and only jigasi participants!");
+                    logger.info("Leaving room without web users and only jigasi participants!");
                     stop();
                     return;
                 }
 
                 // there are only jigasi participants in the room with lobby enabled
-                logger.info(this.callContext + " Leaving room with lobby enabled and only jigasi participants!");
+                logger.info("Leaving room with lobby enabled and only jigasi participants!");
 
                 // let's play something
                 if (this.gatewaySession instanceof SipGatewaySession)
@@ -1539,7 +1530,7 @@ public class JvbConference
 
             if (onlyBotsInRoom)
             {
-                logger.info(this.callContext + " Leaving room only bots in the room!");
+                logger.info("Leaving room only bots in the room!");
                 stop();
             }
         }
@@ -1570,7 +1561,7 @@ public class JvbConference
         }
         catch (Exception ex)
         {
-            logger.error(callContext + " " + ex, ex);
+            logger.error(ex.toString(), ex);
         }
     }
 
@@ -1682,8 +1673,7 @@ public class JvbConference
             String peerAddress;
             if (peer == null || peer.getAddress() == null)
             {
-                logger.error(callContext
-                    + " Failed to obtain focus peer address");
+                logger.error(" Failed to obtain focus peer address");
                 peerAddress = null;
             }
             else
@@ -1693,8 +1683,7 @@ public class JvbConference
                     = fullAddress.substring(
                             fullAddress.indexOf("/") + 1);
 
-                logger.info(callContext
-                    + " Got invite from " + peerAddress);
+                logger.info("Got invite from " + peerAddress);
             }
 
             if (peerAddress == null
@@ -1702,8 +1691,7 @@ public class JvbConference
             {
                 if (logger.isTraceEnabled())
                 {
-                    logger.trace(callContext +
-                        " Calls not initiated from focus are not allowed");
+                    logger.trace("Calls not initiated from focus are not allowed");
                 }
 
                 CallManager.hangupCall(event.getSourceCall(),
@@ -1713,8 +1701,7 @@ public class JvbConference
 
             if (jvbCall != null)
             {
-                logger.error(callContext +
-                    " JVB conference call already started ");
+                logger.error("JVB conference call already started ");
                 CallManager.hangupCall(event.getSourceCall(),
                     200, "Call completed elsewhere");
                 return;
@@ -1722,7 +1709,7 @@ public class JvbConference
 
             if (!started || xmppProvider == null)
             {
-                logger.error(callContext + " Instance disposed");
+                logger.error("Instance disposed");
                 return;
             }
 
@@ -1794,15 +1781,13 @@ public class JvbConference
         {
             if (jvbCall != evt.getSourceCall())
             {
-                logger.error(
-                    callContext + " Call change event for different call ? "
-                        + evt.getSourceCall() + " : " + jvbCall);
+                logger.error("Call change event for different call ? " + evt.getSourceCall() + " : " + jvbCall);
                 return;
             }
 
             if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
             {
-                logger.info(callContext + " JVB conference call IN_PROGRESS.");
+                logger.info("JVB conference call IN_PROGRESS.");
                 gatewaySession.onJvbCallEstablished();
 
                 AudioModeration avMod = JvbConference.this.getAudioModeration();
@@ -1975,10 +1960,10 @@ public class JvbConference
             }
             catch (URISyntaxException | MalformedURLException e)
             {
-                logger.error(this.callContext + " Cannot encode bosh url param room", e);
+                logger.error("Cannot encode bosh url param room", e);
             }
 
-            logger.info(this.callContext + " Using bosh url:" + boshUrl);
+            logger.info("Using bosh url:" + boshUrl);
             properties.put(JabberAccountID.BOSH_URL, boshUrl);
 
             if (this.callContext.hasAuthToken() &&  this.callContext.getAuthUserId() != null)
@@ -2055,8 +2040,7 @@ public class JvbConference
     {
         if (callContext == null || callContext.getRoomJidDomain() == null)
         {
-            logger.error(this.callContext
-                + " No domain name info to use for inviting focus! Please set DOMAIN_BASE to the sip account.");
+            logger.error("No domain name info to use for inviting focus! Please set DOMAIN_BASE to the sip account.");
             return null;
         }
 
@@ -2081,7 +2065,7 @@ public class JvbConference
         }
         catch (XmppStringprepException e)
         {
-            logger.error(this.callContext + " Could not create destination address for focus invite", e);
+            logger.error("Could not create destination address for focus invite", e);
             return null;
         }
 
@@ -2108,7 +2092,7 @@ public class JvbConference
                 | XMPPException.XMPPErrorException
                 | InterruptedException e)
             {
-                logger.error(this.callContext + " Could not invite the focus to the conference", e);
+                logger.error("Could not invite the focus to the conference", e);
             }
             finally
             {
@@ -2174,7 +2158,7 @@ public class JvbConference
         // Check if conference joined before trying...
         if (this.mucRoom != null)
         {
-            logger.warn(this.callContext + " Strange received a password after joining the room");
+            logger.warn("Strange received a password after joining the room");
             return;
         }
 
@@ -2260,7 +2244,7 @@ public class JvbConference
         }
         catch(Exception e)
         {
-            logger.error(this.callContext + " Error checking room configuration", e);
+            logger.error("Error checking room configuration", e);
         }
     }
 
@@ -2305,7 +2289,7 @@ public class JvbConference
         }
         catch(Exception e)
         {
-            logger.error(callContext + " Error parsing", e);
+            logger.error("Error parsing", e);
         }
     }
 
@@ -2329,21 +2313,20 @@ public class JvbConference
                     && data.get("action").equals("demote-request")
                     && data.get("id").equals(this.mucRoom.getUserNickname()))
                 {
-                    logger.info(callContext + " Received demote request to become visitor from: "
-                        + data.get("actor"));
+                    logger.info("Received demote request to become visitor from: " + data.get("actor"));
 
                     this.leaveConferenceRoom();
 
                     this.callContext.setRequestVisitor(true);
 
-                    logger.info(callContext + " Will join requesting to be visitor.");
+                    logger.info("Will join requesting to be visitor.");
                     this.joinConferenceRoom();
                 }
             }
         }
         catch(Exception e)
         {
-            logger.error(callContext + " Error parsing", e);
+            logger.error("Error parsing", e);
         }
     }
 
@@ -2361,7 +2344,7 @@ public class JvbConference
     {
         if (!isInTheRoom())
         {
-            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            logger.error("Cannot send message as chatRoom is null");
             return;
         }
 
@@ -2370,12 +2353,12 @@ public class JvbConference
             this.mucRoom.sendMessage(this.mucRoom.createMessage(messageString));
             if (logger.isTraceEnabled())
             {
-                logger.trace(this.callContext + " Sending message: \"" + messageString + "\"");
+                logger.trace("Sending message: \"" + messageString + "\"");
             }
         }
         catch (OperationFailedException e)
         {
-            logger.warn(this.callContext + " Failed to send message " + messageString, e);
+            logger.warn("Failed to send message " + messageString, e);
         }
     }
 
@@ -2393,7 +2376,7 @@ public class JvbConference
     {
         if (this.mucRoom == null)
         {
-            logger.error(this.callContext + " Cannot send message as chatRoom is null");
+            logger.error("Cannot send message as chatRoom is null");
             return;
         }
 
@@ -2401,7 +2384,7 @@ public class JvbConference
         {
             if (logger.isDebugEnabled())
             {
-                logger.debug(this.callContext + " Skip sending message to room which we left!");
+                logger.debug("Skip sending message to room which we left!");
             }
             return;
         }
@@ -2412,12 +2395,12 @@ public class JvbConference
             ((ChatRoomJabberImpl)this.mucRoom).sendJsonMessage(messageString);
             if (logger.isTraceEnabled())
             {
-                logger.trace(this.callContext + " Sending json message: \"" + messageString + "\"");
+                logger.trace("Sending json message: \"" + messageString + "\"");
             }
         }
         catch (OperationFailedException e)
         {
-            logger.warn(this.callContext + " Failed to send json message " + messageString, e);
+            logger.warn("Failed to send json message " + messageString, e);
         }
     }
 
@@ -2479,7 +2462,7 @@ public class JvbConference
                 timeoutThread = new Thread(this, name);
                 willCauseTimeout = true;
                 timeoutThread.start();
-                logger.debug(callContext + " Scheduled new " + this);
+                logger.debug("Scheduled new " + this);
             }
         }
 
@@ -2500,8 +2483,7 @@ public class JvbConference
 
             if (willCauseTimeout)
             {
-                logger.error(callContext + " "
-                    + errorLog + " (" + timeout + " ms)");
+                logger.error(errorLog + " (" + timeout + " ms)");
 
                 JvbConference.this.endReason = this.endReason;
                 JvbConference.this.endReasonCode
@@ -2564,8 +2546,7 @@ public class JvbConference
         @Override
         public String toString()
         {
-            return "JvbConferenceStopTimeout[" + callContext
-                + ", willCauseTimeout:" + willCauseTimeout + " details:"
+            return "JvbConferenceStopTimeout[willCauseTimeout:" + willCauseTimeout + " details:"
                 + (willCauseTimeout ? endReason + "," + errorLog: "")
                 + "]@"+ hashCode();
         }
@@ -2724,8 +2705,7 @@ public class JvbConference
             }
             else
             {
-                logger.info(JvbConference.this.callContext
-                    + " Missing extension or promotion denied: " + promotionResponse);
+                logger.info("Missing extension or promotion denied: " + promotionResponse);
             }
 
             return IQ.createResultIQ(visitorsIq);
@@ -2799,7 +2779,7 @@ public class JvbConference
         private void dropCall()
         {
             Statistics.incrementTotalCallsJvbNoMedia();
-            logger.error(callContext + " No activity on JVB conference call will stop");
+            logger.error("No activity on JVB conference call will stop");
 
             stop();
         }
@@ -2853,7 +2833,7 @@ public class JvbConference
             {
                 getConnection().removeAsyncStanzaListener(this);
 
-                logger.warn(callContext + " Detected another transcriber in the room, will leave!");
+                logger.warn("Detected another transcriber in the room, will leave!");
                 stop();
             }
         }
