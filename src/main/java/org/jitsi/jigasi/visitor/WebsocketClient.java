@@ -23,7 +23,7 @@ import org.eclipse.jetty.websocket.api.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.concurrent.*;
-import org.jitsi.utils.logging.*;
+import org.jitsi.utils.logging2.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -36,8 +36,8 @@ import java.util.concurrent.*;
 import static org.jitsi.jigasi.visitor.StompUtils.*;
 
 /**
- * The websocket client to connect to visitors queue.
- * It implements the needed parts to use STOMP (https://stomp.github.io/stomp-specification-1.2.html).
+ * The websocket client to connect to the visitors queue.
+ * It implements the necessary parts to use STOMP (https://stomp.github.io/stomp-specification-1.2.html).
  */
 public class WebsocketClient
     implements WebSocketListener
@@ -45,7 +45,7 @@ public class WebsocketClient
     /**
      * The logger.
      */
-    private final static Logger logger = Logger.getLogger(WebsocketClient.class);
+    private final Logger logger;
 
     /**
      * The name of the property of the private key we use for jwt token to connect to visitors queue service.
@@ -135,6 +135,7 @@ public class WebsocketClient
         this.conference = conference;
         this.serviceUrl = serviceUrl;
         this.callContext = callContext;
+        this.logger = callContext.getLogger().createChildLogger(WebsocketClient.class.getName());
     }
 
     /**
@@ -153,7 +154,7 @@ public class WebsocketClient
         }
         catch (Exception e)
         {
-            logger.error(this.callContext + " Error starting websocket client", e);
+            logger.error("Error starting websocket client", e);
         }
     }
 
@@ -183,7 +184,7 @@ public class WebsocketClient
             return;
         }
 
-        logger.error(this.callContext + " Visitors queue websocket closed: " + statusCode + " " + reason);
+        logger.error("Visitors queue websocket closed: " + statusCode + " " + reason);
     }
 
     @Override
@@ -203,7 +204,7 @@ public class WebsocketClient
             return;
         }
 
-        logger.error(this.callContext + " Visitors queue websocket error: " + cause);
+        logger.error("Visitors queue websocket error: " + cause);
 
         reconnect();
     }
@@ -224,7 +225,7 @@ public class WebsocketClient
         }
         catch (Exception e)
         {
-            logger.error(this.callContext + " Error generating token", e);
+            logger.error("Error generating token", e);
             this.disconnect();
 
             return;
@@ -339,7 +340,7 @@ public class WebsocketClient
                 }
                 catch (IOException e)
                 {
-                    logger.error(this.callContext + " Error pinging websocket", e);
+                    logger.error("Error pinging websocket", e);
                 }
             }, this.heartbeatOutgoing, this.heartbeatOutgoing, TimeUnit.MILLISECONDS);
 
@@ -351,7 +352,7 @@ public class WebsocketClient
                 // wait twice the interval to be tolerant of timing inaccuracies
                 if (System.currentTimeMillis() - lastServerActivity > this.heartbeatIncoming * 2)
                 {
-                    logger.error(this.callContext + " Visitors queue websocket heartbeat incoming time out");
+                    logger.error("Visitors queue websocket heartbeat incoming time out");
 
                     reconnect();
                 }
@@ -380,12 +381,12 @@ public class WebsocketClient
                     JSONObject obj = (JSONObject)o;
                     if (obj.get("status").equals("live"))
                     {
-                        logger.info(this.callContext + " Conference is live now.");
+                        logger.info("Conference is live now.");
 
                         WebsocketClient.this.callContext.setRequestVisitor(true);
 
                         Long delayMs = (Long)obj.get("randomDelayMs");
-                        // now let's connect as visitor after some random delay.
+                        // now let's connect as a visitor after some random delay.
 
                         disconnect();
 
@@ -402,12 +403,12 @@ public class WebsocketClient
             }
             catch (Exception e)
             {
-                logger.error(this.callContext + " Error parsing payload:" + body, e);
+                logger.error("Error parsing payload:" + body, e);
             }
         }
         else
         {
-            logger.warn(this.callContext + " Unknown command: " + command);
+            logger.warn("Unknown command: " + command);
         }
     }
 
@@ -416,7 +417,7 @@ public class WebsocketClient
         this.disconnect();
         long delay = (long)(Math.random() * 5000);
 
-        logger.info(this.callContext + " Reconnecting visitors queue in " + delay + " ms.");
+        logger.info("Reconnecting visitors queue in " + delay + " ms.");
 
         connectTimer.schedule(new TimerTask()
         {
