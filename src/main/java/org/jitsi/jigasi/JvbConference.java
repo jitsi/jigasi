@@ -1141,7 +1141,7 @@ public class JvbConference
             // let's check room config
             updateFromRoomConfiguration();
 
-            logger.info("Joined room: " + roomName + " meetingId:" + this.getMeetingId());
+            logger.info("Joined room: " + roomName);
 
             this.skipFocus = false;
         }
@@ -1649,7 +1649,7 @@ public class JvbConference
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
-        xmppInvokeQueue.add(() -> this.gatewaySession.onSessionStartMuted(startMutedFlags));
+        // Not used.
     }
 
     @Override
@@ -2240,6 +2240,7 @@ public class JvbConference
             if (meetingIdField != null)
             {
                 this.meetingId = meetingIdField.getFirstValue();
+                logger.info("Meeting id: " + meetingId);
             }
         }
         catch(Exception e)
@@ -2250,10 +2251,7 @@ public class JvbConference
 
     private void processRoomMetadataJson(String json)
     {
-        if (!this.isTranscriber)
-        {
-            return;
-        }
+        JSONObject metadataObj = null;
 
         try
         {
@@ -2265,31 +2263,60 @@ public class JvbConference
 
                 if (data.get("type").equals("room_metadata"))
                 {
-                    TranscriptionGatewaySession transcriptionSession = (TranscriptionGatewaySession)this.gatewaySession;
-
-                    JSONObject metadataObj = (JSONObject)data.getOrDefault("metadata", new JSONObject());
-                    JSONObject recordingObj = (JSONObject)metadataObj.getOrDefault("recording", new JSONObject());
-                    transcriptionSession.setBackendTranscribingEnabled(
-                        (boolean)recordingObj.getOrDefault("isTranscribingEnabled", false));
-
-                    JSONObject visitorsObj = (JSONObject)metadataObj.getOrDefault("visitors", new JSONObject());
-                    String languages = (String)visitorsObj.get("transcribingLanguages");
-                    if (StringUtils.isNotEmpty(languages))
-                    {
-                        transcriptionSession.updateTranslateLanguages(languages.split(","));
-                    }
-
-                    Object count = visitorsObj.get("transcribingCount");
-                    if (count != null)
-                    {
-                        transcriptionSession.setVisitorsCountRequestingTranscription((Long)count);
-                    }
+                    metadataObj = (JSONObject)data.getOrDefault("metadata", new JSONObject());
                 }
             }
         }
         catch(Exception e)
         {
             logger.error("Error parsing", e);
+        }
+
+        if (metadataObj == null)
+        {
+            logger.warn("No room metadata found");
+            return;
+        }
+
+        if (!this.isTranscriber)
+        {
+            JSONObject startMutedObj = (JSONObject)metadataObj.get("startMuted");
+
+            if (startMutedObj != null)
+            {
+                Object startAudioMuted = startMutedObj.get("audio");
+                if (startAudioMuted == null)
+                {
+                    return;
+                }
+
+                boolean startMuted = (Boolean)startMutedObj.get("audio");
+
+                logger.info("Received start audio muted:" + startMuted);
+
+                xmppInvokeQueue.add(() -> this.getAudioModeration().setStartAudioMuted(startMuted));
+            }
+
+            return;
+        }
+
+        TranscriptionGatewaySession transcriptionSession = (TranscriptionGatewaySession)this.gatewaySession;
+
+        JSONObject recordingObj = (JSONObject)metadataObj.getOrDefault("recording", new JSONObject());
+        transcriptionSession.setBackendTranscribingEnabled(
+                (boolean)recordingObj.getOrDefault("isTranscribingEnabled", false));
+
+        JSONObject visitorsObj = (JSONObject)metadataObj.getOrDefault("visitors", new JSONObject());
+        String languages = (String)visitorsObj.get("transcribingLanguages");
+        if (StringUtils.isNotEmpty(languages))
+        {
+            transcriptionSession.updateTranslateLanguages(languages.split(","));
+        }
+
+        Object count = visitorsObj.get("transcribingCount");
+        if (count != null)
+        {
+            transcriptionSession.setVisitorsCountRequestingTranscription((Long)count);
         }
     }
 

@@ -788,18 +788,7 @@ public class SipGatewaySession
     @Override
     public void onSessionStartMuted(boolean[] startMutedFlags)
     {
-        logger.info("Received start audio muted:" + startMutedFlags[0]);
-        if (this.jvbConference != null)
-        {
-            if (this.jvbConference.getAudioModeration() != null)
-            {
-                this.jvbConference.getAudioModeration().setStartAudioMuted(startMutedFlags[0]);
-            }
-        }
-        else
-        {
-            logger.warn("Received start muted with no jvbConference created.");
-        }
+        // Not used.
     }
 
     /**
