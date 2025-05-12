@@ -22,7 +22,7 @@
     <smack.version>4.4.8-jitsi-1</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
-    <jicoco.version>1.1-156-g4ea1d28</jicoco.version>
+    <jicoco.version>1.1-157-gb20b38c</jicoco.version>
     <jetty.version>11.0.21</jetty.version>
     <oci-sdk.version>3.45.0</oci-sdk.version>
   </properties>
@@ -357,7 +357,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-92-g2d110a0</version>
+      <version>1.0-93-ge089d84</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
