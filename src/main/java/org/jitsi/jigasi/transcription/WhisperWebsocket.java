@@ -262,20 +262,18 @@ public class WhisperWebsocket
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
+        logger.error("Websocket closed: " + statusCode + " reason:" + reason
+            + " isRunning: " + isRunning() + " isOpen:" + (wsSession != null && wsSession.isOpen()));
+
         if (isRunning())
         {
             // let's try to reconnect
-            if (!wsSession.isOpen())
+            if (!wsSession.isOpen() || (statusCode > 1000 && statusCode < 2000))
             {
                 reconnect();
 
                 return;
             }
-        }
-
-        if (isRunning())
-        {
-            logger.error("Websocket closed: " + statusCode + " reason:" + reason);
         }
 
         wsSession = null;
