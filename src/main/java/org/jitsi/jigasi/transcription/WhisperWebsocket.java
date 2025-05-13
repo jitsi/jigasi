@@ -260,7 +260,7 @@ public class WhisperWebsocket
     }
 
     @OnWebSocketClose
-    public void onClose(int statusCode, String reason)
+    public synchronized void onClose(int statusCode, String reason)
     {
         logger.error("Websocket closed: " + statusCode + " reason:" + reason
             + " isRunning: " + isRunning() + " isOpen:" + (wsSession != null && wsSession.isOpen()));
@@ -438,14 +438,14 @@ public class WhisperWebsocket
 
     private void disconnectParticipantInternal(String participantId, Consumer<Boolean> callback)
     {
-        if (ended() && !isRunning())
-        {
-            callback.accept(true);
-            return;
-        }
-
         synchronized (this)
         {
+            if (ended() && !isRunning())
+            {
+                callback.accept(true);
+                return;
+            }
+
             if (participants.containsKey(participantId))
             {
                 participants.remove(participantId);
