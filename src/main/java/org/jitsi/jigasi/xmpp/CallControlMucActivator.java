@@ -78,7 +78,7 @@ public class CallControlMucActivator
     private CallControl callControl = null;
 
     private ConfigurationService configService;
-    
+
     /**
      * The thread pool to serve all call control operations.
      */
@@ -88,7 +88,7 @@ public class CallControlMucActivator
     {
         super(ConfigurationService.class);
     }
-    
+
     /**
      * Starts muc control component. Finds all xmpp accounts and listen for
      * new ones registered.
@@ -597,14 +597,14 @@ public class CallControlMucActivator
                             {
                                 logger.error(
                                         ctx + " Cannot send reply for dialIQ:"
-                                                + XmlStringBuilderUtil.toStringOpt(packet));
+                                                + packet.toXML());
                             }
                         }
                     });
             }
             catch (RejectedExecutionException e)
             {
-                logger.error(ctx + " Failed to handle incoming dialIQ:" + XmlStringBuilderUtil.toStringOpt(packet));
+                logger.error(ctx + " Failed to handle incoming dialIQ:" + packet.toXML());
 
                 return IQ.createErrorResponse(packet, StanzaError.getBuilder()
                     .setCondition(internal_server_error)
@@ -619,7 +619,7 @@ public class CallControlMucActivator
         {
             if (logger.isDebugEnabled())
             {
-                logger.debug(ctx + " Processing a RayoIq: " + XmlStringBuilderUtil.toStringOpt(packet));
+                logger.debug(ctx + " Processing a RayoIq: " + packet.toXML());
             }
 
             try
