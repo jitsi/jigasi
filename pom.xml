@@ -19,10 +19,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.36</slf4j.version>
     <junit.version>5.8.2</junit.version>
-    <smack.version>4.4.8-jitsi-3</smack.version>
+    <smack.version>4.4.8-jitsi-4</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
-    <jicoco.version>1.1-158-g9fcf1b7</jicoco.version>
+    <jicoco.version>1.1-159-gf9c2712</jicoco.version>
     <jetty.version>11.0.21</jetty.version>
     <oci-sdk.version>3.45.0</oci-sdk.version>
   </properties>
@@ -357,7 +357,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-94-g29b94fa</version>
+      <version>1.0-95-ge113e35</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
