@@ -1399,10 +1399,13 @@ public class SipGatewaySession
          */
         private boolean totalStatsSent = false;
 
+        private static final int CHECK_INTERVAL_MS = 2000;
+        private final long start = System.currentTimeMillis();
+
         public ExpireMediaStream(AudioMediaStreamImpl stream)
         {
             // we want to check every 2 seconds for the media state
-            super(2000, false);
+            super(CHECK_INTERVAL_MS, false);
             this.stream = stream;
         }
 
@@ -1413,10 +1416,9 @@ public class SipGatewaySession
 
             try
             {
-                long lastReceived = stream.getLastInputActivityTime();
+                long lastReceived = Math.max(stream.getLastInputActivityTime(), start);
 
-                if (System.currentTimeMillis() - lastReceived
-                        > mediaDroppedThresholdMs)
+                if (System.currentTimeMillis() - lastReceived > mediaDroppedThresholdMs)
                 {
                     // we want to log only when we go from not-expired into
                     // expired state
