@@ -1400,11 +1400,7 @@ public class SipGatewaySession
         private boolean totalStatsSent = false;
 
         private static final int CHECK_INTERVAL_MS = 2000;
-
-        /**
-         * Count the number of times we have checked and nothing is received yet.
-         */
-        private int nothingReceviedChecksCount = 0;
+        private final long start = System.currentTimeMillis();
 
         public ExpireMediaStream(AudioMediaStreamImpl stream)
         {
@@ -1420,21 +1416,10 @@ public class SipGatewaySession
 
             try
             {
-                long lastReceived = stream.getLastInputActivityTime();
+                long lastReceived = Math.max(stream.getLastInputActivityTime(), start);
 
                 if (System.currentTimeMillis() - lastReceived > mediaDroppedThresholdMs)
                 {
-                    if (lastReceived == 0)
-                    {
-                        nothingReceviedChecksCount++;
-                        if (nothingReceviedChecksCount * CHECK_INTERVAL_MS < mediaDroppedThresholdMs)
-                        {
-                            // we have not received anything yet, so let's
-                            // not log it till we reach the threshold
-                            return;
-                        }
-                    }
-
                     // we want to log only when we go from not-expired into
                     // expired state
                     if (!gatewayMediaDropped)
