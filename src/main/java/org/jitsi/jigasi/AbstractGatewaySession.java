@@ -311,7 +311,18 @@ public abstract class AbstractGatewaySession
      * Method called to notify that the conference is not live yet.
      */
     public void notifyConferenceNotLive()
-    {}
+    {
+        Iterable<GatewaySessionListener> gwListeners;
+        synchronized (listeners)
+        {
+            gwListeners = new ArrayList<>(listeners);
+        }
+
+        for (GatewaySessionListener listener : gwListeners)
+        {
+            listener.notifyConferenceNotLive();
+        }
+    }
 
     /**
      *  Method called by {@link JvbConference} that it has reached

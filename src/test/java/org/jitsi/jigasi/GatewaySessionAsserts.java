@@ -40,6 +40,10 @@ public class GatewaySessionAsserts
     }
 
     @Override
+    public void notifyConferenceNotLive()
+    {}
+
+    @Override
     public void onLobbyWaitReview(ChatRoom lobbyRoom)
     {}
 
