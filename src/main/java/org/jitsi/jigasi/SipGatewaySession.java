@@ -549,6 +549,7 @@ public class SipGatewaySession
     }
 
     /**
+     * jvbConferenceCall can be null in case of outgoing call where the xmpp meeting is not live.
      * {@inheritDoc}
      */
     Exception onConferenceCallStarted(Call jvbConferenceCall)
@@ -593,16 +594,6 @@ public class SipGatewaySession
 
                 return null;
             }
-
-            //sendPresenceExtension(
-              //  createPresenceExtension(
-                //    SipGatewayExtension.STATE_RINGING, null));
-
-            //if (jvbConference != null)
-            //{
-              //  jvbConference.setPresenceStatus(
-                //    SipGatewayExtension.STATE_RINGING);
-            //}
 
             // Make an outgoing call
             final OperationSetBasicTelephony tele
@@ -652,9 +643,12 @@ public class SipGatewaySession
                 this.sipCall = tele.createCall(outboundPrefix + destination);
                 this.initSipCall();
 
-                // Outgoing SIP connection mode sets common conference object
-                // just after the call has been created
-                jvbConferenceCall.setConference(sipCall.getConference());
+                if (jvbConferenceCall != null)
+                {
+                    // Outgoing SIP connection mode sets common conference object
+                    // just after the call has been created
+                    jvbConferenceCall.setConference(sipCall.getConference());
+                }
 
                 logger.info("Created outgoing call to " + this);
 
@@ -672,7 +666,10 @@ public class SipGatewaySession
 
         try
         {
-            CallManager.acceptCall(jvbConferenceCall);
+            if (jvbConferenceCall != null)
+            {
+                CallManager.acceptCall(jvbConferenceCall);
+            }
         }
         catch(OperationFailedException e)
         {
@@ -1192,6 +1189,23 @@ public class SipGatewaySession
         catch(OperationFailedException ex)
         {
             logger.error("Cannot send visitor message", ex);
+        }
+
+        if (this.callContext.getDestination() != null && this.getSipCall() == null)
+        {
+            Exception error = this.onConferenceCallStarted(null);
+
+            if (error != null)
+            {
+                logger.error(error.toString(), error);
+
+                if (error instanceof OperationFailedException)
+                {
+                    OperationFailedException ex = (OperationFailedException)error;
+
+                    hangUpSipCall(ex.getErrorCode(), ex.getMessage());
+                }
+            }
         }
     }
 
