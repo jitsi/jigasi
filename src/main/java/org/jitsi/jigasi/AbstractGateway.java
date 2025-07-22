@@ -199,6 +199,10 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     public void onLobbyWaitReview(ChatRoom lobbyRoom)
     {}
 
+    @Override
+    public void notifyConferenceNotLive()
+    {}
+
     /**
      * Finds {@link AbstractGatewaySession} for given <tt>callResource</tt> if
      * one is currently active.

@@ -36,6 +36,8 @@ public interface GatewaySessionListener<T extends AbstractGatewaySession>
      */
     void onJvbRoomJoined(T source);
 
+    void notifyConferenceNotLive();
+
     /**
      * Called when a <tt>AbstractGatewaySession</tt> has joined the lobby MUC
      *

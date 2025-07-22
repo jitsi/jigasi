@@ -30,7 +30,6 @@ import org.jitsi.jigasi.util.*;
 import org.jitsi.utils.logging.Logger;
 import org.jitsi.xmpp.extensions.rayo.*;
 import org.jitsi.service.configuration.*;
-import org.jitsi.xmpp.util.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.iqrequest.*;
@@ -377,6 +376,10 @@ public class CallControlMucActivator
     }
 
     @Override
+    public void notifyConferenceNotLive()
+    {}
+
+    @Override
     public void onLobbyWaitReview(ChatRoom lobbyRoom)
     {}
 
@@ -686,11 +689,19 @@ public class CallControlMucActivator
                 room = waiter.lobbyRoom;
             }
 
-            response.setUri("xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
+            // room can be null when the meeting is not live yet
+            if (room != null)
+            {
+                response.setUri("xmpp:" + room.getIdentifier() + "/" + room.getUserNickname());
 
-            final XMPPConnection roomConnection = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
-                .getConnection();
-            roomConnection.registerIQRequestHandler(new HangUpIqHandler(room.getParentProvider()));
+                final XMPPConnection roomConnection = ((ProtocolProviderServiceJabberImpl) room.getParentProvider())
+                        .getConnection();
+                roomConnection.registerIQRequestHandler(new HangUpIqHandler(room.getParentProvider()));
+            }
+            else
+            {
+                logger.warn("Room is null for session: " + session);
+            }
         }
     }
 
@@ -712,6 +723,12 @@ public class CallControlMucActivator
 
         @Override
         public void onJvbRoomJoined(AbstractGatewaySession source)
+        {
+            countDownLatch.countDown();
+        }
+
+        @Override
+        public void notifyConferenceNotLive()
         {
             countDownLatch.countDown();
         }
