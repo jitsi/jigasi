@@ -698,6 +698,10 @@ public class CallControlMucActivator
                         .getConnection();
                 roomConnection.registerIQRequestHandler(new HangUpIqHandler(room.getParentProvider()));
             }
+            else
+            {
+                logger.warn("Room is null for session: " + session);
+            }
         }
     }
 
