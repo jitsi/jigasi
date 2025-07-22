@@ -57,6 +57,12 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
         = "org.jitsi.jigasi.JVB_INVITE_TIMEOUT";
 
     /**
+     * Name of the property used to set default empty call leave timeout.
+     */
+    public static final String P_NAME_DEFAULT_CALL_EMPTY_TIMEOUT
+        = "org.jitsi.jigasi.DEFAULT_CALL_EMPTY_TIMEOUT";
+
+    /**
      * Name of the property used to disable advertisement of ICE feature in
      * XMPP capabilities list. This allows conference manager to allocate
      * channels with RAW transport and speed up connectivity process.
@@ -68,6 +74,11 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      * Default JVB conference invite timeout.
      */
     public static final long DEFAULT_JVB_INVITE_TIMEOUT = 30L * 1000L;
+
+    /**
+     * Default empty call leave timeout.
+     */
+    public static final long DEFAULT_CALL_EMPTY_TIMEOUT = 30L * 1000L;
 
     /**
      * A map which matches CallContext to the specific session of a Gateway.
@@ -232,6 +243,15 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
         return JigasiBundleActivator.getConfigurationService()
                                     .getLong(P_NAME_JVB_INVITE_TIMEOUT,
                                              DEFAULT_JVB_INVITE_TIMEOUT);
+    }
+
+    /**
+     * Returns timeout for waiting for the JVB conference invite from the focus.
+     */
+    public static long getEmptyCallTimeout()
+    {
+        return JigasiBundleActivator.getConfigurationService()
+            .getLong(P_NAME_DEFAULT_CALL_EMPTY_TIMEOUT, DEFAULT_CALL_EMPTY_TIMEOUT);
     }
 
     /**

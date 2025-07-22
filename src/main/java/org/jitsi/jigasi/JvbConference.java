@@ -351,6 +351,11 @@ public class JvbConference
         "Did not received session invite"
     );
 
+    private final JvbConferenceStopTimeout emptyTimeout = new JvbConferenceStopTimeout(
+            "EmptyCallTimeout",
+            "only bots or empty room",
+            "only bots or empty room"
+    );
     /**
      * The last status we sent in the conference using setPresenceStatus.
      */
@@ -1397,6 +1402,8 @@ public class JvbConference
         {
             if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED.equals(eventType))
             {
+                emptyTimeout.cancel();
+
                 gatewaySession.notifyChatRoomMemberJoined(member);
             }
             else if (ChatRoomMemberPresenceChangeEvent.MEMBER_UPDATED
@@ -1530,8 +1537,7 @@ public class JvbConference
 
             if (onlyBotsInRoom)
             {
-                logger.info("Leaving room only bots in the room!");
-                stop();
+                emptyTimeout.scheduleTimeout(AbstractGateway.getEmptyCallTimeout());
             }
         }
     }
