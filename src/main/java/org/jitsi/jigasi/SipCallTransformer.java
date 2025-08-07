@@ -35,10 +35,11 @@ import java.util.*;
  * send hole punch packets. It can happen that the xmpp call is dropped and
  * the sip call participant is waiting then there will be no media ot RTCP to
  * keep alive the stream from the other side.
+ * Can be muted to stop forwarding packets coming from the sip side.
  *
  * @author Damian Minkov
  */
-public class SipCallKeepAliveTransformer
+public class SipCallTransformer
     extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
@@ -77,10 +78,20 @@ public class SipCallKeepAliveTransformer
     private final MediaStream stream;
 
     /**
+     * If true we will mute the media, so we will not forward any media from the sip side.
+     */
+    private boolean mute = false;
+
+    /**
+     * Counter for the number of packets received.
+     * Used for passing through a packet while being muted, one on every 1000.
+     */
+    private long packetsCounter = 0;
+
+    /**
      * Initializes a new {@link SsrcRewriter} instance.
      */
-    public SipCallKeepAliveTransformer(
-        CallPeerMediaHandler handler, MediaStream stream)
+    public SipCallTransformer(CallPeerMediaHandler handler, MediaStream stream)
     {
         super(RTPPacketPredicate.INSTANCE);
 
@@ -116,7 +127,14 @@ public class SipCallKeepAliveTransformer
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
+        packetsCounter++;
         seenSSRCs.add(pkt.getSSRCAsLong());
+
+        // if muted we want to pass one packet every 1000 packets
+        if (mute && packetsCounter % 1000 != 0)
+        {
+            return null;
+        }
 
         return pkt;
     }
@@ -139,6 +157,15 @@ public class SipCallKeepAliveTransformer
     public PacketTransformer getRTCPTransformer()
     {
         return rtcpTransformer;
+    }
+
+    /**
+     * Sets the mute state of this transformer.
+     * @param bMuted <tt>true</tt> to mute the media, <tt>false</tt> to unmute.
+     */
+    public void mute(boolean bMuted)
+    {
+        this.mute = bMuted;
     }
 
     /**
@@ -236,7 +263,7 @@ public class SipCallKeepAliveTransformer
                             RawPacket.FIXED_HEADER_SIZE + 1);
 
                         stream.injectPacket(
-                            packet, true, SipCallKeepAliveTransformer.this);
+                            packet, true, SipCallTransformer.this);
 
                         ts += 160;
                     }

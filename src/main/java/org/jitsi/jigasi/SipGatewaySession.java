@@ -290,8 +290,9 @@ public class SipGatewaySession
      * from the sip direction. Skips forwarding RTCP traffic which is not
      * intended for that direction (particularly we had seen RTCP.BYE for
      * to cause media to stop (even when ssrc is not matching)).
+     * Used for muting the media stream.
      */
-    private SipCallKeepAliveTransformer transformerMonitor;
+    private SipCallTransformer callTransformer;
 
     /**
      * Whether we had sent indication that XMPP connection terminated and
@@ -716,10 +717,10 @@ public class SipGatewaySession
         if (peerStateListener != null)
             peerStateListener.unregister();
 
-        if (this.transformerMonitor != null)
+        if (this.callTransformer != null)
         {
-            this.transformerMonitor.dispose();
-            this.transformerMonitor = null;
+            this.callTransformer.dispose();
+            this.callTransformer = null;
         }
 
         this.soundNotificationManager.stop();
@@ -1155,9 +1156,14 @@ public class SipGatewaySession
             if (this.jvbConference.getAudioModeration() != null)
             {
                 // notify user that is muted
-                this.jvbConference.getAudioModeration().mute();
+                this.jvbConference.getAudioModeration().muteViaSIPInfo();
             }
         }
+    }
+
+    public void mute(boolean bMuted)
+    {
+        callTransformer.mute(bMuted);
     }
 
     /**
@@ -1236,9 +1242,8 @@ public class SipGatewaySession
                 MediaStream stream = mediaHandler.getStream(MediaType.AUDIO);
                 if (stream != null)
                 {
-                    transformerMonitor = new SipCallKeepAliveTransformer(
-                        peerMedia.getMediaHandler(), stream);
-                    stream.setExternalTransformer(transformerMonitor);
+                    callTransformer = new SipCallTransformer(peerMedia.getMediaHandler(), stream);
+                    stream.setExternalTransformer(callTransformer);
                     return true;
                 }
             }
