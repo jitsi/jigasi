@@ -281,8 +281,7 @@ public class AudioModeration
                     {
                         this.raiseHand();
                     }
-                    // Send request to jicofo
-                    else if (this.requestAudioMuteByJicofo(bAudioMute))
+                    else if (this.mute(bAudioMute))
                     {
                         // Send response through sip, respondRemoteAudioMute
                         this.gatewaySession.sendJson(
@@ -342,14 +341,14 @@ public class AudioModeration
     }
 
     /**
-     * Request Jicofo on behalf to mute/unmute us.
+     * Mute/unmute us.
      *
      * @param bMuted <tt>true</tt> if request is to mute audio,
      * false otherwise
      * @return <tt>true</tt> if request succeeded, false
      * otherwise
      */
-    public boolean requestAudioMuteByJicofo(boolean bMuted)
+    public boolean mute(boolean bMuted)
     {
         ChatRoom mucRoom = this.jvbConference.getJvbRoom();
 
@@ -358,6 +357,13 @@ public class AudioModeration
             this.raiseHand();
 
             return false;
+        }
+
+        this.gatewaySession.mute(bMuted);
+
+        if (!this.avModerationEnabled)
+        {
+            return true;
         }
 
         StanzaCollector collector = null;
@@ -421,11 +427,11 @@ public class AudioModeration
                 // in case of startAudioMuted, we want jicofo to stop the bridge from sending our audio
                 // a specific case for jigasi as it doesn't do local muting
                 // in case of av-moderation jicofo has done that already for us
-                this.requestAudioMuteByJicofo(true);
+                this.mute(true);
             }
 
             // inform the sip side that our state is muted (av moderation or not)
-            mute();
+            muteViaSIPInfo();
 
             // in case we reconnect start muted maybe no-longer set
             this.startAudioMuted = false;
@@ -438,7 +444,7 @@ public class AudioModeration
      * When we receive confirmation for the announcement we will update
      * our presence status in the conference.
      */
-    public void mute()
+    public void muteViaSIPInfo()
     {
         if (!isMutingSupported())
             return;
@@ -601,7 +607,7 @@ public class AudioModeration
 
             if (doMute)
             {
-                mute();
+                muteViaSIPInfo();
             }
 
             return IQ.createResultIQ(muteIq);
