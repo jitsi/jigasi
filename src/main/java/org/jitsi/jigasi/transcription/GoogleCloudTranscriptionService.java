@@ -554,6 +554,18 @@ public class GoogleCloudTranscriptionService
         }
 
         /**
+         * Check whether adding a certain duration to the already sent time
+         * would exceed the length of a cost interval.
+         * @param durationInMs the duration to check.
+         * @return true if the summed time plus the given duration
+         * would exceed the length of a cost interval, false otherwise.
+         */
+        boolean aboveCostInterval(long durationInMs)
+        {
+            return summedTime + durationInMs >= INTERVAL_LENGTH_MS;
+        }
+
+        /**
          * Increments the Google Cloud Speech API requests counter.
          */
         synchronized void incrementRequestsCounter()
@@ -723,6 +735,12 @@ public class GoogleCloudTranscriptionService
             // ByteString
             byte[] audio = request.getAudio();
             ByteString audioBytes = ByteString.copyFrom(audio);
+            long durationInMs = request.getDurationInMs();
+
+            if (costLogger.aboveCostInterval(durationInMs))
+            {
+                this.terminateCurrentSession();
+            }
 
             synchronized(currentRequestObserverLock)
             {
@@ -735,7 +753,7 @@ public class GoogleCloudTranscriptionService
                         = createObserver(getRecognitionConfig(request));
                 }
 
-                costLogger.increment(request.getDurationInMs());
+                costLogger.increment(durationInMs);
                 costLogger.incrementRequestsCounter();
 
                 currentRequestObserver.onNext(
