@@ -58,12 +58,12 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>32.0.0-jre</version>
+      <version>33.5.0-jre</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-speech</artifactId>
-      <version>2.2.15</version>
+      <version>4.70.0</version>
       <exclusions>
         <exclusion>
           <!-- as BC changed the artifact id, we can't rely on Maven to resolve version conflicts -->
@@ -75,7 +75,7 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-translate</artifactId>
-      <version>2.1.13</version>
+      <version>2.75.0</version>
       <exclusions>
         <exclusion>
           <!-- as BC changed the artifact id, we can't rely on Maven to resolve version conflicts -->
