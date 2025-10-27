@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.xmpp;
 
+import static org.jitsi.jigasi.util.Util.*;
 import static org.jivesoftware.smack.packet.StanzaError.Condition.internal_server_error;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
@@ -34,6 +35,7 @@ import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.bosh.*;
 import org.jivesoftware.smack.iqrequest.*;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smackx.disco.*;
 import org.jxmpp.jid.parts.*;
 import org.osgi.framework.*;
 
@@ -301,6 +303,9 @@ public class CallControlMucActivator
                 conn.registerIQRequestHandler(new HangUpIqHandler(pps));
 
                 connectionResource = conn.getUser().getResourceOrNull();
+
+                // to make sure EntityCapsManager.currentCapsVersion is properly initialized
+                ServiceDiscoveryManager.getInstanceFor(conn).addFeature(JIGASI_FEATURE_NAME);
             }
 
             OperationSetMultiUserChat muc = pps.getOperationSet(OperationSetMultiUserChat.class);
