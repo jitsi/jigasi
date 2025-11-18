@@ -556,7 +556,8 @@ public class JvbConference
                 {
                     resourceIdentifier
                         = Localpart.from(
-                            resourceIdentBuilder.replaceAll("[^A-Za-z0-9]", "-"));
+                            resourceIdentBuilder.replaceAll("[^A-Za-z0-9]", "-")
+                                                .replaceAll("^-+|-+$", ""));
                 }
                 catch (XmppStringprepException e)
                 {
