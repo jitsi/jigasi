@@ -331,7 +331,6 @@ public class Lobby
         if (!alternateJid.equals(this.mainRoomJid))
         {
             logger.warn("Alternate Jid(" + alternateJid + ") not the same as main room Jid(" + this.mainRoomJid + ")!");
-            return;
         }
 
         try
