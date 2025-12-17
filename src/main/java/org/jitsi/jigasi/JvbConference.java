@@ -425,6 +425,12 @@ public class JvbConference
     private final ChatRoomPresenceListener presenceListener = new ChatRoomPresenceListener();
 
     /**
+     * The features for the current xmpp provider we will use later adding to the room presence we send.
+     * We need to initialize this before connecting to make sure features are added correctly.
+     */
+    private ExtensionElement features = null;
+
+    /**
      * Whether we are currently joining as a visitor.
      */
     private boolean isVisitor = false;
@@ -745,6 +751,9 @@ public class JvbConference
 
         this.xmppProvider = xmppProvider;
 
+        // Advertise gateway features before joining and if possible before connecting
+        this.features = addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class));
+
         xmppProvider.addRegistrationStateChangeListener(this);
 
         this.telephony
@@ -1016,8 +1025,7 @@ public class JvbConference
 
                 // we want to add the features just before joining and after connecting
                 // to make sure EntityCapsManager.currentCapsVersion is properly initialized
-                chatRoom.addPresencePacketExtensions(
-                        addSupportedFeatures(xmppProvider.getOperationSet(OperationSetJitsiMeetToolsJabber.class)));
+                chatRoom.addPresencePacketExtensions(this.features);
 
                 String statsId = JigasiBundleActivator.getConfigurationService().getString(STATS_ID_PNAME);
                 if (StringUtils.isNotEmpty(statsId))
