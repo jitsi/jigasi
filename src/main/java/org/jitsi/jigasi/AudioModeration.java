@@ -360,6 +360,7 @@ public class AudioModeration
         }
 
         this.gatewaySession.mute(bMuted);
+        logger.info(callContext + " Mute state changed to:" + bMuted);
 
         if (!this.avModerationEnabled)
         {
@@ -607,6 +608,10 @@ public class AudioModeration
 
             if (doMute)
             {
+                // in case of normal mute without av moderation we also want to mute the audio
+                AudioModeration.this.gatewaySession.mute(true);
+                logger.info(callContext + " Remotely muted.");
+
                 muteViaSIPInfo();
             }
 
