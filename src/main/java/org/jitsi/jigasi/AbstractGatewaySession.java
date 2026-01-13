@@ -308,9 +308,9 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * Method called to notify that the conference is not live yet.
+     * Method called to notify that the conference is live or not live yet.
      */
-    public void notifyConferenceNotLive()
+    public void notifyConferenceLive(boolean v)
     {
         Iterable<GatewaySessionListener> gwListeners;
         synchronized (listeners)
@@ -320,7 +320,7 @@ public abstract class AbstractGatewaySession
 
         for (GatewaySessionListener listener : gwListeners)
         {
-            listener.notifyConferenceNotLive();
+            listener.notifyConferenceLive(v);
         }
     }
 

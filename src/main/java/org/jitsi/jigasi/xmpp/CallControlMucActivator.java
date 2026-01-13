@@ -381,7 +381,7 @@ public class CallControlMucActivator
     }
 
     @Override
-    public void notifyConferenceNotLive()
+    public void notifyConferenceLive(boolean v)
     {}
 
     @Override
@@ -733,9 +733,12 @@ public class CallControlMucActivator
         }
 
         @Override
-        public void notifyConferenceNotLive()
+        public void notifyConferenceLive(boolean live)
         {
-            countDownLatch.countDown();
+            if (!live)
+            {
+                countDownLatch.countDown();
+            }
         }
 
         @Override
