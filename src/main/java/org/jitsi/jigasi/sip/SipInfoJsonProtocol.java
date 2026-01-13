@@ -66,7 +66,7 @@ public class SipInfoJsonProtocol
         public static final int AV_MODERATION_DENIED = 10;
         public static final int SIP_CALL_HEARTBEAT = 11;
         public static final int SIP_CALL_VISITOR = 12;
-        public static final int SIP_CALL_IS_LIVE = 14;
+        public static final int SIP_CALL_IS_LIVE = 15;
     }
 
     private static class MESSAGE_HEADER
