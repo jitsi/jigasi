@@ -40,7 +40,7 @@ public class GatewaySessionAsserts
     }
 
     @Override
-    public void notifyConferenceNotLive()
+    public void notifyConferenceLive(boolean v)
     {}
 
     @Override

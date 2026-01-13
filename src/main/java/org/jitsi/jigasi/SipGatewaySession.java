@@ -1184,20 +1184,21 @@ public class SipGatewaySession
      * {@inheritDoc}
      */
     @Override
-    public void notifyConferenceNotLive()
+    public void notifyConferenceLive(boolean value)
     {
-        super.notifyConferenceNotLive();
+        super.notifyConferenceLive(value);
 
         try
         {
-            SipGatewaySession.this.sendJson(SipInfoJsonProtocol.createSIPCallNotLive());
+            SipGatewaySession.this.sendJson(SipInfoJsonProtocol.createSIPCallLive(value));
         }
         catch(OperationFailedException ex)
         {
             logger.error("Cannot send visitor message", ex);
         }
 
-        if (this.callContext.getDestination() != null && this.getSipCall() == null)
+        // we execute this only when conference is not live
+        if (!value && this.callContext.getDestination() != null && this.getSipCall() == null)
         {
             Exception error = this.onConferenceCallStarted(null);
 

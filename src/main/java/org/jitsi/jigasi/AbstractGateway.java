@@ -200,7 +200,7 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     {}
 
     @Override
-    public void notifyConferenceNotLive()
+    public void notifyConferenceLive(boolean v)
     {}
 
     /**
