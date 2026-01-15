@@ -73,6 +73,27 @@ public class LibreTranslateTranslationService
     }
 
     /**
+     * Utility function to extract the primary language code like:
+     * 'en-GB', 'en_GB', 'enGB', 'zh-CN', 'zh-TW'
+     *
+     * Behaves equivalent to the function " _getPrimaryLanguageCode"
+     * in jitsi-meet/blob/master/react/features/subtitles/middleware.ts
+     *
+     * @param language The language to use for translation or user requested.
+     * @return Primary language code
+    */
+    private static String getPrimaryLanguageCode(String language)
+    {
+        // can this actually happen? If yes, avoid NPE.
+        if (language == null)
+        {
+            return "auto";
+        }
+
+        return language.replaceAll("[-_A-Z].*", "");
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -80,8 +101,8 @@ public class LibreTranslateTranslationService
     {
         String payload = "{"
                 .concat("\"q\": \"" + sourceText + "\",")
-                .concat("\"source\": \"" + sourceLang.substring(0, 2) + "\",")
-                .concat("\"target\": \"" + targetLang.substring(0, 2) + "\",")
+                .concat("\"source\": \"" + getPrimaryLanguageCode(sourceLang) + "\",")
+                .concat("\"target\": \"" + getPrimaryLanguageCode(targetLang) + "\",")
                 .concat("\"format\": \"text\",")
                 .concat("\"api_key\": \"\"")
                 .concat("}");
