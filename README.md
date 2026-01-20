@@ -8,7 +8,7 @@ Install and run
 
 It is possible to install Jigasi along with Jitsi Meet using our [quick install instructions] or do this from sources using the instructions below.
 
-[quick install instructions]: https://github.com/jitsi/jitsi-meet/blob/master/doc/quick-install.md
+[quick install instructions]: https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-quickstart
 
 1. Checkout latest source:
  
