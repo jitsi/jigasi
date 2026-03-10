@@ -220,7 +220,7 @@ configuring the following properties in `/etc/jitsi/jigasi/sip-communicator.prop
 
 ```
 org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperTranscriptionService
-org.jitsi.jigasi.transcription.whisper.websocket_url=wss://<YOUR-DOMAIN>:<<PORT>>
+org.jitsi.jigasi.transcription.whisper.websocket_url=wss://<YOUR-DOMAIN>:<PORT>/streaming-whisper/ws
 ```
 
 If you also plan to enable the ASAP authentication, have a look at the 
