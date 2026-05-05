@@ -263,6 +263,27 @@ before starting to listen to requests. You may refer to the
 [documentation](https://github.com/LibreTranslate/LibreTranslate/blob/main/README.md)
 to set up a volume or set the available languages to reduce download time.
 
+Microsoft Translator configuration for translation
+==================
+
+To use [Microsoft Translator](https://learn.microsoft.com/azure/ai-services/translator/)
+for translation, configure the following properties in `/etc/jitsi/jigasi/sip-communicator.properties`:
+
+```
+org.jitsi.jigasi.transcription.translationService=org.jitsi.jigasi.transcription.BingTranslationService
+org.jitsi.jigasi.transcription.bing.subscription_key=<your-translator-key>
+org.jitsi.jigasi.transcription.bing.subscription_region=<your-resource-region>
+```
+
+The default endpoint is `https://api.cognitive.microsofttranslator.com` and
+the default API version is `3.0`. Override them only when using a custom
+Translator endpoint or API version:
+
+```
+org.jitsi.jigasi.transcription.bing.endpoint=https://api.cognitive.microsofttranslator.com
+org.jitsi.jigasi.transcription.bing.api_version=3.0
+```
+
 Transcription options
 =====================
 
