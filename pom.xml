@@ -14,7 +14,7 @@
 
   <properties>
     <assembly.skipAssembly>true</assembly.skipAssembly>
-    <jitsi-desktop.version>2.14.3eeeb0c7e</jitsi-desktop.version>
+    <jitsi-desktop.version>2.14.4d580b4f8</jitsi-desktop.version>
     <jitsi-desktop.groupId>org.jitsi.desktop</jitsi-desktop.groupId>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>1.7.36</slf4j.version>
@@ -206,7 +206,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>libjitsi</artifactId>
-      <version>1.1-46-gb4710e18</version>
+      <version>1.1-50-g6c95bf22</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
