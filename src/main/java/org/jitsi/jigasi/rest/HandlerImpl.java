@@ -30,7 +30,6 @@ import org.jitsi.jigasi.health.Health;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.xmpp.*;
 
-import org.eclipse.jetty.server.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger;
 import org.json.simple.*;
@@ -38,81 +37,8 @@ import org.json.simple.parser.*;
 import org.osgi.framework.*;
 
 /**
- * Implements a Jetty <tt>Handler</tt> which is to provide the HTTP interface of
- * the JSON public API of <tt>Jigasi</tt>.
- * <p>
- * The REST API of Jigasi serves resources with
- * <tt>Content-Type: application/json</tt> under the base target
- * <tt>/about</tt>:
- * <table>
- *   <thead>
- *     <tr>
- *       <th>HTTP Method</th>
- *       <th>Resource</th>
- *       <th>Response</th>
- *     </tr>
- *   </thead>
- *   <tbody>
- *     <tr>
- *       <td>GET</td>
- *       <td>/about/health</td>
- *       <td>
- *         200 OK with a JSON array/list of JSON objects which represent
- *         the health of Jigasi and the registrationState of the sip provider.
- *         In case of error adds the registrationState and the possible error
- *         reason. For example:
- * <code>
- * [
- *   { &quot;registrationState&quot; : &quot;Unregistered&quot; },
- *   { &quot;reason&quot; : &quot;Some error reason.&quot; }
- * ]
- * </code>
- *       </td>
- *     </tr>
- *     <tr>
- *       <td>POST</td>
- *       <td>/about/stats</td>
- *       <td>
- *         <p>
- *         200 OK with a JSON object which represents the statistics of the
- *         currently served conferences. Total number of participants,
- *         conference distribution, number of threads.
- *         </p>
- *       </td>
- *     </tr>
- *     <tr>
- *       <td>POST</td>
- *       <td>/about/shutdown</td>
- *       <td>
- *         200 OK if shutting down through rest is enabled will put Jigasi in
- *         graceful shutdown and will wait for all conferences to end and will
- *         shutdown after that.
- *       </td>
- *     </tr>
- *     <tr>
- *       <td>POST</td>
- *       <td>/configure/call-control-muc/add</td>
- *       <td>
- *         200 OK if adding an XMPP call control MUC was successful.
- *       </td>
- *     </tr>
- *     <tr>
- *       <td>POST</td>
- *       <td>/configure/call-control-muc/remove</td>
- *       <td>
- *         200 OK if removing an XMPP call control MUC was successful.
- *       </td>
- *     </tr>
- *     <tr>
- *       <td>GET</td>
- *       <td>/configure/call-control-muc/list</td>
- *       <td>
- *         Returns an array of ids of configured XMPP call control MUC accounts.
- *       </td>
- *     </tr>
- *   </tbody>
- * </table>
- * </p>
+ * Implements a Jetty servlet which provides the HTTP interface of the JSON
+ * public API of <tt>Jigasi</tt>.
  *
  * @author Damian Minkov
  * @author Nik Vaessen
@@ -189,12 +115,11 @@ public class HandlerImpl
      */
     @Override
     protected void doGetHealthJSON(
-            Request baseRequest,
             HttpServletRequest request,
             HttpServletResponse response)
         throws IOException
     {
-        beginResponse(/* target */ null, baseRequest, request, response);
+        beginResponse(/* target */ null, request, response);
 
         // if there is a gateway that is not ready, that means unhealthy
         if (JigasiBundleActivator.getAvailableGateways()
@@ -206,44 +131,31 @@ public class HandlerImpl
         {
             sendJSON(response);
         }
-
-        endResponse(/* target */ null, baseRequest, request, response);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected void handleJSON(
+    protected boolean handleJSON(
             String target,
-            Request baseRequest,
             HttpServletRequest request,
             HttpServletResponse response)
         throws IOException, ServletException
     {
-        super.handleJSON(target, baseRequest, request, response);
+        if (super.handleJSON(target, request, response))
+        {
+            return true;
+        }
 
-        if (baseRequest.isHandled())
-            return; // The super implementation has handled the request.
-
-        // FIXME In order to not invoke beginResponse() and endResponse() in
-        // each and every one of the methods to which handleColibriJSON()
-        // delegates/forwards, we will invoke them here. However, we do not
-        // know whether handleColibriJSON() will actually handle the
-        // request. As a workaround we will mark the response with a status
-        // code that we know handleColibriJSON() does not utilize (at the
-        // time of this writing) and we will later recognize whether
-        // handleColibriJSON() has handled the request by checking whether
-        // the response is still marked with the unused status code.
-        int oldResponseStatus = response.getStatus();
-        beginResponse(target, baseRequest, request, response);
+        beginResponse(target, request, response);
 
         if (SHUTDOWN_TARGET.equals(target))
         {
             if (!shutdownEnabled)
             {
                 response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                return;
+                return true;
             }
 
             if (POST_HTTP_METHOD.equals(request.getMethod()))
@@ -258,30 +170,33 @@ public class HandlerImpl
             {
                 response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
+            return true;
         }
         else if (STATISTICS_TARGET.equals(target))
         {
             if (GET_HTTP_METHOD.equals(request.getMethod()))
             {
                 // Get the Statistics of Jigasi.
-                doGetStatisticsJSON(baseRequest, request, response);
+                doGetStatisticsJSON(request, response);
             }
             else
             {
                 response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
+            return true;
         }
         else if (DEBUG_TARGET.equals(target))
         {
             if (GET_HTTP_METHOD.equals(request.getMethod()))
             {
                 // Get the conferences of Jigasi
-                doGetDebugJSON(baseRequest, request, response);
+                doGetDebugJSON(request, response);
             }
             else
             {
                 response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
+            return true;
         }
         else if (target.startsWith(CONFIGURE_MUC_TARGET + "/"))
         {
@@ -289,29 +204,17 @@ public class HandlerImpl
                 target.substring((CONFIGURE_MUC_TARGET + "/").length()),
                 request,
                 response);
+            return true;
         }
 
-        int newResponseStatus = response.getStatus();
-
-        if (newResponseStatus == HttpServletResponse.SC_NOT_IMPLEMENTED)
-        {
-            // Restore the status code which was in place before we replaced
-            // it with our workaround.
-            response.setStatus(oldResponseStatus);
-        }
-        else
-        {
-            // It looks like handleColibriJSON() indeed handled the request.
-            endResponse(target, baseRequest, request, response);
-        }
+        return false;
     }
 
     /**
-     * 
+     *
      * @throws IOException
      */
     private void doGetDebugJSON(
-            Request baseRequest,
             HttpServletRequest request,
             HttpServletResponse response)
         throws IOException
@@ -332,16 +235,8 @@ public class HandlerImpl
     /**
      * Gets a JSON representation of the <tt>Statistics</tt> of (the
      * associated) <tt>Jigasi</tt>.
-     *
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @throws IOException
      */
     private void doGetStatisticsJSON(
-            Request baseRequest,
             HttpServletRequest request,
             HttpServletResponse response)
         throws IOException
@@ -352,7 +247,7 @@ public class HandlerImpl
         }
         else
         {
-            Statistics.sendJSON(baseRequest, request, response);
+            Statistics.sendJSON(request, response);
         }
     }
 
@@ -413,14 +308,6 @@ public class HandlerImpl
     /**
      * Configures new MUC control room or removes it. Handles requests:
      * to /configure/call-control-muc.
-     *
-     * @param target the target URL with the part after
-     * {@code CONFIGURE_MUC_TARGET}.
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @throws IOException
      */
     private void doHandleConfigureMucRequest(
         String target,

@@ -254,7 +254,7 @@ public class VoskTranscriptionService
             this.session = null;
         }
 
-        @OnWebSocketConnect
+        @OnWebSocketOpen
         public void onConnect(Session session)
         {
             this.session = session;
@@ -332,10 +332,10 @@ public class VoskTranscriptionService
                 if (sampleRate < 0)
                 {
                     sampleRate = request.getFormat().getSampleRate();
-                    session.getRemote().sendString("{\"config\" : {\"sample_rate\" : " + sampleRate + " }}");
+                    session.sendText("{\"config\" : {\"sample_rate\" : " + sampleRate + " }}", Callback.NOOP);
                 }
                 ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
-                session.getRemote().sendBytes(audioBuffer);
+                session.sendBinary(audioBuffer, Callback.NOOP);
             }
             catch (Exception e)
             {
@@ -352,7 +352,7 @@ public class VoskTranscriptionService
         {
             try
             {
-                session.getRemote().sendString(EOF_MESSAGE);
+                session.sendText(EOF_MESSAGE, Callback.NOOP);
             }
             catch (Exception e)
             {
@@ -394,21 +394,14 @@ public class VoskTranscriptionService
             this.closeLatch.countDown(); // trigger latch
         }
 
-        @OnWebSocketConnect
+        @OnWebSocketOpen
         public void onConnect(Session session)
         {
-            try
-            {
-                AudioFormat format = request.getFormat();
-                session.getRemote().sendString("{\"config\" : {\"sample_rate\" : " + format.getSampleRate() + "}}");
-                ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
-                session.getRemote().sendBytes(audioBuffer);
-                session.getRemote().sendString(EOF_MESSAGE);
-            }
-            catch (IOException e)
-            {
-                logger.error("Error to transcribe audio", e);
-            }
+            AudioFormat format = request.getFormat();
+            session.sendText("{\"config\" : {\"sample_rate\" : " + format.getSampleRate() + "}}", Callback.NOOP);
+            ByteBuffer audioBuffer = ByteBuffer.wrap(request.getAudio());
+            session.sendBinary(audioBuffer, Callback.NOOP);
+            session.sendText(EOF_MESSAGE, Callback.NOOP);
         }
 
         @OnWebSocketMessage

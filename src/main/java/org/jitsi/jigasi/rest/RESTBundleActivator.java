@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi.rest;
 
+import org.eclipse.jetty.ee10.servlet.*;
 import org.eclipse.jetty.server.*;
 import org.osgi.framework.*;
 
@@ -67,10 +68,13 @@ public class RESTBundleActivator
      * {@inheritDoc}
      */
     @Override
-    protected Handler initializeHandlerList(BundleContext bundleContext,
-        Server server)
+    protected void configureServletContextHandler(
+        BundleContext bundleContext,
+        Server server,
+        ServletContextHandler context)
     {
-        return new HandlerImpl(bundleContext,
+        HandlerImpl handler = new HandlerImpl(bundleContext,
             getConfigService().getBoolean(ENABLE_REST_SHUTDOWN_PNAME, false));
+        context.addServlet(new ServletHolder(handler), "/*");
     }
 }

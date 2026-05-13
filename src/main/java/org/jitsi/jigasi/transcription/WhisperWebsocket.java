@@ -290,7 +290,7 @@ public class WhisperWebsocket
         if (isRunning())
         {
             // let's try to reconnect
-            if (!wsSession.isOpen() || (statusCode > 1000 && statusCode < 2000))
+            if ((wsSession != null && !wsSession.isOpen()) || (statusCode > 1000 && statusCode < 2000))
             {
                 reconnect();
 
@@ -479,15 +479,10 @@ public class WhisperWebsocket
             {
                 logger.info("All participants have left, disconnecting from Whisper transcription server.");
 
-                try
-                {
-                    wsSession.getRemote().sendBytes(EOF_MESSAGE);
-                }
-                catch (IOException e)
-                {
-                    logger.error("Error while finalizing websocket connection for participant "
-                            + participantId, e);
-                }
+                wsSession.sendBinary(EOF_MESSAGE, Callback.from(
+                    () -> {},
+                    cause -> logger.error("Error while finalizing websocket connection for participant "
+                            + participantId, cause)));
 
                 wsSession.disconnect();
                 callback.accept(true);
@@ -504,32 +499,21 @@ public class WhisperWebsocket
             logger.debug("Sending audio for " + participantId);
         }
         addParticipantIfNotExists(participantId, participant);
-        RemoteEndpoint remoteEndpoint = wsSession.getRemote();
-        if (remoteEndpoint == null)
+        if (wsSession == null || !wsSession.isOpen())
         {
             Statistics.incrementTotalTranscriberSendErrors();
             logger.error("Failed sending audio for " + participantId + ". Attempting to reconnect.");
-            if (!wsSession.isOpen())
-            {
-                reconnect();
-            }
-            else
-            {
-                logger.warn("Failed sending audio for " + participantId
-                    + ". RemoteEndpoint is null but sessions is open.");
-            }
+            reconnect();
         }
         else
         {
-            try
-            {
-                remoteEndpoint.sendBytes(buildPayload(participantId, participant, audio));
-            }
-            catch (IOException e)
-            {
-                Statistics.incrementTotalTranscriberSendErrors();
-                logger.error("Failed sending audio for " + participantId + ". " + e);
-            }
+            wsSession.sendBinary(buildPayload(participantId, participant, audio), Callback.from(
+                () -> {},
+                cause ->
+                {
+                    Statistics.incrementTotalTranscriberSendErrors();
+                    logger.error("Failed sending audio for " + participantId + ". " + cause);
+                }));
         }
     }
 

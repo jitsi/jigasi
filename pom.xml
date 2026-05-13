@@ -22,8 +22,8 @@
     <smack.version>4.4.8-jitsi-4</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
     <!-- Match jicoco's jetty version. -->
-    <jicoco.version>1.1-159-gf9c2712</jicoco.version>
-    <jetty.version>11.0.21</jetty.version>
+    <jicoco.version>1.1-SNAPSHOT</jicoco.version>
+    <jetty.version>12.0.35</jetty.version>
     <oci-sdk.version>3.86.1</oci-sdk.version>
   </properties>
 
@@ -112,7 +112,7 @@
     <!-- Used by the Vosk transcription service -->
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-jetty-client</artifactId>
+      <artifactId>jetty-websocket-jetty-client</artifactId>
       <version>${jetty.version}</version>
     </dependency>
     <!-- Used by the Vosk transcription service -->

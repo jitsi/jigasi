@@ -59,8 +59,8 @@ public class TranscriptServerBundleActivator
     {
         ResourceHandler fileHandler = new ResourceHandler();
 
-        fileHandler.setDirectoriesListed(false);
-        fileHandler.setResourceBase(
+        fileHandler.setDirAllowed(false);
+        fileHandler.setBaseResourceAsString(
             AbstractTranscriptPublisher.getLogDirPath());
 
         return fileHandler;

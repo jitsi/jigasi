@@ -16,8 +16,8 @@
 package org.jitsi.jigasi.rest;
 
 import net.java.sip.communicator.util.osgi.*;
+import org.eclipse.jetty.ee10.servlet.*;
 import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.*;
 import org.eclipse.jetty.util.ssl.*;
 import org.jitsi.rest.*;
 import org.jitsi.service.configuration.*;
@@ -73,33 +73,6 @@ public abstract class AbstractJettyBundleActivator
     }
 
     /**
-     * Initializes a new {@code Handler} which handles HTTP requests by
-     * delegating to a specific (consecutive) list of {@code Handler}s.
-     *
-     * @param handlers the (consecutive) list of {@code Handler}s to which the
-     * new instance is to delegate
-     * @return a new {@code Handler} which will handle HTTP requests by
-     * delegating to the specified {@code handlers}
-     */
-    protected static Handler initializeHandlerList(List<Handler> handlers)
-    {
-        int handlerCount = handlers.size();
-
-        if (handlerCount == 1)
-        {
-            return handlers.get(0);
-        }
-        else
-        {
-            HandlerList handlerList = new HandlerList();
-
-            handlerList.setHandlers(
-                handlers.toArray(new Handler[handlerCount]));
-            return handlerList;
-        }
-    }
-
-    /**
      * The config instance
      */
     protected final JettyBundleActivatorConfig config;
@@ -129,10 +102,6 @@ public abstract class AbstractJettyBundleActivator
      * Notifies this {@code AbstractJettyBundleActivator} that a new Jetty
      * {@code Server} instance was initialized and started in a specific
      * {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} was started and initialized and started a new
-     * Jetty {@code Server} instance
      */
     protected void didStart(BundleContext bundleContext)
         throws Exception
@@ -143,9 +112,6 @@ public abstract class AbstractJettyBundleActivator
      * Notifies this {@code AbstractJettyBundleActivator} that the Jetty
      * {@code Server} instance associated with this instance was stopped and
      * released for garbage collection in a specific {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} was stopped
      */
     protected void didStop(BundleContext bundleContext)
         throws Exception
@@ -155,10 +121,6 @@ public abstract class AbstractJettyBundleActivator
     /**
      * Initializes and starts a new Jetty {@code Server} instance in a specific
      * {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} is started and to initialize and start a new
-     * Jetty {@code Server} instance
      */
     protected void doStart(BundleContext bundleContext)
         throws Exception
@@ -188,9 +150,6 @@ public abstract class AbstractJettyBundleActivator
      * Stops and releases for garbage collection the Jetty {@code Server}
      * instance associated with this instance in a specific
      * {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} is stopped
      */
     protected void doStop(BundleContext bundleContext)
         throws Exception
@@ -232,11 +191,6 @@ public abstract class AbstractJettyBundleActivator
      * Initializes a new {@code Connector} instance to be added to a specific
      * {@code Server} which is to be started in a specific
      * {@code BundleContext}.
-     *
-     * @param server the {@code Server} to which the new {@code Connector}
-     * instance is to be added
-     * @return a new {@code Connector} instance which is to be added to
-     * {@code server}
      */
     private Connector initializeConnector(Server server)
         throws Exception
@@ -260,33 +214,7 @@ public abstract class AbstractJettyBundleActivator
             File sslContextFactoryKeyStoreFile = Paths.get(Objects.requireNonNull(config.getKeyStorePath())).toFile();
             SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
 
-            /* Mozilla Guideline v5.4, Jetty 9.4.15, intermediate configuration
-               https://ssl-config.mozilla.org/#server=jetty&version=9.4.15&config=intermediate&guideline=5.4
-               */
-            /* TLS 1.3 requires Java 11 or later. */
-            String version = System.getProperty("java.version");
-            if (version.startsWith("1."))
-            {
-                version = version.substring(2, 3);
-            }
-            else
-            {
-                int dot = version.indexOf(".");
-                if (dot != -1)
-                {
-                    version = version.substring(0, dot);
-                }
-            }
-            int javaVersion = Integer.parseInt(version);
-
-            if (javaVersion >= 11)
-            {
-                sslContextFactory.setIncludeProtocols("TLSv1.2", "TLSv1.3");
-            }
-            else
-            {
-                sslContextFactory.setIncludeProtocols("TLSv1.2");
-            }
+            sslContextFactory.setIncludeProtocols("TLSv1.2", "TLSv1.3");
             sslContextFactory.setIncludeCipherSuites(
                 "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
                 "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
@@ -316,57 +244,49 @@ public abstract class AbstractJettyBundleActivator
         }
 
         // port
-        setPort(connector, getPort());
+        ((ServerConnector) connector).setPort(getPort());
 
         // host
         if (config.getHost() != null)
         {
-            setHost(connector, config.getHost());
+            ((ServerConnector) connector).setHost(config.getHost());
         }
 
         return connector;
     }
 
     /**
-     * Initializes a new {@link Handler} instance to be set on a specific
-     * {@code Server} instance. The default implementation delegates to
-     * {@link #initializeHandlerList(BundleContext, Server)}.
-     *
-     * @param bundleContext the {@code BundleContext} in which the new instance
-     * is to be initialized
-     * @param server the {@code Server} on which the new instance will be set
-     * @return the new {code Handler} instance to be set on {@code server}
+     * Adds servlets to the {@link ServletContextHandler} which already has the
+     * metrics servlet registered at {@code /metrics}. The default
+     * implementation is a no-op. Subclasses may override to add their own
+     * servlets.
      */
-    protected Handler initializeHandler(
+    protected void configureServletContextHandler(
+        BundleContext bundleContext,
+        Server server,
+        ServletContextHandler context)
+        throws Exception
+    {
+    }
+
+    /**
+     * Initializes an additional {@link Handler} to be combined with the
+     * servlet context (which contains the metrics servlet and any servlets
+     * added by {@link #configureServletContextHandler}). Subclasses may
+     * override to return a non-servlet handler such as a
+     * {@link org.eclipse.jetty.server.handler.ResourceHandler}.
+     */
+    protected Handler initializeHandlerList(
         BundleContext bundleContext,
         Server server)
         throws Exception
     {
-        return initializeHandlerList(bundleContext, server);
+        return null;
     }
-
-    /**
-     * Initializes a new {@link HandlerList} instance to be set on a specific
-     * {@code Server} instance.
-     *
-     * @param bundleContext the {@code BundleContext} in which the new instance
-     * is to be initialized
-     * @param server the {@code Server} on which the new instance will be set
-     * @return the new {code HandlerList} instance to be set on {@code server}
-     */
-    protected abstract Handler initializeHandlerList(
-        BundleContext bundleContext,
-        Server server)
-        throws Exception;
 
     /**
      * Initializes a new {@code Server} instance to be started in a specific
      * {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which the new
-     * {@code Server} instance is to be started
-     * @return a new {@code Server} instance to be started in
-     * {@code bundleContext}
      */
     protected Server initializeServer(BundleContext bundleContext)
         throws Exception
@@ -376,68 +296,29 @@ public abstract class AbstractJettyBundleActivator
 
         server.addConnector(connector);
 
-        Handler handler = initializeHandler(bundleContext, server);
-        Handler metricsHandler = new MetricsHandler();
+        ServletContextHandler servletContext = new ServletContextHandler();
+        servletContext.setContextPath("/");
+        servletContext.addServlet(new ServletHolder(new MetricsHandler()), "/metrics");
+        configureServletContextHandler(bundleContext, server, servletContext);
 
-        HandlerCollection handlers = new HandlerCollection();
-        if (handler != null)
+        Handler extra = initializeHandlerList(bundleContext, server);
+        if (extra != null)
         {
-            handlers.addHandler(handler);
+            Handler.Sequence handlers = new Handler.Sequence();
+            handlers.addHandler(extra);
+            handlers.addHandler(servletContext);
+            server.setHandler(handlers);
         }
-        handlers.addHandler(metricsHandler);
-
-        server.setHandler(handlers);
+        else
+        {
+            server.setHandler(servletContext);
+        }
 
         return server;
     }
 
     /**
-     * Sets the host on which a specific {@code Connector} is to listen for
-     * incoming network connections.
-     *
-     * @param connector the {@code Connector} to set {@code host} on
-     * @param host the host on which {@code connector} is to listen for incoming
-     * network connections
-     */
-    protected void setHost(Connector connector, String host)
-        throws Exception
-    {
-        // Provide compatibility with Jetty 8 and invoke the method
-        // setHost(String) using reflection because it is in different
-        // interfaces/classes in Jetty 8 and 9.
-        connector
-            .getClass()
-            .getMethod("setHost", String.class)
-            .invoke(connector, host);
-    }
-
-    /**
-     * Sets the port on which a specific {@code Connector} is to listen for
-     * incoming network connections.
-     *
-     * @param connector the {@code Connector} to set {@code port} on
-     * @param port the port on which {@code connector} is to listen for incoming
-     * network connections
-     */
-    protected void setPort(Connector connector, int port)
-        throws Exception
-    {
-        // Provide compatibility with Jetty 8 and invoke the method setPort(int)
-        // using reflection because it is in different interfaces/classes in
-        // Jetty 8 and 9.
-        connector
-            .getClass()
-            .getMethod("setPort", int.class)
-            .invoke(connector, port);
-    }
-
-    /**
      * Starts this OSGi bundle in a specific {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this OSGi bundle
-     * is starting
-     * @throws Exception if an error occurs while starting this OSGi bundle in
-     * {@code bundleContext}
      */
     @Override
     public void startWithServices(BundleContext bundleContext)
@@ -458,11 +339,6 @@ public abstract class AbstractJettyBundleActivator
 
     /**
      * Stops this OSGi bundle in a specific {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this OSGi bundle
-     * is stopping
-     * @throws Exception if an error occurs while stopping this OSGi bundle in
-     * {@code bundleContext}
      */
     @Override
     public void stop(BundleContext bundleContext)
@@ -480,13 +356,6 @@ public abstract class AbstractJettyBundleActivator
      * Notifies this {@code AbstractJettyBundleActivator} that a new Jetty
      * {@code Server} instance is to be initialized and started in a specific
      * {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} is started and to initialize and start a new
-     * Jetty {@code Server} instance
-     * @return {@code true} if this {@code AbstractJettyBundleActivator} is to
-     * continue and initialize and start a new Jetty {@code Server} instance;
-     * otherwise, {@code false}
      */
     protected boolean willStart(BundleContext bundleContext)
         throws Exception
@@ -498,12 +367,6 @@ public abstract class AbstractJettyBundleActivator
      * Notifies this {@code AbstractJettyBundleActivator} that the Jetty
      * {@code Server} instance associated with this instance is to be stopped
      * and released for garbage collection in a specific {@code BundleContext}.
-     *
-     * @param bundleContext the {@code BundleContext} in which this
-     * {@code BundleActivator} is stopped
-     * @return {@code true} if this {@code AbstractJettyBundleActivator} is to
-     * continue and stop the Jetty {@code Server} instance associated with this
-     * instance; otherwise, {@code false}
      */
     protected boolean willStop(BundleContext bundleContext)
         throws Exception

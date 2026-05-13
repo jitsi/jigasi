@@ -19,8 +19,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.ws.rs.core.*;
 import kotlin.*;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.*;
 import org.jitsi.jigasi.metrics.*;
 import org.jitsi.jigasi.stats.*;
 
@@ -28,26 +26,23 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.*;
 
-public class MetricsHandler extends AbstractHandler
+public class MetricsHandler extends HttpServlet
 {
     @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException
+    protected void service(HttpServletRequest request, HttpServletResponse response)
+            throws IOException
     {
-        if ("/metrics".equals(target))
-        {
-            String accept = request.getHeader("Accept");
+        String accept = request.getHeader("Accept");
 
-            Statistics.updateMetrics();
+        Statistics.updateMetrics();
 
-            Pair<String, String> metricsAndContentType
-                    = JigasiMetricsContainer.INSTANCE.getMetrics(getMediaTypes(accept));
-            response.setContentType(metricsAndContentType.getSecond());
+        Pair<String, String> metricsAndContentType
+                = JigasiMetricsContainer.INSTANCE.getMetrics(getMediaTypes(accept));
+        response.setContentType(metricsAndContentType.getSecond());
 
-            Writer writer = response.getWriter();
-            writer.write(metricsAndContentType.getFirst());
-            response.setStatus(200);
-        }
+        Writer writer = response.getWriter();
+        writer.write(metricsAndContentType.getFirst());
+        response.setStatus(200);
     }
 
     private List<String> getMediaTypes(String accept)
