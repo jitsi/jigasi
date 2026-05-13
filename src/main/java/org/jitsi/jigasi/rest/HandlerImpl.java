@@ -39,6 +39,79 @@ import org.osgi.framework.*;
 /**
  * Implements a Jetty servlet which provides the HTTP interface of the JSON
  * public API of <tt>Jigasi</tt>.
+ * <p>
+ * The REST API of Jigasi serves resources with
+ * <tt>Content-Type: application/json</tt> under the base target
+ * <tt>/about</tt>:
+ * <table>
+ *   <thead>
+ *     <tr>
+ *       <th>HTTP Method</th>
+ *       <th>Resource</th>
+ *       <th>Response</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td>GET</td>
+ *       <td>/about/health</td>
+ *       <td>
+ *         200 OK with a JSON array/list of JSON objects which represent
+ *         the health of Jigasi and the registrationState of the sip provider.
+ *         In case of error adds the registrationState and the possible error
+ *         reason. For example:
+ * <code>
+ * [
+ *   { &quot;registrationState&quot; : &quot;Unregistered&quot; },
+ *   { &quot;reason&quot; : &quot;Some error reason.&quot; }
+ * ]
+ * </code>
+ *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/about/stats</td>
+ *       <td>
+ *         <p>
+ *         200 OK with a JSON object which represents the statistics of the
+ *         currently served conferences. Total number of participants,
+ *         conference distribution, number of threads.
+ *         </p>
+ *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/about/shutdown</td>
+ *       <td>
+ *         200 OK if shutting down through rest is enabled will put Jigasi in
+ *         graceful shutdown and will wait for all conferences to end and will
+ *         shutdown after that.
+ *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/configure/call-control-muc/add</td>
+ *       <td>
+ *         200 OK if adding an XMPP call control MUC was successful.
+ *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>POST</td>
+ *       <td>/configure/call-control-muc/remove</td>
+ *       <td>
+ *         200 OK if removing an XMPP call control MUC was successful.
+ *       </td>
+ *     </tr>
+ *     <tr>
+ *       <td>GET</td>
+ *       <td>/configure/call-control-muc/list</td>
+ *       <td>
+ *         Returns an array of ids of configured XMPP call control MUC accounts.
+ *       </td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * </p>
  *
  * @author Damian Minkov
  * @author Nik Vaessen
