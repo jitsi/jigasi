@@ -16,8 +16,6 @@
 package org.jitsi.jigasi.rest;
 
 import net.java.sip.communicator.util.osgi.*;
-import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.*;
 import org.jitsi.utils.version.*;
 import org.jivesoftware.smack.packet.*;
 import org.json.simple.*;
@@ -28,21 +26,14 @@ import jakarta.servlet.http.*;
 import java.io.*;
 
 /**
- * Implements an abstract Jetty {@code Handler} which provides content in JSON
- * format.
+ * Implements an abstract Jetty servlet which provides content in JSON format.
  *
  * @author Lyubomir Marinov
  * @author Pawel Domas
  */
 public abstract class AbstractJSONHandler
-    extends AbstractHandler
+    extends HttpServlet
 {
-    /**
-     * The default suffix/extension of the HTTP resources which provide access
-     * to JSON representations.
-     */
-    private static final String DEFAULT_JSON_TARGET = null;
-
     /**
      * The HTTP GET method.
      */
@@ -106,12 +97,6 @@ public abstract class AbstractJSONHandler
     protected final BundleContext bundleContext;
 
     /**
-     * The suffix/extension of the HTTP resources which provide access to JSON
-     * representations.
-     */
-    private final String jsonTarget;
-
-    /**
      * Initializes a new {@code AbstractJSONHandler} instance within a specific
      * {@code BundleContext}.
      *
@@ -121,35 +106,19 @@ public abstract class AbstractJSONHandler
     protected AbstractJSONHandler(BundleContext bundleContext)
     {
         this.bundleContext = bundleContext;
-
-        // jsonTarget
-        String jsonTarget = DEFAULT_JSON_TARGET;
-
-        if (jsonTarget != null && !jsonTarget.startsWith("."))
-            jsonTarget = "." + jsonTarget;
-        this.jsonTarget = jsonTarget;
     }
 
     /**
      * Begins an {@link HttpServletResponse} the handling of which appears to
      * have chances of success.
-     *
-     * @param target the target of the request
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
      */
     protected void beginResponse(
         String target,
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
     {
         beginResponse(
             target,
-            baseRequest,
             request,
             response,
             RESTUtil.JSON_CONTENT_TYPE_WITH_CHARSET);
@@ -158,19 +127,9 @@ public abstract class AbstractJSONHandler
     /**
      * Begins an {@link HttpServletResponse} the handling of which appears to
      * have chances of success.
-     *
-     * @param target the target of the request
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @param contentType the MIME type of the content to be set on
-     * {@code response}
      */
     protected void beginResponse(
         String target,
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response,
         String contentType)
@@ -184,17 +143,8 @@ public abstract class AbstractJSONHandler
      * Gets a JSON representation of the health (status) of the associated
      * server/service. The default implementation does nothing because it serves
      * as a placeholder for extenders.
-     *
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @throws IOException
-     * @throws ServletException
      */
     protected void doGetHealthJSON(
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
         throws IOException,
@@ -205,23 +155,14 @@ public abstract class AbstractJSONHandler
     /**
      * Gets a JSON representation of the {@code Version} of the associated
      * server/service.
-     *
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @throws IOException
-     * @throws ServletException
      */
     protected void doGetVersionJSON(
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
         throws IOException,
         ServletException
     {
-        beginResponse(/*target*/ null, baseRequest, request, response);
+        beginResponse(/*target*/ null, request, response);
 
         BundleContext bundleContext = getBundleContext();
         int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
@@ -252,32 +193,6 @@ public abstract class AbstractJSONHandler
 
         if (response.getStatus() != status)
             response.setStatus(status);
-
-        endResponse(/*target*/ null, baseRequest, request, response);
-    }
-
-    /**
-     * Ends an {@link HttpServletResponse}.
-     *
-     * @param target the target of the request
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     */
-    protected void endResponse(
-        String target,
-        Request baseRequest,
-        HttpServletRequest request,
-        HttpServletResponse response)
-    {
-        if (!baseRequest.isHandled())
-        {
-            if (response.getStatus() == 0)
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            baseRequest.setHandled(true);
-        }
     }
 
     /**
@@ -315,43 +230,28 @@ public abstract class AbstractJSONHandler
      * {@inheritDoc}
      */
     @Override
-    public void handle(
-        String target,
-        Request baseRequest,
+    protected void service(
         HttpServletRequest request,
         HttpServletResponse response)
-        throws IOException,
-        ServletException
+        throws IOException, ServletException
     {
-        if (target != null)
+        String target = request.getRequestURI();
+
+        if (!handleJSON(target, request, response))
         {
-            // The target ends with ".json".
-            int jsonTargetLength
-                = (jsonTarget == null) ? 0 : jsonTarget.length();
-
-            if (jsonTargetLength == 0 || target.endsWith(jsonTarget))
+            if (response.getStatus() == 0
+                || response.getStatus() == HttpServletResponse.SC_OK)
             {
-                target
-                    = target.substring(0, target.length() - jsonTargetLength);
-
-                handleJSON(target, baseRequest, request, response);
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             }
         }
     }
 
     /**
      * Handles an HTTP request for a {@link #HEALTH_TARGET}-related resource.
-     *
-     * @param target the target of the request
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
      */
     protected void handleHealthJSON(
         String target,
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
         throws IOException,
@@ -360,7 +260,7 @@ public abstract class AbstractJSONHandler
         if (GET_HTTP_METHOD.equals(request.getMethod()))
         {
             // Check/get the health (status) of the associated server/service.
-            doGetHealthJSON(baseRequest, request, response);
+            doGetHealthJSON(request, response);
         }
         else
         {
@@ -369,11 +269,11 @@ public abstract class AbstractJSONHandler
     }
 
     /**
-     * Handles a specific HTTP request for JSON content.
+     * Handles a specific HTTP request for JSON content. Returns {@code true}
+     * if the request was handled.
      */
-    protected void handleJSON(
+    protected boolean handleJSON(
         String target,
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
         throws IOException,
@@ -381,33 +281,22 @@ public abstract class AbstractJSONHandler
     {
         if (HEALTH_TARGET.equals(target))
         {
-            target = target.substring(HEALTH_TARGET.length());
-
-            handleHealthJSON(target, baseRequest, request, response);
+            handleHealthJSON(target, request, response);
+            return true;
         }
         else if (VERSION_TARGET.equals(target))
         {
-            target = target.substring(VERSION_TARGET.length());
-
-            handleVersionJSON(target, baseRequest, request, response);
+            handleVersionJSON(target, request, response);
+            return true;
         }
+        return false;
     }
 
     /**
      * Handles an HTTP request for a {@link #VERSION_TARGET}-related resource.
-     *
-     * @param target the target of the request
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
-     * @throws IOException
-     * @throws ServletException
      */
     protected void handleVersionJSON(
         String target,
-        Request baseRequest,
         HttpServletRequest request,
         HttpServletResponse response)
         throws IOException,
@@ -416,7 +305,7 @@ public abstract class AbstractJSONHandler
         if (GET_HTTP_METHOD.equals(request.getMethod()))
         {
             // Get the Version of the associated server/service.
-            doGetVersionJSON(baseRequest, request, response);
+            doGetVersionJSON(request, response);
         }
         else
         {

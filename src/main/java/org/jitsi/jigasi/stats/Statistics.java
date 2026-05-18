@@ -29,7 +29,6 @@ import jakarta.servlet.http.*;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
 import org.apache.commons.lang3.*;
-import org.eclipse.jetty.server.*;
 import org.jitsi.jigasi.metrics.*;
 import org.jitsi.jigasi.version.*;
 import org.jitsi.metrics.*;
@@ -429,14 +428,10 @@ public class Statistics
      * Gets a JSON representation of the statistics of a specific
      * {@link SipGateway}.
      *
-     * @param baseRequest the original unwrapped {@link Request} object
-     * @param request the request either as the {@code Request} object or a
-     * wrapper of that request
-     * @param response the response either as the {@code Response} object or a
-     * wrapper of that response
+     * @param request the request
+     * @param response the response
      */
     public static synchronized void sendJSON(
-            Request baseRequest,
             HttpServletRequest request,
             HttpServletResponse response)
         throws IOException

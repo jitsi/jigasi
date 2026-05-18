@@ -40,7 +40,7 @@ import static org.jitsi.jigasi.visitor.StompUtils.*;
  * It implements the necessary parts to use STOMP (https://stomp.github.io/stomp-specification-1.2.html).
  */
 public class WebsocketClient
-    implements WebSocketListener
+    implements Session.Listener
 {
     /**
      * The logger.
@@ -188,7 +188,7 @@ public class WebsocketClient
     }
 
     @Override
-    public void onWebSocketConnect(Session session)
+    public void onWebSocketOpen(Session session)
     {
         this.websocketSession = session;
 
@@ -231,8 +231,8 @@ public class WebsocketClient
             return;
         }
 
-        this.websocketSession.getRemote().sendString(
-            buildConnectMessage(token, this.heartbeatOutgoing, this.heartbeatIncoming), WriteCallback.NOOP);
+        this.websocketSession.sendText(
+            buildConnectMessage(token, this.heartbeatOutgoing, this.heartbeatIncoming), Callback.NOOP);
     }
 
     /**
@@ -334,14 +334,9 @@ public class WebsocketClient
                     return;
                 }
 
-                try
-                {
-                    this.websocketSession.getRemote().sendBytes(PING_BODY);
-                }
-                catch (IOException e)
-                {
-                    logger.error("Error pinging websocket", e);
-                }
+                this.websocketSession.sendBinary(PING_BODY, Callback.from(
+                    () -> {},
+                    cause -> logger.error("Error pinging websocket", cause)));
             }, this.heartbeatOutgoing, this.heartbeatOutgoing, TimeUnit.MILLISECONDS);
 
         }
@@ -366,9 +361,9 @@ public class WebsocketClient
         {
             setupHeartbeat();
 
-            this.websocketSession.getRemote().sendString(
+            this.websocketSession.sendText(
                     buildSubscribeMessage("/secured/conference/visitor/topic."
-                            + this.callContext.getRoomJid().toString()), WriteCallback.NOOP);
+                            + this.callContext.getRoomJid().toString()), Callback.NOOP);
         }
         else if (command.equals("MESSAGE"))
         {

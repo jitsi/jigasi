@@ -132,10 +132,10 @@ public class OracleRealtimeClient
      *
      * @param session the session that got connected
      */
-    @OnWebSocketConnect
+    @OnWebSocketOpen
     public void onConnect(Session session)
     {
-        logger.info("Connected to: " + session.getRemoteAddress());
+        logger.info("Connected to: " + session.getRemoteSocketAddress());
         synchronized (this)
         {
             this.session = session;
@@ -261,24 +261,18 @@ public class OracleRealtimeClient
         {
             throw new OracleServiceDisruptionException("Session has been closed, cannot send audio anymore");
         }
-        try
+        if (this.isConnected)
         {
-            if (this.isConnected)
+            synchronized (this)
             {
-                synchronized (this)
-                {
-                    this.session.getRemote().sendBytes(ByteBuffer.wrap(audioBytes));
-                }
-            }
-            else
-            {
-                logger.error("Websocket not connected.");
+                this.session.sendBinary(ByteBuffer.wrap(audioBytes), Callback.from(
+                    () -> {},
+                    cause -> logger.error("Error while sending audio data: ", cause)));
             }
         }
-        catch (IOException e)
+        else
         {
-            logger.error("Error while sending audio data: ", e);
-            throw e;
+            logger.error("Websocket not connected.");
         }
     }
 
@@ -326,13 +320,8 @@ public class OracleRealtimeClient
 
     public void sendMessage(String message)
     {
-        try
-        {
-            session.getRemote().sendString(message);
-        }
-        catch (IOException e)
-        {
-            logger.error("Could not send message to the remote server: " + e);
-        }
+        session.sendText(message, Callback.from(
+            () -> {},
+            cause -> logger.error("Could not send message to the remote server: " + cause)));
     }
 }
