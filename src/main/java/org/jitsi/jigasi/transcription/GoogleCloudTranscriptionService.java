@@ -265,7 +265,6 @@ public class GoogleCloudTranscriptionService
 
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();
-        logger.debug("PATCH ACTIVE: languageTag=" + languageTag);
         if (!languageTag.contains("-"))
         {
 
