@@ -265,6 +265,26 @@ public class GoogleCloudTranscriptionService
 
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();
+        logger.debug("PATCH ACTIVE: languageTag=" + languageTag);
+        if (!languageTag.contains("-"))
+        {
+            // try java's own Locale resolution first
+            String resolvedTag = new Locale(languageTag).toLanguageTag();
+
+            // if still bare (e.g., "pl"), look up in SUPPORTED_LANGUAGE_TAGS
+            if (!resolvedTag.contains("-"))
+            {
+                String prefix = resolvedTag.toLowerCase();
+                resolvedTag = Arrays.stream(SUPPORTED_LANGUAGE_TAGS)
+                        .filter(t -> t.toLowerCase().startsWith(prefix + "-"))
+                        .findFirst()
+                        .orElseThrow(() -> new UnsupportedOperationException(
+                                prefix + " could not be resolved to a supported BCP-47 tag"));
+            }
+
+            languageTag = resolvedTag;
+        }
+
         validateLanguageTag(languageTag);
         builder.setLanguageCode(languageTag);
 
