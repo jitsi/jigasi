@@ -53,14 +53,22 @@ public class OpenAIRealtimeClient
     public static final String API_KEY_CONFIG
         = "org.jitsi.jigasi.transcription.openai.apiKey";
 
+    /** Realtime session model — used in the WebSocket URL query parameter. */
     public static final String MODEL_CONFIG
         = "org.jitsi.jigasi.transcription.openai.model";
+
+    /** Transcription model — used inside session.update input_audio_transcription. */
+    public static final String TRANSCRIPTION_MODEL_CONFIG
+        = "org.jitsi.jigasi.transcription.openai.transcriptionModel";
 
     public static final String DEFAULT_WEBSOCKET_URL
         = "wss://api.openai.com/v1/realtime";
 
     public static final String DEFAULT_MODEL
         = "gpt-4o-realtime-preview";
+
+    public static final String DEFAULT_TRANSCRIPTION_MODEL
+        = "gpt-realtime-whisper";
 
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
@@ -79,6 +87,8 @@ public class OpenAIRealtimeClient
     private final String websocketUrl;
 
     private final String model;
+
+    private final String transcriptionModel;
 
     private Session session;
 
@@ -103,6 +113,9 @@ public class OpenAIRealtimeClient
 
         model = JigasiBundleActivator.getConfigurationService()
             .getString(MODEL_CONFIG, DEFAULT_MODEL);
+
+        transcriptionModel = JigasiBundleActivator.getConfigurationService()
+            .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
 
         websocketUrl = baseUrl + "?model=" + model;
     }
@@ -342,7 +355,7 @@ public class OpenAIRealtimeClient
             + "\"session\":{"
             + "\"modalities\":[\"text\"],"
             + "\"input_audio_format\":\"pcm16\","
-            + "\"input_audio_transcription\":{\"model\":\"whisper-1\",\"language\":\"" + lang + "\"},"
+            + "\"input_audio_transcription\":{\"model\":\"" + transcriptionModel + "\",\"language\":\"" + lang + "\"},"
             + "\"turn_detection\":null"
             + "}"
             + "}";
