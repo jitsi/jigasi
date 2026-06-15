@@ -83,9 +83,6 @@ public class OpenAIRealtimeClient
     public static final String DEFAULT_TRANSCRIPTION_DELAY
         = "low";
 
-    /** PCM sample rate produced by PCMAudioSilence24kMediaDevice. */
-    private static final int AUDIO_SAMPLE_RATE = 24000;
-
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
     private static final long CONNECTION_TIMEOUT_MS = 15000L;
@@ -105,8 +102,6 @@ public class OpenAIRealtimeClient
     private final String sessionModel;
 
     private final String transcriptionModel;
-
-    private final String transcriptionDelay;
 
     private Session session;
 
@@ -135,8 +130,6 @@ public class OpenAIRealtimeClient
         transcriptionModel = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
 
-        transcriptionDelay = JigasiBundleActivator.getConfigurationService()
-            .getString(TRANSCRIPTION_DELAY_CONFIG, DEFAULT_TRANSCRIPTION_DELAY);
     }
 
     /**
@@ -361,9 +354,9 @@ public class OpenAIRealtimeClient
     }
 
     /**
-     * Configures the session for transcription-only mode.
-     * Must be sent after session.created is received.
-     * Uses session.type="transcription" with gpt-realtime-whisper as the transcription model.
+     * Enables input transcription on the realtime session.
+     * session.type must NOT be set — it is only valid for dedicated transcription session endpoints
+     * (not available on this account). Instead, pass input_audio_transcription.model directly.
      */
     private void sendSessionUpdate()
     {
@@ -372,16 +365,9 @@ public class OpenAIRealtimeClient
         String json = "{"
             + "\"type\":\"session.update\","
             + "\"session\":{"
-            + "\"type\":\"transcription\","
-            + "\"audio\":{"
-            + "\"input\":{"
-            + "\"format\":{\"type\":\"audio/pcm\",\"rate\":" + AUDIO_SAMPLE_RATE + "},"
-            + "\"transcription\":{"
+            + "\"input_audio_transcription\":{"
             + "\"model\":\"" + transcriptionModel + "\","
-            + "\"language\":\"" + lang + "\","
-            + "\"delay\":\"" + transcriptionDelay + "\""
-            + "}"
-            + "}"
+            + "\"language\":\"" + lang + "\""
             + "}"
             + "}"
             + "}";
