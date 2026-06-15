@@ -57,9 +57,16 @@ public class OpenAIRealtimeClient
     public static final String MODEL_CONFIG
         = "org.jitsi.jigasi.transcription.openai.model";
 
-    /** Transcription model — used inside session.update input_audio_transcription. */
+    /** Transcription model — used inside session.update audio.input.transcription.model. */
     public static final String TRANSCRIPTION_MODEL_CONFIG
         = "org.jitsi.jigasi.transcription.openai.transcriptionModel";
+
+    /**
+     * Latency/accuracy tradeoff for gpt-realtime-whisper.
+     * Accepted values: minimal, low, medium, high, xhigh.
+     */
+    public static final String TRANSCRIPTION_DELAY_CONFIG
+        = "org.jitsi.jigasi.transcription.openai.transcriptionDelay";
 
     public static final String DEFAULT_WEBSOCKET_URL
         = "wss://api.openai.com/v1/realtime";
@@ -69,6 +76,12 @@ public class OpenAIRealtimeClient
 
     public static final String DEFAULT_TRANSCRIPTION_MODEL
         = "gpt-realtime-whisper";
+
+    public static final String DEFAULT_TRANSCRIPTION_DELAY
+        = "low";
+
+    /** PCM sample rate produced by PCMAudioSilenceMediaDevice — fixed at 16kHz. */
+    private static final int AUDIO_SAMPLE_RATE = 16000;
 
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
@@ -89,6 +102,8 @@ public class OpenAIRealtimeClient
     private final String model;
 
     private final String transcriptionModel;
+
+    private final String transcriptionDelay;
 
     private Session session;
 
@@ -116,6 +131,9 @@ public class OpenAIRealtimeClient
 
         transcriptionModel = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
+
+        transcriptionDelay = JigasiBundleActivator.getConfigurationService()
+            .getString(TRANSCRIPTION_DELAY_CONFIG, DEFAULT_TRANSCRIPTION_DELAY);
 
         websocketUrl = baseUrl + "?model=" + model;
     }
@@ -342,9 +360,11 @@ public class OpenAIRealtimeClient
     }
 
     /**
-     * Sends session.update to put the session into transcription-only mode.
-     * Called immediately after the WebSocket handshake completes.
-     * turn_detection null = manual mode (no server-side VAD interrupting the stream).
+     * Sends session.update to configure a transcription-only session.
+     * Structure follows the GA Realtime Transcription API spec:
+     *   session.type = "transcription"
+     *   audio.input.format declares the PCM rate (16kHz, fixed by Jigasi's pipeline)
+     *   audio.input.turn_detection omitted = manual commit mode
      */
     private void sendSessionUpdate()
     {
@@ -353,14 +373,31 @@ public class OpenAIRealtimeClient
         String json = "{"
             + "\"type\":\"session.update\","
             + "\"session\":{"
-            + "\"modalities\":[\"text\"],"
-            + "\"input_audio_format\":\"pcm16\","
-            + "\"input_audio_transcription\":{\"model\":\"" + transcriptionModel + "\",\"language\":\"" + lang + "\"},"
-            + "\"turn_detection\":null"
+            + "\"type\":\"transcription\","
+            + "\"audio\":{"
+            + "\"input\":{"
+            + "\"format\":{\"type\":\"audio/pcm\",\"rate\":" + AUDIO_SAMPLE_RATE + "},"
+            + "\"transcription\":{"
+            + "\"model\":\"" + transcriptionModel + "\","
+            + "\"language\":\"" + lang + "\","
+            + "\"delay\":\"" + transcriptionDelay + "\""
+            + "}"
+            + "}"
+            + "}"
             + "}"
             + "}";
 
         sendText(json);
+    }
+
+    /**
+     * Commits the audio buffer to trigger transcription.
+     * Required when turn_detection is omitted (manual mode).
+     * Should be called periodically or at natural speech boundaries.
+     */
+    public void commitAudioBuffer()
+    {
+        sendText("{\"type\":\"input_audio_buffer.commit\"}");
     }
 
     private void sendText(String message)
