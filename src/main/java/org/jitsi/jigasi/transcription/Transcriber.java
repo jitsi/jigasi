@@ -546,6 +546,18 @@ public class Transcriber
                 }
             }
         }
+        else if (State.NOT_STARTED.equals(this.state) && reason != null)
+        {
+            // Error arrived before the transcriber was started (e.g. API auth
+            // failure detected during WebSocket handshake). Propagate to listeners
+            // so the conference can be torn down and the user notified.
+            this.state = State.FINISHED;
+            Statistics.incrementTotalTranscriberFailed();
+            for (TranscriptionListener listener : listeners)
+            {
+                listener.failed(reason);
+            }
+        }
         else
         {
             logger.warn("trying to stop Transcriber while it is already stopped");
