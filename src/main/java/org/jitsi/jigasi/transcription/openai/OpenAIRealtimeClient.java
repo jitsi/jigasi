@@ -72,7 +72,7 @@ public class OpenAIRealtimeClient
         = "wss://api.openai.com/v1/realtime";
 
     public static final String DEFAULT_MODEL
-        = "gpt-4o-realtime-preview";
+        = "gpt-realtime-whisper";
 
     public static final String DEFAULT_TRANSCRIPTION_MODEL
         = "gpt-realtime-whisper";
