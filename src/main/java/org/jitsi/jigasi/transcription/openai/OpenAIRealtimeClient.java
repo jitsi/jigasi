@@ -80,7 +80,7 @@ public class OpenAIRealtimeClient
         = "low";
 
     private static final String TRANSCRIPTION_SESSIONS_URL
-        = "https://api.openai.com/v1/realtime/transcription_sessions";
+        = "https://api.openai.com/v1/realtime/transcription/sessions";
 
     /** PCM sample rate produced by PCMAudioSilence24kMediaDevice. */
     private static final int AUDIO_SAMPLE_RATE = 24000;
