@@ -111,6 +111,8 @@ public class OpenAIRealtimeClient
 
     private boolean closureClientInitiated = false;
 
+    private boolean fatalError = false;
+
     private final JSONParser jsonParser = new JSONParser();
 
     public OpenAIRealtimeClient(OpenAIRealtimeClientListener listener, String language)
@@ -146,7 +148,7 @@ public class OpenAIRealtimeClient
         float multiplier = 1.5f;
         long waitMs = 1000L;
 
-        while (attempt < MAX_RETRY_ATTEMPTS)
+        while (attempt < MAX_RETRY_ATTEMPTS && !fatalError)
         {
             WebSocketClient localClient = null;
             try
@@ -184,7 +186,7 @@ public class OpenAIRealtimeClient
                 logger.error("Failed to connect to OpenAI Realtime API. Retrying in "
                     + waitMs / 1000 + "s (" + remaining + " attempts left).", e);
 
-                if (attempt < MAX_RETRY_ATTEMPTS)
+                if (attempt < MAX_RETRY_ATTEMPTS && !fatalError)
                 {
                     synchronized (this)
                     {
@@ -194,8 +196,11 @@ public class OpenAIRealtimeClient
             }
         }
 
-        logger.error("Could not connect to OpenAI Realtime API after "
-            + MAX_RETRY_ATTEMPTS + " attempts.");
+        if (!fatalError)
+        {
+            logger.error("Could not connect to OpenAI Realtime API after "
+                + MAX_RETRY_ATTEMPTS + " attempts.");
+        }
     }
 
     @OnWebSocketOpen
@@ -293,8 +298,15 @@ public class OpenAIRealtimeClient
             JSONObject error = (JSONObject) obj.get("error");
             String errMsg = error != null ? (String) error.get("message") : "unknown error";
             String errCode = error != null ? (String) error.get("code") : null;
-            if ("invalid_model".equals(errCode))
+            if ("invalid_api_key".equals(errCode))
             {
+                fatalError = true;
+                logger.error("OpenAI API key is invalid. "
+                    + "Check " + API_KEY_CONFIG + " in sip-communicator.properties.");
+            }
+            else if ("invalid_model".equals(errCode))
+            {
+                fatalError = true;
                 logger.error("OpenAI model error: " + errMsg + " — "
                     + "Check " + SESSION_MODEL_CONFIG + " and " + TRANSCRIPTION_MODEL_CONFIG
                     + " in sip-communicator.properties.");
