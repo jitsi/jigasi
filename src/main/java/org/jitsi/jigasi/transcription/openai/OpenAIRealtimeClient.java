@@ -80,8 +80,8 @@ public class OpenAIRealtimeClient
     public static final String DEFAULT_TRANSCRIPTION_DELAY
         = "low";
 
-    /** PCM sample rate produced by PCMAudioSilenceMediaDevice — fixed at 16kHz. */
-    private static final int AUDIO_SAMPLE_RATE = 16000;
+    /** PCM sample rate produced by PCMAudioSilence24kMediaDevice. */
+    private static final int AUDIO_SAMPLE_RATE = 24000;
 
     private static final int MAX_RETRY_ATTEMPTS = 3;
 

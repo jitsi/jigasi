@@ -53,7 +53,7 @@ public class OpenAIRealtimeTranscriptionService
         if (this.mediaDevice == null)
         {
             this.mediaDevice = new TranscribingAudioMixerMediaDevice(
-                new PCMAudioSilenceMediaDevice(), listener);
+                new PCMAudioSilence24kMediaDevice(), listener);
         }
         return this.mediaDevice;
     }
