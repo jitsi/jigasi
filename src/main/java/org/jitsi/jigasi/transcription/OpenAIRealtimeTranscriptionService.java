@@ -69,7 +69,6 @@ public class OpenAIRealtimeTranscriptionService
                 + OpenAIRealtimeClient.API_KEY_CONFIG + " is missing.");
             return false;
         }
-        OpenAIRealtimeClient.validateConfig();
         return true;
     }
 

@@ -27,14 +27,8 @@ import org.jitsi.utils.logging2.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 import java.util.concurrent.*;
 
 /**
@@ -89,8 +83,6 @@ public class OpenAIRealtimeClient
     public static final String DEFAULT_TRANSCRIPTION_DELAY
         = "low";
 
-    private static final String MODELS_URL = "https://api.openai.com/v1/models";
-
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
     private static final long CONNECTION_TIMEOUT_MS = 15000L;
@@ -138,89 +130,6 @@ public class OpenAIRealtimeClient
         transcriptionModel = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
 
-    }
-
-    /**
-     * Validates API key and configured models at service startup.
-     * Fetches the available models from the account and logs them,
-     * warning if the configured session or transcription model is not available.
-     * Runs once, best-effort — failures are logged but do not block startup.
-     */
-    public static void validateConfig()
-    {
-        String apiKey = JigasiBundleActivator.getConfigurationService()
-            .getString(API_KEY_CONFIG, "");
-        String sessionModel = JigasiBundleActivator.getConfigurationService()
-            .getString(SESSION_MODEL_CONFIG, DEFAULT_SESSION_MODEL);
-        String transcriptionModel = JigasiBundleActivator.getConfigurationService()
-            .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
-
-        if (apiKey == null || apiKey.isEmpty())
-        {
-            logger.error("OpenAI API key is not configured. "
-                + "Set " + API_KEY_CONFIG + " in sip-communicator.properties.");
-            return;
-        }
-
-        try
-        {
-            HttpClient httpClient = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(MODELS_URL))
-                .header("Authorization", "Bearer " + apiKey)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 401)
-            {
-                logger.error("OpenAI API key is invalid or expired (HTTP 401). "
-                    + "Check the value of " + API_KEY_CONFIG + ".");
-                return;
-            }
-
-            if (response.statusCode() != 200)
-            {
-                logger.warn("Could not fetch OpenAI model list: HTTP " + response.statusCode());
-                return;
-            }
-
-            JSONParser parser = new JSONParser();
-            JSONObject obj = (JSONObject) parser.parse(response.body());
-            JSONArray data = (JSONArray) obj.get("data");
-
-            List<String> realtimeModels = new ArrayList<>();
-            for (Object item : data)
-            {
-                String id = (String) ((JSONObject) item).get("id");
-                if (id != null && id.contains("realtime"))
-                {
-                    realtimeModels.add(id);
-                }
-            }
-
-            logger.info("OpenAI realtime models available on this account: " + realtimeModels);
-
-            if (!realtimeModels.contains(sessionModel))
-            {
-                logger.error("Configured sessionModel \"" + sessionModel + "\" is not available "
-                    + "on this account. Available realtime models: " + realtimeModels + ". "
-                    + "Update " + SESSION_MODEL_CONFIG + " in sip-communicator.properties.");
-            }
-
-            if (!realtimeModels.contains(transcriptionModel))
-            {
-                logger.error("Configured transcriptionModel \"" + transcriptionModel + "\" is not available "
-                    + "on this account. Available realtime models: " + realtimeModels + ". "
-                    + "Update " + TRANSCRIPTION_MODEL_CONFIG + " in sip-communicator.properties.");
-            }
-        }
-        catch (IOException | InterruptedException | ParseException e)
-        {
-            logger.warn("Could not validate OpenAI model configuration: " + e.getMessage());
-        }
     }
 
     /**
@@ -388,7 +297,7 @@ public class OpenAIRealtimeClient
             {
                 logger.error("OpenAI model error: " + errMsg + " — "
                     + "Check " + SESSION_MODEL_CONFIG + " and " + TRANSCRIPTION_MODEL_CONFIG
-                    + " in sip-communicator.properties. Run validateConfig() to list available models.");
+                    + " in sip-communicator.properties.");
             }
             else
             {
