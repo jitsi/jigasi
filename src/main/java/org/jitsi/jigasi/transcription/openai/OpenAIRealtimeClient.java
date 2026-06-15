@@ -132,7 +132,6 @@ public class OpenAIRealtimeClient
 
                 ClientUpgradeRequest request = new ClientUpgradeRequest();
                 request.setHeader("Authorization", "Bearer " + apiKey);
-                request.setHeader("OpenAI-Beta", "realtime=v1");
 
                 localClient = new WebSocketClient();
                 localClient.start();
