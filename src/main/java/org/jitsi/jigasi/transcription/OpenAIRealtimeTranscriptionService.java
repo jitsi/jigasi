@@ -288,6 +288,14 @@ public class OpenAIRealtimeTranscriptionService
         public void onError(Throwable error)
         {
             logger.error("OpenAI Realtime transcription error", error);
+            String msg = error.getMessage();
+            if (msg != null && (msg.contains("invalid_api_key") || msg.contains("Incorrect API key")))
+            {
+                for (TranscriptionListener l : listeners)
+                {
+                    l.failed(TranscriptionListener.FailureReason.AUTHENTICATION_FAILED);
+                }
+            }
         }
 
         private String getLanguage()
