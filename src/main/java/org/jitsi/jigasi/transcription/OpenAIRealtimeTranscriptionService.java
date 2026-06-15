@@ -141,11 +141,6 @@ public class OpenAIRealtimeTranscriptionService
         /** Accumulates delta chunks until a completed event resets it. */
         private final StringBuilder partialBuffer = new StringBuilder();
 
-        /** Commit audio buffer every 50 frames (20ms each = 1s of audio). */
-        private static final int COMMIT_INTERVAL_FRAMES = 50;
-
-        private int frameCount = 0;
-
         OpenAIStreamingSession(Participant participant)
         {
             this.participant = participant;
@@ -181,12 +176,6 @@ public class OpenAIRealtimeTranscriptionService
             try
             {
                 client.sendAudio(request.getAudio());
-                frameCount++;
-                if (frameCount >= COMMIT_INTERVAL_FRAMES)
-                {
-                    client.commitAudioBuffer();
-                    frameCount = 0;
-                }
             }
             catch (Exception e)
             {

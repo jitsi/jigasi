@@ -399,15 +399,6 @@ public class OpenAIRealtimeClient
         sendText(json);
     }
 
-    /**
-     * Commits the audio buffer to trigger transcription.
-     * Required when turn_detection is null (manual mode).
-     */
-    public void commitAudioBuffer()
-    {
-        sendText("{\"type\":\"input_audio_buffer.commit\"}");
-    }
-
     private void sendText(String message)
     {
         if (session == null)
