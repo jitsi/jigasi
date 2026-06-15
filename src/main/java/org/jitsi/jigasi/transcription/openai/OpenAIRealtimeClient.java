@@ -169,9 +169,6 @@ public class OpenAIRealtimeClient
                 session = future.orTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS).get();
                 session.setIdleTimeout(java.time.Duration.ofSeconds(300));
                 wsClient = localClient;
-                connected = true;
-
-                logger.info("Connected to OpenAI Realtime API");
                 return;
             }
             catch (Exception e)
@@ -206,11 +203,12 @@ public class OpenAIRealtimeClient
     @OnWebSocketOpen
     public void onConnect(Session sess)
     {
-        logger.info("WebSocket open: " + sess.getRemoteSocketAddress());
         synchronized (this)
         {
             this.session = sess;
+            connected = true;
         }
+        logger.info("Connected to OpenAI Realtime API: " + sess.getRemoteSocketAddress());
         sendSessionUpdate();
         if (listener != null)
         {
@@ -343,9 +341,8 @@ public class OpenAIRealtimeClient
      */
     public void sendAudio(byte[] audioBytes)
     {
-        if (session == null || !connected)
+        if (!connected || session == null || !session.isOpen())
         {
-            logger.warn("Cannot send audio — not connected.");
             return;
         }
 
