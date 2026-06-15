@@ -27,7 +27,11 @@ import org.jitsi.utils.logging2.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
-import java.net.*;
+import java.io.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -35,29 +39,27 @@ import java.util.concurrent.*;
  * WebSocket client for the OpenAI Realtime transcription API.
  * One instance per participant session.
  *
- * Protocol:
- *   - Connect to wss://api.openai.com/v1/realtime?model=<model>
- *   - On connect: send session.update to configure transcription-only mode
- *   - Send audio: input_audio_buffer.append with base64-encoded PCM16 16kHz mono
- *   - Receive: conversation.item.input_audio_transcription.delta (partial)
- *              conversation.item.input_audio_transcription.completed (final)
+ * Protocol (transcription sessions):
+ *   1. POST /v1/realtime/transcription_sessions with API key → get client_secret token
+ *   2. Connect WebSocket to wss://api.openai.com/v1/realtime?model=gpt-realtime-whisper
+ *      with Authorization: Bearer <client_secret>
+ *   3. Send audio: input_audio_buffer.append with base64-encoded PCM 24kHz mono
+ *   4. Commit: input_audio_buffer.commit every N frames (manual turn detection)
+ *   5. Receive: conversation.item.input_audio_transcription.delta (partial)
+ *               conversation.item.input_audio_transcription.completed (final)
  */
 @WebSocket
 public class OpenAIRealtimeClient
 {
     private static final Logger logger = new LoggerImpl(OpenAIRealtimeClient.class.getName());
 
-    public static final String WEBSOCKET_URL
-        = "org.jitsi.jigasi.transcription.openai.websocketUrl";
-
     public static final String API_KEY_CONFIG
         = "org.jitsi.jigasi.transcription.openai.apiKey";
 
-    /** Realtime session model — used in the WebSocket URL query parameter. */
-    public static final String MODEL_CONFIG
-        = "org.jitsi.jigasi.transcription.openai.model";
+    public static final String WEBSOCKET_URL
+        = "org.jitsi.jigasi.transcription.openai.websocketUrl";
 
-    /** Transcription model — used inside session.update audio.input.transcription.model. */
+    /** Transcription model — used in both the REST session creation and WebSocket URL. */
     public static final String TRANSCRIPTION_MODEL_CONFIG
         = "org.jitsi.jigasi.transcription.openai.transcriptionModel";
 
@@ -71,14 +73,14 @@ public class OpenAIRealtimeClient
     public static final String DEFAULT_WEBSOCKET_URL
         = "wss://api.openai.com/v1/realtime";
 
-    public static final String DEFAULT_MODEL
-        = "gpt-realtime-2";
-
     public static final String DEFAULT_TRANSCRIPTION_MODEL
         = "gpt-realtime-whisper";
 
     public static final String DEFAULT_TRANSCRIPTION_DELAY
         = "low";
+
+    private static final String TRANSCRIPTION_SESSIONS_URL
+        = "https://api.openai.com/v1/realtime/transcription_sessions";
 
     /** PCM sample rate produced by PCMAudioSilence24kMediaDevice. */
     private static final int AUDIO_SAMPLE_RATE = 24000;
@@ -97,9 +99,7 @@ public class OpenAIRealtimeClient
 
     private final String language;
 
-    private final String websocketUrl;
-
-    private final String model;
+    private final String websocketBaseUrl;
 
     private final String transcriptionModel;
 
@@ -123,24 +123,20 @@ public class OpenAIRealtimeClient
         apiKey = JigasiBundleActivator.getConfigurationService()
             .getString(API_KEY_CONFIG, "");
 
-        String baseUrl = JigasiBundleActivator.getConfigurationService()
+        websocketBaseUrl = JigasiBundleActivator.getConfigurationService()
             .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
-
-        model = JigasiBundleActivator.getConfigurationService()
-            .getString(MODEL_CONFIG, DEFAULT_MODEL);
 
         transcriptionModel = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
 
         transcriptionDelay = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_DELAY_CONFIG, DEFAULT_TRANSCRIPTION_DELAY);
-
-        websocketUrl = baseUrl + "?model=" + model;
     }
 
     /**
-     * Initiates a non-blocking connection with exponential-backoff retry
-     * (pattern from WhisperWebsocket).
+     * Initiates a non-blocking connection with exponential-backoff retry.
+     * Step 1: create transcription session via REST to get ephemeral token.
+     * Step 2: connect WebSocket using that token.
      */
     public void connect()
     {
@@ -158,24 +154,29 @@ public class OpenAIRealtimeClient
             WebSocketClient localClient = null;
             try
             {
-                logger.info("Connecting to OpenAI Realtime API: " + websocketUrl
+                // Step 1: create transcription session via REST
+                String ephemeralToken = createTranscriptionSession();
+                String wsUrl = websocketBaseUrl + "?model=" + transcriptionModel;
+
+                logger.info("Connecting to OpenAI Realtime API: " + wsUrl
                     + " (attempt " + (attempt + 1) + ")");
 
+                // Step 2: connect WebSocket with ephemeral token
                 ClientUpgradeRequest request = new ClientUpgradeRequest();
-                request.setHeader("Authorization", "Bearer " + apiKey);
+                request.setHeader("Authorization", "Bearer " + ephemeralToken);
 
                 localClient = new WebSocketClient();
                 localClient.start();
 
                 CompletableFuture<Session> future = localClient.connect(
-                    this, new URI(websocketUrl), request);
+                    this, new URI(wsUrl), request);
 
                 session = future.orTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS).get();
                 session.setIdleTimeout(java.time.Duration.ofSeconds(300));
                 wsClient = localClient;
                 connected = true;
 
-                logger.info("Connected to OpenAI Realtime API");
+                logger.info("Connected to OpenAI Realtime transcription API");
                 return;
             }
             catch (Exception e)
@@ -204,6 +205,56 @@ public class OpenAIRealtimeClient
             + MAX_RETRY_ATTEMPTS + " attempts.");
     }
 
+    /**
+     * Creates a transcription session via REST and returns the ephemeral client_secret token.
+     * The API key is used here; the WebSocket then uses the short-lived token.
+     */
+    private String createTranscriptionSession() throws IOException, InterruptedException
+    {
+        String lang = (language != null && !language.isEmpty()) ? language : "en";
+
+        String body = "{"
+            + "\"model\":\"" + transcriptionModel + "\","
+            + "\"input_audio_format\":\"pcm16\","
+            + "\"input_audio_transcription\":{"
+            + "\"model\":\"" + transcriptionModel + "\","
+            + "\"language\":\"" + lang + "\""
+            + "},"
+            + "\"turn_detection\":null"
+            + "}";
+
+        HttpClient httpClient = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(TRANSCRIPTION_SESSIONS_URL))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
+
+        HttpResponse<String> response = httpClient.send(request,
+            HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200)
+        {
+            throw new IOException("Failed to create transcription session: HTTP "
+                + response.statusCode() + " — " + response.body());
+        }
+
+        logger.info("Transcription session created successfully.");
+
+        try
+        {
+            JSONObject obj = (JSONObject) jsonParser.parse(response.body());
+            JSONObject clientSecret = (JSONObject) obj.get("client_secret");
+            return (String) clientSecret.get("value");
+        }
+        catch (ParseException e)
+        {
+            throw new IOException("Failed to parse transcription session response: "
+                + response.body(), e);
+        }
+    }
+
     @OnWebSocketOpen
     public void onConnect(Session sess)
     {
@@ -212,7 +263,6 @@ public class OpenAIRealtimeClient
         {
             this.session = sess;
         }
-        sendSessionUpdate();
         if (listener != null)
         {
             listener.onConnect();
@@ -360,40 +410,8 @@ public class OpenAIRealtimeClient
     }
 
     /**
-     * Sends session.update to configure a transcription-only session.
-     * Structure follows the GA Realtime Transcription API spec:
-     *   session.type = "transcription"
-     *   audio.input.format declares the PCM rate (16kHz, fixed by Jigasi's pipeline)
-     *   audio.input.turn_detection omitted = manual commit mode
-     */
-    private void sendSessionUpdate()
-    {
-        String lang = (language != null && !language.isEmpty()) ? language : "en";
-
-        String json = "{"
-            + "\"type\":\"session.update\","
-            + "\"session\":{"
-            + "\"type\":\"transcription\","
-            + "\"audio\":{"
-            + "\"input\":{"
-            + "\"format\":{\"type\":\"audio/pcm\",\"rate\":" + AUDIO_SAMPLE_RATE + "},"
-            + "\"transcription\":{"
-            + "\"model\":\"" + transcriptionModel + "\","
-            + "\"language\":\"" + lang + "\","
-            + "\"delay\":\"" + transcriptionDelay + "\""
-            + "}"
-            + "}"
-            + "}"
-            + "}"
-            + "}";
-
-        sendText(json);
-    }
-
-    /**
      * Commits the audio buffer to trigger transcription.
-     * Required when turn_detection is omitted (manual mode).
-     * Should be called periodically or at natural speech boundaries.
+     * Required when turn_detection is null (manual mode).
      */
     public void commitAudioBuffer()
     {
