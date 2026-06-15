@@ -60,7 +60,7 @@ public class OpenAIRealtimeClient
         = "wss://api.openai.com/v1/realtime";
 
     public static final String DEFAULT_MODEL
-        = "gpt-4o-realtime-preview-2024-12-17";
+        = "gpt-4o-realtime-preview";
 
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
@@ -191,12 +191,12 @@ public class OpenAIRealtimeClient
     @OnWebSocketClose
     public void onClose(int statusCode, String reason)
     {
+        connected = false;
+        session = null;
         threadPool.submit(() ->
         {
             String who = closureClientInitiated ? "client" : "server";
             logger.info("WebSocket closed by " + who + " — code=" + statusCode + " reason=" + reason);
-            connected = false;
-            session = null;
             stopClientQuietly(wsClient);
             wsClient = null;
             if (listener != null)
