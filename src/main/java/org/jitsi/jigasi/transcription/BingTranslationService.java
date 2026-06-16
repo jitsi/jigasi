@@ -32,6 +32,8 @@ import org.jitsi.jigasi.JigasiBundleActivator;
 import org.jitsi.utils.logging.Logger;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 
@@ -153,9 +155,11 @@ public class BingTranslationService
         url.append("translate?api-version=").append(apiVersion);
         if (!"auto".equals(from))
         {
-            url.append("&from=").append(from);
+            url.append("&from=").append(
+                URLEncoder.encode(from, StandardCharsets.UTF_8));
         }
-        url.append("&to=").append(to);
+        url.append("&to=").append(
+            URLEncoder.encode(to, StandardCharsets.UTF_8));
 
         Gson gson = new GsonBuilder().disableHtmlEscaping().create();
         JsonArray body = new JsonArray();
