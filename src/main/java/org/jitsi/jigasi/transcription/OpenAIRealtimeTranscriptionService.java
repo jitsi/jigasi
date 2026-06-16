@@ -69,6 +69,14 @@ public class OpenAIRealtimeTranscriptionService
                 + OpenAIRealtimeClient.API_KEY_CONFIG + " is missing.");
             return false;
         }
+        String sessionModel = JigasiBundleActivator.getConfigurationService()
+            .getString(OpenAIRealtimeClient.SESSION_MODEL_CONFIG, "");
+        if (sessionModel.isEmpty())
+        {
+            logger.error("OpenAI Realtime transcription is not configured: "
+                + OpenAIRealtimeClient.SESSION_MODEL_CONFIG + " is missing.");
+            return false;
+        }
         return true;
     }
 

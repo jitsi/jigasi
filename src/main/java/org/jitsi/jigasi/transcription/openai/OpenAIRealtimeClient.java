@@ -127,7 +127,7 @@ public class OpenAIRealtimeClient
             .getString(WEBSOCKET_URL, DEFAULT_WEBSOCKET_URL);
 
         sessionModel = JigasiBundleActivator.getConfigurationService()
-            .getString(SESSION_MODEL_CONFIG, DEFAULT_SESSION_MODEL);
+            .getString(SESSION_MODEL_CONFIG, "");
 
         transcriptionModel = JigasiBundleActivator.getConfigurationService()
             .getString(TRANSCRIPTION_MODEL_CONFIG, DEFAULT_TRANSCRIPTION_MODEL);
