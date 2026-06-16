@@ -19,6 +19,7 @@ package org.jitsi.jigasi.transcription;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -99,13 +100,13 @@ public class LibreTranslateTranslationService
     @Override
     public String translate(String sourceText, String sourceLang, String targetLang)
     {
-        String payload = "{"
-                .concat("\"q\": \"" + sourceText + "\",")
-                .concat("\"source\": \"" + getPrimaryLanguageCode(sourceLang) + "\",")
-                .concat("\"target\": \"" + getPrimaryLanguageCode(targetLang) + "\",")
-                .concat("\"format\": \"text\",")
-                .concat("\"api_key\": \"\"")
-                .concat("}");
+        JsonObject payloadObject = new JsonObject();
+        payloadObject.addProperty("q", sourceText);
+        payloadObject.addProperty("source", getPrimaryLanguageCode(sourceLang));
+        payloadObject.addProperty("target", getPrimaryLanguageCode(targetLang));
+        payloadObject.addProperty("format", "text");
+        payloadObject.addProperty("api_key", "");
+        String payload = new GsonBuilder().disableHtmlEscaping().create().toJson(payloadObject);
 
         StringEntity entity = new StringEntity(payload, ContentType.APPLICATION_JSON);
 
