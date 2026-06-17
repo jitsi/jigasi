@@ -55,6 +55,11 @@ public interface TranscriptionListener
          * The request quota limit set by the transcription service provider
          * has been exhausted.
          */
-        RESOURCES_EXHAUSTED
+        RESOURCES_EXHAUSTED,
+
+        /**
+         * The transcription service rejected the credentials (e.g. invalid API key).
+         */
+        AUTHENTICATION_FAILED
     }
 }

@@ -505,7 +505,18 @@ public class TranscriptionGatewaySession
     @Override
     public void failed(FailureReason reason)
     {
-        // Leave the conference room
+        if (reason == FailureReason.AUTHENTICATION_FAILED)
+        {
+            this.jvbConference.sendMessageToRoom(
+                "Transcription failed: invalid API credentials. "
+                + "Please contact the service administrator.");
+        }
+        else if (reason == FailureReason.RESOURCES_EXHAUSTED)
+        {
+            this.jvbConference.sendMessageToRoom(
+                "Transcription failed: service quota exhausted. "
+                + "Please try again later.");
+        }
         this.jvbConference.stop();
     }
 
