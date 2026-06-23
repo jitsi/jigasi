@@ -20,15 +20,18 @@ package org.jitsi.jigasi.transcription;
 import com.fasterxml.uuid.*;
 import com.google.api.gax.rpc.*;
 import com.google.auth.oauth2.*;
-import com.google.cloud.speech.v1.*;
+import com.google.cloud.speech.v2.*;
 import com.google.protobuf.*;
 import org.jitsi.jigasi.*;
 import org.jitsi.jigasi.stats.*;
 import org.jitsi.jigasi.transcription.action.*;
 import org.jitsi.utils.logging.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 
 import javax.media.format.*;
 import java.io.*;
+import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -185,6 +188,23 @@ public class GoogleCloudTranscriptionService
     private final static String DEFAULT_VALUE_GOOGLE_MODEL = "latest_long";
 
     /**
+     * Property name for the Google Cloud project ID
+     */
+    private final static String GOOGLE_PROJECT_ID
+        = "org.jitsi.jigasi.transcription.google_project_id";
+
+    /**
+     * Property name for the Google Cloud location
+     */
+    private final static String GOOGLE_LOCATION
+        = "org.jitsi.jigasi.transcription.google_location";
+
+    /**
+     * The default value for the property GOOGLE_LOCATION
+     */
+    private final static String DEFAULT_VALUE_GOOGLE_LOCATION = "global";
+
+    /**
      * Check whether the given string contains a supported language tag
      *
      * @param tag the language tag
@@ -218,16 +238,25 @@ public class GoogleCloudTranscriptionService
     }
 
     /**
-     * List of <tt>SpeechContext</tt>s to be inserted in
-     * the <tt>RecognitionConfig</tt>. This is a list of phrases to be used as
-     * a dictionary to assist the speech recognition.
+     * SpeechAdaptation to be inserted in the RecognitionConfig.
+     * This contains phrases to be used as a dictionary to assist the speech recognition.
      */
-    private List<SpeechContext> speechContexts = null;
+    private SpeechAdaptation speechAdaptation = null;
 
     /**
      * The model used for STT
      */
     private final String useModel;
+
+    /**
+     * The Google Cloud project ID
+     */
+    private final String projectId;
+
+    /**
+     * The Google Cloud location
+     */
+    private final String location;
 
     /**
      * Creates the RecognitionConfig the Google service uses based
@@ -243,19 +272,25 @@ public class GoogleCloudTranscriptionService
     {
         RecognitionConfig.Builder builder = RecognitionConfig.newBuilder();
 
-        // Set the sampling rate and encoding of the audio
+        // Set the sampling rate and encoding of the audio using ExplicitDecodingConfig
         AudioFormat format = request.getFormat();
-        builder.setSampleRateHertz(Double.valueOf(format.getSampleRate()).intValue());
+        ExplicitDecodingConfig.AudioEncoding encoding;
         switch(format.getEncoding())
         {
             case "LINEAR":
-                builder.setEncoding(RecognitionConfig.AudioEncoding.LINEAR16);
+                encoding = ExplicitDecodingConfig.AudioEncoding.LINEAR16;
                 break;
             default:
                 throw new IllegalArgumentException("Given AudioFormat" +
                     "has unexpected" +
                     "encoding");
         }
+
+        builder.setExplicitDecodingConfig(
+            ExplicitDecodingConfig.newBuilder()
+                .setEncoding(encoding)
+                .setSampleRateHertz(Double.valueOf(format.getSampleRate()).intValue())
+                .build());
 
         builder.setModel(useModel);
         if (logger.isDebugEnabled())
@@ -266,14 +301,62 @@ public class GoogleCloudTranscriptionService
         // set the Language tag
         String languageTag = request.getLocale().toLanguageTag();
         validateLanguageTag(languageTag);
-        builder.setLanguageCode(languageTag);
+        builder.addLanguageCodes(languageTag);
 
-        addSpeechContexts(builder);
+        addSpeechAdaptation(builder);
 
-        // set the requested alternatives
-        builder.setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES);
+        // set the requested alternatives using RecognitionFeatures
+        builder.setFeatures(
+            RecognitionFeatures.newBuilder()
+                .setMaxAlternatives(MAXIMUM_DESIRED_ALTERNATIVES)
+                .build());
 
         return builder.build();
+    }
+
+    /**
+     * Extracts the project_id from the Google Application Credentials JSON file.
+     *
+     * @return the project_id from the credentials file, or null if not found
+     */
+    private static String extractProjectIdFromCredentials()
+    {
+        String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+        if (credentialsPath == null || credentialsPath.isEmpty())
+        {
+            return null;
+        }
+
+        try
+        {
+            String jsonContent = new String(Files.readAllBytes(Paths.get(credentialsPath)));
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject) parser.parse(jsonContent);
+
+            if (jsonObject.containsKey("project_id"))
+            {
+                String projectId = (String) jsonObject.get("project_id");
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Extracted project_id from credentials file: " + projectId);
+                }
+                return projectId;
+            }
+        }
+        catch (IOException e)
+        {
+            logger.warn("Failed to read credentials file: " + credentialsPath, e);
+        }
+        catch (ParseException e)
+        {
+            logger.warn("Failed to parse credentials file: " + credentialsPath, e);
+        }
+        catch (Exception e)
+        {
+            logger.warn("Failed to extract project_id from credentials file", e);
+        }
+
+        return null;
     }
 
     /**
@@ -284,6 +367,24 @@ public class GoogleCloudTranscriptionService
     {
         useModel = JigasiBundleActivator.getConfigurationService()
             .getString(GOOGLE_MODEL, DEFAULT_VALUE_GOOGLE_MODEL);
+
+        // First try to get project_id from config
+        String configProjectId = JigasiBundleActivator.getConfigurationService()
+            .getString(GOOGLE_PROJECT_ID);
+
+        // If not in config, try to extract from credentials file
+        if (configProjectId == null || configProjectId.isEmpty())
+        {
+            configProjectId = extractProjectIdFromCredentials();
+            if (configProjectId != null)
+            {
+                logger.info("Using project_id from credentials file: " + configProjectId);
+            }
+        }
+
+        projectId = configProjectId;
+        location = JigasiBundleActivator.getConfigurationService()
+            .getString(GOOGLE_LOCATION, DEFAULT_VALUE_GOOGLE_LOCATION);
     }
 
     /**
@@ -326,12 +427,17 @@ public class GoogleCloudTranscriptionService
             RecognitionConfig config = getRecognitionConfig(request);
 
             ByteString audioBytes = ByteString.copyFrom(request.getAudio());
-            RecognitionAudio audio = RecognitionAudio.newBuilder()
+
+            // Build the recognizer resource name
+            String recognizer = String.format("projects/%s/locations/%s/recognizers/_", projectId, location);
+
+            RecognizeRequest recognizeRequest = RecognizeRequest.newBuilder()
+                    .setRecognizer(recognizer)
+                    .setConfig(config)
                     .setContent(audioBytes)
                     .build();
 
-            RecognizeResponse recognizeResponse =
-                    client.recognize(config, audio);
+            RecognizeResponse recognizeResponse = client.recognize(recognizeRequest);
 
             client.close();
 
@@ -382,22 +488,37 @@ public class GoogleCloudTranscriptionService
     }
 
     /**
-     * Initialize speechContexts if needed, by getting all the phrases used
+     * Initialize speechAdaptation if needed, by getting all the phrases used
      * by the action handlers to detect commands to handle.
-     * Inserts all speechContexts to the <tt>RecognitionConfig.Builder</tt>.
-     * @param builder the builder where to add speech contexts.
+     * Inserts speechAdaptation to the <tt>RecognitionConfig.Builder</tt>.
+     * @param builder the builder where to add speech adaptation.
      */
-    private void addSpeechContexts(RecognitionConfig.Builder builder)
+    private void addSpeechAdaptation(RecognitionConfig.Builder builder)
     {
-        if (speechContexts == null)
+        if (speechAdaptation == null)
         {
-            speechContexts = new ArrayList<>();
-            ActionServicesHandler.getInstance().getPhrases()
-                .stream().map(ph -> speechContexts.add(
-                    SpeechContext.newBuilder().addPhrases(ph).build()));
+            List<String> phrases = ActionServicesHandler.getInstance().getPhrases();
+            if (!phrases.isEmpty())
+            {
+                PhraseSet.Builder phraseSetBuilder = PhraseSet.newBuilder();
+                for (String phrase : phrases)
+                {
+                    phraseSetBuilder.addPhrases(PhraseSet.Phrase.newBuilder().setValue(phrase).build());
+                }
+
+                speechAdaptation = SpeechAdaptation.newBuilder()
+                    .addPhraseSets(
+                        SpeechAdaptation.AdaptationPhraseSet.newBuilder()
+                            .setInlinePhraseSet(phraseSetBuilder.build())
+                            .build())
+                    .build();
+            }
         }
 
-        speechContexts.stream().map(ctx -> builder.addSpeechContexts(ctx));
+        if (speechAdaptation != null)
+        {
+            builder.setAdaptation(speechAdaptation);
+        }
     }
 
     /**
@@ -672,19 +793,23 @@ public class GoogleCloudTranscriptionService
         {
             // Each observer gets its own responseObserver to be able to
             // get a unique ID
+            String languageCode = config.getLanguageCodesCount() > 0
+                ? config.getLanguageCodes(0) : "en-US";
             ResponseApiStreamingObserver<StreamingRecognizeResponse>
                 responseObserver =
                 new ResponseApiStreamingObserver<StreamingRecognizeResponse>(
                     this,
-                    config.getLanguageCode(),
+                    languageCode,
                     debugName);
+
+            // Build the recognizer resource name
+            String recognizer = String.format("projects/%s/locations/%s/recognizers/_", projectId, location);
 
             // StreamingRecognitionConfig which will hold information
             // about the streaming session, including the RecognitionConfig
             StreamingRecognitionConfig streamingRecognitionConfig =
                 StreamingRecognitionConfig.newBuilder()
                     .setConfig(config)
-                    .setInterimResults(RETRIEVE_INTERIM_RESULTS)
                     .build();
 
             // StreamingCallable manages sending the audio and receiving
@@ -700,9 +825,10 @@ public class GoogleCloudTranscriptionService
                 = callable.bidiStreamingCall(responseObserver);
 
             // Sent the first request which needs to **only** contain the
-            // StreamingRecognitionConfig
+            // recognizer and StreamingRecognitionConfig
             requestObserver.onNext(
                 StreamingRecognizeRequest.newBuilder()
+                    .setRecognizer(recognizer)
                     .setStreamingConfig(streamingRecognitionConfig)
                     .build());
 
@@ -758,7 +884,7 @@ public class GoogleCloudTranscriptionService
 
                 currentRequestObserver.onNext(
                     StreamingRecognizeRequest.newBuilder()
-                        .setAudioContent(audioBytes)
+                        .setAudio(audioBytes)
                         .build());
 
                 terminatingSessionThread.interrupt();
@@ -902,30 +1028,14 @@ public class GoogleCloudTranscriptionService
         {
             if (logger.isDebugEnabled())
                 logger.debug(debugName + ": received a StreamingRecognizeResponse");
-            if (message.hasError())
-            {
-                Statistics.incrementTotalTranscriberSendErrors();
-
-                // it is expected to get an error if the 60 seconds are exceeded
-                // without any speech in the audio OR if someone muted their mic
-                // and no new audio is coming in
-                // thus we cancel the current session and start a new one
-                // when new audio comes in
-                if (logger.isDebugEnabled())
-                    logger.debug(
-                        debugName + ": received error from StreamingRecognizeResponse: "
-                             + message.getError().getMessage());
-                requestManager.terminateCurrentSession();
-                return;
-            }
 
             if (message.getResultsCount() == 0)
             {
                 if (logger.isDebugEnabled())
                     logger.debug(
                         debugName + ": received a message with an empty results list");
-                Statistics.incrementTotalTranscriberNoResultErrors();
-                requestManager.terminateCurrentSession();
+                // In v2, empty results can indicate events like SPEECH_ACTIVITY_BEGIN
+                // These are not errors, just status updates
                 return;
             }
 
