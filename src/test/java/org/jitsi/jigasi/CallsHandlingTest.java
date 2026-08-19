@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.mock.*;
 import net.java.sip.communicator.util.osgi.ServiceUtils;
+import org.jitsi.jigasi.util.TracingUtil;
 import org.jitsi.jigasi.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.utils.logging.Logger;
@@ -358,12 +359,27 @@ public class CallsHandlingTest
             CallControl.ROOM_NAME_HEADER,
             focus.getRoomName());
 
+        // an upstream trace context, as jicofo would stamp on the
+        // forwarded dial IQ
+        String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        dialIq.setHeader(
+            TracingUtil.TRACEPARENT_HEADER,
+            "00-" + traceId + "-00f067aa0ba902b7-01");
+
         CallContext ctx = new CallContext(this);
         ctx.setDomain(serverName);
 
         org.jivesoftware.smack.packet.IQ result = callControl.handleDialIq(dialIq, ctx, null);
 
         assertNotNull(result);
+
+        // the setup span joined the upstream trace and the context is
+        // re-emitted towards the SIP leg
+        assertNotNull(ctx.getSetupSpan());
+        assertEquals(traceId, ctx.getSetupSpan().getSpanContext().getTraceId());
+        String forwardedTraceParent = ctx.getExtraHeaders().get(TracingUtil.TRACEPARENT_HEADER);
+        assertNotNull(forwardedTraceParent);
+        assertTrue(forwardedTraceParent.contains(traceId));
 
         RefIq callRef = (RefIq) result;
 
@@ -412,6 +428,104 @@ public class CallsHandlingTest
         assertFalse(conferenceChatRoom.isJoined());
 
         logger.info("Finished testCallControl");
+    }
+
+    /**
+     * A dial IQ without the required JvbRoomName header must be rejected
+     * (and the setup span failed).
+     */
+    @Test
+    public void testCallControlNoRoomName()
+        throws Exception
+    {
+        CallControl callControl = new CallControl(JigasiBundleActivator.getConfigurationService());
+        callControl.setSipGateway(osgi.getSipGateway());
+
+        DialIq dialIq = DialIq.create("sipAddress@example.com", "from");
+        dialIq.setFrom(JidCreate.from("from@example.org"));
+
+        CallContext ctx = new CallContext(this);
+        ctx.setDomain("conference.net");
+
+        assertThrows(
+            RuntimeException.class,
+            () -> callControl.handleDialIq(dialIq, ctx, null));
+    }
+
+    /**
+     * Dial requests for a disabled gateway are answered with
+     * not_acceptable.
+     */
+    @Test
+    public void testCallControlGatewayDisabled()
+        throws Exception
+    {
+        // no SipGateway and no TranscriptionGateway set
+        CallControl callControl = new CallControl(JigasiBundleActivator.getConfigurationService());
+
+        Jid from = JidCreate.from("from@example.org");
+
+        DialIq sipDial = DialIq.create("sipAddress@example.com", "from");
+        sipDial.setFrom(from);
+        sipDial.setHeader(CallControl.ROOM_NAME_HEADER, roomName);
+
+        CallContext sipCtx = new CallContext(this);
+        sipCtx.setDomain("conference.net");
+
+        RefIq sipResult = (RefIq) callControl.handleDialIq(sipDial, sipCtx, null);
+        assertEquals(
+            org.jivesoftware.smack.packet.StanzaError.Condition.not_acceptable.toString(),
+            sipResult.getUri());
+
+        DialIq transcriberDial = DialIq.create(CallControl.TRANSCRIPTION_DIAL_IQ_DESTINATION, "from");
+        transcriberDial.setFrom(from);
+        transcriberDial.setHeader(CallControl.ROOM_NAME_HEADER, roomName);
+
+        CallContext transcriberCtx = new CallContext(this);
+        transcriberCtx.setDomain("conference.net");
+
+        RefIq transcriberResult = (RefIq) callControl.handleDialIq(transcriberDial, transcriberCtx, null);
+        assertEquals(
+            org.jivesoftware.smack.packet.StanzaError.Condition.not_acceptable.toString(),
+            transcriberResult.getUri());
+    }
+
+    /**
+     * Test covers a dial-in whose SIP INVITE carries a W3C Traceparent
+     * header (e.g. from VoxImplant): the call setup span must join the
+     * upstream trace.
+     */
+    @Test
+    public void testIncomingCallWithTraceparentHeader()
+        throws Exception
+    {
+        logger.info("Starting testIncomingCallWithTraceparentHeader");
+
+        focus.setup();
+
+        String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Traceparent", "00-" + traceId + "-00f067aa0ba902b7-01");
+
+        MockCall sipCall
+            = sipProvider.getTelephony()
+                    .mockIncomingGatewayCall("calee", roomName, headers);
+
+        CallStateListener callStateWatch = new CallStateListener();
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
+
+        SipGatewaySession session
+            = osgi.getSipGateway().getActiveSessions().get(0);
+
+        CallContext ctx = session.getCallContext();
+        assertNotNull(ctx.getSetupSpan());
+        assertEquals(traceId, ctx.getSetupSpan().getSpanContext().getTraceId());
+
+        CallManager.hangupCall(sipCall);
+        callStateWatch.waitForState(
+            session.getJvbCall(), CallState.CALL_ENDED, 1000);
+
+        logger.info("Finished testIncomingCallWithTraceparentHeader");
     }
 
     /**

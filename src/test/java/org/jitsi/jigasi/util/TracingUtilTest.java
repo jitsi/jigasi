@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import io.opentelemetry.api.trace.*;
 import io.opentelemetry.context.*;
+import org.jitsi.xmpp.extensions.*;
+import org.jitsi.xmpp.extensions.rayo.*;
 import org.junit.jupiter.api.*;
 
 /**
@@ -75,5 +77,60 @@ public class TracingUtilTest
         assertNotNull(span);
 
         assertEquals(header, TracingUtil.toW3CHeader(span.getSpanContext()));
+    }
+
+    @Test
+    public void testMalformedTraceFlagsFallBackToDefault()
+    {
+        // valid ids, garbage flags: the context must still parse
+        Context context = TracingUtil.remoteContextFromW3CHeader(
+            "00-" + TRACE_ID + "-" + SPAN_ID + "-zz");
+
+        Span span = Span.fromContextOrNull(context);
+        assertNotNull(span);
+        assertEquals(TRACE_ID, span.getSpanContext().getTraceId());
+    }
+
+    @Test
+    public void testRemoteContextFromIq()
+    {
+        DialIq iq = DialIq.create("destination", "source");
+
+        // no traceparent extension -> root context
+        assertNull(Span.fromContextOrNull(TracingUtil.remoteContextFromIq(iq)));
+
+        iq.addExtension(new TraceParent(TRACE_ID, SPAN_ID, "01"));
+
+        Span span = Span.fromContextOrNull(TracingUtil.remoteContextFromIq(iq));
+        assertNotNull(span);
+        assertEquals(TRACE_ID, span.getSpanContext().getTraceId());
+        assertEquals(SPAN_ID, span.getSpanContext().getSpanId());
+
+        // invalid ids in the extension -> root context
+        DialIq badIq = DialIq.create("destination", "source");
+        badIq.addExtension(new TraceParent("invalid", "invalid", "01"));
+        assertNull(Span.fromContextOrNull(TracingUtil.remoteContextFromIq(badIq)));
+    }
+
+    @Test
+    public void testAttachTraceParent()
+    {
+        Span remoteSpan = Span.wrap(
+            SpanContext.createFromRemoteParent(
+                TRACE_ID, SPAN_ID, TraceFlags.getSampled(), TraceState.getDefault()));
+
+        DialIq iq = DialIq.create("destination", "source");
+        TracingUtil.attachTraceParent(iq, remoteSpan);
+
+        TraceParent extension = iq.getExtension(TraceParent.class);
+        assertNotNull(extension);
+        assertEquals(TRACE_ID, extension.getTraceId());
+        assertEquals(SPAN_ID, extension.getParentId());
+
+        // a null span or an invalid span context must not add an extension
+        DialIq noSpanIq = DialIq.create("destination", "source");
+        TracingUtil.attachTraceParent(noSpanIq, null);
+        TracingUtil.attachTraceParent(noSpanIq, Span.getInvalid());
+        assertNull(noSpanIq.getExtension(TraceParent.class));
     }
 }

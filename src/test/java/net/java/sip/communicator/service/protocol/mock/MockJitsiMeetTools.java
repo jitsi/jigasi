@@ -57,6 +57,13 @@ public class MockJitsiMeetTools
                 .mockIncomingGatewayCall(uri, roomName);
     }
 
+    public MockCall mockIncomingGatewayCall(
+        String uri, String roomName, Map<String, String> headers)
+    {
+        return protocolProvider.getTelephony()
+                .mockIncomingGatewayCall(uri, roomName, headers);
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -85,11 +92,20 @@ public class MockJitsiMeetTools
      */
     public void notifyJoinJitsiMeetRoom(Call call, String jitsiMeetRoom)
     {
+        notifyJoinJitsiMeetRoom(call, jitsiMeetRoom, new HashMap<>());
+    }
+
+    /**
+     * Notifies all registered {@link JitsiMeetRequestListener} about incoming
+     * call, passing the given map of INVITE headers.
+     */
+    public void notifyJoinJitsiMeetRoom(
+        Call call, String jitsiMeetRoom, Map<String, String> headers)
+    {
         boolean handled = false;
         for (JitsiMeetRequestListener l : requestHandlers)
         {
-            l.onJoinJitsiMeetRequest(
-                call, jitsiMeetRoom, new HashMap<>());
+            l.onJoinJitsiMeetRequest(call, jitsiMeetRoom, headers);
             handled = true;
         }
         if (!handled)

@@ -125,6 +125,12 @@ public class MockBasicTeleOpSet
 
     public MockCall mockIncomingGatewayCall(String uri, final String roomName)
     {
+        return mockIncomingGatewayCall(uri, roomName, new HashMap<>());
+    }
+
+    public MockCall mockIncomingGatewayCall(
+        String uri, final String roomName, Map<String, String> headers)
+    {
         final MockCall call = createIncomingCall(uri);
 
         // Gateway incoming call looks at the beginning like normal call,
@@ -135,7 +141,7 @@ public class MockBasicTeleOpSet
         {
             getProtocolProvider()
                 .getJitsiMeetTools()
-                .notifyJoinJitsiMeetRoom(call, roomName);
+                .notifyJoinJitsiMeetRoom(call, roomName, headers);
         }
 
         return call;
