@@ -2069,11 +2069,17 @@ public class JvbConference
         ConferenceIq focusInviteIQ = new ConferenceIq();
         focusInviteIQ.setRoom(roomIdentifier);
 
-        // propagate our tracing context so jicofo can join the trace
+        // propagate our tracing context so jicofo can join the trace, both
+        // as a traceparent extension and as a conference property in W3C
+        // format (ConferenceIqProvider only parses property children, so
+        // only the property form survives parsing today)
         Span setupSpan = callContext.getSetupSpan();
-        if (setupSpan != null)
+        if (setupSpan != null && setupSpan.getSpanContext().isValid())
         {
             TracingUtil.attachTraceParent(focusInviteIQ, setupSpan);
+            focusInviteIQ.addProperty(
+                "traceparent",
+                TracingUtil.toW3CHeader(setupSpan.getSpanContext()));
         }
 
         if (JigasiBundleActivator.isSipVisitorsEnabled() && !this.isTranscriber)
