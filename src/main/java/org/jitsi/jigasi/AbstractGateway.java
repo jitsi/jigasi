@@ -147,6 +147,10 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
      */
     void notifyCallEnded(CallContext callContext)
     {
+        // no-op if the setup span already ended (i.e. the call was
+        // established and this is a normal teardown)
+        callContext.failSetupSpan("call ended during setup");
+
         T session;
 
         synchronized (sessions)

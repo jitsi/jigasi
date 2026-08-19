@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import io.opentelemetry.api.trace.Span;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
@@ -1129,6 +1130,8 @@ public class JvbConference
                 setPresenceStatus(gatewaySession.getDefaultInitStatus());
             }
 
+            callContext.traceEvent("muc.joined");
+
             gatewaySession.notifyJvbRoomJoined();
 
             if (websocketClient != null)
@@ -1218,6 +1221,8 @@ public class JvbConference
                                     logger.info("Lobby enabled by moderator! Will try to join lobby!");
 
                                     this.lobby.join();
+
+                                    this.callContext.traceEvent("lobby.joined");
 
                                     this.setLobbyEnabled(true);
 
@@ -1804,6 +1809,7 @@ public class JvbConference
             if (jvbCall.getCallState() == CallState.CALL_IN_PROGRESS)
             {
                 logger.info("JVB conference call IN_PROGRESS.");
+                callContext.traceEvent("jvb.call.established");
                 gatewaySession.onJvbCallEstablished();
 
                 AudioModeration avMod = JvbConference.this.getAudioModeration();
@@ -2063,6 +2069,13 @@ public class JvbConference
         ConferenceIq focusInviteIQ = new ConferenceIq();
         focusInviteIQ.setRoom(roomIdentifier);
 
+        // propagate our tracing context so jicofo can join the trace
+        Span setupSpan = callContext.getSetupSpan();
+        if (setupSpan != null)
+        {
+            TracingUtil.attachTraceParent(focusInviteIQ, setupSpan);
+        }
+
         if (JigasiBundleActivator.isSipVisitorsEnabled() && !this.isTranscriber)
         {
             focusInviteIQ.addProperty("visitors-version", "1");
@@ -2093,6 +2106,8 @@ public class JvbConference
             {
                 collector = getConnection().createStanzaCollectorAndSend(focusInviteIQ);
                 ConferenceIq res = collector.nextResultOrThrow();
+
+                callContext.traceEvent("focus.invited");
 
                 if (visitorsQueueServiceUrl != null)
                 {

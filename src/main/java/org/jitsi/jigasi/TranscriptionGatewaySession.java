@@ -270,6 +270,16 @@ public class TranscriptionGatewaySession
     }
 
     @Override
+    public void onJvbCallEstablished()
+    {
+        super.onJvbCallEstablished();
+
+        // the transcriber has no SIP leg, setup is complete once the JVB
+        // call is up
+        this.callContext.endSetupSpan();
+    }
+
+    @Override
     void onJvbConferenceStopped(JvbConference jvbConference,
                                 int reasonCode, String reason)
     {

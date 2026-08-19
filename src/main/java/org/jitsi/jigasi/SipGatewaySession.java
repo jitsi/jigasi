@@ -17,6 +17,7 @@
  */
 package org.jitsi.jigasi;
 
+import io.opentelemetry.api.trace.Span;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
@@ -642,6 +643,7 @@ public class SipGatewaySession
             try
             {
                 this.sipCall = tele.createCall(outboundPrefix + destination);
+                callContext.traceEvent("sip.invite.sent");
                 this.initSipCall();
 
                 if (jvbConferenceCall != null)
@@ -762,6 +764,8 @@ public class SipGatewaySession
                         .getAccountPropertyString(CallContext.MUC_DOMAIN_PREFIX_PROP, null));
                     callContext.setRequestVisitor(Boolean.parseBoolean(data.get(visitorHeaderName)));
 
+                    startDialInSpan(data);
+
                     joinJvbConference(callContext);
                 }
                 else
@@ -775,6 +779,41 @@ public class SipGatewaySession
         {
             logger.error("Malformed JVB room name provided:" + room, e);
         }
+    }
+
+    /**
+     * Starts the tracing span covering this dial-in call setup and stores it
+     * in the call context. If the SIP INVITE carried a W3C trace context
+     * header (<tt>Traceparent</tt> or <tt>X-Traceparent</tt>, e.g. from
+     * VoxImplant or another SIP frontend), the span joins that trace.
+     * A no-op span is used when tracing is disabled.
+     *
+     * @param data the map of headers received with the SIP INVITE.
+     */
+    private void startDialInSpan(Map<String, String> data)
+    {
+        String traceParentValue = null;
+        for (Map.Entry<String, String> entry : data.entrySet())
+        {
+            String name = entry.getKey();
+            if (TracingUtil.TRACEPARENT_HEADER.equalsIgnoreCase(name)
+                || "Traceparent".equalsIgnoreCase(name))
+            {
+                traceParentValue = entry.getValue();
+                break;
+            }
+        }
+
+        Span setupSpan = TracingUtil.getTracer().spanBuilder("dial.in")
+            .setParent(
+                TracingUtil.remoteContextFromW3CHeader(traceParentValue))
+            .setAttribute("room.id",
+                Objects.toString(callContext.getRoomJid()))
+            .setAttribute("ctx.id", callContext.getCtxId())
+            .setAttribute("dial.type", "sip")
+            .startSpan();
+
+        callContext.setSetupSpan(setupSpan);
     }
 
     /**
@@ -1505,6 +1544,15 @@ public class SipGatewaySession
             {
                 logger.info("Sip call IN_PROGRESS: " + call);
                 logger.info("SIP call format used: " + Util.getFirstPeerMediaFormat(call));
+
+                CallContext ctx = callContext;
+                if (ctx != null)
+                {
+                    // both legs are up (the SIP leg connects last), call
+                    // setup is complete
+                    ctx.traceEvent("sip.call.established");
+                    ctx.endSetupSpan();
+                }
 
                 if (jvbConference.getAudioModeration() != null)
                 {

@@ -226,7 +226,10 @@ public class JigasiBundleActivator
         {
             if (isSipStartMutedEnabled())
             {
-                MuteIqProvider.registerMuteIqProvider();
+                ProviderManager.addIQProvider(
+                    MuteIq.ELEMENT,
+                    MuteIq.NAMESPACE,
+                    new MuteIqProvider());
             }
 
             // recording status, to detect recording start/stop
@@ -290,6 +293,12 @@ public class JigasiBundleActivator
 
         // Register Rayo IQs
         new RayoIqProvider().registerRayoIQs();
+
+        // Register the traceparent extension used for distributed tracing.
+        ProviderManager.addExtensionProvider(
+            TraceParent.ELEMENT,
+            TraceParent.NAMESPACE,
+            new TraceParentProvider());
 
         bundleContext.addServiceListener(this);
 
