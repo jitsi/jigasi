@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import org.jitsi.jigasi.lobby.*;
@@ -99,15 +101,15 @@ public abstract class AbstractGatewaySession
     }
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * @return an <tt>ObjectNode</tt> instance that holds debug
      * information for this instance.
      */
-    public OrderedJsonObject getDebugState()
+    public ObjectNode getDebugState()
     {
-        OrderedJsonObject debugState = new OrderedJsonObject();
+        ObjectNode debugState = JsonNodeFactory.instance.objectNode();
         if (jvbConference != null)
         {
-            debugState.put("jvbConference", jvbConference.getDebugState());
+            debugState.set("jvbConference", jvbConference.getDebugState());
         }
         return debugState;
     }

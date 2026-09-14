@@ -21,11 +21,26 @@
     <junit.version>5.8.2</junit.version>
     <smack.version>4.4.8-jitsi-4</smack.version>
     <jxmppVersion>1.0.3</jxmppVersion>
-    <jicoco.version>1.1-178-ga09ed33</jicoco.version>
+    <jicoco.version>1.1-179-g52cf6ef</jicoco.version>
+    <jitsi-utils.version>1.0-153-gd5c0102</jitsi-utils.version>
+    <jackson.version>2.21.5</jackson.version>
+    <kotlin.version>2.4.20</kotlin.version>
     <!-- Match jicoco's jetty version. -->
     <jetty.version>12.0.35</jetty.version>
     <oci-sdk.version>3.86.1</oci-sdk.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -204,9 +219,32 @@
       <version>${jitsi-desktop.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Runtime for the Kotlin-based jitsi libraries; declared so the version matches the compiler they were built
+           with rather than whichever transitive copy Maven finds first. -->
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
+      <exclusions>
+        <!-- json-simple 1.1.1 incorrectly lists junit as a compile dependency. -->
+        <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-147-g12d0b20</version>
+      <version>${jitsi-utils.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -221,7 +259,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>ice4j</artifactId>
-      <version>3.0-72-g824cd4b</version>
+      <version>3.2-19-gccf6bd6</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sip</groupId>
@@ -356,7 +394,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-xmpp-extensions</artifactId>
-      <version>1.0-119-gc67bc81</version>
+      <version>1.0-124-g024f15d</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

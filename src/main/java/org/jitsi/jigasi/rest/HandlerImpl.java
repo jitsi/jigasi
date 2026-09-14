@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi.rest;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -292,17 +294,17 @@ public class HandlerImpl
             HttpServletResponse response)
         throws IOException
     {
-        OrderedJsonObject debugState = new OrderedJsonObject();
-        JSONObject gatewaysJson = new JSONObject();
-        debugState.put("gateways", gatewaysJson);
+        ObjectNode debugState = JsonNodeFactory.instance.objectNode();
+        ObjectNode gatewaysJson = JsonNodeFactory.instance.objectNode();
+        debugState.set("gateways", gatewaysJson);
         List<AbstractGateway> gateways
             = JigasiBundleActivator.getAvailableGateways();
-        gateways.forEach(gw -> gatewaysJson.put(gw.hashCode(), gw.getDebugState()));
+        gateways.forEach(gw -> gatewaysJson.set(String.valueOf(gw.hashCode()), gw.getDebugState()));
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
-        out.print(debugState.toJSONString());
+        out.print(debugState.toString());
     }
 
     /**

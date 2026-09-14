@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import net.java.sip.communicator.service.protocol.*;
 
 import org.jitsi.utils.*;
@@ -117,14 +119,14 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
     public abstract boolean isReady();
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * @return an <tt>ObjectNode</tt> instance that holds debug
      * information for this instance.
      */
-    public OrderedJsonObject getDebugState()
+    public ObjectNode getDebugState()
     {
-        OrderedJsonObject debugState = new OrderedJsonObject();
-        OrderedJsonObject sessionsJson = new OrderedJsonObject();
-        debugState.put("sessions", sessionsJson);
+        ObjectNode debugState = JsonNodeFactory.instance.objectNode();
+        ObjectNode sessionsJson = JsonNodeFactory.instance.objectNode();
+        debugState.set("sessions", sessionsJson);
         synchronized (sessions)
         {
             sessions.forEach((callContext, session) -> {
@@ -133,7 +135,7 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
                 {
                     displayName = Integer.toString(session.hashCode());
                 }
-                sessionsJson.put(displayName, session.getDebugState());
+                sessionsJson.set(displayName, session.getDebugState());
             });
         }
 

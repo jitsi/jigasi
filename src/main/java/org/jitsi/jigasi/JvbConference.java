@@ -17,6 +17,8 @@
  */
 package org.jitsi.jigasi;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.api.trace.Span;
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.service.protocol.*;
@@ -1604,12 +1606,12 @@ public class JvbConference
     }
 
     /**
-     * @return an <tt>OrderedJsonObject</tt> instance that holds debug
+     * @return an <tt>ObjectNode</tt> instance that holds debug
      * information for this instance.
      */
-    public OrderedJsonObject getDebugState()
+    public ObjectNode getDebugState()
     {
-        OrderedJsonObject debugState = new OrderedJsonObject();
+        ObjectNode debugState = JsonNodeFactory.instance.objectNode();
         String meetingUrl = getMeetingUrl();
         if (StringUtils.isNotEmpty(meetingUrl))
         {
