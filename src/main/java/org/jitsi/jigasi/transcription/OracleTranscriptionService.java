@@ -92,6 +92,9 @@ public class OracleTranscriptionService
     public final static String OCI_INTERIM_THRESHOLD_MS
             = "org.jitsi.jigasi.transcription.oci.interimThresholdMs";
 
+    public final static String MODEL_DOMAIN
+            = "org.jitsi.jigasi.transcription.oci.modelDomain";
+
     public final static String DEFAULT_WEBSOCKET_URL = "ws://localhost:8000/ws";
 
     private BasicAuthenticationDetailsProvider authProvider;
@@ -104,6 +107,11 @@ public class OracleTranscriptionService
      * The config value of the websocket to the speech-to-text service.
      */
     private final String websocketUrlConfig;
+
+    /**
+     * The OCI model domain (GENERIC or MEDICAL). Null means the API default (GENERIC).
+     */
+    private final RealtimeParameters.ModelDomain modelDomain;
 
     /**
      * The final threshold in milliseconds
@@ -132,6 +140,22 @@ public class OracleTranscriptionService
         {
             logger.error("Missing OCI compartment ID");
             isConfiguredProperly = false;
+        }
+
+        String modelDomainConfig = JigasiBundleActivator.getConfigurationService()
+                .getString(MODEL_DOMAIN, null);
+        if (modelDomainConfig != null)
+        {
+            RealtimeParameters.ModelDomain parsed = RealtimeParameters.ModelDomain.create(modelDomainConfig);
+            if (parsed == null)
+            {
+                logger.warn("Unknown OCI modelDomain value '" + modelDomainConfig + "', using API default (GENERIC)");
+            }
+            modelDomain = parsed;
+        }
+        else
+        {
+            modelDomain = null;
         }
     }
 
@@ -247,11 +271,19 @@ public class OracleTranscriptionService
 
             languageCode = request.getLocale().toLanguageTag();
 
+            if (modelDomain == RealtimeParameters.ModelDomain.Medical
+                    && !request.getLocale().getLanguage().equals("en"))
+            {
+                logger.warn("OCI MEDICAL model domain only supports English (en-*). "
+                        + "Current language: " + languageCode + ". The request will likely fail.");
+            }
+
             final RealtimeParameters realtimeClientParameters = RealtimeParameters.builder()
                     .isAckEnabled(false)
                     .languageCode(languageCode)
                     .partialSilenceThresholdInMs(interimThresholdMs)
                     .finalSilenceThresholdInMs(finalThresholdMs)
+                    .modelDomain(modelDomain)
                     .build();
             try
             {
