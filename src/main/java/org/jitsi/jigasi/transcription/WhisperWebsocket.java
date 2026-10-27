@@ -56,6 +56,14 @@ public class WhisperWebsocket
 
     private Map<String, UUID> participantTranscriptionIds= new ConcurrentHashMap<>();
 
+    private final Set<String> activeParticipantIds = ConcurrentHashMap.newKeySet();
+
+    private volatile boolean eofSent = false;
+
+    private Consumer<Boolean> disconnectCallback = null;
+
+    private final static long EOF_WAIT_TIMEOUT_MS = 5000L;
+
     private static final int maxRetryAttempts = 3;
 
 
@@ -217,6 +225,7 @@ public class WhisperWebsocket
                 ws = localWs;
                 isConnected = true;
                 reconnecting = false;
+                eofSent = false;
                 logger.info("Successfully connected to " + websocketUrl);
                 break;
             }
@@ -284,12 +293,12 @@ public class WhisperWebsocket
     @OnWebSocketClose
     public synchronized void onClose(int statusCode, String reason)
     {
-        logger.error("Websocket closed: " + statusCode + " reason:" + reason
+        logger.info("Websocket closed: " + statusCode + " reason:" + reason
             + " isRunning: " + isRunning() + " isOpen:" + (wsSession != null && wsSession.isOpen()));
 
         if (isRunning())
         {
-            // let's try to reconnect
+            // let's try to reconnect if this was an unexpected disconnect
             if ((wsSession != null && !wsSession.isOpen()) || (statusCode > 1000 && statusCode < 2000))
             {
                 reconnect();
@@ -298,11 +307,47 @@ public class WhisperWebsocket
             }
         }
 
+        // Notify all remaining participant listeners that transcription has completed
+        if (participantListeners != null)
+        {
+            for (Set<TranscriptionListener> listeners : participantListeners.values())
+            {
+                if (listeners != null)
+                {
+                    for (TranscriptionListener l : listeners)
+                    {
+                        try
+                        {
+                            l.completed();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.error("Error notifying listener completed", ex);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (disconnectCallback != null)
+        {
+            try
+            {
+                disconnectCallback.accept(true);
+            }
+            catch (Exception ex)
+            {
+                logger.error("Error executing disconnect callback", ex);
+            }
+            disconnectCallback = null;
+        }
+
         wsSession = null;
         participants = null;
         participantListeners = null;
         participantTranscriptionStarts = null;
         participantTranscriptionIds = null;
+        activeParticipantIds.clear();
 
         threadPool.submit(this::stopWebSocketClient);
     }
@@ -468,27 +513,89 @@ public class WhisperWebsocket
                 return;
             }
 
-            if (participants.containsKey(participantId))
+            if (activeParticipantIds.contains(participantId))
             {
-                participants.remove(participantId);
-                participantListeners.remove(participantId);
-                logger.info("Disconnected " + participantId);
+                activeParticipantIds.remove(participantId);
+                logger.info("Disconnected participant " + participantId);
             }
 
-            if (participants.isEmpty())
+            if (!activeParticipantIds.isEmpty())
             {
-                logger.info("All participants have left, disconnecting from Whisper transcription server.");
+                // Other participants are still active in the meeting.
+                // Complete this participant and free resources.
+                participants.remove(participantId);
+                Set<TranscriptionListener> partListeners = participantListeners.remove(participantId);
+                if (partListeners != null)
+                {
+                    for (TranscriptionListener l : partListeners)
+                    {
+                        try
+                        {
+                            l.completed();
+                        }
+                        catch (Exception e)
+                        {
+                            logger.error("Error notifying participant listener completed", e);
+                        }
+                    }
+                }
+                callback.accept(false);
+                return;
+            }
 
-                wsSession.sendBinary(EOF_MESSAGE, Callback.from(
-                    () -> {},
-                    cause -> logger.error("Error while finalizing websocket connection for participant "
-                            + participantId, cause)));
+            // All participants have left
+            if (!eofSent)
+            {
+                eofSent = true;
+                disconnectCallback = callback;
+                logger.info("All participants have left, sending EOF to Whisper transcription server.");
 
-                wsSession.disconnect();
+                if (wsSession != null && wsSession.isOpen())
+                {
+                    wsSession.sendBinary(EOF_MESSAGE, Callback.from(
+                        () -> logger.debug("Sent EOF message to Whisper server."),
+                        cause -> logger.error("Error while sending EOF to Whisper server for participant "
+                                + participantId, cause)));
+
+                    // Give server time to flush pending transcriptions and close cleanly.
+                    // If the server does not close within the timeout, close gracefully from client side.
+                    threadPool.submit(() ->
+                    {
+                        try
+                        {
+                            Thread.sleep(EOF_WAIT_TIMEOUT_MS);
+                        }
+                        catch (InterruptedException ignored)
+                        {
+                            Thread.currentThread().interrupt();
+                        }
+                        synchronized (WhisperWebsocket.this)
+                        {
+                            if (wsSession != null && wsSession.isOpen())
+                            {
+                                logger.warn("Whisper server did not close connection after EOF within timeout, closing now.");
+                                try
+                                {
+                                    wsSession.close();
+                                }
+                                catch (Exception e)
+                                {
+                                    logger.error("Error closing websocket on EOF timeout", e);
+                                    wsSession.disconnect();
+                                }
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    callback.accept(true);
+                }
+            }
+            else
+            {
                 callback.accept(true);
             }
-
-            callback.accept(false);
         }
     }
 
@@ -526,6 +633,7 @@ public class WhisperWebsocket
                 participants.put(participantId, participant);
                 participantListeners.put(participantId, new HashSet<>());
             }
+            activeParticipantIds.add(participantId);
         }
     }
 
@@ -554,6 +662,6 @@ public class WhisperWebsocket
      */
     private boolean isRunning()
     {
-        return participants != null && !participants.isEmpty();
+        return !eofSent && participants != null && !participants.isEmpty();
     }
 }
