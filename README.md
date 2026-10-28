@@ -141,6 +141,17 @@ org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true
 
 Configure a transcription provider(Google, Vosk etc.) and restart jigasi.
 
+The amount of audio buffered for each participant before it is sent to the
+transcription service can be configured in `sip-communicator.properties`:
+
+```
+org.jitsi.jigasi.transcription.AUDIO_BUFFER_MS=500
+```
+
+The default is 500 ms, preserving the existing buffering intent while sizing
+the buffer from the participant's audio format. Set it to `0` to send each
+packet as it arrives; values above 2000 ms are capped.
+
 
 Jigasi supports multiple transcription services, including Google Cloud speech-to-text
 API, Vosk speech recognition server, a custom flavor of Whisper
