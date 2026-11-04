@@ -287,15 +287,39 @@ public class TranscriptionGatewaySession
         // instead of when transcription is over.
         // Need a solution for stopping the transcription earlier
 
+        // When conference stops, trigger participantLeft for any remaining active participants
+        for (Participant p : transcriber.getParticipants())
+        {
+            if (!p.isCompleted())
+            {
+                transcriber.participantLeft(p.getIdentifier());
+            }
+        }
+
         // The conference is over, make sure the transcriber stops
         if (!transcriber.finished())
         {
             transcriber.stop(null);
 
-            for (TranscriptPublisher.Promise promise : finalTranscriptPromises)
+            // Wait up to 5 seconds for finishingUp to complete gracefully
+            try
             {
-                promise.publish(transcriber.getTranscript());
+                long waitDeadline = System.currentTimeMillis() + 5000L;
+                while (!transcriber.finished() && System.currentTimeMillis() < waitDeadline)
+                {
+                    Thread.sleep(100L);
+                }
             }
+            catch (InterruptedException ignored)
+            {
+                Thread.currentThread().interrupt();
+            }
+
+            publishFinalTranscript();
+        }
+        else
+        {
+            publishFinalTranscript();
         }
 
         this.gateway.notifyCallEnded(this.callContext);
@@ -505,11 +529,15 @@ public class TranscriptionGatewaySession
     @Override
     public void completed()
     {
-        // FIXME: 19/07/17 Insert link!
-        // FIXME: 23/07/17 This will actually never be seen as there is no way
-        // to stop transcription before jigasi leaves conference
-//        sendMessageToRoom("The complete transcription can be " +
-//                "found at <insert_link_here>");
+        publishFinalTranscript();
+    }
+
+    private synchronized void publishFinalTranscript()
+    {
+        for (TranscriptPublisher.Promise promise : finalTranscriptPromises)
+        {
+            promise.publish(transcriber.getTranscript());
+        }
     }
 
     @Override
