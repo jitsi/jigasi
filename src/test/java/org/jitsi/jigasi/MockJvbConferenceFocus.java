@@ -133,8 +133,9 @@ public class MockJvbConferenceFocus
             = (MockBasicTeleOpSet) member.getProtocolProvider()
                     .getOperationSet(OperationSetBasicTelephony.class);
 
+        // Mimic the focus sending the session-initiate from its occupant JID in the room (<room JID>/<focus>).
         xmppCall
-            = xmppTele.createIncomingCall(myMember.getName());
+            = xmppTele.createIncomingCall(roomName + "/" + myName);
 
         logger.info(
             myName + " is inviting " + member.getName()
