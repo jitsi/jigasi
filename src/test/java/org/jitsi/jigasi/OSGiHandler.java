@@ -99,11 +99,33 @@ public class OSGiHandler
                 + ")"
                 + "(" + ProtocolProviderFactory.USER_ID
                 + "=sipuser@sipserver.net))";
-        var ref = bc.getServiceReferences(ProtocolProviderService.class, filter)
-            .stream()
-            .findFirst()
-            .orElseThrow();
-        return (MockProtocolProvider) bc.getService(ref);
+        // MockSipActivator is a DependentActivator, so the provider is registered asynchronously and may not be
+        // available the moment the framework becomes active. Wait for it instead of failing on the first miss.
+        var deadline = System.currentTimeMillis() + 5000;
+        do
+        {
+            var ref = bc.getServiceReferences(ProtocolProviderService.class, filter)
+                .stream()
+                .findFirst()
+                .orElse(null);
+            if (ref != null)
+            {
+                return (MockProtocolProvider) bc.getService(ref);
+            }
+
+            try
+            {
+                Thread.sleep(50);
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        while (System.currentTimeMillis() < deadline);
+
+        throw new NoSuchElementException("SIP provider was not registered");
     }
 
     public SipGateway getSipGateway()
