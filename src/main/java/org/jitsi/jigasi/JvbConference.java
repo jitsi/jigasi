@@ -1681,6 +1681,33 @@ public class JvbConference
         xmppInvokeQueue.add(() -> this.gatewaySession.onJSONReceived(callPeer, jsonObject, parameters));
     }
 
+    /**
+     * Checks whether an incoming call (a jingle session-initiate) was sent by the conference focus. The focus sends it
+     * from its occupant JID in our room, so the sender must be &lt;our room JID&gt;/&lt;focus resource&gt;. We compare
+     * the whole JID, not only the resource part as before: the resource is just the nickname and does not prove the
+     * sender is actually in the room, whereas a sender outside the room cannot use our room's JID.
+     *
+     * @param senderJid the full JID that sent the invite, or <tt>null</tt> when it could not be obtained
+     * @return <tt>true</tt> when the invite comes from the conference focus
+     */
+    private boolean isInviteFromFocus(Jid senderJid)
+    {
+        if (senderJid == null)
+        {
+            return false;
+        }
+
+        Resourcepart resource = senderJid.getResourceOrNull();
+        if (resource == null || !resource.toString().equals(gatewaySession.getFocusResourceAddr()))
+        {
+            return false;
+        }
+
+        EntityBareJid roomJid = this.callContext.getRoomJid();
+
+        return roomJid != null && senderJid.asBareJid().equals(roomJid);
+    }
+
     private class JvbCallListener
         implements CallListener
     {
@@ -1693,24 +1720,26 @@ public class JvbConference
         private void incomingCallReceivedInternal(CallEvent event)
         {
             CallPeer peer = event.getSourceCall().getCallPeers().next();
-            String peerAddress;
+            Jid peerJid = null;
             if (peer == null || peer.getAddress() == null)
             {
                 logger.error(" Failed to obtain focus peer address");
-                peerAddress = null;
             }
             else
             {
-                String fullAddress = peer.getAddress();
-                peerAddress
-                    = fullAddress.substring(
-                            fullAddress.indexOf("/") + 1);
+                try
+                {
+                    peerJid = JidCreate.from(peer.getAddress());
+                }
+                catch (XmppStringprepException e)
+                {
+                    logger.error("Failed to parse the invite sender address: " + peer.getAddress(), e);
+                }
 
-                logger.info("Got invite from " + peerAddress);
+                logger.info("Got invite from " + peerJid);
             }
 
-            if (peerAddress == null
-                || !peerAddress.equals(gatewaySession.getFocusResourceAddr()))
+            if (!isInviteFromFocus(peerJid))
             {
                 if (logger.isTraceEnabled())
                 {
