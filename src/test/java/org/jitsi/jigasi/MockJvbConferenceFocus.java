@@ -51,6 +51,12 @@ public class MockJvbConferenceFocus
 
     private boolean leaveRoomAfterInvite;
 
+    /**
+     * When set, the session-initiate is sent from this JID instead of the focus occupant JID of the room. Used by the
+     * tests to exercise the reject path (an invite that does not come from the focus).
+     */
+    private String inviteFrom;
+
     public MockJvbConferenceFocus(String roomName)
     {
         this.roomName = roomName;
@@ -134,8 +140,9 @@ public class MockJvbConferenceFocus
                     .getOperationSet(OperationSetBasicTelephony.class);
 
         // Mimic the focus sending the session-initiate from its occupant JID in the room (<room JID>/<focus>).
+        String from = inviteFrom != null ? inviteFrom : roomName + "/" + myName;
         xmppCall
-            = xmppTele.createIncomingCall(roomName + "/" + myName);
+            = xmppTele.createIncomingCall(from);
 
         logger.info(
             myName + " is inviting " + member.getName()
@@ -224,5 +231,10 @@ public class MockJvbConferenceFocus
     public void setLeaveRoomAfterInvite(boolean leaveRoomAfterInvite)
     {
         this.leaveRoomAfterInvite = leaveRoomAfterInvite;
+    }
+
+    public void setInviteFrom(String inviteFrom)
+    {
+        this.inviteFrom = inviteFrom;
     }
 }

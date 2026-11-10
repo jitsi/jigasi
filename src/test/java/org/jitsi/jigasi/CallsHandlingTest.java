@@ -332,6 +332,63 @@ public class CallsHandlingTest
     }
 
     @Test
+    public void testInviteFromOtherRoomIsRejected()
+        throws OperationFailedException, OperationNotSupportedException, InterruptedException
+    {
+        logger.info("Starting testInviteFromOtherRoomIsRejected");
+
+        // Correct focus resource, but a different room's JID.
+        assertInviteNotFromFocusRejected("otherroom@conference.net/focus");
+
+        logger.info("Finished testInviteFromOtherRoomIsRejected");
+    }
+
+    @Test
+    public void testInviteWithNonFocusResourceIsRejected()
+        throws OperationFailedException, OperationNotSupportedException, InterruptedException
+    {
+        logger.info("Starting testInviteWithNonFocusResourceIsRejected");
+
+        // Our room's JID, but a resource that is not the focus.
+        assertInviteNotFromFocusRejected(roomName + "/notfocus");
+
+        logger.info("Finished testInviteWithNonFocusResourceIsRejected");
+    }
+
+    /**
+     * Makes the focus send the session-initiate from {@code inviteFrom} (a JID that is not the focus of our room) and
+     * asserts that jigasi rejects it: the JVB call is hung up instead of going in progress.
+     *
+     * @param inviteFrom the JID the invite is sent from
+     */
+    private void assertInviteNotFromFocusRejected(String inviteFrom)
+        throws OperationFailedException, OperationNotSupportedException, InterruptedException
+    {
+        focus.setInviteFrom(inviteFrom);
+        focus.setup();
+
+        // The incoming SIP call makes jigasi join the room; the focus then sends the (non-focus) invite.
+        MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
+
+        // Wait for the focus to send the invite.
+        long deadline = System.currentTimeMillis() + 2000;
+        while (focus.getCall() == null && System.currentTimeMillis() < deadline)
+        {
+            Thread.sleep(50);
+        }
+        Call jvbInvite = focus.getCall();
+        assertNotNull(jvbInvite, "focus should have sent a session-initiate");
+
+        // The invite did not come from our room's focus, so it must be rejected (the call is hung up).
+        CallStateListener callStateWatch = new CallStateListener();
+        callStateWatch.waitForState(jvbInvite, CallState.CALL_ENDED, 2000);
+        assertEquals(CallState.CALL_ENDED, jvbInvite.getCallState());
+
+        // clear
+        CallManager.hangupCall(sipCall);
+    }
+
+    @Test
     public void testCallControl()
         throws Exception
     {
