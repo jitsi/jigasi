@@ -31,10 +31,11 @@ import java.util.*;
 /**
  * Monitors outgoing RTCP and passes only those which are relevant for that
  * direction. Filters outgoing RTCP.BYEs for ssrc that we haven't seen. Also
- * monitors last seen media or rtcp and if one is missing we
- * send hole punch packets. It can happen that the xmpp call is dropped and
- * the sip call participant is waiting then there will be no media ot RTCP to
- * keep alive the stream from the other side.
+ * monitors the last outgoing RTP packet and, if there is none for a while,
+ * sends hole punch packets. It can happen that the xmpp call is dropped and
+ * the sip call participant is waiting, or that everybody else in the meeting
+ * is silent, then there is no media to keep alive the stream from the other
+ * side.
  * Can be muted to stop forwarding packets coming from the sip side.
  *
  * @author Damian Minkov
@@ -65,7 +66,11 @@ public class SipCallTransformer
     private KeepAliveIncomingMedia recurringMediaChecker
         = new KeepAliveIncomingMedia(15000);
 
-    private long lastOutgoingActivity;
+    /**
+     * The time of the last outgoing RTP packet. Only RTP counts: RTCP can use
+     * a different port, so it does not keep the RTP flow alive.
+     */
+    private volatile long lastOutgoingActivity;
 
     /**
      * The peer handler for which we are adding this transformer.
@@ -151,7 +156,8 @@ public class SipCallTransformer
     /**
      * Implements {@link TransformEngine#getRTCPTransformer()}.
      * <p>
-     * This <tt>TransformEngine</tt> does not transform RTCP packets.
+     * The returned transformer removes outgoing RTCP BYE packets for SSRCs
+     * that were not seen and passes the rest unchanged.
      */
     @Override
     public PacketTransformer getRTCPTransformer()
@@ -198,7 +204,6 @@ public class SipCallTransformer
 
             if (pkt.getLength() > 0)
             {
-                lastOutgoingActivity = System.currentTimeMillis();
                 return pkt;
             }
 
@@ -207,13 +212,25 @@ public class SipCallTransformer
     }
 
     /**
-     * Called periodically to check when was the last outgoing RTP or RTCP,
+     * Returns the time of the last outgoing RTP packet.
+     *
+     * @return the time in milliseconds, or 0 if no RTP packet was sent.
+     */
+    long getLastOutgoingActivity()
+    {
+        return lastOutgoingActivity;
+    }
+
+    /**
+     * Called periodically to check when was the last outgoing RTP,
      * if it was longer than a threshold we send hole punch packets to keep
      * media, as some providers can stop media till they see something coming.
-     * In this case all web participants can be muted and the bridge will not be
-     * forwarding any media so we can stop sending any media to the sip side
+     * In this case all other participants can be muted and the bridge will not
+     * be forwarding any media so we can stop sending any media to the sip side
      * and the incoming media can stop and participants will stop hearing that
-     * side.
+     * side. A NAT in front of us can also drop the incoming media once the
+     * mapping for the RTP port expires. RTCP does not prevent that when it
+     * uses a different port.
      */
     private class KeepAliveIncomingMedia
         extends PeriodicRunnable
