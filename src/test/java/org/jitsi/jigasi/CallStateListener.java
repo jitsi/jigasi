@@ -31,7 +31,7 @@ import net.java.sip.communicator.service.protocol.event.*;
 public class CallStateListener
     extends CallChangeAdapter
 {
-    private CallState targetState;
+    private volatile CallState targetState;
 
     @Override
     public void callStateChanged(CallChangeEvent evt)
@@ -53,18 +53,28 @@ public class CallStateListener
     {
         this.targetState = targetState;
 
-        // FIXME: we can miss call state anyway ?(but timeout will release)
-        if (!targetState.equals(watchedCall.getCallState()))
+        synchronized (this)
         {
-            synchronized (this)
+            // Add the listener before checking the state, so a change that
+            // happens in between still wakes us up.
+            watchedCall.addCallChangeListener(this);
+            try
             {
-                watchedCall.addCallChangeListener(this);
+                long deadline = System.currentTimeMillis() + timeout;
+                long remaining = timeout;
 
-                this.wait(timeout);
+                while (!targetState.equals(watchedCall.getCallState())
+                    && remaining > 0)
+                {
+                    this.wait(remaining);
+                    remaining = deadline - System.currentTimeMillis();
+                }
+            }
+            finally
+            {
+                watchedCall.removeCallChangeListener(this);
             }
         }
-
-        watchedCall.removeCallChangeListener(this);
 
         assertEquals(targetState, watchedCall.getCallState());
     }

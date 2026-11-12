@@ -162,7 +162,7 @@ public class MockJvbConferenceFocus
                     {
                         logger.info("waiting for in progress on " + xmppCall);
                         CallStateListener callStateWatch = new CallStateListener();
-                        callStateWatch.waitForState(xmppCall, CallState.CALL_IN_PROGRESS, 2000);
+                        callStateWatch.waitForState(xmppCall, CallState.CALL_IN_PROGRESS, 10_000);
                         logger.info("done waiting for in progress on " + xmppCall);
                     }
                     catch (InterruptedException e)

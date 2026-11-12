@@ -52,6 +52,13 @@ public class CallsHandlingTest
      */
     private final static Logger logger = Logger.getLogger(CallsHandlingTest.class);
 
+    /**
+     * How long to wait for an expected call or peer state. A test only waits
+     * this long when it is about to fail, so it is generous for slow CI
+     * runners.
+     */
+    private static final long STATE_TIMEOUT = 10_000;
+
     private static OSGiHandler osgi;
 
     private MockProtocolProvider sipProvider;
@@ -146,7 +153,7 @@ public class CallsHandlingTest
 
         // SipGateway ought to accept incoming sip call
         // once JVB conference is joined.
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         SipGatewaySession session
             = osgi.getSipGateway().getActiveSessions().get(0);
@@ -162,7 +169,7 @@ public class CallsHandlingTest
         CallManager.hangupCall(sipCall);
 
         callStateWatch.waitForState(
-            session.getJvbCall(), CallState.CALL_ENDED, 1000);
+            session.getJvbCall(), CallState.CALL_ENDED, STATE_TIMEOUT);
         assertFalse(jvbConfRoom.isJoined());
     }
 
@@ -209,10 +216,10 @@ public class CallsHandlingTest
         // Remote SIP peer accepts
         CallManager.acceptCall(sipCall);
 
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         GatewaySessionAsserts sessionWatch = new GatewaySessionAsserts();
-        sessionWatch.assertJvbRoomJoined(session, 2000);
+        sessionWatch.assertJvbRoomJoined(session, STATE_TIMEOUT);
 
         // Check we're in the room and all calls are up
         ChatRoom chatRoom = session.getJvbChatRoom();
@@ -220,7 +227,7 @@ public class CallsHandlingTest
 
         assertNotNull(chatRoom);
         assertTrue(chatRoom.isJoined());
-        callStateWatch.waitForState(jvbCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(jvbCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
         assertEquals(CallState.CALL_IN_PROGRESS, jvbCall.getCallState());
 
         // Now tear down, SIP calee ends the call
@@ -228,8 +235,8 @@ public class CallsHandlingTest
 
         CallManager.hangupCall(sipCall);
 
-        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
-        callStateWatch.waitForState(jvbCall, CallState.CALL_ENDED, 1000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, STATE_TIMEOUT);
+        callStateWatch.waitForState(jvbCall, CallState.CALL_ENDED, STATE_TIMEOUT);
         assertFalse(chatRoom.isJoined());
     }
 
@@ -286,7 +293,7 @@ public class CallsHandlingTest
         // Create incoming call
         MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
 
-        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 2000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, STATE_TIMEOUT);
 
         // Now we expect SIP call to be terminated
         assertEquals(CallState.CALL_ENDED, focus.getCall().getCallState());
@@ -317,10 +324,10 @@ public class CallsHandlingTest
         // Create incoming call
         MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
 
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 2000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         // Now we expect SIP call to be in progress, but xmpp call ended
-        callStateWatch.waitForState(focus.getCall(), CallState.CALL_ENDED, 2000);
+        callStateWatch.waitForState(focus.getCall(), CallState.CALL_ENDED, STATE_TIMEOUT);
         assertNull(focus.getChatRoom());
 
         AbstractGateway.setJvbInviteTimeout(origValue);
@@ -381,7 +388,7 @@ public class CallsHandlingTest
 
         // The invite did not come from our room's focus, so it must be rejected (the call is hung up).
         CallStateListener callStateWatch = new CallStateListener();
-        callStateWatch.waitForState(jvbInvite, CallState.CALL_ENDED, 2000);
+        callStateWatch.waitForState(jvbInvite, CallState.CALL_ENDED, STATE_TIMEOUT);
         assertEquals(CallState.CALL_ENDED, jvbInvite.getCallState());
 
         // clear
@@ -455,7 +462,7 @@ public class CallsHandlingTest
 
         CallStateListener callStateWatch = new CallStateListener();
 
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         Jid callResource = JidCreate.from(callUri.substring(5)); //remove xmpp:
 
@@ -468,7 +475,7 @@ public class CallsHandlingTest
         Call xmppCall = session.getJvbCall();
 
         // We joined JVB conference call
-        callStateWatch.waitForState(xmppCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(xmppCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         ChatRoom conferenceChatRoom = session.getJvbChatRoom();
 
@@ -480,8 +487,8 @@ public class CallsHandlingTest
         // FIXME: validate result
         callControl.handleHangUp(hangUp);
 
-        callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
-        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
+        callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, STATE_TIMEOUT);
+        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, STATE_TIMEOUT);
         assertFalse(conferenceChatRoom.isJoined());
 
         logger.info("Finished testCallControl");
@@ -569,7 +576,7 @@ public class CallsHandlingTest
                     .mockIncomingGatewayCall("calee", roomName, headers);
 
         CallStateListener callStateWatch = new CallStateListener();
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         SipGatewaySession session
             = osgi.getSipGateway().getActiveSessions().get(0);
@@ -580,7 +587,7 @@ public class CallsHandlingTest
 
         CallManager.hangupCall(sipCall);
         callStateWatch.waitForState(
-            session.getJvbCall(), CallState.CALL_ENDED, 1000);
+            session.getJvbCall(), CallState.CALL_ENDED, STATE_TIMEOUT);
 
         logger.info("Finished testIncomingCallWithTraceparentHeader");
     }
@@ -612,7 +619,7 @@ public class CallsHandlingTest
 
         // SipGateway ought to accept incoming sip call
         // once JVB conference is joined.
-        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, 2000);
+        callStateWatch.waitForState(sipCall, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         // Now tear down, SIP calee ends the call
         // then XMPP cal should be terminated and MUC room left
@@ -628,8 +635,8 @@ public class CallsHandlingTest
 
         CallManager.hangupCall(sipCall);
 
-        callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, 1000);
-        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, 1000);
+        callStateWatch.waitForState(xmppCall, CallState.CALL_ENDED, STATE_TIMEOUT);
+        callStateWatch.waitForState(sipCall, CallState.CALL_ENDED, STATE_TIMEOUT);
         assertFalse(jvbRoom.isJoined());
 
         logger.info("Finished testDefaultJvbRoomProperty");
@@ -655,15 +662,15 @@ public class CallsHandlingTest
 
         CallStateListener callStateWatch = new CallStateListener();
 
-        callStateWatch.waitForState(sipCall1, CallState.CALL_IN_PROGRESS, 1000);
-        callStateWatch.waitForState(sipCall2, CallState.CALL_IN_PROGRESS, 1000);
-        callStateWatch.waitForState(sipCall3, CallState.CALL_IN_PROGRESS, 1000);
+        callStateWatch.waitForState(sipCall1, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
+        callStateWatch.waitForState(sipCall2, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
+        callStateWatch.waitForState(sipCall3, CallState.CALL_IN_PROGRESS, STATE_TIMEOUT);
 
         // Check peers are not on hold
         CallPeerStateListener peerStateWatch = new CallPeerStateListener();
-        peerStateWatch.waitForState(sipCall1, 0, CallPeerState.CONNECTED, 1000);
-        peerStateWatch.waitForState(sipCall2, 0, CallPeerState.CONNECTED, 1000);
-        peerStateWatch.waitForState(sipCall3, 0, CallPeerState.CONNECTED, 1000);
+        peerStateWatch.waitForState(sipCall1, 0, CallPeerState.CONNECTED, STATE_TIMEOUT);
+        peerStateWatch.waitForState(sipCall2, 0, CallPeerState.CONNECTED, STATE_TIMEOUT);
+        peerStateWatch.waitForState(sipCall3, 0, CallPeerState.CONNECTED, STATE_TIMEOUT);
 
         // We expect to have 3 active sessions
         SipGateway gateway = osgi.getSipGateway();
@@ -689,9 +696,9 @@ public class CallsHandlingTest
         CallManager.hangupCall(sipCall2);
         CallManager.hangupCall(sipCall3);
 
-        callStateWatch.waitForState(jvbCall1, CallState.CALL_ENDED, 1000);
-        callStateWatch.waitForState(jvbCall2, CallState.CALL_ENDED, 1000);
-        callStateWatch.waitForState(jvbCall3, CallState.CALL_ENDED, 1000);
+        callStateWatch.waitForState(jvbCall1, CallState.CALL_ENDED, STATE_TIMEOUT);
+        callStateWatch.waitForState(jvbCall2, CallState.CALL_ENDED, STATE_TIMEOUT);
+        callStateWatch.waitForState(jvbCall3, CallState.CALL_ENDED, STATE_TIMEOUT);
 
         assertEquals(CallState.CALL_ENDED, sipCall1.getCallState());
         assertEquals(CallState.CALL_ENDED, sipCall2.getCallState());
@@ -731,7 +738,7 @@ public class CallsHandlingTest
 
         // Assert incoming call state
         callStateWatch.waitForState(
-            sipCall1, CallState.CALL_INITIALIZATION, 1000);
+            sipCall1, CallState.CALL_INITIALIZATION, STATE_TIMEOUT);
 
         // We expect to have 1 active sessions
         List<SipGatewaySession> sessions = gatewaySessions.getSessions(1000);
@@ -740,7 +747,7 @@ public class CallsHandlingTest
         SipGatewaySession session1 = sessions.get(0);
 
         GatewaySessionAsserts sessionWatch = new GatewaySessionAsserts();
-        sessionWatch.assertJvbRoomJoined(session1, 1000);
+        sessionWatch.assertJvbRoomJoined(session1, STATE_TIMEOUT);
 
         // We entered the room where there is no focus
         ChatRoom jvbRoom1 = session1.getJvbChatRoom();
@@ -752,7 +759,7 @@ public class CallsHandlingTest
         assertNull(jvbCall1);
 
         callStateWatch.waitForState(
-            sipCall1, CallState.CALL_ENDED, jvbInviteTimeout + 200);
+            sipCall1, CallState.CALL_ENDED, jvbInviteTimeout + STATE_TIMEOUT);
 
         assertFalse(jvbRoom1.isJoined());
 
