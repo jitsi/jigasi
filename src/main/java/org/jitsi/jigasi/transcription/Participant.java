@@ -27,7 +27,6 @@ import org.jivesoftware.smack.packet.*;
 import org.jitsi.jigasi.stats.*;
 
 import javax.media.format.*;
-import java.nio.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -47,23 +46,8 @@ public class Participant
      */
     private final Logger logger;
 
-    /**
-     * The expected amount of bytes each given buffer will have. Webrtc
-     * usually has 20ms opus frames which are decoded to 2 bytes per sample
-     * and 48000Hz sampling rate, which results in 2 * 48000 = 96000 bytes
-     * per second, and because frames are 20 ms we have 1000/20 = 50
-     * packets per second. Each packet will thus contain
-     * 96000 / 50 = 1920 bytes
-     */
+    /** Default 20 ms packet size used for transcription statistics. */
     private static final int EXPECTED_AUDIO_LENGTH = 1920;
-
-    /**
-     * The size of the local buffer. A single packet is expected to contain
-     * 1920 bytes, so the size should be a multiple of 1920. Using
-     * 25 results in 20 ms * 25 packets = 500 ms of audio being buffered
-     * locally before being send to the TranscriptionService
-     */
-    private static final int BUFFER_SIZE = EXPECTED_AUDIO_LENGTH * 25;
 
     /**
      * Whether we should buffer locally before sending
@@ -120,7 +104,7 @@ public class Participant
     /**
      * A buffer which is used to locally store audio before sending
      */
-    private final ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    private final ParticipantAudioBuffer buffer;
 
     /**
      * The AudioFormat of the audio being read. It is assumed to not change
@@ -171,10 +155,30 @@ public class Participant
         this.logger = context.getLogger().createChildLogger(Participant.class.getName());
         this.identifier = identifier;
         this.transcriptionServiceName = transcriber.getTranscriptionService().getClass().getSimpleName();
+        this.buffer = new ParticipantAudioBuffer(configuredBufferMs(), this::sendRequest);
 
         if (filterAudio)
         {
             silenceFilter = new SilenceFilter();
+        }
+    }
+
+    /**
+     * Gets the configured audio buffer duration. The default keeps the
+     * existing 500 ms buffering intent while sizing the buffer to the audio
+     * format actually received.
+     */
+    private static int configuredBufferMs()
+    {
+        try
+        {
+            return JigasiBundleActivator.getConfigurationService().getInt(
+                ParticipantAudioBuffer.P_NAME_BUFFER_MS,
+                ParticipantAudioBuffer.DEFAULT_BUFFER_MS);
+        }
+        catch (RuntimeException e)
+        {
+            return ParticipantAudioBuffer.DEFAULT_BUFFER_MS;
         }
     }
 
@@ -558,7 +562,11 @@ public class Participant
             audioFormat = (AudioFormat) buffer.getFormat();
         }
 
-        byte[] audio = (byte[]) buffer.getData();
+        byte[] audio = packetBytes(buffer);
+        if (audio == null || audio.length == 0)
+        {
+            return;
+        }
 
         if (USE_LOCAL_BUFFER)
         {
@@ -568,6 +576,28 @@ public class Participant
         {
             sendRequest(audio);
         }
+    }
+
+    /**
+     * Copies the valid bytes of a packet before it is submitted to the
+     * executor, since media buffers may be reused by the caller.
+     */
+    static byte[] packetBytes(javax.media.Buffer packet)
+    {
+        Object data = packet.getData();
+        if (!(data instanceof byte[]))
+        {
+            return null;
+        }
+        byte[] bytes = (byte[]) data;
+        int offset = packet.getOffset();
+        int length = packet.getLength();
+        if (offset >= 0 && length > 0 && offset <= bytes.length
+            && length <= bytes.length - offset)
+        {
+            return Arrays.copyOfRange(bytes, offset, offset + length);
+        }
+        return null;
     }
 
     @Override
@@ -627,7 +657,7 @@ public class Participant
                    else if (silenceFilter.newSpeech())
                    {
                        // we need to cast here to keep compatability when moving between java8 and java11
-                       ((Buffer) buffer).clear();
+                       buffer.clear();
                        toBuffer = silenceFilter.getSpeechWindow();
                    }
                    else
@@ -640,22 +670,7 @@ public class Participant
                    toBuffer = audio;
                }
 
-               try
-               {
-                   buffer.put(toBuffer);
-               }
-               catch (BufferOverflowException | ReadOnlyBufferException e)
-               {
-                   sendRequest(audio);
-               }
-
-               int spaceLeft = buffer.limit() - buffer.position();
-               if (spaceLeft < EXPECTED_AUDIO_LENGTH)
-               {
-                   sendRequest(buffer.array());
-                   // we need to cast here to keep compatability when moving between java8 and java11
-                   ((Buffer) buffer).clear();
-               }
+               buffer.add(audioFormat, toBuffer);
            });
     }
 
@@ -798,10 +813,7 @@ public class Participant
 
     public void flushBuffer()
     {
-        transcriber.executorService.execute(() -> {
-            sendRequest(buffer.array());
-            ((Buffer) buffer).clear();
-        });
+        transcriber.executorService.execute(buffer::flush);
     }
 
     /**
