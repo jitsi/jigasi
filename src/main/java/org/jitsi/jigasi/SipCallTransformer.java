@@ -156,7 +156,8 @@ public class SipCallTransformer
     /**
      * Implements {@link TransformEngine#getRTCPTransformer()}.
      * <p>
-     * This <tt>TransformEngine</tt> does not transform RTCP packets.
+     * The returned transformer removes outgoing RTCP BYE packets for SSRCs
+     * that were not seen and passes the rest unchanged.
      */
     @Override
     public PacketTransformer getRTCPTransformer()
