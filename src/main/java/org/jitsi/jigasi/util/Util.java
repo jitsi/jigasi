@@ -246,7 +246,7 @@ public class Util
      * @param name the threads name prefix.
      * @return the newly created pool.
      */
-    public static ExecutorService createNewThreadPool(String name)
+    public static ThreadPoolExecutor createNewThreadPool(String name)
     {
         return new ThreadPoolExecutor(
             1, 1000, // a pretty big thread pool size to avoid reaching capacity
