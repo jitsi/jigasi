@@ -43,7 +43,7 @@ public class CallManager
     /**
      * The thread pool to serve all call operations like answer and hangup.
      */
-    private static ExecutorService threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
+    private static ThreadPoolExecutor threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
 
     private static boolean healthy = true;
 
@@ -673,22 +673,42 @@ public class CallManager
     }
 
     /**
-     * Shutdowns internal thread pool used and waits for all tasks to finish
-     * gracefully withing 5 seconds or <tt>TimeoutException</tt> is thrown.
+     * Waits for all tasks of the internal thread pool to finish within
+     * 5 seconds, then replaces the pool with a new one. Used by the tests.
      *
      * @throws InterruptedException if waiting thread is interrupted.
-     * @throws TimeoutException if we fail to shutdown in 5 seconds.
+     * @throws TimeoutException if the tasks do not finish in 5 seconds.
      */
-    public static synchronized void restartPool()
+    public static void restartPool()
         throws InterruptedException, TimeoutException
     {
-        threadPool.shutdown();
+        long deadline = System.currentTimeMillis() + 5000;
 
-        threadPool.awaitTermination(5, TimeUnit.SECONDS);
+        // Wait without holding the lock of this class: a running task can call
+        // another synchronized method here to submit a follow-up task, for
+        // example the hangup of the xmpp call when the sip call ends.
+        ThreadPoolExecutor pool;
+        synchronized (CallManager.class)
+        {
+            pool = threadPool;
+        }
+        while (pool.getActiveCount() > 0)
+        {
+            if (System.currentTimeMillis() > deadline)
+                throw new TimeoutException();
 
-        if (!threadPool.isTerminated())
+            Thread.sleep(10);
+        }
+
+        synchronized (CallManager.class)
+        {
+            pool = threadPool;
+            pool.shutdown();
+            threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
+        }
+
+        long remaining = Math.max(deadline - System.currentTimeMillis(), 0);
+        if (!pool.awaitTermination(remaining, TimeUnit.MILLISECONDS))
             throw new TimeoutException();
-
-        threadPool = Util.createNewThreadPool(POOL_THREADS_PREFIX);
     }
 }
