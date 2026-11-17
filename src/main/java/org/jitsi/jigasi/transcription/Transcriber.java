@@ -474,6 +474,14 @@ public class Transcriber
      */
     public void flushParticipantAudioBuffer(String identifier)
     {
+        // The executor that flushes the buffer exists only while transcribing. A participant can be reported as muted
+        // before we are invited to the conference (right after joining the room) or after we stopped, and in both
+        // cases there is no buffered audio to flush.
+        if (!isTranscribing())
+        {
+            return;
+        }
+
         Participant participant = getParticipant(identifier);
         if (participant != null)
         {
