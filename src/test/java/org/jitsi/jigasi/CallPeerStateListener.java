@@ -33,7 +33,7 @@ import java.util.*;
 public class CallPeerStateListener
     extends CallPeerAdapter
 {
-    private CallPeerState targetState;
+    private volatile CallPeerState targetState;
 
     @Override
     public void peerStateChanged(CallPeerChangeEvent evt)
@@ -60,18 +60,28 @@ public class CallPeerStateListener
 
         CallPeer watchedPeer = getCallPeer(call, peerIdx);
 
-        // FIXME: we can miss call state anyway ?(but timeout will release)
-        if (!targetState.equals(watchedPeer.getState()))
+        synchronized (this)
         {
-            synchronized (this)
+            // Add the listener before checking the state, so a change that
+            // happens in between still wakes us up.
+            watchedPeer.addCallPeerListener(this);
+            try
             {
-                watchedPeer.addCallPeerListener(this);
+                long deadline = System.currentTimeMillis() + timeout;
+                long remaining = timeout;
 
-                this.wait(timeout);
+                while (!targetState.equals(watchedPeer.getState())
+                    && remaining > 0)
+                {
+                    this.wait(remaining);
+                    remaining = deadline - System.currentTimeMillis();
+                }
+            }
+            finally
+            {
+                watchedPeer.removeCallPeerListener(this);
             }
         }
-
-        watchedPeer.removeCallPeerListener(this);
 
         assertEquals(targetState, watchedPeer.getState());
     }

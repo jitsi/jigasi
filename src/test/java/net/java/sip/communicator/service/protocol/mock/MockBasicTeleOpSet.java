@@ -63,9 +63,21 @@ public class MockBasicTeleOpSet
         throws OperationFailedException
     {
 
-        ((MockCallPeer) peer).setState(CallPeerState.CONNECTED);
+        MockCall call = (MockCall) peer.getCall();
 
-        ((MockCall) peer.getCall()).setCallState(CallState.CALL_IN_PROGRESS);
+        // Same lock as MockCall.hangup(). An answer that runs after the hangup
+        // must not bring the call back to in progress.
+        synchronized (call)
+        {
+            if (CallState.CALL_ENDED.equals(call.getCallState()))
+            {
+                return;
+            }
+
+            ((MockCallPeer) peer).setState(CallPeerState.CONNECTED);
+
+            call.setCallState(CallState.CALL_IN_PROGRESS);
+        }
     }
 
     @Override
