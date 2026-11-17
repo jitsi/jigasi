@@ -104,9 +104,10 @@ public class Transcriber
     }
 
     /**
-     * The current state of the transcribing
+     * The current state of the transcribing. It is read on threads other than the one that changes it (the media
+     * thread delivering audio, the threads of the transcription service).
      */
-    private State state = State.NOT_STARTED;
+    private volatile State state = State.NOT_STARTED;
 
     /**
      * Holds participants of the conference which need
@@ -163,7 +164,7 @@ public class Transcriber
      * Will be created in {@link Transcriber#start()} and shutdown in
      * {@link Transcriber#stop(org.jitsi.jigasi.transcription.TranscriptionListener.FailureReason)}
      */
-    ExecutorService executorService;
+    volatile ExecutorService executorService;
 
     /**
      * The name of the room of the conference which will be transcribed
@@ -503,8 +504,10 @@ public class Transcriber
 
             Statistics.incrementTotalTranscriberStarted();
 
-            this.state = State.TRANSCRIBING;
+            // Create the executor before changing the state, so that a thread which sees us transcribing always finds
+            // the executor.
             this.executorService = Executors.newSingleThreadExecutor();
+            this.state = State.TRANSCRIBING;
 
             TranscriptEvent event
                 = this.transcript.started(roomName, roomUrl, getParticipants());
