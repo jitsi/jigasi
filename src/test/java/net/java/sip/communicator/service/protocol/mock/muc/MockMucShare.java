@@ -97,10 +97,14 @@ public class MockMucShare
             if (chatToNotify != chatRoom)
             {
                 chatToNotify.removeMemberPresenceListener(this);
-
-                chatToNotify.mockJoin((MockRoomMember) chatRoomMember);
-
-                chatToNotify.addMemberPresenceListener(this);
+                try
+                {
+                    chatToNotify.mockJoin((MockRoomMember) chatRoomMember);
+                }
+                finally
+                {
+                    chatToNotify.addMemberPresenceListener(this);
+                }
             }
         }
     }
@@ -121,10 +125,14 @@ public class MockMucShare
                 // Same as for joins: the leave in the other room must not be
                 // broadcast again, or the rooms remove the member twice.
                 chatToNotify.removeMemberPresenceListener(this);
-
-                chatToNotify.mockLeave(chatRoomMember.getName());
-
-                chatToNotify.addMemberPresenceListener(this);
+                try
+                {
+                    chatToNotify.mockLeave(chatRoomMember.getName());
+                }
+                finally
+                {
+                    chatToNotify.addMemberPresenceListener(this);
+                }
             }
         }
     }

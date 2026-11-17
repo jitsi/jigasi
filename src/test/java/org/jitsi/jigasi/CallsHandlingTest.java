@@ -53,11 +53,11 @@ public class CallsHandlingTest
     private final static Logger logger = Logger.getLogger(CallsHandlingTest.class);
 
     /**
-     * How long to wait for an expected call or peer state. A test only waits
-     * this long when it is about to fail, so it is generous for slow CI
-     * runners.
+     * How long to wait for an expected state, call or session. A test only
+     * waits this long when it is about to fail, so it is generous for slow CI
+     * runners. Also used by {@link MockJvbConferenceFocus}.
      */
-    private static final long STATE_TIMEOUT = 10_000;
+    static final long STATE_TIMEOUT = 10_000;
 
     private static OSGiHandler osgi;
 
@@ -209,7 +209,7 @@ public class CallsHandlingTest
         SipGatewaySession session = sipGw.createOutgoingCall(ctx);
         assertNotNull(session);
 
-        Call sipCall = outCallWatch.getOutgoingCall(1000);
+        Call sipCall = outCallWatch.getOutgoingCall(STATE_TIMEOUT);
 
         assertNotNull(sipCall);
 
@@ -378,7 +378,7 @@ public class CallsHandlingTest
         MockCall sipCall = sipProvider.getTelephony().mockIncomingGatewayCall("calee", roomName);
 
         // Wait for the focus to send the invite.
-        long deadline = System.currentTimeMillis() + 2000;
+        long deadline = System.currentTimeMillis() + STATE_TIMEOUT;
         while (focus.getCall() == null && System.currentTimeMillis() < deadline)
         {
             Thread.sleep(50);
@@ -453,7 +453,7 @@ public class CallsHandlingTest
         GatewaySessions gatewaySessions = new GatewaySessions(osgi.getSipGateway());
 
         // Wait for call to be created
-        Call sipCall = outCallWatch.getOutgoingCall(1000);
+        Call sipCall = outCallWatch.getOutgoingCall(STATE_TIMEOUT);
 
         assertNotNull(sipCall);
 
@@ -466,7 +466,7 @@ public class CallsHandlingTest
 
         Jid callResource = JidCreate.from(callUri.substring(5)); //remove xmpp:
 
-        List<SipGatewaySession> sessions = gatewaySessions.getSessions(2000);
+        List<SipGatewaySession> sessions = gatewaySessions.getSessions(STATE_TIMEOUT);
         assertNotNull(sessions);
         assertEquals(1, sessions.size());
 
@@ -741,7 +741,7 @@ public class CallsHandlingTest
             sipCall1, CallState.CALL_INITIALIZATION, STATE_TIMEOUT);
 
         // We expect to have 1 active sessions
-        List<SipGatewaySession> sessions = gatewaySessions.getSessions(1000);
+        List<SipGatewaySession> sessions = gatewaySessions.getSessions(STATE_TIMEOUT);
         assertEquals(1, sessions.size());
 
         SipGatewaySession session1 = sessions.get(0);
