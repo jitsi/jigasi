@@ -49,23 +49,29 @@ public class OSGiHandler
         );
 
         JigasiBundleConfig.setSystemPropertyDefaults();
+        // The bundles start in this order, one after the other, so the mock
+        // factories are registered before MockSipActivator starts.
         var fw = Main.start(List.of(
-            MockSipActivator.class,
-            MockProtocolProviderFactoriesActivator.class));
+            MockProtocolProviderFactoriesActivator.class,
+            MockSipActivator.class));
         bc = fw.getBundleContext();
         return fw;
     }
 
+    /**
+     * Registers the mock SIP provider when the bundle starts.
+     * <p>
+     * This is not a {@code DependentActivator} on
+     * {@link ProtocolProviderFactory}: there are two mock factories, and when
+     * their registrations are handled at the same time, a
+     * {@code DependentActivator} can miss its start and the provider is never
+     * registered.
+     */
     public static class MockSipActivator
-        extends DependentActivator
+        implements BundleActivator
     {
-        public MockSipActivator()
-        {
-            super(ProtocolProviderFactory.class);
-        }
-
         @Override
-        public void startWithServices(BundleContext context)
+        public void start(BundleContext context)
         {
             Map<String, String> accProps = new HashMap<>();
             accProps.put(CallContext.DOMAIN_BASE_ACCOUNT_PROP, "sipserver.net");
@@ -99,8 +105,8 @@ public class OSGiHandler
                 + ")"
                 + "(" + ProtocolProviderFactory.USER_ID
                 + "=sipuser@sipserver.net))";
-        // MockSipActivator is a DependentActivator, so the provider is registered asynchronously and may not be
-        // available the moment the framework becomes active. Wait for it instead of failing on the first miss.
+        // MockSipActivator registers the provider while the framework starts, so it is normally found on the
+        // first try.
         var deadline = System.currentTimeMillis() + 5000;
         do
         {
