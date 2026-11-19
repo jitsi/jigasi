@@ -240,7 +240,13 @@ public class WhisperWebsocket
                 {
                     wait(waitTime);
                 }
-                catch (InterruptedException ignored) {}
+                catch (InterruptedException e)
+                {
+                    // we are being shut down; keep the interrupt flag and
+                    // stop retrying instead of looping on
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
         }
 
