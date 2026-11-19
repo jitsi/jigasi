@@ -131,9 +131,15 @@ public abstract class AbstractGateway<T extends AbstractGatewaySession>
         {
             sessions.forEach((callContext, session) -> {
                 String displayName = session.getMucDisplayName();
-                if (displayName == null || displayName.trim() == "")
+                if (displayName == null || displayName.isBlank())
                 {
                     displayName = Integer.toString(session.hashCode());
+                }
+                // two sessions may share a display name; do not let one
+                // silently overwrite the other in the debug output
+                if (sessionsJson.has(displayName))
+                {
+                    displayName = displayName + "-" + session.hashCode();
                 }
                 sessionsJson.set(displayName, session.getDebugState());
             });

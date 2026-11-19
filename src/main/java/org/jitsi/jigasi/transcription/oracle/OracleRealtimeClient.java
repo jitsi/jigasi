@@ -181,13 +181,13 @@ public class OracleRealtimeClient
             else if (realtimeMessage instanceof RealtimeMessageError)
             {
                 final RealtimeMessageError errorMessage = (RealtimeMessageError) realtimeMessage;
-                logger.error("Received RealtimeMessageError {}" + errorMessage.getMessage());
+                logger.error("Received RealtimeMessageError: " + errorMessage.getMessage());
                 listener.onError(new ConnectException(errorMessage.getMessage()));
             }
         }
         catch (JsonProcessingException e)
         {
-            logger.error("Text Message: JsonProcessingException {}", e);
+            logger.error("Text Message: JsonProcessingException", e);
             throw e;
         }
     }
@@ -222,7 +222,7 @@ public class OracleRealtimeClient
                 queryParameter += "modelDomain=" + parameters.getModelDomain().getValue() + "&";
             if (parameters.getCustomizations() != null && !parameters.getCustomizations().isEmpty())
                 queryParameter += "customizations=" + URLEncoder.encode(customizationsJson, StandardCharsets.UTF_8);
-            if (queryParameter.charAt(queryParameter.length() - 1) == '&')
+            if (!queryParameter.isEmpty() && queryParameter.charAt(queryParameter.length() - 1) == '&')
                 queryParameter = queryParameter.substring(0, queryParameter.length() - 1);
             // The server should contain ws or wss
             destUri = new URI(server + ":" + port + "/ws/transcribe/stream?" + queryParameter);
@@ -233,7 +233,20 @@ public class OracleRealtimeClient
         }
         catch (Exception e)
         {
-            logger.error("Failed to connect to OCI Transcriber {}", e);
+            logger.error("Failed to connect to OCI Transcriber", e);
+            // the client was started above; stop it so its threads do not leak
+            // when the connection attempt fails
+            if (this.client != null)
+            {
+                try
+                {
+                    this.client.stop();
+                }
+                catch (Exception stopEx)
+                {
+                    logger.warn("Failed to stop OCI transcription client after connect error", stopEx);
+                }
+            }
             throw new OracleServiceDisruptionException(e);
         }
     }
