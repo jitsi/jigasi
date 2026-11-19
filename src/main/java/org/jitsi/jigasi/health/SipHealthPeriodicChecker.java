@@ -254,14 +254,25 @@ class SipHealthPeriodicChecker
 
             if (retryOnFailure)
             {
-                new Timer().schedule(new TimerTask()
+                // a daemon timer that is cancelled after its single run, so a
+                // failing health check does not leave a non-daemon thread
+                // behind on every retry
+                Timer retryTimer = new Timer("SipHealthRetry", true);
+                retryTimer.schedule(new TimerTask()
                 {
                     @Override
                     public void run()
                     {
-                        doRunInternal(false);
+                        try
+                        {
+                            doRunInternal(false);
+                        }
+                        finally
+                        {
+                            retryTimer.cancel();
+                        }
                     }
-                }, CHECK_RETRY_INTERVAL*1000);
+                }, CHECK_RETRY_INTERVAL*1000L);
             }
         }
     }
@@ -377,9 +388,9 @@ class SipHealthPeriodicChecker
             catch (Throwable t){}
         }
 
-        if (receivedBuffer[0] == null ||  receivedBuffer[0] != true)
+        if (!Boolean.TRUE.equals(receivedBuffer[0]))
         {
-            logger.error("Outgoing health check failed. " + (debugEnabled ? getThreadDumb() : ""));
+            logger.error("Outgoing health check failed. " + (debugEnabled ? getThreadDump() : ""));
 
             String sessionInfo = (String)call.getData("X-session-info");
 
@@ -392,7 +403,7 @@ class SipHealthPeriodicChecker
      * Retrieves a thread dump.
      * @return string representing current state of threads.
      */
-    private static String getThreadDumb()
+    private static String getThreadDump()
     {
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(
